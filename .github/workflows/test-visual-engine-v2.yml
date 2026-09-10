@@ -35,3 +35,9 @@ jobs:
           grep -q "skinId==='robber'" src/duckgame/game/sprites.ts
           test -s dist/index.html
           test -n "$(find dist/assets -maxdepth 1 -name 'index-*.js' -print -quit)"
+      - name: Upload build preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-engine-v2-dist
+          path: duck-heist-playable-bfvyg1-1788926588197-src/dist
+          if-no-files-found: error
