@@ -18,122 +18,96 @@ const MACRO_SKIN=`SKINS.push({
 
 `;
 
-const MACRO_OVERLAY=`    case 'macro_pato': {
-      // Macro Pato — golden sample del nuevo estilo chibi/noir.
-      // Mantiene la misma hitbox pero empuja la silueta con cabello, lentes y plumaje premium.
-      const hy = by + 2 + (moving ? Math.round(Math.sin(frame * .35)) : 0);
-      const hair = '#141923';
-      const hairMid = '#202734';
-      const hairHi = '#49515d';
-      const hairLo = '#090c12';
-      const frameCol = '#2f3c49';
-      const frameHi = '#566372';
-      const lens = 'rgba(196,208,218,.42)';
-      const lensDark = 'rgba(86,102,114,.22)';
-      const shine = '#f6fbff';
-      const fluff = '#f5e4bf';
-      const fluffDark = '#e6cd9d';
-      const fluffShade = '#d2af77';
-      const flash = Math.floor(frame * 0.55) % 90 < 7;
+const MACRO_RENDERER=`function drawMacroPato(
+  ctx: Ctx, x:number, y:number, frame:number,
+  dir:DuckDir='down', moving=false, hurt=false, dashing=false,
+  shooting=false, dead=false,
+){
+  const bx=Math.floor(x),by=Math.floor(y);
+  const bob=moving?Math.round(Math.sin(frame*.35)):0;
+  const step=moving?Math.sin(frame*.35):0;
+  const X=bx-4,Y=by-9+bob;
+  const ink='#090c12',hair='#141923',hair2='#202734',hairHi='#4a535f';
+  const cream='#f5e4bf',cream2='#e6cd9d',cream3='#d2af77',light='#fff2d2';
+  const beak='#f2a33b',beak2='#c97a23';
+  const glass='#b9ccd6',glassDark='#6c7d88',frameCol='#2f3c49',frameHi='#64717f';
+  ctx.save();
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
+  if(dashing)ctx.globalAlpha=.78;
 
-      // Silueta chibi más esponjosa sin tocar la caja de colisión.
-      rect(ctx, bx + 1, by + 7, 2, 6, fluff);
-      rect(ctx, bx + 13, by + 7, 2, 6, fluff);
-      rect(ctx, bx, by + 9, 2, 2, fluffDark);
-      rect(ctx, bx + 14, by + 9, 2, 2, fluffDark);
-      rect(ctx, bx + 2, by + 13, 2, 2, fluffDark);
-      rect(ctx, bx + 12, by + 13, 2, 2, fluffDark);
-      rect(ctx, bx + 5, by + 14, 6, 1, '#fbf0d6');
-      rect(ctx, bx + 5, by + 10, 1, 3, fluffShade);
-      rect(ctx, bx + 10, by + 10, 1, 2, fluffShade);
+  // Shadow and feet stay anchored to the original player footprint/hitbox.
+  ctx.fillStyle='rgba(0,0,0,.30)';ctx.fillRect(bx-3,by+16,22,3);ctx.fillRect(bx,by+19,16,1);
+  const foot=step>0?1:step<0?-1:0;
+  rect(ctx,bx+1-foot,by+14,6,4,beak);rect(ctx,bx,by+17,7,2,beak2);
+  rect(ctx,bx+9+foot,by+14,6,4,beak);rect(ctx,bx+9,by+17,7,2,beak2);
 
-      if (dir === 'up') {
-        // Vista trasera: melena protagonista con caída pesada y puntas desordenadas.
-        rect(ctx, bx + 2, hy - 6, 12, 5, hairMid);
-        rect(ctx, bx + 1, hy - 2, 14, 6, hair);
-        rect(ctx, bx + 3, hy - 8, 9, 3, hairMid);
-        rect(ctx, bx + 5, hy - 9, 6, 2, hairMid);
-        rect(ctx, bx + 2, hy + 2, 2, 3, hairLo);
-        rect(ctx, bx + 4, hy + 3, 2, 3, hair);
-        rect(ctx, bx + 7, hy + 3, 2, 3, hair);
-        rect(ctx, bx + 10, hy + 3, 2, 3, hair);
-        rect(ctx, bx + 12, hy + 2, 2, 3, hairLo);
-        rect(ctx, bx + 3, hy - 5, 3, 1, hairHi);
-        rect(ctx, bx + 9, hy - 4, 3, 1, hairHi);
-      } else if (dir === 'left') {
-        // Perfil izquierdo: flequillo pesado, patilla amplia y lente lateral.
-        rect(ctx, bx + 2, hy - 6, 11, 5, hairMid);
-        rect(ctx, bx + 1, hy - 2, 12, 4, hair);
-        rect(ctx, bx + 1, hy + 1, 5, 5, hairLo);
-        rect(ctx, bx + 4, hy + 3, 2, 3, hair);
-        rect(ctx, bx + 4, hy - 5, 4, 1, hairHi);
-        rect(ctx, bx + 3, hy + 1, 6, 5, frameCol);
-        rect(ctx, bx + 4, hy + 2, 4, 3, lens);
-        rect(ctx, bx + 5, hy + 4, 2, 1, lensDark);
-        rect(ctx, bx + 1, hy + 2, 3, 1, frameCol);
-        rect(ctx, bx + 3, hy + 1, 6, 1, frameHi);
-        rect(ctx, bx + 5, hy + 2, 2, 1, shine);
-        if (flash) rect(ctx, bx + 6, hy + 2, 1, 3, '#ffffff');
-      } else if (dir === 'right') {
-        // Perfil derecho, espejado manualmente para que no se suavicen los píxeles.
-        rect(ctx, bx + 3, hy - 6, 11, 5, hairMid);
-        rect(ctx, bx + 3, hy - 2, 12, 4, hair);
-        rect(ctx, bx + 10, hy + 1, 5, 5, hairLo);
-        rect(ctx, bx + 10, hy + 3, 2, 3, hair);
-        rect(ctx, bx + 8, hy - 5, 4, 1, hairHi);
-        rect(ctx, bx + 7, hy + 1, 6, 5, frameCol);
-        rect(ctx, bx + 8, hy + 2, 4, 3, lens);
-        rect(ctx, bx + 9, hy + 4, 2, 1, lensDark);
-        rect(ctx, bx + 12, hy + 2, 3, 1, frameCol);
-        rect(ctx, bx + 7, hy + 1, 6, 1, frameHi);
-        rect(ctx, bx + 9, hy + 2, 2, 1, shine);
-        if (flash) rect(ctx, bx + 9, hy + 2, 1, 3, '#ffffff');
-      } else {
-        // Frente: cabeza grande, melena asimétrica y lentes como rasgo dominante.
-        rect(ctx, bx + 2, hy - 6, 12, 5, hairMid);
-        rect(ctx, bx + 1, hy - 2, 14, 4, hair);
-        rect(ctx, bx + 1, hy + 1, 4, 5, hairLo);
-        rect(ctx, bx + 11, hy + 1, 4, 5, hairLo);
-        rect(ctx, bx + 3, hy - 8, 4, 3, hairMid);
-        rect(ctx, bx + 7, hy - 9, 5, 4, hairMid);
-        rect(ctx, bx + 2, hy, 3, 3, hair);
-        rect(ctx, bx + 6, hy - 1, 2, 3, hair);
-        rect(ctx, bx + 11, hy - 1, 3, 3, hair);
-        rect(ctx, bx + 4, hy - 5, 3, 1, hairHi);
-        rect(ctx, bx + 9, hy - 6, 3, 1, hairHi);
+  if(dead){
+    rect(ctx,bx-3,by+6,22,9,cream);rect(ctx,bx-1,by+11,18,5,cream2);
+    rect(ctx,bx+8,by+3,8,6,hair);rect(ctx,bx+15,by+7,6,3,beak);
+    rect(ctx,bx+10,by+5,2,2,ink);rect(ctx,bx+13,by+5,2,2,ink);
+    ctx.restore();return;
+  }
 
-        // Lentes rectangulares premium con armazón grueso y brillo.
-        rect(ctx, bx + 2, hy + 1, 6, 5, frameCol);
-        rect(ctx, bx + 8, hy + 1, 6, 5, frameCol);
-        rect(ctx, bx + 3, hy + 2, 4, 3, lens);
-        rect(ctx, bx + 9, hy + 2, 4, 3, lens);
-        rect(ctx, bx + 7, hy + 2, 2, 1, frameCol);
-        rect(ctx, bx + 1, hy + 2, 2, 1, frameCol);
-        rect(ctx, bx + 14, hy + 2, 2, 1, frameCol);
-        rect(ctx, bx + 2, hy + 1, 6, 1, frameHi);
-        rect(ctx, bx + 8, hy + 1, 6, 1, frameHi);
-        rect(ctx, bx + 4, hy + 2, 2, 1, shine);
-        rect(ctx, bx + 10, hy + 2, 2, 1, shine);
-        rect(ctx, bx + 4, hy + 4, 2, 1, lensDark);
-        rect(ctx, bx + 10, hy + 4, 2, 1, lensDark);
-        px(ctx, bx + 6, hy + 4, '#11151a');
-        px(ctx, bx + 10, hy + 4, '#11151a');
-        if (flash) {
-          rect(ctx, bx + 5, hy + 2, 1, 3, '#ffffff');
-          rect(ctx, bx + 11, hy + 2, 1, 2, '#ffffff');
-        }
+  // Fluffy chibi body: visibly wider/taller than the legacy duck, but collision is untouched.
+  rect(ctx,X+3,Y+14,18,11,ink);
+  rect(ctx,X+2,Y+16,20,7,cream3);
+  rect(ctx,X+3,Y+14,18,9,cream);
+  rect(ctx,X+1,Y+17,4,5,cream);rect(ctx,X+20,Y+17,4,5,cream);
+  rect(ctx,X+3,Y+21,3,3,cream2);rect(ctx,X+18,Y+21,3,3,cream2);
+  rect(ctx,X+7,Y+22,10,3,cream2);rect(ctx,X+8,Y+22,8,1,light);
+  rect(ctx,X+7,Y+17,3,1,cream2);rect(ctx,X+13,Y+19,3,1,cream3);
 
-        // Mechones frontales sobre los lentes para dar más volumen.
-        rect(ctx, bx + 5, hy - 1, 1, 5, hairLo);
-        rect(ctx, bx + 8, hy - 1, 1, 6, hairLo);
-      }
+  if(dir==='up'){
+    // Back view: large rounded hair mass and visible cream body below it.
+    rect(ctx,X+3,Y+3,18,12,ink);rect(ctx,X+2,Y+6,20,8,hair);
+    rect(ctx,X+5,Y+1,14,4,hair2);rect(ctx,X+8,Y,8,3,hair2);
+    rect(ctx,X+3,Y+12,3,5,ink);rect(ctx,X+8,Y+13,3,5,hair);rect(ctx,X+14,Y+13,3,5,hair);rect(ctx,X+19,Y+12,3,5,ink);
+    rect(ctx,X+6,Y+4,5,1,hairHi);rect(ctx,X+15,Y+6,4,1,hairHi);
+  }else if(dir==='left'){
+    rect(ctx,X+4,Y+3,17,11,ink);rect(ctx,X+3,Y+5,17,8,hair);rect(ctx,X+6,Y+1,12,4,hair2);
+    rect(ctx,X+3,Y+12,5,5,ink);rect(ctx,X+7,Y+3,5,1,hairHi);
+    // one oversized rectangular lens in profile
+    rect(ctx,X+5,Y+10,10,7,frameCol);rect(ctx,X+6,Y+11,8,5,glassDark);rect(ctx,X+7,Y+11,5,2,glass);
+    rect(ctx,X+5,Y+10,10,1,frameHi);rect(ctx,X+3,Y+12,3,1,frameCol);
+    rect(ctx,X-1,Y+14,8,4,beak);rect(ctx,X-1,Y+17,7,2,beak2);
+    px(ctx,X+11,Y+14,ink,2);
+  }else if(dir==='right'){
+    rect(ctx,X+3,Y+3,17,11,ink);rect(ctx,X+4,Y+5,17,8,hair);rect(ctx,X+6,Y+1,12,4,hair2);
+    rect(ctx,X+18,Y+12,5,5,ink);rect(ctx,X+12,Y+3,5,1,hairHi);
+    rect(ctx,X+10,Y+10,10,7,frameCol);rect(ctx,X+11,Y+11,8,5,glassDark);rect(ctx,X+13,Y+11,5,2,glass);
+    rect(ctx,X+10,Y+10,10,1,frameHi);rect(ctx,X+19,Y+12,3,1,frameCol);
+    rect(ctx,X+18,Y+14,8,4,beak);rect(ctx,X+19,Y+17,7,2,beak2);
+    px(ctx,X+12,Y+14,ink,2);
+  }else{
+    // Front view: the golden sample from the approved concept art.
+    rect(ctx,X+3,Y+3,18,12,ink);rect(ctx,X+2,Y+6,20,8,hair);
+    rect(ctx,X+5,Y+1,6,4,hair2);rect(ctx,X+10,Y,9,5,hair2);
+    rect(ctx,X+2,Y+11,4,6,ink);rect(ctx,X+18,Y+11,4,6,ink);
+    rect(ctx,X+6,Y+4,4,1,hairHi);rect(ctx,X+15,Y+3,4,1,hairHi);
+    // oversized glasses
+    rect(ctx,X+4,Y+10,8,7,frameCol);rect(ctx,X+13,Y+10,8,7,frameCol);rect(ctx,X+11,Y+12,3,2,frameCol);
+    rect(ctx,X+5,Y+11,6,5,glassDark);rect(ctx,X+14,Y+11,6,5,glassDark);
+    rect(ctx,X+6,Y+11,4,2,glass);rect(ctx,X+15,Y+11,4,2,glass);
+    rect(ctx,X+4,Y+10,8,1,frameHi);rect(ctx,X+13,Y+10,8,1,frameHi);
+    rect(ctx,X+2,Y+12,3,1,frameCol);rect(ctx,X+20,Y+12,3,1,frameCol);
+    px(ctx,X+9,Y+14,ink,2);px(ctx,X+15,Y+14,ink,2);
+    px(ctx,X+6,Y+11,'#ffffff',1);px(ctx,X+15,Y+11,'#ffffff',1);
+    // heavy fringe crossing the top of the glasses
+    rect(ctx,X+8,Y+7,2,5,ink);rect(ctx,X+12,Y+6,2,6,ink);rect(ctx,X+17,Y+7,2,4,ink);
+    // broad duck bill
+    rect(ctx,X+8,Y+16,9,4,beak);rect(ctx,X+6,Y+17,13,3,beak);rect(ctx,X+8,Y+20,9,2,beak2);
+    px(ctx,X+10,Y+17,'#8d541b',1);px(ctx,X+15,Y+17,'#8d541b',1);
+  }
 
-      // Pliegues del pecho para que combine mejor con el sheet de referencia.
-      rect(ctx, bx + 6, by + 9, 3, 1, fluffDark);
-      rect(ctx, bx + 5, by + 11, 1, 2, fluffShade);
-      rect(ctx, bx + 10, by + 11, 1, 2, fluffShade);
-      break;
-    }
+  if(shooting){
+    const mx=dir==='left'?bx-8:dir==='right'?bx+23:bx+8;
+    const my=dir==='up'?by-10:dir==='down'?by+20:by+6;
+    rect(ctx,mx-3,my-3,6,6,'#fff4cf');rect(ctx,mx-1,my-1,2,2,'#f4d03f');
+  }
+  if(dashing){ctx.globalAlpha=.22;rect(ctx,bx-5,by-4,26,20,'#fff4d6');}
+  ctx.restore();
+}
+
 `;
 
 export function applyDuckMacroPato(gameDir){
@@ -147,13 +121,16 @@ export function applyDuckMacroPato(gameDir){
 
   const sprites=path.join(gameDir,'game','sprites.ts');
   let s=readFileSync(sprites,'utf8');
-  if(!s.includes("case 'macro_pato':")){
-    const start=s.indexOf("    case 'space_green':");
-    const at=start<0?-1:s.indexOf('    default: break;',start);
-    if(at<0)throw new Error('Macro Pato patch failed: sprite overlay anchor');
-    s=s.slice(0,at)+MACRO_OVERLAY+s.slice(at);
-    writeFileSync(sprites,s);
+  if(!s.includes('function drawMacroPato(')){
+    s=once(s,'export function drawDuckSkin(',MACRO_RENDERER+'export function drawDuckSkin(','macro renderer');
   }
+  s=once(
+    s,
+    "  const pal: DuckPaletteLike = skin?.palette ?? DEFAULT_DUCK;\n  drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal);",
+    "  const pal: DuckPaletteLike = skin?.palette ?? DEFAULT_DUCK;\n  if(skin?.overlay==='macro_pato'){drawMacroPato(ctx,x,y,frame,dir,moving,hurt,dashing,shooting,dead);return;}\n  drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal);",
+    'standalone Macro Pato render path'
+  );
+  writeFileSync(sprites,s);
 
   const progress=path.join(gameDir,'game','progress.ts');
   let p=readFileSync(progress,'utf8');
