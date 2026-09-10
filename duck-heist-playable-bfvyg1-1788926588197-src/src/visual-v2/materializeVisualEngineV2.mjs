@@ -39,7 +39,7 @@ export function applyDuckVisualEngineV2(gameDir){
     sprites=sprites.slice(0,at)+SPRITE_RUNTIME+sprites.slice(at);
 
     const hook=`) {\n  const skin = getSkin(skinId);`;
-    const hookReplacement=`) {\n  // During the V2 migration all legacy cosmetic overlays are suppressed. This prevents\n  // old hats/hair/etc. from floating around the new high-density base duck. Macro Pato\n  // keeps its own dedicated V2 path while the remaining skins are redrawn later.\n  if(skinId!=='macro_pato'&&drawBaseDuckV2(ctx,x,y,frame,dir,moving,hurt,dashing,shooting,dead))return;\n  const skin = getSkin(skinId);`;
+    const hookReplacement=`) {\n  // V2 migration proof: every saved/equipped legacy skin is temporarily rendered as\n  // the clean base duck. This guarantees that old Macro Pato or other overlays cannot\n  // survive from localStorage while the new art system is being validated.\n  if(drawBaseDuckV2(ctx,x,y,frame,dir,moving,hurt,dashing,shooting,dead))return;\n  const skin = getSkin(skinId);`;
     sprites=once(sprites,hook,hookReplacement,'base duck render hook');
     writeFileSync(spritesFile,sprites,'utf8');
   }
