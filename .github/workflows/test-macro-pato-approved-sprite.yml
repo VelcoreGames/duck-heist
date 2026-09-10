@@ -1,0 +1,34 @@
+name: Test Macro Pato Approved Sprite
+
+on:
+  push:
+    branches:
+      - feature/macro-pato-approved-sprite
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm run build
+      - name: Verify approved Macro Pato sprite
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: |
+          test -s public/assets/macro-pato-final-sprites.png
+          file public/assets/macro-pato-final-sprites.png | grep -q 'PNG image data'
+          grep -q 'applyDuckMacroPatoSpriteAsset' vite.config.ts
+          grep -q 'MACRO_PATO_APPROVED_SPRITE_V1' src/duckgame/game/sprites.ts
+          grep -q "macro-pato-final-sprites.png" src/duckgame/game/sprites.ts
+          test -s dist/assets/index-*.js
