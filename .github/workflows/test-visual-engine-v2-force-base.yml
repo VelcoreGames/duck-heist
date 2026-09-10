@@ -1,0 +1,35 @@
+name: Test Visual Engine V2 Force Base
+
+on:
+  push:
+    branches:
+      - feature/visual-engine-v2-base-duck
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm run build
+      - name: Verify forced V2 base duck
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: |
+          grep -q "if(drawBaseDuckV2(ctx,x,y,frame,dir,moving,hurt,dashing,shooting,dead))return;" src/duckgame/game/sprites.ts
+          ! grep -q "skinId!=='macro_pato'&&drawBaseDuckV2" src/duckgame/game/sprites.ts
+          grep -q "logicalW:64,logicalH:64" src/duckgame/game/sprites.ts
+          grep -q 'WORLD_RENDER_SCALE = 3' src/duckgame/App.tsx
+          test -s public/assets-v2/base-duck-v2.png
+          test -s dist/index.html
+          test -n "$(find dist/assets -maxdepth 1 -name 'index-*.js' -print -quit)"
