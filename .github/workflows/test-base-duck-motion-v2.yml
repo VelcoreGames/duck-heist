@@ -1,0 +1,30 @@
+name: Test Base Duck Motion V2
+
+on:
+  push:
+    branches:
+      - migration/cloudflare-pages
+    paths:
+      - 'duck-heist-playable-bfvyg1-1788926588197-src/**'
+      - '.github/workflows/test-base-duck-motion-v2.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
+      - name: Verify walk and angry shooting hooks
+        run: |
+          grep -q "DUCK_BASE_MOTION_V2" src/visual-v2/materializeBaseDuckMotionV2.mjs
+          grep -q "walkStep=Math.floor(frame/3)%4" src/visual-v2/materializeBaseDuckMotionV2.mjs
+          grep -q "drawDuckAngryFaceV2" src/visual-v2/materializeBaseDuckMotionV2.mjs
+          grep -q "applyDuckBaseMotionV2(gameDir)" vite.config.ts
+          test -f dist/index.html
