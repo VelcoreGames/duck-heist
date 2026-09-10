@@ -1,0 +1,46 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import path from 'node:path';
+
+const MARKER='DUCK_VISUAL_ENGINE_V2_BASE_DUCK';
+const once=(s,from,to,label)=>{
+  if(!s.includes(from)) throw new Error(`Visual Engine V2 patch failed: ${label}`);
+  return s.replace(from,to);
+};
+
+const SPRITE_RUNTIME=`\n// ${MARKER}\n// Visual Engine V2 keeps gameplay in the original 480x352 logical coordinate space,\n// while art assets are rendered from higher-density source pixels. Hitboxes stay unchanged.\ntype V2SpriteDef={src:string;frameW:number;frameH:number;logicalW:number;logicalH:number;anchorX:number;footY:number};\nconst V2_BASE_DUCK:V2SpriteDef={\n  src:'./assets-v2/base-duck-v2.png',frameW:112,frameH:112,\n  logicalW:44,logicalH:44,anchorX:8,footY:20,\n};\nconst v2Images=new Map<string,HTMLImageElement>();\nfunction getV2Image(src:string){\n  if(typeof Image==='undefined')return null;\n  let img=v2Images.get(src);\n  if(!img){\n    img=new Image();\n    img.decoding='async';\n    img.src=new URL(src,document.baseURI).href;\n    v2Images.set(src,img);\n  }\n  return img;\n}\nfunction drawV2Asset(ctx:Ctx,def:V2SpriteDef,x:number,y:number,opts:{flipX?:boolean;alpha?:number;dead?:boolean;bob?:number}={}){\n  const img=getV2Image(def.src);\n  if(!img||!img.complete||img.naturalWidth<def.frameW)return false;\n  const bx=Math.floor(x),by=Math.floor(y);\n  const bob=opts.bob??0;\n  const dx=Math.round(bx+def.anchorX-def.logicalW/2);\n  const dy=Math.round(by+def.footY-def.logicalH+bob);\n  ctx.save();\n  ctx.imageSmoothingEnabled=false;\n  if(opts.alpha!==undefined)ctx.globalAlpha=opts.alpha;\n  if(opts.dead){\n    ctx.translate(bx+def.anchorX,by+10);\n    ctx.rotate(Math.PI/2);\n    ctx.translate(-(bx+def.anchorX),-(by+10));\n  }\n  if(opts.flipX){\n    ctx.translate(dx+def.logicalW,0);\n    ctx.scale(-1,1);\n    ctx.drawImage(img,0,0,def.frameW,def.frameH,0,dy,def.logicalW,def.logicalH);\n  }else{\n    ctx.drawImage(img,0,0,def.frameW,def.frameH,dx,dy,def.logicalW,def.logicalH);\n  }\n  ctx.restore();\n  return true;\n}\nfunction drawBaseDuckV2(ctx:Ctx,x:number,y:number,frame:number,dir:DuckDir='down',moving=false,hurt=false,dashing=false,shooting=false,dead=false){\n  const step=moving?Math.floor(frame/7)%4:0;\n  const bob=moving?(step===1?-1:step===3?1:0):0;\n  const alpha=hurt&&Math.floor(frame*.5)%2===0?.48:dashing?.8:1;\n  // The approved base-duck art is a right-facing three-quarter pose. V2 mirrors it for left;\n  // dedicated directional frames can replace this definition without touching gameplay code.\n  const flipX=dir==='left';\n  const ok=drawV2Asset(ctx,V2_BASE_DUCK,x,y,{flipX,alpha,dead,bob});\n  if(!ok)return false;\n  if(dashing){\n    ctx.save();ctx.globalAlpha=.13;ctx.fillStyle='#fff1cf';\n    ctx.beginPath();ctx.ellipse(Math.floor(x)+8,Math.floor(y)+18,17,5,0,0,Math.PI*2);ctx.fill();ctx.restore();\n  }\n  return true;\n}\n\n`;
+
+export function applyDuckVisualEngineV2(gameDir){
+  const appFile=path.join(gameDir,'App.tsx');
+  let app=readFileSync(appFile,'utf8');
+  if(!app.includes(MARKER)){
+    app=once(app,
+`  /** Escala entera para el canvas de mundo + supersampling para la UI */\n  const computeScale = useCallback(() => {`,
+`  // ${MARKER}\n  // 3x internal world resolution: game physics remain 480x352 logical pixels.\n  const WORLD_RENDER_SCALE = 3;\n\n  /** Escala entera para el canvas de mundo + supersampling para la UI */\n  const computeScale = useCallback(() => {`,
+'world render scale constant');
+
+    app=once(app,
+`    wc.width = CANVAS_WIDTH;\n    wc.height = CANVAS_HEIGHT;\n    const wctx = wc.getContext('2d', { alpha: false })!;`,
+`    wc.width = CANVAS_WIDTH * WORLD_RENDER_SCALE;\n    wc.height = CANVAS_HEIGHT * WORLD_RENDER_SCALE;\n    const wctx = wc.getContext('2d', { alpha: false })!;\n    wctx.setTransform(WORLD_RENDER_SCALE, 0, 0, WORLD_RENDER_SCALE, 0, 0);`,
+'world canvas supersampling');
+
+    app=once(app,
+`      const wctx2 = engine.ctx;\n      wctx2.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);`,
+`      const wctx2 = engine.ctx;\n      // Reassert the V2 logical-to-device transform every frame.\n      wctx2.setTransform(WORLD_RENDER_SCALE, 0, 0, WORLD_RENDER_SCALE, 0, 0);\n      wctx2.imageSmoothingEnabled = false;\n      wctx2.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);`,
+'world frame transform');
+    writeFileSync(appFile,app,'utf8');
+  }
+
+  const spritesFile=path.join(gameDir,'game','sprites.ts');
+  let sprites=readFileSync(spritesFile,'utf8');
+  if(!sprites.includes(MARKER)){
+    const anchor='export function drawDuckSkin(';
+    const at=sprites.indexOf(anchor);
+    if(at<0)throw new Error('Visual Engine V2 patch failed: drawDuckSkin anchor');
+    sprites=sprites.slice(0,at)+SPRITE_RUNTIME+sprites.slice(at);
+
+    const hook=`) {\n  const skin = getSkin(skinId);`;
+    const hookReplacement=`) {\n  // Base duck has migrated to Visual Engine V2. No cosmetic skin is applied here.\n  if(skinId==='robber'&&drawBaseDuckV2(ctx,x,y,frame,dir,moving,hurt,dashing,shooting,dead))return;\n  const skin = getSkin(skinId);`;
+    sprites=once(sprites,hook,hookReplacement,'base duck render hook');
+    writeFileSync(spritesFile,sprites,'utf8');
+  }
+}
