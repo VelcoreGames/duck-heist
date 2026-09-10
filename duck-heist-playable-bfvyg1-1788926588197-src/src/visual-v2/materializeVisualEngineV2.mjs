@@ -14,8 +14,8 @@ export function applyDuckVisualEngineV2(gameDir){
   let app=readFileSync(appFile,'utf8');
   if(!app.includes(MARKER)){
     app=once(app,
-`  /** Escala entera para el canvas de mundo + supersampling para la UI */\n  const computeScale = useCallback(() => {`,
-`  // ${MARKER}\n  // 3x internal world resolution: game physics remain 480x352 logical pixels.\n  const WORLD_RENDER_SCALE = 3;\n\n  /** Escala entera para el canvas de mundo + supersampling para la UI */\n  const computeScale = useCallback(() => {`,
+`  const computeScale = useCallback(() => {`,
+`  // ${MARKER}\n  // 3x internal world resolution: game physics remain 480x352 logical pixels.\n  const WORLD_RENDER_SCALE = 3;\n\n  const computeScale = useCallback(() => {`,
 'world render scale constant');
 
     app=once(app,
