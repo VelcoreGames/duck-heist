@@ -1,4 +1,4 @@
-import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import path from 'node:path';
 
 const once=(s,re,to,label)=>{const n=s.replace(re,to);if(n===s)throw new Error('Art Bible v1 patch failed: '+label);return n;};
@@ -38,10 +38,9 @@ export function drawChibiGroundShadow(ctx:CanvasRenderingContext2D,x:number,y:nu
 
 export function drawCuteNoirWorldGrade(ctx:CanvasRenderingContext2D,w:number,h:number,frame:number,floorIndex:number){
   ctx.save();
-  // Warm focal light keeps characters/loot inviting while cool edges preserve the heist/noir tone.
   const warm=ctx.createRadialGradient(w*.5,h*.47,18,w*.5,h*.47,Math.max(w,h)*.55);
   const pulse=.006*Math.sin(frame*.025);
-  warm.addColorStop(0,`rgba(255,229,184,${.045+pulse})`);
+  warm.addColorStop(0,'rgba(255,229,184,'+(.045+pulse)+')');
   warm.addColorStop(.58,'rgba(255,218,166,.018)');
   warm.addColorStop(1,'rgba(255,218,166,0)');
   ctx.fillStyle=warm;ctx.fillRect(0,0,w,h);
@@ -49,7 +48,7 @@ export function drawCuteNoirWorldGrade(ctx:CanvasRenderingContext2D,w:number,h:n
   const cool=ctx.createRadialGradient(w*.5,h*.5,Math.min(w,h)*.28,w*.5,h*.5,Math.max(w,h)*.72);
   const edge=floorIndex>=4?.09:.065;
   cool.addColorStop(0,'rgba(10,20,30,0)');
-  cool.addColorStop(1,`rgba(8,19,29,${edge})`);
+  cool.addColorStop(1,'rgba(8,19,29,'+edge+')');
   ctx.fillStyle=cool;ctx.fillRect(0,0,w,h);
   ctx.restore();
 }
