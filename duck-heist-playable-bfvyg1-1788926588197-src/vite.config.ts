@@ -29,6 +29,7 @@ import { applyDuckMenus } from './src/menu/materializeMenus.mjs';
 import { applyDuckMenuOverhaul } from './src/menu/materializeMenuOverhaul.mjs';
 import { applyDuckMenuCurrencyPolish } from './src/menu/materializeMenuCurrencyPolish.mjs';
 import { applyDuckMacroPato } from './src/gameplay/materializeMacroPato.mjs';
+import { applyDuckMacroPatoFinalScale } from './src/gameplay/materializeMacroPatoFinalScale.mjs';
 import { applyDuckArtBibleV1 } from './src/art/materializeArtBibleV1.mjs';
 
 const zipPath=path.resolve(process.cwd(),'public/resources/duck-heist-source.zip');
@@ -72,6 +73,7 @@ applyDuckMenus(gameDir);
 applyDuckMenuOverhaul(gameDir);
 applyDuckMenuCurrencyPolish(gameDir);
 applyDuckMacroPato(gameDir);
+applyDuckMacroPatoFinalScale(gameDir);
 applyDuckArtBibleV1(gameDir);
 
 export default defineConfig({
