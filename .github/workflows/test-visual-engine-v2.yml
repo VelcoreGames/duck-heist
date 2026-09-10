@@ -1,0 +1,37 @@
+name: Test Visual Engine V2
+
+on:
+  push:
+    branches:
+      - feature/visual-engine-v2-base-duck
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm run build
+      - name: Verify Visual Engine V2
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: |
+          test -s public/assets-v2/base-duck-v2.png
+          file public/assets-v2/base-duck-v2.png | grep -q 'PNG image data'
+          grep -q 'applyDuckVisualEngineV2' vite.config.ts
+          grep -q 'DUCK_VISUAL_ENGINE_V2_BASE_DUCK' src/duckgame/App.tsx
+          grep -q 'WORLD_RENDER_SCALE = 3' src/duckgame/App.tsx
+          grep -q 'drawBaseDuckV2' src/duckgame/game/sprites.ts
+          grep -q "skinId==='robber'" src/duckgame/game/sprites.ts
+          test -s dist/index.html
+          test -n "$(find dist/assets -maxdepth 1 -name 'index-*.js' -print -quit)"
