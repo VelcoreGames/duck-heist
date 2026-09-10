@@ -1,0 +1,36 @@
+name: Test Visual Engine V2 Bundled Base
+
+on:
+  push:
+    branches:
+      - feature/visual-engine-v2-base-duck
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm run build
+      - name: Verify bundled V2 duck
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: |
+          grep -q "new URL('../assets-v2/base-duck-v2.png',import.meta.url).href" src/duckgame/game/sprites.ts
+          grep -q "logicalW:72,logicalH:72" src/duckgame/game/sprites.ts
+          grep -q "if(!ok)return true" src/duckgame/game/sprites.ts
+          grep -q "if(drawBaseDuckV2(ctx,x,y,frame,dir,moving,hurt,dashing,shooting,dead))return;" src/duckgame/game/sprites.ts
+          grep -q "WORLD_RENDER_SCALE = 3" src/duckgame/App.tsx
+          test -s src/duckgame/assets-v2/base-duck-v2.png
+          test -s dist/index.html
+          find dist -type f -name '*.png' -size +0 | grep -q .
