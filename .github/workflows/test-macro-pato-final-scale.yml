@@ -1,0 +1,32 @@
+name: Test Macro Pato Final Scale
+
+on:
+  push:
+    branches:
+      - feature/macro-pato-final-scale
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: npm run build
+      - name: Verify Macro Pato final renderer
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+        run: |
+          grep -q "applyDuckMacroPatoFinalScale" vite.config.ts
+          grep -q "Chibi body: rounded, fluffy and wide" src/duckgame/game/sprites.ts
+          grep -q "Front face: cream cheeks, enormous glasses" src/duckgame/game/sprites.ts
+          grep -q "skin?.overlay==='macro_pato'" src/duckgame/game/sprites.ts
