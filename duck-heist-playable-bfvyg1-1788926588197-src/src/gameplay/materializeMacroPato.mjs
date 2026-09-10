@@ -10,61 +10,128 @@ const once=(src,from,to,label)=>{
 const MACRO_SKIN=`SKINS.push({
   id:'macro_pato',
   name:'MACRO PATO',
-  description:'Cabello negro, lentes gruesos y cero discreción.',
+  description:'Golden sample del nuevo estilo chibi: cabello negro, lentes gruesos y plumaje crema.',
   cost:0,
-  palette:{...DEFAULT_PALETTE,body:'#f1ddb0',dark:'#dfc28d',shade:'#cba36f',beak:'#e99a2f',beakDark:'#b9691d',mask:'#f1ddb0',pack:'#d8b982',strap:'#d8b982'},
+  palette:{...DEFAULT_PALETTE,body:'#f5e4bf',dark:'#e6cd9d',shade:'#d2af77',beak:'#f2a33b',beakDark:'#c97a23',mask:'#f5e4bf',pack:'#e6cd9d',strap:'#e6cd9d'},
   overlay:'macro_pato'
 });
 
 `;
 
 const MACRO_OVERLAY=`    case 'macro_pato': {
-      // Macro Pato: cabello negro despeinado, lentes grandes y plumaje crema.
-      // Todo se dibuja con píxeles de Canvas para conservar el lenguaje visual del juego.
-      const hy=by+2+(moving?Math.round(Math.sin(frame*.35)):0);
-      const hair='#171b22',hair2='#222831',hairHi='#3a414b',frameCol='#2d3945',lens='rgba(183,199,207,.34)',shine='#eef6f6';
+      // Macro Pato — golden sample del nuevo estilo chibi/noir.
+      // Mantiene la misma hitbox pero empuja la silueta con cabello, lentes y plumaje premium.
+      const hy = by + 2 + (moving ? Math.round(Math.sin(frame * .35)) : 0);
+      const hair = '#141923';
+      const hairMid = '#202734';
+      const hairHi = '#49515d';
+      const hairLo = '#090c12';
+      const frameCol = '#2f3c49';
+      const frameHi = '#566372';
+      const lens = 'rgba(196,208,218,.42)';
+      const lensDark = 'rgba(86,102,114,.22)';
+      const shine = '#f6fbff';
+      const fluff = '#f5e4bf';
+      const fluffDark = '#e6cd9d';
+      const fluffShade = '#d2af77';
+      const flash = Math.floor(frame * 0.55) % 90 < 7;
 
-      // Plumaje extra: silueta más esponjosa sin tocar la caja de colisión.
-      rect(ctx,bx+1,by+8,2,5,'#f1ddb0'); rect(ctx,bx+13,by+8,2,5,'#f1ddb0');
-      rect(ctx,bx,by+10,2,2,'#dfc28d'); rect(ctx,bx+14,by+10,2,2,'#dfc28d');
-      rect(ctx,bx+2,by+13,2,2,'#dfc28d'); rect(ctx,bx+12,by+13,2,2,'#dfc28d');
-      rect(ctx,bx+5,by+14,6,1,'#f7e9c7');
+      // Silueta chibi más esponjosa sin tocar la caja de colisión.
+      rect(ctx, bx + 1, by + 7, 2, 6, fluff);
+      rect(ctx, bx + 13, by + 7, 2, 6, fluff);
+      rect(ctx, bx, by + 9, 2, 2, fluffDark);
+      rect(ctx, bx + 14, by + 9, 2, 2, fluffDark);
+      rect(ctx, bx + 2, by + 13, 2, 2, fluffDark);
+      rect(ctx, bx + 12, by + 13, 2, 2, fluffDark);
+      rect(ctx, bx + 5, by + 14, 6, 1, '#fbf0d6');
+      rect(ctx, bx + 5, by + 10, 1, 3, fluffShade);
+      rect(ctx, bx + 10, by + 10, 1, 2, fluffShade);
 
-      if(dir==='up'){
-        // Vista trasera: volumen completo del cabello y mechones inferiores.
-        rect(ctx,bx+2,hy-5,12,6,hair); rect(ctx,bx+1,hy-2,14,5,hair);
-        rect(ctx,bx+3,hy-7,9,3,hair2); rect(ctx,bx+5,hy-8,6,2,hair2);
-        rect(ctx,bx+2,hy+2,3,3,hair); rect(ctx,bx+6,hy+2,2,4,hair); rect(ctx,bx+10,hy+2,3,3,hair);
-        rect(ctx,bx+4,hy-5,4,1,hairHi); rect(ctx,bx+10,hy-3,3,1,hairHi);
-      }else if(dir==='left'){
-        // Perfil izquierdo: flequillo, patilla y un lente visible.
-        rect(ctx,bx+2,hy-5,11,5,hair); rect(ctx,bx+1,hy-2,12,4,hair2);
-        rect(ctx,bx+2,hy+1,4,5,hair); rect(ctx,bx+5,hy,3,3,hair);
-        rect(ctx,bx+4,hy-4,4,1,hairHi);
-        rect(ctx,bx+3,hy+1,6,5,frameCol); rect(ctx,bx+4,hy+2,4,3,lens);
-        rect(ctx,bx+1,hy+2,3,1,frameCol); rect(ctx,bx+5,hy+2,2,1,shine);
-      }else if(dir==='right'){
-        // Perfil derecho, reflejado manualmente para mantener píxeles nítidos.
-        rect(ctx,bx+3,hy-5,11,5,hair); rect(ctx,bx+3,hy-2,12,4,hair2);
-        rect(ctx,bx+10,hy+1,4,5,hair); rect(ctx,bx+8,hy,3,3,hair);
-        rect(ctx,bx+8,hy-4,4,1,hairHi);
-        rect(ctx,bx+7,hy+1,6,5,frameCol); rect(ctx,bx+8,hy+2,4,3,lens);
-        rect(ctx,bx+12,hy+2,3,1,frameCol); rect(ctx,bx+9,hy+2,2,1,shine);
-      }else{
-        // Frente: melena asimétrica y lentes rectangulares protagonistas.
-        rect(ctx,bx+2,hy-5,12,5,hair); rect(ctx,bx+1,hy-2,14,4,hair2);
-        rect(ctx,bx+1,hy+1,4,4,hair); rect(ctx,bx+12,hy+1,3,4,hair);
-        rect(ctx,bx+3,hy-7,4,3,hair2); rect(ctx,bx+7,hy-8,5,4,hair2);
-        rect(ctx,bx+2,hy,3,3,hair); rect(ctx,bx+6,hy-1,2,3,hair); rect(ctx,bx+11,hy-1,3,3,hair);
-        rect(ctx,bx+4,hy-5,3,1,hairHi); rect(ctx,bx+9,hy-6,3,1,hairHi);
+      if (dir === 'up') {
+        // Vista trasera: melena protagonista con caída pesada y puntas desordenadas.
+        rect(ctx, bx + 2, hy - 6, 12, 5, hairMid);
+        rect(ctx, bx + 1, hy - 2, 14, 6, hair);
+        rect(ctx, bx + 3, hy - 8, 9, 3, hairMid);
+        rect(ctx, bx + 5, hy - 9, 6, 2, hairMid);
+        rect(ctx, bx + 2, hy + 2, 2, 3, hairLo);
+        rect(ctx, bx + 4, hy + 3, 2, 3, hair);
+        rect(ctx, bx + 7, hy + 3, 2, 3, hair);
+        rect(ctx, bx + 10, hy + 3, 2, 3, hair);
+        rect(ctx, bx + 12, hy + 2, 2, 3, hairLo);
+        rect(ctx, bx + 3, hy - 5, 3, 1, hairHi);
+        rect(ctx, bx + 9, hy - 4, 3, 1, hairHi);
+      } else if (dir === 'left') {
+        // Perfil izquierdo: flequillo pesado, patilla amplia y lente lateral.
+        rect(ctx, bx + 2, hy - 6, 11, 5, hairMid);
+        rect(ctx, bx + 1, hy - 2, 12, 4, hair);
+        rect(ctx, bx + 1, hy + 1, 5, 5, hairLo);
+        rect(ctx, bx + 4, hy + 3, 2, 3, hair);
+        rect(ctx, bx + 4, hy - 5, 4, 1, hairHi);
+        rect(ctx, bx + 3, hy + 1, 6, 5, frameCol);
+        rect(ctx, bx + 4, hy + 2, 4, 3, lens);
+        rect(ctx, bx + 5, hy + 4, 2, 1, lensDark);
+        rect(ctx, bx + 1, hy + 2, 3, 1, frameCol);
+        rect(ctx, bx + 3, hy + 1, 6, 1, frameHi);
+        rect(ctx, bx + 5, hy + 2, 2, 1, shine);
+        if (flash) rect(ctx, bx + 6, hy + 2, 1, 3, '#ffffff');
+      } else if (dir === 'right') {
+        // Perfil derecho, espejado manualmente para que no se suavicen los píxeles.
+        rect(ctx, bx + 3, hy - 6, 11, 5, hairMid);
+        rect(ctx, bx + 3, hy - 2, 12, 4, hair);
+        rect(ctx, bx + 10, hy + 1, 5, 5, hairLo);
+        rect(ctx, bx + 10, hy + 3, 2, 3, hair);
+        rect(ctx, bx + 8, hy - 5, 4, 1, hairHi);
+        rect(ctx, bx + 7, hy + 1, 6, 5, frameCol);
+        rect(ctx, bx + 8, hy + 2, 4, 3, lens);
+        rect(ctx, bx + 9, hy + 4, 2, 1, lensDark);
+        rect(ctx, bx + 12, hy + 2, 3, 1, frameCol);
+        rect(ctx, bx + 7, hy + 1, 6, 1, frameHi);
+        rect(ctx, bx + 9, hy + 2, 2, 1, shine);
+        if (flash) rect(ctx, bx + 9, hy + 2, 1, 3, '#ffffff');
+      } else {
+        // Frente: cabeza grande, melena asimétrica y lentes como rasgo dominante.
+        rect(ctx, bx + 2, hy - 6, 12, 5, hairMid);
+        rect(ctx, bx + 1, hy - 2, 14, 4, hair);
+        rect(ctx, bx + 1, hy + 1, 4, 5, hairLo);
+        rect(ctx, bx + 11, hy + 1, 4, 5, hairLo);
+        rect(ctx, bx + 3, hy - 8, 4, 3, hairMid);
+        rect(ctx, bx + 7, hy - 9, 5, 4, hairMid);
+        rect(ctx, bx + 2, hy, 3, 3, hair);
+        rect(ctx, bx + 6, hy - 1, 2, 3, hair);
+        rect(ctx, bx + 11, hy - 1, 3, 3, hair);
+        rect(ctx, bx + 4, hy - 5, 3, 1, hairHi);
+        rect(ctx, bx + 9, hy - 6, 3, 1, hairHi);
 
-        // Armazón grueso, dos cristales y puente central.
-        rect(ctx,bx+2,hy+1,6,5,frameCol); rect(ctx,bx+8,hy+1,6,5,frameCol);
-        rect(ctx,bx+3,hy+2,4,3,lens); rect(ctx,bx+9,hy+2,4,3,lens);
-        rect(ctx,bx+7,hy+2,2,1,frameCol); rect(ctx,bx+1,hy+2,2,1,frameCol); rect(ctx,bx+14,hy+2,2,1,frameCol);
-        rect(ctx,bx+4,hy+2,2,1,shine); rect(ctx,bx+10,hy+2,2,1,shine);
-        px(ctx,bx+6,hy+4,'#11151a'); px(ctx,bx+10,hy+4,'#11151a');
+        // Lentes rectangulares premium con armazón grueso y brillo.
+        rect(ctx, bx + 2, hy + 1, 6, 5, frameCol);
+        rect(ctx, bx + 8, hy + 1, 6, 5, frameCol);
+        rect(ctx, bx + 3, hy + 2, 4, 3, lens);
+        rect(ctx, bx + 9, hy + 2, 4, 3, lens);
+        rect(ctx, bx + 7, hy + 2, 2, 1, frameCol);
+        rect(ctx, bx + 1, hy + 2, 2, 1, frameCol);
+        rect(ctx, bx + 14, hy + 2, 2, 1, frameCol);
+        rect(ctx, bx + 2, hy + 1, 6, 1, frameHi);
+        rect(ctx, bx + 8, hy + 1, 6, 1, frameHi);
+        rect(ctx, bx + 4, hy + 2, 2, 1, shine);
+        rect(ctx, bx + 10, hy + 2, 2, 1, shine);
+        rect(ctx, bx + 4, hy + 4, 2, 1, lensDark);
+        rect(ctx, bx + 10, hy + 4, 2, 1, lensDark);
+        px(ctx, bx + 6, hy + 4, '#11151a');
+        px(ctx, bx + 10, hy + 4, '#11151a');
+        if (flash) {
+          rect(ctx, bx + 5, hy + 2, 1, 3, '#ffffff');
+          rect(ctx, bx + 11, hy + 2, 1, 2, '#ffffff');
+        }
+
+        // Mechones frontales sobre los lentes para dar más volumen.
+        rect(ctx, bx + 5, hy - 1, 1, 5, hairLo);
+        rect(ctx, bx + 8, hy - 1, 1, 6, hairLo);
       }
+
+      // Pliegues del pecho para que combine mejor con el sheet de referencia.
+      rect(ctx, bx + 6, by + 9, 3, 1, fluffDark);
+      rect(ctx, bx + 5, by + 11, 1, 2, fluffShade);
+      rect(ctx, bx + 10, by + 11, 1, 2, fluffShade);
       break;
     }
 `;
