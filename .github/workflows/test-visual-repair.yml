@@ -19,9 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: duck-heist-playable-bfvyg1-1788926588197-src/package-lock.json
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       - name: Verify visual repair hooks
         run: |
