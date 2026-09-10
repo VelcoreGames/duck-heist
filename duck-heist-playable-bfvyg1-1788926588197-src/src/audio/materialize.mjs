@@ -1,0 +1,1 @@
+import{readFileSync,writeFileSync}from'node:fs';import path from'node:path';import{fileURLToPath}from'node:url';const here=path.dirname(fileURLToPath(import.meta.url));export function applyDuckAudio(gameDir){const source=path.join(here,'audio-v2.ts');const target=path.join(gameDir,'game','audio.ts');writeFileSync(target,readFileSync(source,'utf8'),'utf8');}
