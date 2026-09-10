@@ -28,6 +28,7 @@ import { applyDuckLegacyFloorCleanup } from './src/gameplay/materializeLegacyFlo
 import { applyDuckMenus } from './src/menu/materializeMenus.mjs';
 import { applyDuckMenuOverhaul } from './src/menu/materializeMenuOverhaul.mjs';
 import { applyDuckMenuCurrencyPolish } from './src/menu/materializeMenuCurrencyPolish.mjs';
+import { applyDuckMacroPato } from './src/gameplay/materializeMacroPato.mjs';
 
 const zipPath=path.resolve(process.cwd(),'public/resources/duck-heist-source.zip');
 const gameDir=path.resolve(process.cwd(),'src/duckgame');
@@ -69,6 +70,7 @@ applyDuckSpecialRoomTopology(gameDir);
 applyDuckMenus(gameDir);
 applyDuckMenuOverhaul(gameDir);
 applyDuckMenuCurrencyPolish(gameDir);
+applyDuckMacroPato(gameDir);
 
 export default defineConfig({
     plugins: [react()],
