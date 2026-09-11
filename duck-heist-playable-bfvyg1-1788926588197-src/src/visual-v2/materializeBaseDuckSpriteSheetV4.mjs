@@ -35,7 +35,7 @@ export function applyDuckBaseSpriteSheetV4(gameDir){
   let render=readFileSync(renderFile,'utf8');
   if(!render.includes(MARKER)){
     const heldDecl='const heldAim=aimVector(engine),heldBehind=heldAim.y<-.2;';
-    const heldDeclV4=`const heldAim=aimVector(engine),heldBehind=heldAim.y<-.2,hideHeldForBaseV4=engine.equippedSkin==='robber'&&(p.shootFlash>0||p.pickupAnimTimer>0); // ${MARKER}`;
+    const heldDeclV4=`const heldAim=aimVector(engine),heldBehind=heldAim.y<-.2,hideHeldForBaseV4=engine.equippedSkin==='robber'&&(p.shootFlash>0||p.pickupAnimTimer>0); /* ${MARKER} */`;
     if(!render.includes(heldDecl))throw new Error('Base duck V4: held weapon declaration not found');
     render=render.replace(heldDecl,heldDeclV4);
     render=render.replace('if(heldBehind){drawHeldWeapon(ctx,engine);drawGunfeelMuzzle(ctx,engine);}','if(heldBehind&&!hideHeldForBaseV4){drawHeldWeapon(ctx,engine);drawGunfeelMuzzle(ctx,engine);}');
@@ -46,7 +46,7 @@ export function applyDuckBaseSpriteSheetV4(gameDir){
   const engineFile=path.join(gameDir,'game','engine.ts');
   let engine=readFileSync(engineFile,'utf8');
   if(!engine.includes('DUCK_BASE_SPRITESHEET_V4_SHOOT')){
-    engine=engine.replace('p.shootFlash=Math.max(p.shootFlash,w?.continuous?2:4);',"p.shootFlash=Math.max(p.shootFlash,w?.continuous?6:12); // DUCK_BASE_SPRITESHEET_V4_SHOOT");
+    engine=engine.replace('p.shootFlash=Math.max(p.shootFlash,w?.continuous?2:4);',"p.shootFlash=Math.max(p.shootFlash,w?.continuous?6:12); /* DUCK_BASE_SPRITESHEET_V4_SHOOT */");
     engine=engine.replace('player.shootFlash = 4;','player.shootFlash = 12;');
     writeFileSync(engineFile,engine,'utf8');
   }
