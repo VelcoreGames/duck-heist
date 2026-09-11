@@ -1,0 +1,32 @@
+name: Test Base Duck PNG V5
+
+on:
+  push:
+    branches:
+      - fix/base-duck-png-v5
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
+      - name: Verify PNG animation integration
+        run: |
+          grep -q "DUCK_BASE_PNG_FRAMES_V5" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "BASE_DUCK_V5_FRAME_W=52" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "walk:4,shoot:10,pickup:14" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "idle:4,walk:6,shoot:4,pickup:6" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          test -f public/assets-v2/base-duck-final-atlas.png
+          node -e "const fs=require('fs');const b=fs.readFileSync('public/assets-v2/base-duck-final-atlas.png');const w=b.readUInt32BE(16),h=b.readUInt32BE(20);if(w!==1040||h!==208)throw new Error('wrong PNG size '+w+'x'+h);console.log('atlas',w,h)"
+          grep -q "DUCK_BASE_PNG_FRAMES_V5" src/duckgame/game/sprites.ts
+          grep -q "const rw=46,rh=46" src/duckgame/game/sprites.ts
+          test -f src/duckgame/assets-v2/base-duck-final-atlas.png
+          test -f dist/index.html
