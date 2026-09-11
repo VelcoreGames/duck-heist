@@ -1,0 +1,50 @@
+name: Materialize Duck Heist v64
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/materialize-v64.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download exact functional v64 source archive
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 2 'https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/resources/duck-heist-source.zip' -o /tmp/duck-heist-source.zip
+          test -s /tmp/duck-heist-source.zip
+          unzip -t /tmp/duck-heist-source.zip
+
+      - name: Materialize v64 project at repository root
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/duck-v64
+          mkdir -p /tmp/duck-v64
+          unzip -q /tmp/duck-heist-source.zip -d /tmp/duck-v64
+          rm -rf src
+          cp -a /tmp/duck-v64/src ./src
+          cp /tmp/duck-v64/index.html ./index.html
+          cp /tmp/duck-v64/package.json ./package.json
+          cp /tmp/duck-v64/package-lock.json ./package-lock.json
+          cp /tmp/duck-v64/tsconfig.json ./tsconfig.json
+          cp /tmp/duck-v64/vite.config.ts ./vite.config.ts
+
+      - name: Commit functional v64 source to main
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html package.json package-lock.json tsconfig.json vite.config.ts src
+          git commit -m 'Restore functional Duck Heist v64 project source'
+          git push origin HEAD:main
