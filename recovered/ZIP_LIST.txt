@@ -1,0 +1,50 @@
+Archive:  /tmp/duck-heist-source.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      693  2026-09-07 00:05   index.html
+    86509  2026-09-07 00:05   package-lock.json
+      707  2026-09-07 00:05   package.json
+        0  2026-09-07 00:05   src/
+    30732  2026-09-07 00:05   src/App.tsx
+        0  2026-09-07 00:05   src/game/
+     2738  2026-09-07 00:05   src/game/AUDIT.md
+     1167  2026-09-07 00:05   src/game/aim.ts
+    13084  2026-09-07 00:05   src/game/audio.ts
+     5349  2026-09-07 00:05   src/game/catalog.ts
+     5745  2026-09-07 00:05   src/game/collectionUI.ts
+     4159  2026-09-07 00:05   src/game/constants.ts
+    38387  2026-09-07 00:05   src/game/data.ts
+   122253  2026-09-07 00:05   src/game/engine.ts
+     1023  2026-09-07 00:05   src/game/events.ts
+     9483  2026-09-07 00:05   src/game/expansion.ts
+     9396  2026-09-07 00:05   src/game/expansionArt.ts
+    14678  2026-09-07 00:05   src/game/floorMap.ts
+     2836  2026-09-07 00:05   src/game/gamepad.ts
+     2688  2026-09-07 00:05   src/game/grenades.ts
+     5670  2026-09-07 00:05   src/game/i18n.ts
+    22220  2026-09-07 00:05   src/game/itemArt.ts
+    12774  2026-09-07 00:05   src/game/itemRules.ts
+     1798  2026-09-07 00:05   src/game/layout.ts
+     1391  2026-09-07 00:05   src/game/loot.ts
+    18682  2026-09-07 00:05   src/game/mapgen.ts
+      236  2026-09-07 00:05   src/game/modifiers.ts
+     3029  2026-09-07 00:05   src/game/progress.ts
+      347  2026-09-07 00:05   src/game/random.ts
+    71216  2026-09-07 00:05   src/game/render.ts
+     7686  2026-09-07 00:05   src/game/roomArt.ts
+    18061  2026-09-07 00:05   src/game/selftest.ts
+    59491  2026-09-07 00:05   src/game/sprites.ts
+     2980  2026-09-07 00:05   src/game/tacticalSprites.ts
+     8709  2026-09-07 00:05   src/game/titleScene.ts
+     3537  2026-09-07 00:05   src/game/tooltips.ts
+     1107  2026-09-07 00:05   src/game/tutorial.ts
+    10071  2026-09-07 00:05   src/game/types.ts
+    15604  2026-09-07 00:05   src/game/ui.ts
+      684  2026-09-07 00:05   src/index.css
+      230  2026-09-07 00:05   src/main.tsx
+        0  2026-09-07 00:05   src/utils/
+      169  2026-09-07 00:05   src/utils/cn.ts
+      681  2026-09-07 00:05   tsconfig.json
+      538  2026-09-07 00:05   vite.config.ts
+---------                     -------
+   618538                     45 files
