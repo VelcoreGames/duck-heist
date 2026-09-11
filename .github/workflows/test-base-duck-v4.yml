@@ -1,0 +1,32 @@
+name: Test Base Duck V4
+
+on:
+  push:
+    branches:
+      - feature/base-duck-real-frames-v4-clean
+    paths:
+      - 'duck-heist-playable-bfvyg1-1788926588197-src/**'
+      - '.github/workflows/test-base-duck-v4.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: duck-heist-playable-bfvyg1-1788926588197-src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
+      - name: Verify approved atlas integration
+        run: |
+          grep -q "DUCK_BASE_SPRITESHEET_V4" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "BASE_DUCK_V4_FRAME_W=20" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "BASE_DUCK_V4_FRAME_H=30" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "idle:0,walk:4,shoot:16,pickup:22" src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs
+          grep -q "applyDuckBaseSpriteSheetV4(gameDir)" vite.config.ts
+          test -f src/duckgame/assets-v2/base-duck-approved-atlas.png
+          test -f dist/index.html
