@@ -34,6 +34,7 @@ import { applyDuckMacroPatoSpriteAsset } from './src/gameplay/materializeMacroPa
 import { applyDuckArtBibleV1 } from './src/art/materializeArtBibleV1.mjs';
 import { applyDuckVisualEngineV2 } from './src/visual-v2/materializeVisualEngineV2.mjs';
 import { applyDuckBaseMotionV2 } from './src/visual-v2/materializeBaseDuckMotionV2.mjs';
+import { applyDuckBaseSpriteSheetV4 } from './src/visual-v2/materializeBaseDuckSpriteSheetV4.mjs';
 
 const zipPath=path.resolve(process.cwd(),'public/resources/duck-heist-source.zip');
 const gameDir=path.resolve(process.cwd(),'src/duckgame');
@@ -81,6 +82,7 @@ applyDuckMacroPatoSpriteAsset(gameDir);
 applyDuckArtBibleV1(gameDir);
 applyDuckVisualEngineV2(gameDir);
 applyDuckBaseMotionV2(gameDir);
+applyDuckBaseSpriteSheetV4(gameDir);
 
 export default defineConfig({
     plugins: [react()],
