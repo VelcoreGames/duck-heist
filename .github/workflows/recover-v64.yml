@@ -1,0 +1,45 @@
+name: Recover Duck Heist v64
+
+on:
+  push:
+    branches:
+      - restore-v64
+    paths:
+      - '.github/workflows/recover-v64.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: restore-v64
+
+      - name: Download exact AppDeploy v64 game archive
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 2 'https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/resources/duck-heist-source.zip' -o /tmp/duck-heist-source.zip
+          test -s /tmp/duck-heist-source.zip
+          unzip -t /tmp/duck-heist-source.zip
+
+      - name: Extract and inventory v64 source
+        run: |
+          set -euxo pipefail
+          rm -rf recovered
+          mkdir -p recovered/source
+          unzip -q /tmp/duck-heist-source.zip -d recovered/source
+          unzip -l /tmp/duck-heist-source.zip > recovered/ZIP_LIST.txt
+          cp /tmp/duck-heist-source.zip recovered/duck-heist-source.zip
+
+      - name: Commit recovered source to recovery branch
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add recovered
+          git commit -m 'Recover exact Duck Heist v64 source from AppDeploy'
+          git push origin HEAD:restore-v64
