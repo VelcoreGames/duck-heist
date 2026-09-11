@@ -158,8 +158,8 @@ export function applyDuckBaseMotionV2(gameDir){
   let render=readFileSync(renderFile,'utf8');
   if(!render.includes(MARKER)){
     render=once(render,
-      `    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,\n      p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);`,
-      `    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,\n      p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0, false,\n      p.pickupAnimTimer, p.pickupAnimMax, p.pickupAnimItem); // ${MARKER}`,
+      `    drawDuckSkin(ctx,p.x,p.y,f,engine.equippedSkin,p.dir,p.moving,p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0);`,
+      `    drawDuckSkin(ctx,p.x,p.y,f,engine.equippedSkin,p.dir,p.moving,p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,p.pickupAnimTimer,p.pickupAnimMax,p.pickupAnimItem); // ${MARKER}`,
       'gameplay render animation args');
     writeFileSync(renderFile,render,'utf8');
   }
