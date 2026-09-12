@@ -1,6 +1,5 @@
 import { RenderLayer } from '../types';
-import type { GpuTextureRegion } from './types';
-import { WebGLChibiRenderer } from './webglRenderer';
+import type { GpuRendererBackend, GpuTextureRegion } from './types';
 
 export type GpuParticleKind = 'dust' | 'spark' | 'crumb' | 'smoke' | 'glint';
 
@@ -114,7 +113,7 @@ export class GpuParticleSystem {
     }
   }
 
-  submit(renderer: WebGLChibiRenderer, maxParticles = this.capacity): number {
+  submit(renderer: GpuRendererBackend, maxParticles = this.capacity): number {
     let drawn = 0;
     for (const particle of this.pool) {
       if (!particle.alive || drawn >= maxParticles) continue;
