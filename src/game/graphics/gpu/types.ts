@@ -19,6 +19,14 @@ export interface GpuSpriteEffects {
   paletteStrength?: number;
   paletteIndex?: number;
   shape?: GpuShape;
+  /** Stylized self-lighting for signs, pickups and magical/golden props. */
+  emissive?: number;
+  /** Pixel-art metallic response; intentionally non-PBR. */
+  metallic?: number;
+  /** Directional highlight band used by polished metal/gold. */
+  sheen?: number;
+  /** Cool translucent response for glass-like props. */
+  glass?: number;
 }
 
 export interface GpuSpriteCommand {
