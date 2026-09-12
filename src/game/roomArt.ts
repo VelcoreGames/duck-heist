@@ -17,6 +17,7 @@ export function drawRichTile(
 ) {
   const px = x * T, py = y * T;
   const h = hash(x + gx * 15, y + gy * 11, theme.deco.charCodeAt(0));
+  const cleanStartRoom = gx === 0 && gy === 0;
   if (wall) {
     r(ctx, px, py, T, T, '#070910');
     r(ctx, px + 1, py + 1, T - 2, T - 2, theme.wall[(x + y) % 2]);
@@ -25,7 +26,7 @@ export function drawRichTile(
     r(ctx, px, py + 10, T, 1, 'rgba(0,0,0,.22)');
     r(ctx, px, py + 21, T, 1, 'rgba(0,0,0,.18)');
     if (h % 5 === 0) r(ctx, px + 6, py + 8, 4, 3, 'rgba(255,255,255,.05)');
-    drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);
+    if (!cleanStartRoom) drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);
     return;
   }
   const checker = (x + y) % 2 === 0;
