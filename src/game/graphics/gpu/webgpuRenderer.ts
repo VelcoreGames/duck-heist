@@ -92,16 +92,18 @@ struct Vout {
   @location(4) effects: vec4f,
   @location(5) palette: vec2f,
   @location(6) @interpolate(flat) shape: f32,
+  @location(7) material: vec4f,
 }
 
 @vertex fn vs(input: Vin) -> Vout {
   let base = input.instanceId * 7u;
-  let a0 = instances[base + 0u]; // position, size
-  let a1 = instances[base + 1u]; // pivot, uv0
-  let a2 = instances[base + 2u]; // uv1, color rg
-  let a3 = instances[base + 3u]; // color ba, rotation, space
-  let a4 = instances[base + 4u]; // flip x/y, shape, flash
-  let a5 = instances[base + 5u]; // outline, rim, palette strength/index
+  let a0 = instances[base + 0u];
+  let a1 = instances[base + 1u];
+  let a2 = instances[base + 2u];
+  let a3 = instances[base + 3u];
+  let a4 = instances[base + 4u];
+  let a5 = instances[base + 5u];
+  let a6 = instances[base + 6u];
 
   var local = input.corner.xy * a0.zw - a1.xy;
   let c = cos(a3.z);
@@ -127,6 +129,7 @@ struct Vout {
   out.effects = vec4f(a4.w, a5.xyz);
   out.palette = vec2f(a5.w, 0.0);
   out.shape = a4.z;
+  out.material = a6;
   return out;
 }
 
@@ -143,7 +146,7 @@ fn alphaAt(uv: vec2f, uvRect: vec4f) -> f32 {
     let d = length(input.local);
     texel = vec4f(1.0, 1.0, 1.0, 1.0 - smoothstep(0.82, 1.0, d));
   }
-  let alpha = texel.a * input.color.a;
+  var alpha = texel.a * input.color.a;
   if (alpha <= 0.001) { discard; }
   var rgb = texel.rgb;
 
@@ -154,6 +157,18 @@ fn alphaAt(uv: vec2f, uvRect: vec4f) -> f32 {
     let mapped = textureSample(paletteTexture, paletteSampler, vec2f(clamp(luma, 0.002, 0.998), row)).rgb;
     rgb = mix(rgb, mapped, paletteStrength);
   }
+
+  let emissive = clamp(input.material.x, 0.0, 1.5);
+  let metallic = clamp(input.material.y, 0.0, 1.0);
+  let sheen = clamp(input.material.z, 0.0, 1.0);
+  let glass = clamp(input.material.w, 0.0, 1.0);
+  let baseLuma = dot(rgb, vec3f(0.299, 0.587, 0.114));
+  rgb = mix(rgb, mix(vec3f(baseLuma), rgb, 1.12), metallic * 0.22);
+  let band = pow(max(0.0, 1.0 - abs((input.local.x * 0.78 + input.local.y * 0.22) - 0.18)), 9.0);
+  rgb += vec3f(1.0, 0.90, 0.64) * band * sheen * (0.16 + metallic * 0.34);
+  rgb = mix(rgb, rgb * 0.80 + vec3f(0.70, 0.86, 1.0) * 0.20, glass * 0.55);
+  alpha *= 1.0 - glass * 0.18;
+  rgb += rgb * emissive * 0.62;
 
   let dims = vec2f(textureDimensions(sourceTexture));
   let texelSize = 1.0 / max(dims, vec2f(1.0));
@@ -188,9 +203,9 @@ struct Vin { @location(0) corner: vec2f, @builtin(instance_index) instanceId: u3
 struct Vout { @builtin(position) position: vec4f, @location(0) local: vec2f, @location(1) color: vec3f, @location(2) params: vec3f }
 @vertex fn vs(input: Vin) -> Vout {
   let base = input.instanceId * 3u;
-  let a0 = lights[base + 0u]; // x y radius intensity
-  let a1 = lights[base + 1u]; // rgb inner
-  let a2 = lights[base + 2u]; // falloff screen phase flicker
+  let a0 = lights[base + 0u];
+  let a1 = lights[base + 1u];
+  let a2 = lights[base + 2u];
   var center = a0.xy;
   var radius = a0.z;
   if (a2.y < 0.5) { center = (center - frame.camera.xy) * frame.zoom + frame.camera.zw; radius *= frame.zoom; }
@@ -220,9 +235,9 @@ const COMPOSITE_WGSL = /* wgsl */ `
 @group(0) @binding(2) var lightTexture: texture_2d<f32>;
 @group(0) @binding(3) var lightSampler: sampler;
 struct Style {
-  a: vec4f, // darkness, tintStrength, vignette, lightStrength
-  b: vec4f, // tint rgb, exposure
-  c: vec4f, // gamma, saturation, reserved
+  a: vec4f,
+  b: vec4f,
+  c: vec4f,
 }
 @group(0) @binding(4) var<uniform> style: Style;
 struct Vout { @builtin(position) position: vec4f, @location(0) uv: vec2f }
@@ -362,7 +377,7 @@ export class WebGpuChibiRenderer implements GpuRendererBackend {
       const adapter = await gpu.requestAdapter({ powerPreference: options.powerPreference ?? 'high-performance' });
       if (!adapter) return undefined;
       const device = await adapter.requestDevice();
-      const context = canvas.getContext('webgpu') as Wgpu;
+      const context = (canvas as HTMLCanvasElement & { getContext(contextId: 'webgpu'): Wgpu }).getContext('webgpu');
       if (!context) return undefined;
       const format = gpu.getPreferredCanvasFormat?.() ?? 'bgra8unorm';
       return new WebGpuChibiRenderer(canvas, adapter, device, context, options, format);
@@ -447,7 +462,7 @@ export class WebGpuChibiRenderer implements GpuRendererBackend {
       usage: TEXTURE_COPY_DST | TEXTURE_BINDING | TEXTURE_RENDER_ATTACHMENT,
     });
     this.device.queue.copyExternalImageToTexture(
-      { source: input.source, premultipliedAlpha: input.premultiplyAlpha === true },
+      { source: input.source },
       { texture, premultipliedAlpha: input.premultiplyAlpha === true },
       [width, height],
     );
@@ -551,7 +566,7 @@ export class WebGpuChibiRenderer implements GpuRendererBackend {
         color[2], color[3], command.rotation ?? 0, command.space === 'screen' ? 1 : 0,
         command.flipX ? 1 : 0, command.flipY ? 1 : 0, fx.shape === 'ellipse' ? 1 : 0, fx.flash ?? 0,
         fx.outline ?? 0, fx.rim ?? 0, fx.paletteStrength ?? 0, fx.paletteIndex ?? 0,
-        0,0,0,0,
+        fx.emissive ?? 0, fx.metallic ?? 0, fx.sheen ?? 0, fx.glass ?? 0,
       ], cursor);
       cursor += INSTANCE_FLOATS;
     }
@@ -581,7 +596,7 @@ export class WebGpuChibiRenderer implements GpuRendererBackend {
     if (this.lost || !this.frame) return;
     const frame = this.frame;
     this.writeFrame(frame);
-    const { visible, batches } = this.prepareSprites(frame);
+    const { batches } = this.prepareSprites(frame);
     const encoder = this.device.createCommandEncoder({ label: 'duck-heist-frame' });
 
     const scenePass = encoder.beginRenderPass({ colorAttachments: [{ view: this.sceneView, clearValue: { r:0,g:0,b:0,a:0 }, loadOp: 'clear', storeOp: 'store' }] });
