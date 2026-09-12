@@ -1,0 +1,50 @@
+name: Inspect Duck Heist v0.4.2 menu renderer
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-v042-menu-render.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Extract menu renderer context
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('appdeploy-live/assets/index-BgUNQzP_.js')
+          s=p.read_text(encoding='utf-8')
+          terms=['INICIAR ATRACO','SE BUSCA UN CÓMPLICE','CONFIGURACIÓN','CÓMO JUGAR']
+          out=[]
+          for term in terms:
+              start=0
+              n=0
+              while True:
+                  i=s.find(term,start)
+                  if i<0: break
+                  n+=1
+                  out.append(f'\n=== {term} #{n} at {i} ===\n{s[max(0,i-5000):min(len(s),i+5000)]}\n')
+                  start=i+1
+                  if n>=10: break
+          Path('inspection-menu-v042.txt').write_text('\n'.join(out),encoding='utf-8')
+          print('matches',len(out))
+          if not out:
+              raise SystemExit('No menu strings found')
+          PY
+
+      - name: Commit inspection
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inspection-menu-v042.txt
+          git commit -m 'Inspect Duck Heist v0.4.2 menu renderer' || exit 0
+          git push origin HEAD:main
