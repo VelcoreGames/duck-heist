@@ -311,7 +311,7 @@ export class WebGpuChibiRenderer implements GpuRendererBackend {
 
   private constructor(
     readonly canvas: HTMLCanvasElement,
-    private readonly adapter: Wgpu,
+    adapter: Wgpu,
     private readonly device: Wgpu,
     private readonly context: Wgpu,
     options: GpuBackendOptions,
