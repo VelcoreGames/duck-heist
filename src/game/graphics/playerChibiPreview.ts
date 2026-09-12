@@ -1,7 +1,9 @@
 import { getSkin, type DuckPalette } from '../data';
 import type { DuckDir } from '../types';
 import { CHIBI_PLAYER_PLAN } from './chibiProduction';
-import type { CharacterState } from './types';
+import { RenderLayer, type CharacterState } from './types';
+import { createGpuBackend } from './gpu/backend';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -384,41 +386,39 @@ function drawHair(ctx: Ctx, dir: DuckDir, headY: number): void {
 
 function drawFace(ctx: Ctx, pal: PlayerPalette, dir: DuckDir, headY: number, blink: boolean): void {
   if (dir === 'up') return;
+
+  // Canonical base duck: clean face, no hair and no glasses. Accessories belong to skins.
   if (dir === 'down') {
-    // lentes cuadrados grandes
-    rect(ctx, 20, headY - 3, 11, 8, OUTLINE, 1);
-    rect(ctx, 33, headY - 3, 11, 8, OUTLINE, 1);
-    rect(ctx, 22, headY - 1, 7, 4, GLASS, 1);
-    rect(ctx, 35, headY - 1, 7, 4, GLASS, 1);
-    rect(ctx, 31, headY, 2, 2, OUTLINE, 1);
-    rect(ctx, 23, headY - 1, 2, 1, GLASS_SHINE, 1);
-    rect(ctx, 36, headY - 1, 2, 1, GLASS_SHINE, 1);
     if (blink) {
-      rect(ctx, 24, headY + 1, 4, 1, OUTLINE, 1);
-      rect(ctx, 37, headY + 1, 4, 1, OUTLINE, 1);
+      rect(ctx, 23, headY, 6, 2, OUTLINE, 1);
+      rect(ctx, 35, headY, 6, 2, OUTLINE, 1);
     } else {
-      rect(ctx, 25, headY, 2, 3, OUTLINE, 1);
-      rect(ctx, 38, headY, 2, 3, OUTLINE, 1);
-      rect(ctx, 25, headY, 1, 1, '#fff', 1);
-      rect(ctx, 38, headY, 1, 1, '#fff', 1);
+      rect(ctx, 24, headY - 2, 5, 6, OUTLINE, 1);
+      rect(ctx, 35, headY - 2, 5, 6, OUTLINE, 1);
+      rect(ctx, 25, headY - 1, 2, 2, '#fff6dc', 1);
+      rect(ctx, 36, headY - 1, 2, 2, '#fff6dc', 1);
     }
-    pixelEllipse(ctx, 32, headY + 7, 7, 4, OUTLINE, 1);
-    pixelEllipse(ctx, 32, headY + 6, 6, 3, pal.beak, 1);
-    rect(ctx, 27, headY + 7, 10, 1, pal.beakDark);
+    // Small cheek planes make the large chibi head read as volume instead of a flat circle.
+    rect(ctx, 19, headY + 4, 4, 2, pal.shade, 1);
+    rect(ctx, 41, headY + 4, 4, 2, pal.shade, 1);
+    pixelEllipse(ctx, 32, headY + 8, 8, 4, OUTLINE, 1);
+    pixelEllipse(ctx, 32, headY + 7, 7, 3, pal.beak, 1);
+    rect(ctx, 26, headY + 8, 12, 1, pal.beakDark, 1);
+    rect(ctx, 29, headY + 6, 3, 1, '#ffc35e', 1);
     return;
   }
 
   const side = dir === 'right' ? 1 : -1;
-  const eyeX = 32 + side * 7;
-  rect(ctx, eyeX - 5, headY - 3, 10, 8, OUTLINE, 1);
-  rect(ctx, eyeX - 3, headY - 1, 6, 4, GLASS, 1);
-  rect(ctx, eyeX - 2, headY - 1, 2, 1, GLASS_SHINE, 1);
-  if (blink) rect(ctx, eyeX - 2, headY + 1, 4, 1, OUTLINE, 1);
-  else rect(ctx, eyeX + side, headY, 2, 3, OUTLINE, 1);
-  const beakX = 32 + side * 17;
-  rect(ctx, side > 0 ? beakX - 2 : beakX - 8, headY + 4, 10, 5, OUTLINE, 1);
-  rect(ctx, side > 0 ? beakX - 1 : beakX - 7, headY + 5, 8, 3, pal.beak, 1);
-  rect(ctx, side > 0 ? beakX : beakX - 6, headY + 7, 6, 1, pal.beakDark, 1);
+  const eyeX = 32 + side * 8;
+  if (blink) rect(ctx, eyeX - 3, headY, 6, 2, OUTLINE, 1);
+  else {
+    rect(ctx, eyeX - 2, headY - 2, 5, 6, OUTLINE, 1);
+    rect(ctx, eyeX - 1, headY - 1, 2, 2, '#fff6dc', 1);
+  }
+  const beakX = 32 + side * 18;
+  rect(ctx, side > 0 ? beakX - 2 : beakX - 9, headY + 4, 11, 6, OUTLINE, 1);
+  rect(ctx, side > 0 ? beakX - 1 : beakX - 8, headY + 5, 9, 4, pal.beak, 1);
+  rect(ctx, side > 0 ? beakX : beakX - 7, headY + 8, 7, 1, pal.beakDark, 1);
 }
 
 function drawHead(ctx: Ctx, pal: PlayerPalette, dir: DuckDir, motion: ReturnType<typeof stateMotion>, downProgress: number): void {
@@ -429,7 +429,6 @@ function drawHead(ctx: Ctx, pal: PlayerPalette, dir: DuckDir, motion: ReturnType
   pixelEllipse(ctx, 32, headY - 1, rx, ry, pal.body, 2);
   pixelEllipse(ctx, 27, headY - 5, Math.max(4, rx - 6), 5, pal.light, 2);
   if (dir === 'up') rect(ctx, 22, headY + 6, 20, 4, pal.shade);
-  drawHair(ctx, dir, headY);
   drawFace(ctx, pal, dir, headY, motion.blink);
 }
 
@@ -571,6 +570,108 @@ function cachedFrame(state: CharacterState, dir: DuckDir, index: number, skinId?
   return canvas;
 }
 
+type PlayerGpuBackend = NonNullable<ReturnType<typeof createGpuBackend>>;
+interface PlayerGpuRuntime {
+  canvas: HTMLCanvasElement;
+  renderer: PlayerGpuBackend;
+  textures: Set<string>;
+}
+
+let playerGpuRuntime: PlayerGpuRuntime | null | undefined;
+
+function ensurePlayerGpuRuntime(): PlayerGpuRuntime | undefined {
+  if (playerGpuRuntime === null) return undefined;
+  if (playerGpuRuntime) return playerGpuRuntime;
+  if (typeof document === 'undefined') return undefined;
+
+  const canvas = document.createElement('canvas');
+  try {
+    const renderer = createGpuBackend(canvas, {
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+      quality: 'high',
+      powerPreference: 'high-performance',
+    });
+    if (!renderer) {
+      playerGpuRuntime = null;
+      document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-fallback';
+      return undefined;
+    }
+    playerGpuRuntime = { canvas, renderer, textures: new Set() };
+    document.documentElement.dataset.duckHeistPlayerRenderer = 'webgl2-chibi';
+    return playerGpuRuntime;
+  } catch {
+    playerGpuRuntime = null;
+    document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-fallback';
+    return undefined;
+  }
+}
+
+function drawPlayerThroughGpu(
+  input: ChibiPlayerDrawInput,
+  state: CharacterState,
+  index: number,
+  sprite: HTMLCanvasElement,
+  feetX: number,
+  feetY: number,
+  opacity: number,
+): boolean {
+  const runtime = ensurePlayerGpuRuntime();
+  if (!runtime) return false;
+
+  const textureId = 'duck:' + cacheKey(state, input.dir, index, input.skinId);
+  if (!runtime.textures.has(textureId)) {
+    runtime.renderer.registerTexture({ id: textureId, source: sprite, nearest: true, premultiplyAlpha: false });
+    runtime.textures.add(textureId);
+  }
+
+  runtime.renderer.beginFrame({
+    camera: { x: 0, y: 0, zoom: 1 },
+    tick: input.frame,
+    style: {
+      ambientDarkness: 0,
+      ambientTint: [1, 0.98, 0.91],
+      tintStrength: 0.03,
+      vignette: 0,
+      lightStrength: 0.32,
+      exposure: 1.45,
+      gamma: 1.05,
+      saturation: 1.08,
+    },
+  });
+  runtime.renderer.submitShadow('player-shadow', feetX, feetY + 1, 24, 7, 0.30 * opacity, feetY - 1);
+  runtime.renderer.submitSprite({
+    id: 'player',
+    layer: RenderLayer.ACTORS,
+    sortY: feetY,
+    x: feetX,
+    y: feetY,
+    width: FRAME,
+    height: FRAME,
+    pivotX: PIVOT_X,
+    pivotY: PIVOT_Y,
+    color: [1, 1, 1, opacity * (input.dashing ? 0.86 : 1)],
+    region: { textureId, u0: 0, v0: 0, u1: 1, v1: 1 },
+    effects: {
+      outline: 0.16,
+      rim: input.hurt ? 0.52 : 0.22,
+      flash: input.hurt ? 0.16 : 0,
+    },
+  });
+  runtime.renderer.submitLight({
+    x: feetX, y: feetY - 20, radius: 44,
+    color: [1.0, 0.80, 0.46], intensity: 0.08, innerRadius: 0.18, falloff: 1.7,
+  });
+  runtime.renderer.endFrame();
+  // drawImage from a WebGL canvas synchronizes the produced frame in current browsers.
+  runtime.renderer.gl.finish();
+  input.ctx.save();
+  input.ctx.imageSmoothingEnabled = false;
+  input.ctx.drawImage(runtime.canvas, 0, 0);
+  input.ctx.restore();
+  return true;
+}
+
 /**
  * First playable chibi protagonist for the v0.5 redesign.
  * The visual anchor is decoupled from the 16px gameplay hitbox: x/y stay in legacy
@@ -590,17 +691,17 @@ export function drawChibiPlayerPreview(input: ChibiPlayerDrawInput): void {
   const feetY = Math.round(input.y + 18);
   const opacity = Math.max(0, Math.min(1, input.alpha ?? 1));
 
+  // Production path: the new GPU renderer owns the character draw. Canvas2D is only
+  // retained as a compatibility fallback for devices without WebGL2.
+  if (drawPlayerThroughGpu(input, state, index, sprite, feetX, feetY, opacity)) return;
+
   input.ctx.save();
   input.ctx.imageSmoothingEnabled = false;
-
-  // Contact shadow follows gameplay feet rather than the oversized sprite bounds.
   input.ctx.globalAlpha = 0.28 * opacity;
   input.ctx.fillStyle = '#11131a';
   input.ctx.fillRect(feetX - 11, feetY - 1, 22, 3);
   input.ctx.fillRect(feetX - 8, feetY + 2, 16, 2);
-
-  input.ctx.globalAlpha = opacity;
-  if (input.dashing) input.ctx.globalAlpha *= 0.86;
+  input.ctx.globalAlpha = opacity * (input.dashing ? 0.86 : 1);
   input.ctx.drawImage(sprite, feetX - PIVOT_X, feetY - PIVOT_Y);
   input.ctx.restore();
 }
