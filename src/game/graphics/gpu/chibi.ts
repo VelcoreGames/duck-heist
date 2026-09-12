@@ -3,8 +3,7 @@ import { SpriteAtlas } from '../atlas';
 import type { ChibiMotionSample } from '../motion';
 import type { AnimationSet, ChibiAppearance, ChibiPose, Facing } from '../types';
 import { RenderLayer } from '../types';
-import type { GpuSpriteEffects, GpuTextureRegion } from './types';
-import { WebGLChibiRenderer } from './webglRenderer';
+import type { GpuRendererBackend, GpuSpriteEffects, GpuTextureRegion } from './types';
 
 export interface GpuChibiStyle {
   shadowWidth?: number;
@@ -31,7 +30,7 @@ export class GpuChibiActorRenderer {
   private readonly textureId: string;
 
   constructor(
-    private readonly renderer: WebGLChibiRenderer,
+    private readonly renderer: GpuRendererBackend,
     private readonly atlas: SpriteAtlas,
     private readonly animations: AnimationSet,
     textureId = 'chibi-atlas',
