@@ -1,0 +1,102 @@
+name: Publish Duck Heist v0.4.3
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v043.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch current release from real v0.4.2 bundle to v0.4.3
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          src=Path('web-release/assets/duck-heist-v042.js')
+          dst=Path('web-release/assets/duck-heist-v043.js')
+          s=src.read_text(encoding='utf-8')
+
+          old='function Ad(e,t,o){if(o.bankProps||(o.bankProps=[],o.bankLayout="clear",t.type===w.BOSS||t.type===w.GUN_VAN))return;'
+          new='function Ad(e,t,o){if(o.bankProps||(o.bankProps=[],o.bankLayout="clear",t.type===w.BOSS||t.type===w.GUN_VAN||t.type===w.START))return;'
+          if s.count(old)!=1:
+            raise SystemExit(f'Expected one START bankProps generator anchor, got {s.count(old)}')
+          s=s.replace(old,new,1)
+
+          wall='pA(e,h,u,f.deco,y,m,o===0,t===0||t===yt-1)'
+          wall_new='c===0&&n===0||pA(e,h,u,f.deco,y,m,o===0,t===0||t===yt-1)'
+          if s.count(wall)!=1:
+            raise SystemExit(f'Expected one wall-prop renderer anchor, got {s.count(wall)}')
+          s=s.replace(wall,wall_new,1)
+
+          menu='/*DH_V0_4_2_MENU_BADGE*/j(t,"v0.4.2",8,10,5.5,"#e8d79a","left",!0),'
+          if s.count(menu)!=1:
+            raise SystemExit(f'Expected one menu version badge, got {s.count(menu)}')
+          s=s.replace(menu,'',1)
+
+          canvas='/*DH_V0_4_2_CANVAS_BADGE*/'
+          if s.count(canvas)!=1:
+            raise SystemExit(f'Expected one canvas version badge marker, got {s.count(canvas)}')
+          s=s.replace(canvas,'/*DH_V0_4_3_CANVAS_BADGE*/',1)
+          if s.count('"v0.4.2"')!=1:
+            raise SystemExit(f'Expected one remaining visible v0.4.2 string, got {s.count(chr(34)+"v0.4.2"+chr(34))}')
+          s=s.replace('"v0.4.2"','"v0.4.3"',1)
+
+          if 'DH_V0_4_2_BLINK' not in s:
+            raise SystemExit('Coin blink behavior marker missing')
+          for required in ['DIFFICULTY','FÁCIL','NORMAL','DIFÍCIL','MAD','GUN_VAN','RoomType']:
+            if required not in s:
+              raise SystemExit(f'Required current-game feature missing: {required}')
+          if 't.type===w.GUN_VAN||t.type===w.START' not in s:
+            raise SystemExit('START clean-room bankProps guard missing after patch')
+          if 'c===0&&n===0||pA(' not in s:
+            raise SystemExit('START wall-prop suppression missing after patch')
+          if s.count('"v0.4.3"') != 1:
+            raise SystemExit(f'Expected exactly one visible v0.4.3 label, got {s.count(chr(34)+"v0.4.3"+chr(34))}')
+          if '"v0.4.2"' in s:
+            raise SystemExit('Old visible version label remains')
+
+          dst.write_text(s,encoding='utf-8')
+          src.unlink()
+
+          html=Path('web-release/index.html')
+          h=html.read_text(encoding='utf-8')
+          if h.count('duck-heist-v042.js')!=1:
+            raise SystemExit('Expected v0.4.2 asset reference once')
+          html.write_text(h.replace('duck-heist-v042.js','duck-heist-v043.js',1),encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript syntax and release invariants
+        run: |
+          node --check web-release/assets/duck-heist-v043.js
+          grep -q 'duck-heist-v043.js' web-release/index.html
+          grep -q 'v0.4.3' web-release/assets/duck-heist-v043.js
+          ! grep -q '"v0.4.2"' web-release/assets/duck-heist-v043.js
+          grep -q 'DH_V0_4_2_BLINK' web-release/assets/duck-heist-v043.js
+          grep -q 'FÁCIL' web-release/assets/duck-heist-v043.js
+          grep -q 'DIFÍCIL' web-release/assets/duck-heist-v043.js
+          grep -q 'MAD' web-release/assets/duck-heist-v043.js
+
+      - name: Build dist from validated web release
+        run: |
+          npm ci
+          npm run build
+          node --check dist/assets/duck-heist-v043.js
+          grep -q 'duck-heist-v043.js' dist/index.html
+
+      - name: Commit v0.4.3 release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A web-release dist
+          git commit -m 'Release Duck Heist v0.4.3 clean START rooms'
+          git push origin HEAD:main
