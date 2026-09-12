@@ -35,31 +35,5 @@
 </head>
 <body>
     <div id="root"></div>
-<div data-duck-heist-version="0.4.2" style="position:fixed;left:0;top:0;z-index:2147483647;color:#e8d79a;font:700 13px/1 monospace;letter-spacing:.7px;text-shadow:0 1px 3px #000;opacity:.92;pointer-events:none;user-select:none;visibility:hidden">v0.4.2</div>
-<script>
-(function(){
-  const badge=document.querySelector('[data-duck-heist-version]');
-  if(!badge)return;
-  function placeVersion(){
-    const canvases=[...document.querySelectorAll('canvas')];
-    if(!canvases.length){badge.style.visibility='hidden';return;}
-    let gameCanvas=canvases[0],best=0;
-    for(const canvas of canvases){
-      const r=canvas.getBoundingClientRect();
-      const area=r.width*r.height;
-      if(area>best){best=area;gameCanvas=canvas;}
-    }
-    const r=gameCanvas.getBoundingClientRect();
-    badge.style.left=(r.left+24)+'px';
-    badge.style.top=(r.top+24)+'px';
-    badge.style.visibility='visible';
-  }
-  const observer=new MutationObserver(placeVersion);
-  observer.observe(document.documentElement,{childList:true,subtree:true});
-  addEventListener('resize',placeVersion,{passive:true});
-  addEventListener('orientationchange',placeVersion,{passive:true});
-  requestAnimationFrame(function tick(){placeVersion();requestAnimationFrame(tick);});
-})();
-</script>
 </body>
 </html>
