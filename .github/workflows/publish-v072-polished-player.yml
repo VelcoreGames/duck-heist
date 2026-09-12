@@ -54,6 +54,9 @@ jobs:
           s=s.replace(old,new)
           s=s.replace('drawChibiPlayerAtlasV4({','drawChibiPlayerPolished({')
           p.write_text(s)
+          q=Path('src/game/graphics/playerChibiPolished.ts')
+          t=q.read_text().replace('const COLS = 30;\n','').replace('const ROWS = 4;\n','')
+          q.write_text(t)
           PY
           rm -f src/assets/chibi/base-duck-definitive-atlas.png
           rm -f src/game/graphics/playerChibiDefinitive.ts
