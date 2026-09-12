@@ -31,49 +31,19 @@ jobs:
       - name: Install Pillow
         run: python -m pip install --disable-pip-version-check pillow
 
-      - name: Bake definitive 496-frame atlas
+      - name: Bake definitive atlas
         run: python scripts/build-definitive-duck-atlas.py
 
       - name: Activate definitive renderer
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('src/game/render.ts')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace("import { drawChibiPlayerAtlasV5 } from './graphics/playerChibiAtlasV5';","import { drawChibiPlayerDefinitive } from './graphics/playerChibiDefinitive';",1)
-          s=s.replace('drawChibiPlayerAtlasV5({','drawChibiPlayerDefinitive({',1)
-          old="""      hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
-      skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,"""
-          new="""      hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
-      dead: p.hp <= 0,
-      skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,"""
-          if old not in s: raise SystemExit('player definitive input anchor missing')
-          s=s.replace(old,new,1)
-          s=s.replace('  if (p.hp > 0) {\n    drawChibiPlayerDefinitive({','  {\n    drawChibiPlayerDefinitive({',1)
-          p.write_text(s,encoding='utf-8')
-          PY
+        run: python scripts/activate-definitive-player.py
 
-      - name: Validate definitive atlas and source
+      - name: Validate definitive atlas
         run: |
-          python - <<'PY'
-          from PIL import Image
-          from pathlib import Path
-          p=Path('src/assets/chibi/base-duck-definitive-atlas.png')
-          assert p.exists() and p.stat().st_size > 10000, p
-          im=Image.open(p).convert('RGBA')
-          assert im.size == (3952,416), im.size
-          cell=52
-          states=[(0,0,16),(0,16,24),(0,40,16),(0,56,20),(1,0,12),(1,12,20),(1,32,16)]
-          nonempty=0
-          for d in range(4):
-              for bank,start,count in states:
-                  row=d*2+bank
-                  for i in range(count):
-                      fr=im.crop(((start+i)*cell,row*cell,(start+i+1)*cell,(row+1)*cell))
-                      if fr.getbbox(): nonempty += 1
-          assert nonempty == 496, nonempty
-          print('Validated', nonempty, 'non-empty baked raster frames')
-          PY
+          python -c "from PIL import Image; from pathlib import Path; p=Path('src/assets/chibi/base-duck-definitive-atlas.png'); assert p.exists() and p.stat().st_size>10000; im=Image.open(p).convert('RGBA'); assert im.size==(3952,416); print('atlas',im.size,p.stat().st_size)"
+          python -c "from PIL import Image; im=Image.open('src/assets/chibi/base-duck-definitive-atlas.png').convert('RGBA'); cell=52; states=[(0,0,16),(0,16,24),(0,40,16),(0,56,20),(1,0,12),(1,12,20),(1,32,16)]; n=sum(1 for d in range(4) for bank,start,count in states for i in range(count) if im.crop(((start+i)*cell,(d*2+bank)*cell,(start+i+1)*cell,(d*2+bank+1)*cell)).getbbox()); assert n==496,n; print('frames',n)"
+
+      - name: Validate source and build
+        run: |
           npx tsc --noEmit
           grep -q "DUCK_DEFINITIVE_BAKED_RASTER_FRAMES = 496" src/game/graphics/playerChibiDefinitive.ts
           grep -q "drawChibiPlayerDefinitive" src/game/render.ts
