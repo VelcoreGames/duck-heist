@@ -1,5 +1,6 @@
 import { animationFrame, resolveClipDetailed } from '../animation';
 import { SpriteAtlas } from '../atlas';
+import type { ChibiMotionSample } from '../motion';
 import type { AnimationSet, ChibiAppearance, ChibiPose, Facing } from '../types';
 import { RenderLayer } from '../types';
 import type { GpuSpriteEffects, GpuTextureRegion } from './types';
@@ -14,7 +15,12 @@ export interface GpuChibiStyle {
   flash?: number;
   paletteStrength?: number;
   paletteIndex?: number;
+  motion?: ChibiMotionSample;
 }
+
+const IDENTITY_MOTION: ChibiMotionSample = {
+  offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1, rotation: 0, recoilX: 0, recoilY: 0,
+};
 
 const layerOrder = (facing: Facing): readonly (keyof ChibiAppearance)[] =>
   facing === 'up'
@@ -48,27 +54,26 @@ export class GpuChibiActorRenderer {
     };
   }
 
-  submit(
-    id: string,
-    pose: ChibiPose,
-    appearance: ChibiAppearance,
-    style: GpuChibiStyle = {},
-  ): void {
+  submit(id: string, pose: ChibiPose, appearance: ChibiAppearance, style: GpuChibiStyle = {}): void {
     const resolved = resolveClipDetailed(this.animations, pose.state, pose.facing);
     if (!resolved) return;
     const animationName = animationFrame(resolved.clip, pose.tick, pose.phase ?? 0);
     if (!animationName) return;
     const scale = Math.max(0.01, pose.scale ?? 1);
+    const motion = style.motion ?? IDENTITY_MOTION;
+    const scaleX = scale * Math.max(0.65, Math.min(1.35, motion.scaleX));
+    const scaleY = scale * Math.max(0.65, Math.min(1.35, motion.scaleY));
     const flipX = resolved.flipX !== !!pose.mirrorX;
-    const actorY = pose.y + (pose.bob ?? 0);
+    const actorX = pose.x + motion.offsetX + motion.recoilX;
+    const actorY = pose.y + (pose.bob ?? 0) + motion.offsetY + motion.recoilY;
     const alpha = Math.max(0, Math.min(1, pose.alpha ?? 1));
     if (alpha <= 0) return;
 
     this.renderer.submitShadow(
       `${id}:shadow`,
-      pose.x,
+      pose.x + motion.offsetX * 0.25,
       pose.y + 1 * scale,
-      (style.shadowWidth ?? 19) * scale,
+      (style.shadowWidth ?? 19) * scale * Math.min(1.12, motion.scaleX),
       (style.shadowHeight ?? 7) * scale,
       (style.shadowOpacity ?? 0.28) * alpha,
       pose.y - 0.1,
@@ -95,12 +100,13 @@ export class GpuChibiActorRenderer {
         layer: RenderLayer.WORLD,
         sortY: pose.y,
         order: order++,
-        x: pose.x,
+        x: actorX,
         y: actorY,
-        width: frame.w * scale,
-        height: frame.h * scale,
-        pivotX: (frame.pivotX ?? Math.floor(frame.w / 2)) * scale,
-        pivotY: (frame.pivotY ?? frame.h) * scale,
+        width: frame.w * scaleX,
+        height: frame.h * scaleY,
+        pivotX: (frame.pivotX ?? Math.floor(frame.w / 2)) * scaleX,
+        pivotY: (frame.pivotY ?? frame.h) * scaleY,
+        rotation: motion.rotation,
         flipX,
         color: [1, 1, 1, alpha],
         region,
@@ -109,7 +115,12 @@ export class GpuChibiActorRenderer {
     }
   }
 
-  socket(pose: ChibiPose, appearance: ChibiAppearance, name: string): { x: number; y: number } | undefined {
+  socket(
+    pose: ChibiPose,
+    appearance: ChibiAppearance,
+    name: string,
+    motion: ChibiMotionSample = IDENTITY_MOTION,
+  ): { x: number; y: number } | undefined {
     const resolved = resolveClipDetailed(this.animations, pose.state, pose.facing);
     if (!resolved) return undefined;
     const animationName = animationFrame(resolved.clip, pose.tick, pose.phase ?? 0);
@@ -122,9 +133,11 @@ export class GpuChibiActorRenderer {
     const pivotX = frame.pivotX ?? Math.floor(frame.w / 2);
     const pivotY = frame.pivotY ?? frame.h;
     const flipX = resolved.flipX !== !!pose.mirrorX;
+    const dx = (socket.x - pivotX) * scale * motion.scaleX * (flipX ? -1 : 1);
+    const dy = (socket.y - pivotY) * scale * motion.scaleY;
     return {
-      x: pose.x + (socket.x - pivotX) * scale * (flipX ? -1 : 1),
-      y: pose.y + (pose.bob ?? 0) + (socket.y - pivotY) * scale,
+      x: pose.x + motion.offsetX + motion.recoilX + dx,
+      y: pose.y + (pose.bob ?? 0) + motion.offsetY + motion.recoilY + dy,
     };
   }
 }
