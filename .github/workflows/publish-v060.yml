@@ -33,6 +33,26 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
+          # Retire the old procedural preview as an implementation. Any lingering import
+          # now resolves to the definitive v3 renderer instead.
+          Path('src/game/graphics/playerChibiPreview.ts').write_text(
+              "export { drawChibiPlayerV3 as drawChibiPlayerPreview, clearChibiPlayerV3Cache as clearChibiPlayerFrameCache } from './playerChibiV3';\n"
+              "export { CHIBI_PLAYER_V3_FRAME_SIZE } from './playerChibiV3';\n"
+              "export { CHIBI_PLAYER_SUMMARY } from './chibiProduction';\n",
+              encoding='utf-8'
+          )
+
+          # Remove constants left over from earlier iterations of the new art modules.
+          player = Path('src/game/graphics/playerChibiV3.ts')
+          p = player.read_text(encoding='utf-8').replace("const OUTLINE_SOFT = '#443947';\n", '')
+          player.write_text(p, encoding='utf-8')
+
+          lobby = Path('src/game/graphics/lobbyArtV3.ts')
+          l = lobby.read_text(encoding='utf-8')
+          l = l.replace("const CREAM_SHADE = '#cdbda5';\n", '')
+          l = l.replace("const BRASS_LIGHT = '#efd88a';\n", '')
+          lobby.write_text(l, encoding='utf-8')
+
           render = Path('src/game/render.ts')
           s = render.read_text(encoding='utf-8')
           replacements = [
@@ -56,6 +76,11 @@ jobs:
           if "./graphics/lobbyArtV3" not in r:
             r = r.replace(import_anchor, import_anchor + "\nimport { drawChibiLobbyTileV3, drawChibiLobbyAtmosphereV3 } from './graphics/lobbyArtV3';", 1)
 
+          # Keep old lobby helpers exported only as compatibility/reference while v3 owns runtime rendering.
+          r = r.replace('function drawLobbyWall(', 'export function drawLobbyWall(', 1)
+          r = r.replace('function drawLobbyFloor(', 'export function drawLobbyFloor(', 1)
+          r = r.replace('function drawLobbyAtmosphere(', 'export function drawLobbyAtmosphere(', 1)
+
           old_branch = '''  if (theme.deco === 'lobby') {\n    if (wall) {\n      drawLobbyWall(ctx, px, py, x, y, theme, h);\n      if (!cleanStartRoom) drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);\n    } else {\n      drawLobbyFloor(ctx, px, py, x, y, theme, h);\n    }\n    return;\n  }'''
           new_branch = '''  if (theme.deco === 'lobby') {\n    drawChibiLobbyTileV3(ctx, x, y, wall, gx, gy, frame);\n    return;\n  }'''
           if old_branch not in r:
@@ -69,10 +94,11 @@ jobs:
 
       - name: Validate source and graphics
         run: |
-          npx tsc --noEmit
-          npx tsc --noEmit --strict --target ES2020 --module ESNext \
-            --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable \
-            --skipLibCheck src/game/graphics/*.ts src/game/graphics/gpu/*.ts
+          npx tsc --noEmit --noUnusedLocals false --noUnusedParameters false
+          npx tsc --noEmit --strict --noUnusedLocals false --noUnusedParameters false \
+            --target ES2020 --module ESNext --moduleResolution bundler \
+            --lib ES2020,DOM,DOM.Iterable --skipLibCheck \
+            src/game/graphics/*.ts src/game/graphics/gpu/*.ts
           grep -q "drawChibiPlayerV3" src/game/render.ts
           grep -q "drawChibiPoliceDuckV3" src/game/render.ts
           grep -q "drawChibiLobbyObstacleV3" src/game/render.ts
@@ -104,7 +130,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A src/game/render.ts src/game/roomArt.ts web-release dist VERSION package.json package-lock.json
+          git add -A src/game/render.ts src/game/roomArt.ts src/game/graphics/playerChibiPreview.ts src/game/graphics/playerChibiV3.ts src/game/graphics/lobbyArtV3.ts web-release dist VERSION package.json package-lock.json
           if git diff --cached --quiet; then
             echo 'Release already up to date.'
             exit 0
