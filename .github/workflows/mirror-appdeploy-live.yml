@@ -20,7 +20,7 @@ jobs:
         with:
           ref: main
 
-      - name: Mirror exact working AppDeploy build locally
+      - name: Mirror exact working AppDeploy snapshot 1788926588197 locally
         run: |
           set -euxo pipefail
           rm -rf appdeploy-live
@@ -31,6 +31,7 @@ jobs:
           import re
 
           base='https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/'
+          expected='1788926588197'
           host=urlparse(base).netloc
           out=Path('appdeploy-live')
           out.mkdir(parents=True,exist_ok=True)
@@ -71,6 +72,8 @@ jobs:
 
           idx=out/'index.html'
           html=idx.read_text('utf-8')
+          if expected not in html:
+              raise SystemExit(f'AppDeploy live build is not expected snapshot {expected}')
           html=re.sub(r'<script data-appdeploy-overlay-bootstrap>[\s\S]*?</script>','',html,count=1)
           html=re.sub(r'<script async src="https://v2\.appdeploy\.ai/shared/js/overlay\.js"[^>]*></script>','',html,count=1)
           html=re.sub(r'<script>window\.__APPDEPLOY_APP_ID=[\s\S]*?</script>','',html,count=1)
@@ -97,5 +100,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A appdeploy-live package.json
-          git commit -m 'Vendor exact working AppDeploy build for Hostinger'
+          git commit -m 'Restore exact Duck Heist AppDeploy snapshot 1788926588197'
           git push origin HEAD:main
