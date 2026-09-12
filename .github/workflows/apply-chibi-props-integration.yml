@@ -1,0 +1,43 @@
+name: Apply Chibi Lobby Props
+
+on:
+  push:
+    paths:
+      - 'scripts/apply-chibi-props-integration.mjs'
+      - '.github/workflows/apply-chibi-props-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply lobby prop integration
+        run: node scripts/apply-chibi-props-integration.mjs
+      - name: Validate source
+        run: |
+          npx tsc --noEmit --strict --target ES2020 --module ESNext --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable --skipLibCheck src/game/graphics/*.ts src/game/graphics/gpu/*.ts
+          npx vite build --outDir /tmp/duck-heist-chibi-props-build
+      - name: Commit integration
+        run: |
+          if git diff --quiet; then
+            echo 'No source changes required.'
+            exit 0
+          fi
+          git config user.name 'VelcoreGames'
+          git config user.email 'contacto@velcore.com.mx'
+          git add src/game/render.ts
+          git commit -m 'v0.5.0: integrate chibi lobby props'
+          git pull --rebase origin main
+          git push origin main
