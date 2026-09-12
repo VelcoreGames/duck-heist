@@ -241,14 +241,9 @@ export function renderWorld(engine: GameEngine) {
     drawChibiPlayerPreview({
       ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
-      skinId: engine.equippedSkin,
+      skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
+      alpha: p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0 ? 0.42 : 1,
     });
-    if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
-      ctx.globalAlpha = 0.2;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(p.x + 2, p.y + 2, 12, 14);
-      ctx.globalAlpha = 1;
-    }
   }
 
   for (const pt of engine.particles) drawParticle(ctx, pt.x, pt.y, pt.type, pt.life, pt.color);

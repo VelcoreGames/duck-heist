@@ -41,6 +41,8 @@ interface ChibiPlayerDrawInput {
   dead?: boolean;
   skinId?: string;
   alpha?: number;
+  runtimeKey?: object;
+  shotSequence?: number;
 }
 
 interface CachedFrame {
@@ -106,13 +108,96 @@ function paletteFor(skinId?: string): PlayerPalette {
   };
 }
 
-function stateFrom(input: ChibiPlayerDrawInput): CharacterState {
+interface PlayerVisualRuntime {
+  state: CharacterState;
+  enteredAt: number;
+  lockUntil: number;
+  lastFrame: number;
+  lastShooting: boolean;
+  lastDashing: boolean;
+  lastHurt: boolean;
+  lastShotSequence?: number;
+}
+
+const fallbackRuntimeKey = {};
+const runtimeByKey = new WeakMap<object, PlayerVisualRuntime>();
+
+function desiredState(input: ChibiPlayerDrawInput): CharacterState {
   if (input.dead) return 'down';
   if (input.hurt) return 'hurt';
   if (input.dashing) return 'dash';
   if (input.shooting) return 'shoot';
   if (input.moving) return 'walk';
   return 'idle';
+}
+
+function statePriority(state: CharacterState): number {
+  switch (state) {
+    case 'down': return 100;
+    case 'hurt': return 90;
+    case 'dash': return 80;
+    case 'shoot': return 70;
+    case 'interact': return 60;
+    case 'celebrate': return 50;
+    case 'walk': return 20;
+    default: return 10;
+  }
+}
+
+function stateVisualDuration(state: CharacterState): number {
+  const spec = CHIBI_PLAYER_PLAN[state];
+  if (!spec) return 0;
+  if (state === 'down') return Number.POSITIVE_INFINITY;
+  return spec.frames * Math.max(1, spec.frameDuration);
+}
+
+function freshRuntime(frame: number): PlayerVisualRuntime {
+  return {
+    state: 'idle', enteredAt: frame, lockUntil: frame, lastFrame: frame,
+    lastShooting: false, lastDashing: false, lastHurt: false,
+  };
+}
+
+function resolveVisualState(input: ChibiPlayerDrawInput): { state: CharacterState; stateTick: number } {
+  const key = input.runtimeKey ?? fallbackRuntimeKey;
+  let runtime = runtimeByKey.get(key);
+  if (!runtime || input.frame < runtime.lastFrame) {
+    runtime = freshRuntime(input.frame);
+    runtimeByKey.set(key, runtime);
+  }
+
+  const desired = desiredState(input);
+  const shotChanged = input.shotSequence !== undefined &&
+    input.shotSequence !== runtime.lastShotSequence;
+  const edgeRetrigger =
+    (desired === 'shoot' && (shotChanged || (input.shooting && !runtime.lastShooting))) ||
+    (desired === 'dash' && input.dashing && !runtime.lastDashing) ||
+    (desired === 'hurt' && input.hurt && !runtime.lastHurt);
+
+  const higherPriority = statePriority(desired) > statePriority(runtime.state);
+  const lockExpired = input.frame >= runtime.lockUntil;
+  const canEnter = desired !== runtime.state && (higherPriority || lockExpired);
+  const canRetrigger = edgeRetrigger && statePriority(desired) >= statePriority(runtime.state);
+
+  if (canEnter || canRetrigger) {
+    runtime.state = desired;
+    runtime.enteredAt = input.frame;
+    const duration = stateVisualDuration(desired);
+    runtime.lockUntil = Number.isFinite(duration) ? input.frame + duration : Number.POSITIVE_INFINITY;
+  } else if ((runtime.state === 'idle' || runtime.state === 'walk') && desired !== runtime.state) {
+    runtime.state = desired;
+    runtime.enteredAt = input.frame;
+    const duration = stateVisualDuration(desired);
+    runtime.lockUntil = Number.isFinite(duration) ? input.frame + duration : Number.POSITIVE_INFINITY;
+  }
+
+  runtime.lastFrame = input.frame;
+  runtime.lastShooting = input.shooting;
+  runtime.lastDashing = input.dashing;
+  runtime.lastHurt = input.hurt;
+  runtime.lastShotSequence = input.shotSequence;
+
+  return { state: runtime.state, stateTick: Math.max(0, input.frame - runtime.enteredAt) };
 }
 
 function frameCount(state: CharacterState): number {
@@ -126,8 +211,9 @@ function frameDuration(state: CharacterState): number {
 function visualFrame(state: CharacterState, tick: number): number {
   const count = frameCount(state);
   const duration = Math.max(1, frameDuration(state));
-  if (state === 'down') return Math.min(count - 1, Math.floor(tick / duration));
-  return Math.floor(tick / duration) % count;
+  const raw = Math.floor(Math.max(0, tick) / duration);
+  const loop = CHIBI_PLAYER_PLAN[state]?.loop ?? true;
+  return loop ? raw % count : Math.min(count - 1, raw);
 }
 
 function stateMotion(state: CharacterState, index: number): {
@@ -496,8 +582,9 @@ function cachedFrame(state: CharacterState, dir: DuckDir, index: number, skinId?
  */
 export function drawChibiPlayerPreview(input: ChibiPlayerDrawInput): void {
   if (typeof document === 'undefined') return;
-  const state = stateFrom(input);
-  const index = visualFrame(state, input.frame);
+  const resolved = resolveVisualState(input);
+  const state = resolved.state;
+  const index = visualFrame(state, resolved.stateTick);
   const sprite = cachedFrame(state, input.dir, index, input.skinId);
   const feetX = Math.round(input.x + 8);
   const feetY = Math.round(input.y + 18);
