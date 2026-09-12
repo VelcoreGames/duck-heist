@@ -96,8 +96,8 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
   if (shootStart || dashStart || hurtStart || (wanted === 'down' && rt.state !== 'down')) {
     rt.state = wanted;
     rt.enteredAt = input.frame;
-  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 12) {
-    // Complete the six authored recoil frames.
+  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 14) {
+    // Hold the full authored recoil and recovery sequence.
   } else if (rt.state === 'hurt' && input.frame - rt.enteredAt < 10) {
     // Keep the impact reaction readable.
   } else if (rt.state === 'down') {
@@ -119,26 +119,32 @@ function poseFor(state: State, tick: number, frame: number, dir: DuckDir): Pose 
   if (state === 'walk') {
     const i = Math.floor(frame / 2) % 12;
     const phase = (i / 12) * Math.PI * 2;
+    const vertical = dir === 'up' || dir === 'down';
+    const sway = Math.sin(phase);
+    const compression = Math.cos(phase * 2);
     const sideLean = dir === 'left' ? -.018 : dir === 'right' ? .018 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: 1 + Math.cos(phase * 2) * .014,
-      scaleY: 1 - Math.cos(phase * 2) * .014,
-      rotation: sideLean + Math.sin(phase) * .008,
-      dx: Math.sin(phase) * .38,
-      dy: -Math.abs(Math.sin(phase)) * 1.05,
+      scaleX: 1 + compression * (vertical ? .026 : .014),
+      scaleY: 1 - compression * (vertical ? .022 : .014),
+      rotation: vertical ? sway * .018 : sideLean + sway * .008,
+      dx: sway * (vertical ? .95 : .38),
+      dy: -Math.abs(sway) * (vertical ? 1.6 : 1.05),
     };
   }
   if (state === 'shoot') {
     const i = Math.min(5, Math.floor(tick / 2));
-    const kick = [0, 1.15, 2.15, 1.5, .65, 0][i] ?? 0;
+    const kick = [0, 2.2, 3.8, 3.0, 1.45, .4][i] ?? 0;
+    const horizontal = dir === 'left' || dir === 'right';
     const dx = dir === 'left' ? kick : dir === 'right' ? -kick : 0;
-    const dy = dir === 'up' ? kick : dir === 'down' ? -kick * .32 : 0;
+    const dy = dir === 'up' ? kick : dir === 'down' ? -kick * .72 : 0;
+    const recoilPeak = i === 1 || i === 2;
     return {
       authored: 'shoot', index: i,
-      scaleX: i === 2 ? 1.018 : 1,
-      scaleY: i === 2 ? .982 : 1,
-      rotation: 0, dx, dy,
+      scaleX: recoilPeak ? (horizontal ? 1.05 : 1.035) : 1,
+      scaleY: recoilPeak ? .955 : 1,
+      rotation: dir === 'left' ? -.02 * (kick / 3.8) : dir === 'right' ? .02 * (kick / 3.8) : 0,
+      dx, dy,
     };
   }
   if (state === 'interact') {
@@ -252,8 +258,6 @@ function drawWeapon(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alpha:
   ctx.imageSmoothingEnabled = true;
   ctx.translate(p.x, p.y);
   ctx.rotate(p.a);
-
-  // Small robber blaster: short silhouette, metallic top plane, warm grip.
   ctx.fillStyle = '#17191d';
   ctx.beginPath();
   ctx.moveTo(-5.6, -2.35); ctx.lineTo(5.5, -2.35); ctx.lineTo(6.7, -.6);
@@ -290,27 +294,38 @@ function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alpha:
   const p = weaponAnchor(dir, feetX, feetY, 0);
   const vx = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
   const vy = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
-  const mx = p.x + vx * 9.4;
-  const my = p.y + vy * 9.4;
-  const pulse = tick <= 3 ? 1 : .72;
+  const mx = p.x + vx * 9.8;
+  const my = p.y + vy * 9.8;
+  const pulse = tick <= 2 ? 1.28 : tick <= 4 ? 1 : .72;
   ctx.save();
   ctx.translate(mx, my);
-  ctx.globalAlpha = alpha * .19;
+  ctx.globalAlpha = alpha * .24;
   ctx.fillStyle = '#ffbd48';
-  ctx.beginPath(); ctx.arc(0, 0, 6.2 * pulse, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, 8.2 * pulse, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = '#ffad27';
+  ctx.fillStyle = '#ff9f1f';
   ctx.beginPath();
   for (let i = 0; i < 8; i++) {
     const a = (Math.PI * 2 * i) / 8;
-    const r = i % 2 === 0 ? 5.2 * pulse : 2.2 * pulse;
+    const r = i % 2 === 0 ? 6.8 * pulse : 2.4 * pulse;
     const x = Math.cos(a) * r;
     const y = Math.sin(a) * r;
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#fff6c7';
-  ctx.beginPath(); ctx.arc(0, 0, 1.55 * pulse, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff8d5';
+  ctx.beginPath(); ctx.arc(0, 0, 2.05 * pulse, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawShotGlow(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alpha: number, tick: number): void {
+  if (tick > 4) return;
+  const p = weaponAnchor(dir, feetX, feetY, 0);
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = alpha * (.16 - tick * .025);
+  ctx.fillStyle = '#ffd46a';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, 9.5, 7.2, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
@@ -373,33 +388,36 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     }
   }
 
+  const actorFeetX = feetX + pose.dx;
+  const actorFeetY = feetY + pose.dy;
   const authoredWeapon = state === 'shoot' || state === 'interact' || state === 'down';
-  const wp = weaponAnchor(input.dir, feetX, feetY, 0);
+  const wp = weaponAnchor(input.dir, actorFeetX, actorFeetY, 0);
   if (!authoredWeapon && wp.behind) {
-    drawWeapon(ctx, input.dir, feetX, feetY, opacity);
-    drawGrip(ctx, input.dir, feetX, feetY, opacity);
+    drawWeapon(ctx, input.dir, actorFeetX, actorFeetY, opacity);
+    drawGrip(ctx, input.dir, actorFeetX, actorFeetY, opacity);
   }
 
   drawFrame(ctx, image, input.dir, pose, feetX, feetY, opacity * (state === 'dash' ? .94 : 1));
 
   if (!authoredWeapon && !wp.behind) {
-    drawWeapon(ctx, input.dir, feetX, feetY, opacity);
-    drawGrip(ctx, input.dir, feetX, feetY, opacity);
+    drawWeapon(ctx, input.dir, actorFeetX, actorFeetY, opacity);
+    drawGrip(ctx, input.dir, actorFeetX, actorFeetY, opacity);
   }
 
-  if (state === 'shoot' && tick >= 2 && tick <= 5) {
-    drawMuzzle(ctx, input.dir, feetX, feetY, opacity * (1 - Math.max(0, tick - 3) * .18), tick);
+  if (state === 'shoot') {
+    drawShotGlow(ctx, input.dir, actorFeetX, actorFeetY, opacity, tick);
+    if (tick <= 6) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.42, 1 - tick * .10), tick);
   }
 
   if (state === 'hurt') {
     ctx.save();
     ctx.globalAlpha = .11 * opacity;
     ctx.fillStyle = '#ff725d';
-    ctx.beginPath(); ctx.ellipse(feetX, feetY - 15, 11, 15, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(actorFeetX, actorFeetY - 15, 11, 15, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v2';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v3';
   document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered';
   document.documentElement.dataset.duckHeistPlayerState = state;
 }
