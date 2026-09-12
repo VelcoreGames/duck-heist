@@ -1,0 +1,54 @@
+name: Inspect Duck Heist v0.4.3 START room
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-start-v043.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Inspect current web release START-room rendering
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('web-release/assets/duck-heist-v042.js')
+          s=p.read_text(encoding='utf-8')
+          terms=[
+            'START','#070910','#2a3140','#8d6e63','#4a322c',
+            '#46535d','#754d36','#2e5737','#3f5f49','#8b5a2b',
+            'createRadialGradient','ROOM','lobby','storage','bakery','golden'
+          ]
+          out=[]
+          for term in terms:
+            start=0
+            count=0
+            while True:
+              i=s.find(term,start)
+              if i<0: break
+              count+=1
+              out.append(f'\n=== {term} #{count} at {i} ===\n{s[max(0,i-2200):min(len(s),i+3200)]}\n')
+              start=i+1
+              if count>=12: break
+          Path('inspection-start-v043.txt').write_text('\n'.join(out),encoding='utf-8')
+          print('matches',len(out))
+          if not out:
+            raise SystemExit('No inspection matches found')
+          PY
+
+      - name: Commit inspection
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inspection-start-v043.txt
+          git commit -m 'Inspect v0.4.3 START room renderer' || exit 0
+          git push origin HEAD:main
