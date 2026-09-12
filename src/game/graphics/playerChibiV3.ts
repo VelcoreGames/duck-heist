@@ -12,7 +12,6 @@ const PIVOT_X = 40;
 const PIVOT_Y = 69;
 const CACHE_LIMIT = 640;
 const OUTLINE = '#27232b';
-const OUTLINE_SOFT = '#443947';
 const FEATHER = '#f5d64d';
 const FEATHER_LIGHT = '#ffe990';
 const FEATHER_SHADE = '#d7aa35';

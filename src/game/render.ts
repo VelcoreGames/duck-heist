@@ -35,9 +35,9 @@ import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { drawChibiPlayerPreview } from './graphics/playerChibiPreview';
-import { drawChibiPoliceDuck } from './graphics/enemyChibi';
-import { drawChibiLobbyObstacle } from './graphics/chibiProps';
+import { drawChibiPlayerV3 } from './graphics/playerChibiV3';
+import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
+import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -119,7 +119,7 @@ export function renderWorld(engine: GameEngine) {
     for (let x = 0; x < ROOM_WIDTH; x++) {
       const t = room.layout[y][x];
       if (t >= OBSTACLE_BASE) {
-        if (engine.map.floorIndex === 0) drawChibiLobbyObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
+        if (engine.map.floorIndex === 0) drawChibiLobbyObstacleV3(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
         else drawObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
       }
     }
@@ -243,7 +243,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   if (p.hp > 0) {
-    drawChibiPlayerPreview({
+    drawChibiPlayerV3({
       ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
       skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
@@ -504,7 +504,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   } else {
     switch (e.type) {
       case 'policia_pato':
-        drawChibiPoliceDuck({
+        drawChibiPoliceDuckV3({
           ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 7, dirX,
           moving: Math.abs(e.vx) + Math.abs(e.vy) > 0.08, hurt, elite: e.elite,
         });

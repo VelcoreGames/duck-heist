@@ -1,5 +1,6 @@
 import { TILE_SIZE, ROOM_WIDTH, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_DOOR } from './constants';
 import type { FloorTheme } from './constants';
+import { drawChibiLobbyTileV3, drawChibiLobbyAtmosphereV3 } from './graphics/lobbyArtV3';
 
 const T = TILE_SIZE;
 
@@ -21,7 +22,7 @@ function line(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number,
   ctx.stroke();
 }
 
-function drawLobbyWall(ctx: CanvasRenderingContext2D, px: number, py: number, x: number, y: number, theme: FloorTheme, h: number) {
+export function drawLobbyWall(ctx: CanvasRenderingContext2D, px: number, py: number, x: number, y: number, theme: FloorTheme, h: number) {
   // Silueta oscura gruesa y panelado profundo, inspirado en un banco clásico chibi.
   r(ctx, px, py, T, T, '#10191b');
   r(ctx, px + 1, py + 1, T - 2, T - 2, theme.wall[(x + y) % 2]);
@@ -52,7 +53,7 @@ function drawLobbyWall(ctx: CanvasRenderingContext2D, px: number, py: number, x:
   if (h % 11 === 0) r(ctx, px + 8, py + 25, 8, 1, 'rgba(30,15,12,.18)');
 }
 
-function drawLobbyFloor(ctx: CanvasRenderingContext2D, px: number, py: number, x: number, y: number, theme: FloorTheme, h: number) {
+export function drawLobbyFloor(ctx: CanvasRenderingContext2D, px: number, py: number, x: number, y: number, theme: FloorTheme, h: number) {
   const checker = (x + y) % 2 === 0;
   const base = checker ? theme.floor[0] : theme.floor[1];
   r(ctx, px, py, T, T, base);
@@ -91,12 +92,7 @@ export function drawRichTile(
   const cleanStartRoom = gx === 0 && gy === 0;
 
   if (theme.deco === 'lobby') {
-    if (wall) {
-      drawLobbyWall(ctx, px, py, x, y, theme, h);
-      if (!cleanStartRoom) drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);
-    } else {
-      drawLobbyFloor(ctx, px, py, x, y, theme, h);
-    }
+    drawChibiLobbyTileV3(ctx, x, y, wall, gx, gy, frame);
     return;
   }
 
@@ -217,7 +213,7 @@ function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, dec
   }
 }
 
-function drawLobbyAtmosphere(ctx: CanvasRenderingContext2D, frame: number) {
+export function drawLobbyAtmosphere(ctx: CanvasRenderingContext2D, frame: number) {
   // Dos focos cálidos laterales y uno central amplio. No añaden colisión ni props.
   const lights: readonly [number, number, number][] = [[112, 48, 82], [240, 42, 110], [368, 48, 82]];
   for (const [lx, ly, radius] of lights) {
@@ -238,7 +234,7 @@ function drawLobbyAtmosphere(ctx: CanvasRenderingContext2D, frame: number) {
 
 export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, frame: number, special = false) {
   if (deco === 'lobby') {
-    drawLobbyAtmosphere(ctx, frame);
+    drawChibiLobbyAtmosphereV3(ctx, frame);
   } else {
     const lights = deco === 'security' ? [[80, 40], [240, 36], [400, 40]]
       : deco === 'bakery' ? [[90, 52], [390, 52]]

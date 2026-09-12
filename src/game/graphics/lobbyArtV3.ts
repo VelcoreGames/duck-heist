@@ -5,7 +5,6 @@ const T = TILE_SIZE;
 
 const CREAM = '#eadfca';
 const CREAM_LIGHT = '#fff6e7';
-const CREAM_SHADE = '#cdbda5';
 const MARBLE_A = '#d9ccb6';
 const MARBLE_B = '#d3c4ab';
 const MARBLE_EDGE = '#b8a98f';
@@ -15,7 +14,6 @@ const WOOD_DARK = '#30221f';
 const TEAL = '#294546';
 const TEAL_LIGHT = '#3b5f5d';
 const BRASS = '#c7a052';
-const BRASS_LIGHT = '#efd88a';
 const OUTLINE = '#26252a';
 
 function r(ctx: Ctx, x: number, y: number, w: number, h: number, color: string) {
