@@ -1,0 +1,28 @@
+name: Validate Chibi Graphics Engine
+
+on:
+  push:
+    paths:
+      - 'src/game/graphics/**'
+      - '.github/workflows/validate-chibi-graphics.yml'
+  workflow_dispatch:
+
+jobs:
+  graphics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Compile graphics subsystem in strict mode
+        run: >-
+          npx tsc --noEmit --strict --target ES2020 --module ESNext
+          --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable
+          --skipLibCheck src/game/graphics/types.ts src/game/graphics/atlas.ts
+          src/game/graphics/animation.ts src/game/graphics/renderer.ts
+          src/game/graphics/chibi.ts src/game/graphics/themes.ts src/game/graphics/index.ts
+      - name: Try full source build
+        run: npx vite build --outDir /tmp/duck-heist-source-build
