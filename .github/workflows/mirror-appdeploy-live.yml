@@ -20,14 +20,66 @@ jobs:
         with:
           ref: main
 
-      - name: Mirror exact working AppDeploy build
+      - name: Mirror exact working AppDeploy build locally
         run: |
           set -euxo pipefail
           rm -rf appdeploy-live
-          mkdir -p appdeploy-live/resources
-          wget --no-verbose --page-requisites --convert-links --adjust-extension --no-parent --no-host-directories -P appdeploy-live 'https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/'
-          curl -fL --retry 5 --retry-delay 2 'https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/resources/duck-heist-source.zip' -o appdeploy-live/resources/duck-heist-source.zip
+          python <<'PY'
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from urllib.parse import urljoin, urlparse
+          import re
+
+          base='https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/'
+          host=urlparse(base).netloc
+          out=Path('appdeploy-live')
+          out.mkdir(parents=True,exist_ok=True)
+          seen=set(); queue=[base]
+
+          def fetch(url):
+              req=Request(url,headers={'User-Agent':'Mozilla/5.0'})
+              with urlopen(req,timeout=60) as r:
+                  return r.read(), r.headers.get_content_type()
+
+          while queue:
+              url=queue.pop(0)
+              if url in seen: continue
+              seen.add(url)
+              p=urlparse(url)
+              if p.netloc and p.netloc!=host: continue
+              try:
+                  data,ctype=fetch(url)
+              except Exception as e:
+                  print('skip',url,e); continue
+              rel=p.path.lstrip('/') or 'index.html'
+              if rel.endswith('/'): rel += 'index.html'
+              target=out/rel
+              target.parent.mkdir(parents=True,exist_ok=True)
+              target.write_bytes(data)
+              if ctype.startswith('text/') or rel.endswith(('.html','.js','.css','.json','.webmanifest')):
+                  text=data.decode('utf-8','ignore')
+                  for raw in re.findall(r'''(?:src|href)=["']([^"'#]+)|["'`]((?:https://duck-heist-playable-bfvyg1\.v2\.appdeploy\.ai/|/|\./)[^"'`\s)]+\.(?:js|css|json|webmanifest|png|svg|woff2?|zip))''',text):
+                      ref=raw[0] or raw[1]
+                      if not ref: continue
+                      nxt=urljoin(url,ref)
+                      if urlparse(nxt).netloc==host and nxt not in seen: queue.append(nxt)
+
+          zip_url=urljoin(base,'resources/duck-heist-source.zip')
+          if zip_url not in seen:
+              data,_=fetch(zip_url)
+              z=out/'resources/duck-heist-source.zip';z.parent.mkdir(parents=True,exist_ok=True);z.write_bytes(data)
+
+          idx=out/'index.html'
+          html=idx.read_text('utf-8')
+          html=re.sub(r'<script data-appdeploy-overlay-bootstrap>[\s\S]*?</script>','',html,count=1)
+          html=re.sub(r'<script async src="https://v2\.appdeploy\.ai/shared/js/overlay\.js"[^>]*></script>','',html,count=1)
+          html=re.sub(r'<script>window\.__APPDEPLOY_APP_ID=[\s\S]*?</script>','',html,count=1)
+          html=html.replace(base,'./')
+          idx.write_text(html,'utf-8')
+          PY
           test -s appdeploy-live/index.html
+          test -s appdeploy-live/resources/duck-heist-source.zip
+          test -n "$(find appdeploy-live/assets -type f -name '*.js' -print -quit)"
 
       - name: Make Hostinger publish the mirrored build
         run: |
@@ -44,6 +96,6 @@ jobs:
           set -euxo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add appdeploy-live package.json
-          git commit -m 'Mirror exact working AppDeploy build for Hostinger'
+          git add -A appdeploy-live package.json
+          git commit -m 'Vendor exact working AppDeploy build for Hostinger'
           git push origin HEAD:main
