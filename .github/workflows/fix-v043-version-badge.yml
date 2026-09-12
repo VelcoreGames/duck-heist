@@ -1,0 +1,47 @@
+name: Fix Duck Heist v0.4.3 version badge
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-v043-version-badge.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Keep the single version badge visible inside the game canvas
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('web-release/assets/duck-heist-v043.js')
+          s=p.read_text(encoding='utf-8')
+          old='t.fillText("v0.4.3",8,8)'
+          new='t.fillText("v0.4.3",8,42)'
+          if s.count(old)!=1:
+            raise SystemExit(f'Expected one v0.4.3 canvas badge anchor, got {s.count(old)}')
+          s=s.replace(old,new,1)
+          if s.count('"v0.4.3"')!=1:
+            raise SystemExit('Visible v0.4.3 label must exist exactly once')
+          if 'MENU_BADGE' in s:
+            raise SystemExit('A second menu version badge still exists')
+          p.write_text(s,encoding='utf-8')
+          PY
+          node --check web-release/assets/duck-heist-v043.js
+          npm ci
+          npm run build
+          node --check dist/assets/duck-heist-v043.js
+
+      - name: Commit corrected v0.4.3 release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web-release/assets/duck-heist-v043.js dist/assets/duck-heist-v043.js
+          git commit -m 'Fix v0.4.3 version badge visibility'
+          git push origin HEAD:main
