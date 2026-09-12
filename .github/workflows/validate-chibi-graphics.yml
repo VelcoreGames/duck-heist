@@ -17,13 +17,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Compile graphics subsystem in strict mode
+      - name: Compile complete graphics subsystem in strict mode
         run: >-
           npx tsc --noEmit --strict --target ES2020 --module ESNext
           --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable
-          --skipLibCheck src/game/graphics/types.ts src/game/graphics/atlas.ts
-          src/game/graphics/animation.ts src/game/graphics/renderer.ts
-          src/game/graphics/chibi.ts src/game/graphics/themes.ts
-          src/game/graphics/materials.ts src/game/graphics/index.ts
+          --skipLibCheck src/game/graphics/*.ts
       - name: Build full source with Vite
         run: npx vite build --outDir /tmp/duck-heist-source-build
