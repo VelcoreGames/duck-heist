@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - 'src/game/graphics/**'
+      - 'src/game/roomArt.ts'
+      - 'src/game/constants.ts'
+      - 'src/game/render.ts'
+      - 'src/game/sprites.ts'
       - '.github/workflows/validate-chibi-graphics.yml'
   workflow_dispatch:
 
