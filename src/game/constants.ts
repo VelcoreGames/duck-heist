@@ -67,8 +67,8 @@ export interface FloorTheme {
 }
 
 export const FLOOR_THEMES: FloorTheme[] = [
-  // 1 · vestíbulo: mármol limpio, mostradores, ATM
-  { floor: ['#1b2440', '#202a4a', '#141c33'], wall: ['#232c47', '#1a2138'], trim: '#98a2ae', glow: '#8fb3d5', deco: 'lobby' },
+  // 1 · vestíbulo chibi premium: mármol cálido, nogal, latón y muros verde petróleo
+  { floor: ['#d8c9a8', '#cdbb96', '#a68f69'], wall: ['#274041', '#1a2d30'], trim: '#caa85e', glow: '#f7dfaa', deco: 'lobby' },
   // 2 · oficinas de seguridad: azules, monitores
   { floor: ['#12203a', '#16283f', '#0d1729'], wall: ['#1b2b46', '#131e33'], trim: '#4f7ad4', glow: '#4f9dd8', deco: 'security' },
   // 3 · almacén de pan: cajas, sacos de harina
