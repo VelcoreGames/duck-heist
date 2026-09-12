@@ -1,0 +1,23 @@
+{
+  "name": "Duck Heist",
+  "short_name": "Duck Heist",
+  "description": "Pixel-art bank-heist roguelike with procedural floors, combat, special rooms, bosses, shops and persistent progression.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://appdeploy.ai/assets/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://appdeploy.ai/assets/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "scope": "./"
+}
