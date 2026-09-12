@@ -116,7 +116,7 @@ export interface GpuBackendOptions {
 
 /** Contract shared by WebGPU and WebGL2 so gameplay/render code is backend-agnostic. */
 export interface GpuRendererBackend {
-  readonly kind: GpuBackendKind;
+  readonly kind?: GpuBackendKind;
   readonly canvas: HTMLCanvasElement;
   readonly width: number;
   readonly height: number;
