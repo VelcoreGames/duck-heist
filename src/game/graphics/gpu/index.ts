@@ -9,3 +9,5 @@ export * from './chibi';
 export * from './particles';
 export * from './palette';
 export * from './backend';
+export * from './profiler';
+export * from './diagnostics';
