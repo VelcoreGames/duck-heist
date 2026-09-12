@@ -35,7 +35,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { drawChibiPlayerAtlasV5 } from './graphics/playerChibiAtlasV5';
+import { drawChibiPlayerDefinitive } from './graphics/playerChibiDefinitive';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -242,10 +242,11 @@ export function renderWorld(engine: GameEngine) {
     ctx.beginPath(); ctx.ellipse(land.x, land.y, 14, 8, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1; ctx.restore();
   }
-  if (p.hp > 0) {
-    drawChibiPlayerAtlasV5({
+  {
+    drawChibiPlayerDefinitive({
       ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
+      dead: p.hp <= 0,
       skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
       interacting: p.switchAnim > 0 && p.shootFlash <= 0 && p.dashTimer <= 0,
       alpha: p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0 ? 0.42 : 1,
