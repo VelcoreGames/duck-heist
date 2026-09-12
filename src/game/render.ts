@@ -37,6 +37,7 @@ import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import { drawChibiPlayerPreview } from './graphics/playerChibiPreview';
 import { drawChibiPoliceDuck } from './graphics/enemyChibi';
+import { drawChibiLobbyObstacle } from './graphics/chibiProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -117,7 +118,10 @@ export function renderWorld(engine: GameEngine) {
   for (let y = 0; y < ROOM_HEIGHT; y++) {
     for (let x = 0; x < ROOM_WIDTH; x++) {
       const t = room.layout[y][x];
-      if (t >= OBSTACLE_BASE) drawObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
+      if (t >= OBSTACLE_BASE) {
+        if (engine.map.floorIndex === 0) drawChibiLobbyObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
+        else drawObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
+      }
     }
   }
 
