@@ -2,6 +2,7 @@ import type { Camera2D, CoordinateSpace, PixelRect, RenderLayer } from '../types
 
 export type GpuBlendMode = 'alpha' | 'add' | 'multiply';
 export type GpuShape = 'sprite' | 'ellipse';
+export type GpuBackendKind = 'webgpu' | 'webgl2';
 
 export interface GpuTextureRegion {
   textureId: string;
@@ -89,6 +90,7 @@ export interface GpuRendererStats {
 
 export interface GpuCapabilities {
   webgl2: boolean;
+  webgpu?: boolean;
   maxTextureSize: number;
   maxTextureUnits: number;
   maxSamples: number;
@@ -110,4 +112,25 @@ export interface GpuBackendOptions {
   maxLights?: number;
   pixelSnap?: boolean;
   powerPreference?: WebGLPowerPreference;
+}
+
+/** Contract shared by WebGPU and WebGL2 so gameplay/render code is backend-agnostic. */
+export interface GpuRendererBackend {
+  readonly kind: GpuBackendKind;
+  readonly canvas: HTMLCanvasElement;
+  readonly width: number;
+  readonly height: number;
+  readonly capabilities: GpuCapabilities;
+  registerTexture(input: GpuTextureSource): void;
+  removeTexture(id: string): void;
+  setPalette(source: TexImageSource, rows: number): void;
+  clearPalette(): void;
+  beginFrame(input: GpuFrameInput): void;
+  submitSprite(sprite: GpuSpriteCommand): void;
+  submitShadow(id: string, x: number, y: number, width: number, height: number, alpha: number, sortY?: number): void;
+  submitLight(light: GpuLightCommand): void;
+  markParticles(count: number): void;
+  frameStats(): Readonly<GpuRendererStats>;
+  endFrame(): void;
+  dispose(): void;
 }
