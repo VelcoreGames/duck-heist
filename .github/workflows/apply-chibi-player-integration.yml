@@ -37,6 +37,6 @@ jobs:
           fi
           git config user.name 'VelcoreGames'
           git config user.email 'contacto@velcore.com.mx'
-          git add src/game/render.ts
+          git add src/game/render.ts src/game/graphics/playerChibiPreview.ts
           git commit -m 'v0.5.0: integrate playable chibi protagonist'
           git push origin main
