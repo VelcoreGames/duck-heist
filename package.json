@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "rm -rf dist && mkdir -p dist && cp -a appdeploy-live/. dist/",
+    "build": "node scripts/publish-release.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

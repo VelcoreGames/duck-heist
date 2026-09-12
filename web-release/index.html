@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Duck Heist — El Banco del Pan</title>
+  <meta name="description" content="Duck Heist — El Banco del Pan">
+  <meta name="author" content="Velcore Games">
+  <script>
+/* DH_V0_4_2_CANVAS_BADGE */
+(() => {
+  const VERSION = 'v0.4.2';
+  const nativeRAF = window.requestAnimationFrame.bind(window);
+  const drawVersion = () => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 0.92;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = '700 8px "Chakra Petch", monospace';
+    ctx.fillStyle = '#e8d79a';
+    ctx.shadowColor = 'rgba(0,0,0,.95)';
+    ctx.shadowBlur = 2;
+    ctx.fillText(VERSION, 10, 10);
+    ctx.restore();
+  };
+  window.requestAnimationFrame = (callback) => nativeRAF((time) => {
+    callback(time);
+    drawVersion();
+  });
+  window.addEventListener('load', () => nativeRAF(drawVersion), { once: true });
+})();
+</script>
+  <script type="module" crossorigin src="./assets/index-BgUNQzP_.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DK-Zlqzo.css">
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
