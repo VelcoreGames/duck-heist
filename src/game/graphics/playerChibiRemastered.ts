@@ -83,18 +83,27 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
   const key = input.runtimeKey ?? fallbackKey;
   let rt = runtimes.get(key);
   if (!rt || input.frame < rt.lastFrame) {
-    rt = { state: 'idle', enteredAt: input.frame, lastFrame: input.frame, wasShoot: false, wasDash: false, wasHurt: false };
+    rt = { state: 'idle', enteredAt: input.frame, lastFrame: input.frame, lastShot: input.shotSequence, wasShoot: false, wasDash: false, wasHurt: false };
     runtimes.set(key, rt);
   }
 
   const wanted = desiredState(input);
-  const shotChanged = input.shotSequence !== undefined && input.shotSequence !== rt.lastShot;
-  const shootStart = wanted === 'shoot' && (shotChanged || (input.shooting && !rt.wasShoot));
+  const shotChanged = input.shotSequence !== undefined && rt.lastShot !== undefined && input.shotSequence !== rt.lastShot;
+  const shootStart = !input.dead && !input.hurt && !input.dashing && (shotChanged || (wanted === 'shoot' && input.shooting && !rt.wasShoot));
   const dashStart = wanted === 'dash' && input.dashing && !rt.wasDash;
   const hurtStart = wanted === 'hurt' && input.hurt && !rt.wasHurt;
 
-  if (shootStart || dashStart || hurtStart || (wanted === 'down' && rt.state !== 'down')) {
-    rt.state = wanted;
+  if (wanted === 'down' && rt.state !== 'down') {
+    rt.state = 'down';
+    rt.enteredAt = input.frame;
+  } else if (hurtStart) {
+    rt.state = 'hurt';
+    rt.enteredAt = input.frame;
+  } else if (dashStart) {
+    rt.state = 'dash';
+    rt.enteredAt = input.frame;
+  } else if (shootStart) {
+    rt.state = 'shoot';
     rt.enteredAt = input.frame;
   } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 14) {
     // Hold the full authored recoil and recovery sequence.
@@ -125,11 +134,11 @@ function poseFor(state: State, tick: number, frame: number, dir: DuckDir): Pose 
     const sideLean = dir === 'left' ? -.018 : dir === 'right' ? .018 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: 1 + compression * (vertical ? .026 : .014),
-      scaleY: 1 - compression * (vertical ? .022 : .014),
-      rotation: vertical ? sway * .018 : sideLean + sway * .008,
-      dx: sway * (vertical ? .95 : .38),
-      dy: -Math.abs(sway) * (vertical ? 1.6 : 1.05),
+      scaleX: 1 + compression * (vertical ? .045 : .014),
+      scaleY: 1 - compression * (vertical ? .038 : .014),
+      rotation: vertical ? sway * .038 : sideLean + sway * .008,
+      dx: sway * (vertical ? 1.55 : .38),
+      dy: -Math.abs(sway) * (vertical ? 2.45 : 1.05) + (vertical ? compression * .22 : 0),
     };
   }
   if (state === 'shoot') {
@@ -417,7 +426,7 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     ctx.restore();
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v3';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v4';
   document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered';
   document.documentElement.dataset.duckHeistPlayerState = state;
 }
