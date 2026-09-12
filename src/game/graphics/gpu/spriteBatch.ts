@@ -3,7 +3,7 @@ import { createProgram, uniform } from './gl';
 import { SPRITE_FRAGMENT_SHADER, SPRITE_VERTEX_SHADER } from './shaders';
 import type { GpuBlendMode, GpuSpriteCommand } from './types';
 
-const INSTANCE_FLOATS = 25;
+const INSTANCE_FLOATS = 29;
 
 interface TextureInfo {
   texture: WebGLTexture;
@@ -83,6 +83,7 @@ export class InstancedSpriteBatch {
     attr(7, 4);
     attr(8, 2);
     attr(9, 1);
+    attr(10, 4);
     gl.bindVertexArray(null);
 
     this.uResolution = uniform(gl, this.program, 'uResolution');
@@ -140,6 +141,10 @@ export class InstancedSpriteBatch {
         this.data[cursor++] = effects.paletteIndex ?? 0;
         this.data[cursor++] = 0;
         this.data[cursor++] = command.space === 'screen' ? 1 : 0;
+        this.data[cursor++] = effects.emissive ?? 0;
+        this.data[cursor++] = effects.metallic ?? 0;
+        this.data[cursor++] = effects.sheen ?? 0;
+        this.data[cursor++] = effects.glass ?? 0;
       }
 
       gl.useProgram(this.program);
