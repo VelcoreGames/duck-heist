@@ -12,5 +12,6 @@ export * from './surfaceCache';
 export * from './effects';
 export * from './environment';
 export * from './quality';
+export * from './adaptiveQuality';
 export * from './composite';
 export * from './gpu';
