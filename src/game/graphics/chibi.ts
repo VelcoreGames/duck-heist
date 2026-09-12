@@ -1,5 +1,6 @@
 import { animationFrame, resolveClipDetailed } from './animation';
 import { SpriteAtlas } from './atlas';
+import { LayerCompositeCache } from './composite';
 import { drawBlobShadow } from './renderer';
 import type {
   AnimationSet,
@@ -10,9 +11,13 @@ import type {
   SpriteFrame,
 } from './types';
 
+const BASE_LAYERS: readonly (keyof ChibiAppearance)[] = [
+  'body', 'outfit', 'face', 'hair', 'glasses', 'headwear', 'accessory',
+];
+
 const layerOrder = (facing: Facing): readonly (keyof ChibiAppearance)[] => {
-  if (facing === 'up') return ['weapon', 'body', 'outfit', 'face', 'hair', 'glasses', 'headwear', 'accessory'];
-  return ['body', 'outfit', 'face', 'hair', 'glasses', 'headwear', 'accessory', 'weapon'];
+  if (facing === 'up') return ['weapon', ...BASE_LAYERS];
+  return [...BASE_LAYERS, 'weapon'];
 };
 
 const layerFrameName = (layerId: string, animationFrameName: string) => `${layerId}/${animationFrameName}`;
@@ -40,6 +45,7 @@ const frameLocalBounds = (frame: SpriteFrame, scale: number, flipX: boolean): Lo
 export class ChibiActorRenderer {
   private readonly atlas: SpriteAtlas;
   private readonly animations: AnimationSet;
+  private readonly composite = new LayerCompositeCache(320);
   private readonly scratch: HTMLCanvasElement;
   private readonly scratchCtx: CanvasRenderingContext2D;
 
@@ -71,8 +77,10 @@ export class ChibiActorRenderer {
     if (scale <= 0 || alpha <= 0) return;
     const flipX = resolved.flipX !== !!pose.mirrorX;
     const actorY = pose.y + (pose.bob ?? 0);
-    const shadowW = (options.shadowWidth ?? 19) * scale;
-    const shadowH = (options.shadowHeight ?? 7) * scale;
+    const motion = pose.state === 'walk' ? Math.abs(Math.sin((pose.tick + (pose.phase ?? 0)) * 0.16)) : 0;
+    const dashFactor = pose.state === 'dash' ? 0.82 : 1;
+    const shadowW = (options.shadowWidth ?? 19) * scale * dashFactor * (1 - motion * 0.035);
+    const shadowH = (options.shadowHeight ?? 7) * scale * (pose.state === 'dash' ? 0.72 : 1);
     const shadowY = pose.y + (options.shadowOffsetY ?? 1) * scale;
 
     drawBlobShadow(
@@ -90,7 +98,7 @@ export class ChibiActorRenderer {
       return;
     }
 
-    this.drawLayers(ctx, pose.x, actorY, scale, alpha, flipX, pose.facing, appearance, frameName);
+    this.drawOptimized(ctx, pose.x, actorY, scale, alpha, flipX, pose.facing, appearance, frameName);
   }
 
   socket(
@@ -115,6 +123,72 @@ export class ChibiActorRenderer {
       x: pose.x + dx,
       y: pose.y + (pose.bob ?? 0) + (socket.y - pivotY) * scale,
     };
+  }
+
+  dispose(): void {
+    this.composite.clear();
+    this.scratch.width = 1;
+    this.scratch.height = 1;
+  }
+
+  private drawOptimized(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    scale: number,
+    alpha: number,
+    flipX: boolean,
+    facing: Facing,
+    appearance: ChibiAppearance,
+    frameName: string,
+  ): void {
+    if (facing === 'up') this.drawWeapon(ctx, x, y, scale, alpha, flipX, appearance, frameName);
+    this.drawBaseComposite(ctx, x, y, scale, alpha, flipX, appearance, frameName);
+    if (facing !== 'up') this.drawWeapon(ctx, x, y, scale, alpha, flipX, appearance, frameName);
+  }
+
+  private drawBaseComposite(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    scale: number,
+    alpha: number,
+    flipX: boolean,
+    appearance: ChibiAppearance,
+    frameName: string,
+  ): void {
+    const ids = BASE_LAYERS.map(key => appearance[key] ?? '');
+    const frameNames = BASE_LAYERS
+      .map(key => appearance[key])
+      .filter((id): id is string => !!id)
+      .map(id => layerFrameName(id, frameName));
+    const cacheKey = `${frameName}|${ids.join('|')}`;
+    const composite = this.composite.compose(this.atlas, cacheKey, frameNames);
+    if (!composite) return;
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha *= alpha;
+    ctx.translate(Math.round(x), Math.round(y));
+    ctx.scale((flipX ? -1 : 1) * scale, scale);
+    ctx.drawImage(composite.canvas, composite.minX, composite.minY);
+    ctx.restore();
+  }
+
+  private drawWeapon(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    scale: number,
+    alpha: number,
+    flipX: boolean,
+    appearance: ChibiAppearance,
+    frameName: string,
+  ): void {
+    if (!appearance.weapon) return;
+    const candidate = layerFrameName(appearance.weapon, frameName);
+    if (!this.atlas.hasFrame(candidate)) return;
+    this.atlas.draw(ctx, candidate, { x, y, scale, alpha, flipX, snap: true });
   }
 
   private drawLayers(
@@ -209,6 +283,18 @@ export class ChibiActorRenderer {
   }
 }
 
+const walkClip = (direction: 'down' | 'up' | 'right') => ({
+  frames: [`walk/${direction}/0`, `walk/${direction}/1`, `walk/${direction}/2`, `walk/${direction}/3`],
+  frameDuration: 6,
+  markers: [{ frame: 0, event: 'footstep' }, { frame: 2, event: 'footstep' }],
+} as const);
+
+const shootClip = (direction: 'down' | 'up' | 'right') => ({
+  frames: [`shoot/${direction}/0`, `shoot/${direction}/1`],
+  frameDuration: 4,
+  markers: [{ frame: 0, event: 'muzzle' }],
+} as const);
+
 export const DEFAULT_CHIBI_ANIMATIONS: AnimationSet = {
   idle: {
     down: { frames: ['idle/down/0', 'idle/down/1'], frameDuration: 24 },
@@ -216,19 +302,19 @@ export const DEFAULT_CHIBI_ANIMATIONS: AnimationSet = {
     right: { frames: ['idle/right/0', 'idle/right/1'], frameDuration: 24 },
   },
   walk: {
-    down: { frames: ['walk/down/0', 'walk/down/1', 'walk/down/2', 'walk/down/3'], frameDuration: 6 },
-    up: { frames: ['walk/up/0', 'walk/up/1', 'walk/up/2', 'walk/up/3'], frameDuration: 6 },
-    right: { frames: ['walk/right/0', 'walk/right/1', 'walk/right/2', 'walk/right/3'], frameDuration: 6 },
+    down: walkClip('down'),
+    up: walkClip('up'),
+    right: walkClip('right'),
   },
   shoot: {
-    down: { frames: ['shoot/down/0', 'shoot/down/1'], frameDuration: 4 },
-    up: { frames: ['shoot/up/0', 'shoot/up/1'], frameDuration: 4 },
-    right: { frames: ['shoot/right/0', 'shoot/right/1'], frameDuration: 4 },
+    down: shootClip('down'),
+    up: shootClip('up'),
+    right: shootClip('right'),
   },
   dash: {
-    down: { frames: ['dash/down/0', 'dash/down/1'], frameDuration: 3, loop: false },
-    up: { frames: ['dash/up/0', 'dash/up/1'], frameDuration: 3, loop: false },
-    right: { frames: ['dash/right/0', 'dash/right/1'], frameDuration: 3, loop: false },
+    down: { frames: ['dash/down/0', 'dash/down/1'], frameDuration: 3, loop: false, markers: [{ frame: 0, event: 'dash' }] },
+    up: { frames: ['dash/up/0', 'dash/up/1'], frameDuration: 3, loop: false, markers: [{ frame: 0, event: 'dash' }] },
+    right: { frames: ['dash/right/0', 'dash/right/1'], frameDuration: 3, loop: false, markers: [{ frame: 0, event: 'dash' }] },
   },
   hurt: {
     down: { frames: ['hurt/down/0'], frameDuration: 8, loop: false },
