@@ -1,0 +1,73 @@
+name: Publish Duck Heist v0.5.0
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v050.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate chibi source before release
+        run: |
+          npx tsc --noEmit --strict --target ES2020 --module ESNext \
+            --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable \
+            --skipLibCheck src/game/graphics/*.ts src/game/graphics/gpu/*.ts
+          npx vite build --outDir /tmp/duck-heist-v050 --emptyOutDir
+          test -s /tmp/duck-heist-v050/index.html
+
+      - name: Promote source build to web release
+        run: |
+          npm version 0.5.0 --no-git-tag-version
+          printf '0.5.0\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v050/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q 'Duck Heist' web-release/index.html
+          grep -q 'Duck Heist' dist/index.html
+          ! grep -R -q 'duck-heist-v043.js' web-release
+          ! grep -R -q 'v0.4.3' web-release
+          grep -q '"version": "0.5.0"' package.json
+          grep -q '^0.5.0$' VERSION
+          cmp web-release/index.html dist/index.html
+          echo "web-release bytes: $(du -sb web-release | cut -f1)"
+          echo "dist bytes: $(du -sb dist | cut -f1)"
+
+      - name: Commit v0.5.0 release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A web-release dist VERSION package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Release already up to date.'
+            exit 0
+          fi
+          git commit -m 'Release Duck Heist v0.5.0 chibi vertical slice'
+          git pull --rebase origin main
+          git push origin HEAD:main
