@@ -1,6 +1,7 @@
 export * from './types';
 export * from './atlas';
 export * from './animation';
+export * from './animationMachine';
 export * from './motion';
 export * from './renderer';
 export * from './chibi';
