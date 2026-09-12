@@ -1,0 +1,114 @@
+name: Publish Duck Heist v0.7.0 Definitive Player
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v070-definitive-player.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Bake definitive 496-frame atlas
+        run: python scripts/build-definitive-duck-atlas.py
+
+      - name: Activate definitive renderer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/game/render.ts')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("import { drawChibiPlayerAtlasV5 } from './graphics/playerChibiAtlasV5';","import { drawChibiPlayerDefinitive } from './graphics/playerChibiDefinitive';",1)
+          s=s.replace('drawChibiPlayerAtlasV5({','drawChibiPlayerDefinitive({',1)
+          old="""      hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
+      skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,"""
+          new="""      hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
+      dead: p.hp <= 0,
+      skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,"""
+          if old not in s: raise SystemExit('player definitive input anchor missing')
+          s=s.replace(old,new,1)
+          s=s.replace('  if (p.hp > 0) {\n    drawChibiPlayerDefinitive({','  {\n    drawChibiPlayerDefinitive({',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate definitive atlas and source
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          p=Path('src/assets/chibi/base-duck-definitive-atlas.png')
+          assert p.exists() and p.stat().st_size > 10000, p
+          im=Image.open(p).convert('RGBA')
+          assert im.size == (3952,416), im.size
+          cell=52
+          states=[(0,0,16),(0,16,24),(0,40,16),(0,56,20),(1,0,12),(1,12,20),(1,32,16)]
+          nonempty=0
+          for d in range(4):
+              for bank,start,count in states:
+                  row=d*2+bank
+                  for i in range(count):
+                      fr=im.crop(((start+i)*cell,row*cell,(start+i+1)*cell,(row+1)*cell))
+                      if fr.getbbox(): nonempty += 1
+          assert nonempty == 496, nonempty
+          print('Validated', nonempty, 'non-empty baked raster frames')
+          PY
+          npx tsc --noEmit
+          grep -q "DUCK_DEFINITIVE_BAKED_RASTER_FRAMES = 496" src/game/graphics/playerChibiDefinitive.ts
+          grep -q "drawChibiPlayerDefinitive" src/game/render.ts
+          grep -q "dead: p.hp <= 0" src/game/render.ts
+          npx vite build --outDir /tmp/duck-heist-v070 --emptyOutDir
+          test -s /tmp/duck-heist-v070/index.html
+
+      - name: Promote v0.7.0
+        run: |
+          npm version 0.7.0 --no-git-tag-version
+          printf '0.7.0\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v070/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q 'Duck Heist' web-release/index.html
+          grep -q '"version": "0.7.0"' package.json
+          grep -q '^0.7.0$' VERSION
+          cmp web-release/index.html dist/index.html
+          find web-release -type f | grep -q 'base-duck-definitive-atlas'
+
+      - name: Commit v0.7.0 definitive player release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A src/assets/chibi/base-duck-definitive-atlas.png src/game/render.ts web-release dist VERSION package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Release already up to date.'
+            exit 0
+          fi
+          git commit -m 'Release Duck Heist v0.7.0 definitive player'
+          git pull --rebase origin main
+          git push origin HEAD:main
