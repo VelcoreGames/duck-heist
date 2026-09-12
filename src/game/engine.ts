@@ -813,7 +813,7 @@ export function updateEngine(engine: GameEngine) {
     const explosiveRate=w.explode?build.explosiveRate:1;
     player.fireCooldown = Math.max(2,Math.round(w.fireRate/(build.fireRate*explosiveRate*synergyRate*(player.fireBoost>0?player.fireBoostPower:1))));
     player.facingAngle=Math.atan2(sy,sx);
-    player.shootFlash = 4;
+    player.shootFlash = 10;
     if (Math.abs(sx) > Math.abs(sy)) player.dir = sx > 0 ? 'right' : 'left';
     else if (sy !== 0) player.dir = sy > 0 ? 'down' : 'up';
     playShoot(activeWeapon(player).id);

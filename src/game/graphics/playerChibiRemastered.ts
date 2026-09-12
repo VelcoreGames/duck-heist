@@ -105,7 +105,7 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
   } else if (shootStart) {
     rt.state = 'shoot';
     rt.enteredAt = input.frame;
-  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 14) {
+  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 18) {
     // Hold the full authored recoil and recovery sequence.
   } else if (rt.state === 'hurt' && input.frame - rt.enteredAt < 10) {
     // Keep the impact reaction readable.
@@ -126,19 +126,19 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
 
 function poseFor(state: State, tick: number, frame: number, dir: DuckDir): Pose {
   if (state === 'walk') {
-    const i = Math.floor(frame / 2) % 12;
-    const phase = (i / 12) * Math.PI * 2;
     const vertical = dir === 'up' || dir === 'down';
+    const i = Math.floor(frame / (vertical ? 3 : 2)) % 12;
+    const phase = (i / 12) * Math.PI * 2;
     const sway = Math.sin(phase);
     const compression = Math.cos(phase * 2);
     const sideLean = dir === 'left' ? -.018 : dir === 'right' ? .018 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: 1 + compression * (vertical ? .045 : .014),
-      scaleY: 1 - compression * (vertical ? .038 : .014),
-      rotation: vertical ? sway * .038 : sideLean + sway * .008,
-      dx: sway * (vertical ? 1.55 : .38),
-      dy: -Math.abs(sway) * (vertical ? 2.45 : 1.05) + (vertical ? compression * .22 : 0),
+      scaleX: 1 + compression * (vertical ? .058 : .014),
+      scaleY: 1 - compression * (vertical ? .050 : .014),
+      rotation: vertical ? sway * .052 : sideLean + sway * .008,
+      dx: sway * (vertical ? 2.05 : .38),
+      dy: -Math.abs(sway) * (vertical ? 3.05 : 1.05) + (vertical ? compression * .34 : 0),
     };
   }
   if (state === 'shoot') {
@@ -328,13 +328,32 @@ function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alpha:
 }
 
 function drawShotGlow(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alpha: number, tick: number): void {
-  if (tick > 4) return;
+  if (tick > 8) return;
   const p = weaponAnchor(dir, feetX, feetY, 0);
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-  ctx.globalAlpha = alpha * (.16 - tick * .025);
+  ctx.globalAlpha = alpha * Math.max(.055, .24 - tick * .022);
   ctx.fillStyle = '#ffd46a';
   ctx.beginPath(); ctx.ellipse(p.x, p.y, 9.5, 7.2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawVerticalStepAccent(ctx: Ctx, feetX: number, feetY: number, poseIndex: number, dir: DuckDir, alpha: number): void {
+  const phase = (poseIndex / 12) * Math.PI * 2;
+  const stride = Math.sin(phase);
+  const lead = stride >= 0 ? 1 : -1;
+  const depth = dir === 'up' ? -1.2 : .25;
+  ctx.save();
+  ctx.globalAlpha = .86 * alpha;
+  ctx.fillStyle = '#e68b2f';
+  ctx.beginPath();
+  ctx.ellipse(feetX + lead * 3.25, feetY + depth, 2.45, 1.05, lead * .12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = .42 * alpha;
+  ctx.fillStyle = '#c86d22';
+  ctx.beginPath();
+  ctx.ellipse(feetX - lead * 2.65, feetY + depth + .55, 1.9, .78, -lead * .08, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -389,6 +408,10 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     return;
   }
 
+  if (state === 'walk' && (input.dir === 'up' || input.dir === 'down')) {
+    drawVerticalStepAccent(ctx, feetX, feetY, pose.index, input.dir, opacity);
+  }
+
   if (state === 'dash') {
     const v = dashVector(input.dir);
     for (let i = 5; i >= 1; i--) {
@@ -415,7 +438,7 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
 
   if (state === 'shoot') {
     drawShotGlow(ctx, input.dir, actorFeetX, actorFeetY, opacity, tick);
-    if (tick <= 6) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.42, 1 - tick * .10), tick);
+    if (tick <= 10) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.48, 1 - tick * .065), tick);
   }
 
   if (state === 'hurt') {
@@ -426,7 +449,7 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     ctx.restore();
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v4';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v5';
   document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered';
   document.documentElement.dataset.duckHeistPlayerState = state;
 }
