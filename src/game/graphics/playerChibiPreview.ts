@@ -63,7 +63,7 @@ interface PlayerPalette {
 const cache = new Map<string, CachedFrame>();
 let stamp = 0;
 
-function rect(ctx: Ctx, x: number, y: number, w: number, h: number, color: string): void {
+function rect(ctx: Ctx, x: number, y: number, w: number, h: number, color: string, _pixel = 1): void {
   if (w <= 0 || h <= 0) return;
   ctx.fillStyle = color;
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));

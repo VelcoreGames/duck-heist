@@ -35,6 +35,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
+import { drawChibiPlayerPreview } from './graphics/playerChibiPreview';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -237,8 +238,11 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   if (p.hp > 0) {
-    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,
-      p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);
+    drawChibiPlayerPreview({
+      ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
+      hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
+      skinId: engine.equippedSkin,
+    });
     if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
       ctx.globalAlpha = 0.2;
       ctx.fillStyle = '#fff';
