@@ -1,0 +1,49 @@
+name: Mirror exact AppDeploy live build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/mirror-appdeploy-live.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Mirror exact working AppDeploy build
+        run: |
+          set -euxo pipefail
+          rm -rf appdeploy-live
+          mkdir -p appdeploy-live/resources
+          wget --no-verbose --page-requisites --convert-links --adjust-extension --no-parent --no-host-directories -P appdeploy-live 'https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/'
+          curl -fL --retry 5 --retry-delay 2 'https://duck-heist-playable-bfvyg1.v2.appdeploy.ai/resources/duck-heist-source.zip' -o appdeploy-live/resources/duck-heist-source.zip
+          test -s appdeploy-live/index.html
+
+      - name: Make Hostinger publish the mirrored build
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+          p.scripts=p.scripts||{};
+          p.scripts.build='rm -rf dist && mkdir -p dist && cp -a appdeploy-live/. dist/';
+          fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+          NODE
+
+      - name: Commit exact working build
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add appdeploy-live package.json
+          git commit -m 'Mirror exact working AppDeploy build for Hostinger'
+          git push origin HEAD:main
