@@ -35,9 +35,14 @@ let source = fs.readFileSync(path, 'utf8');
 
 const importAnchor = "import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';";
 const importLine = "import { drawChibiPlayerPreview } from './graphics/playerChibiPreview';";
+const enemyImportLine = "import { drawChibiPoliceDuck } from './graphics/enemyChibi';";
 if (!source.includes(importLine)) {
   if (!source.includes(importAnchor)) throw new Error('render.ts import anchor not found');
   source = source.replace(importAnchor, `${importAnchor}\n${importLine}`);
+}
+if (!source.includes(enemyImportLine)) {
+  if (!source.includes(importLine)) throw new Error('player chibi import anchor not found');
+  source = source.replace(importLine, `${importLine}\n${enemyImportLine}`);
 }
 
 const legacyPlayer = `  if (p.hp > 0) {\n    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,\n      p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);`;
@@ -56,5 +61,17 @@ if (!source.includes('drawChibiPlayerPreview({')) {
 const oldIframeFlash = `    if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {\n      ctx.globalAlpha = 0.2;\n      ctx.fillStyle = '#fff';\n      ctx.fillRect(p.x + 2, p.y + 2, 12, 14);\n      ctx.globalAlpha = 1;\n    }\n`;
 if (source.includes(oldIframeFlash)) source = source.replace(oldIframeFlash, '');
 
+const oldPoliceCase = `      case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;`;
+const newPoliceCase = `      case 'policia_pato':\n        drawChibiPoliceDuck({\n          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 7, dirX,\n          moving: Math.abs(e.vx) + Math.abs(e.vy) > 0.08, hurt, elite: e.elite,\n        });\n        break;`;
+if (source.includes(oldPoliceCase)) source = source.replace(oldPoliceCase, newPoliceCase);
+
+const oldEnemyShadow = `  // sombra más marcada\n  ctx.fillStyle = 'rgba(0,0,0,0.3)';\n  ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);`;
+const newEnemyShadow = `  // sombra legacy sólo para entidades que aún no usan renderer chibi propio\n  if (e.type !== 'policia_pato') {\n    ctx.fillStyle = 'rgba(0,0,0,0.3)';\n    ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);\n  }`;
+if (source.includes(oldEnemyShadow)) source = source.replace(oldEnemyShadow, newEnemyShadow);
+
+const oldHurtFlash = `  if (hurt) {\n    ctx.globalAlpha = 0.35;\n    ctx.fillStyle = '#ffffff';\n    ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);\n    ctx.globalAlpha = 1;\n  }`;
+const newHurtFlash = `  if (hurt && e.type !== 'policia_pato') {\n    ctx.globalAlpha = 0.35;\n    ctx.fillStyle = '#ffffff';\n    ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);\n    ctx.globalAlpha = 1;\n  }`;
+if (source.includes(oldHurtFlash)) source = source.replace(oldHurtFlash, newHurtFlash);
+
 fs.writeFileSync(path, source);
-console.log('Chibi protagonist integrated and animation state timing synchronized.');
+console.log('Chibi protagonist and base police duck integrated into src/game/render.ts');
