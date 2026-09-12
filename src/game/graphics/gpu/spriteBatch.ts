@@ -15,13 +15,13 @@ function blend(gl: WebGL2RenderingContext, mode: GpuBlendMode): void {
   gl.enable(gl.BLEND);
   switch (mode) {
     case 'add':
-      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       break;
     case 'multiply':
       gl.blendFunc(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA);
       break;
     default:
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       break;
   }
 }
@@ -74,15 +74,15 @@ export class InstancedSpriteBatch {
       gl.vertexAttribDivisor(location, 1);
       offset += size;
     };
-    attr(1, 2); // position
-    attr(2, 2); // size
-    attr(3, 2); // pivot
-    attr(4, 4); // uv rect
-    attr(5, 4); // color
-    attr(6, 4); // rotation, flip x/y, shape
-    attr(7, 4); // flash, outline, rim, palette strength
-    attr(8, 2); // palette index, reserved
-    attr(9, 1); // coordinate space
+    attr(1, 2);
+    attr(2, 2);
+    attr(3, 2);
+    attr(4, 4);
+    attr(5, 4);
+    attr(6, 4);
+    attr(7, 4);
+    attr(8, 2);
+    attr(9, 1);
     gl.bindVertexArray(null);
 
     this.uResolution = uniform(gl, this.program, 'uResolution');
