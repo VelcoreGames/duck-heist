@@ -24,11 +24,9 @@ def _remaster(frame: Image.Image) -> Image.Image:
             r, g, b, a = px[x, y]
             if a == 0:
                 continue
-            # Warm dark-brown outline instead of flat black.
             if r < 135 and g < 125 and b < 110:
                 px[x, y] = (max(8, int(r * .72)), max(6, int(g * .68)), max(5, int(b * .70)), a)
                 continue
-            # Cream/yellow feathers: top light, gentle lower-body shade.
             if r > 185 and g / max(1, r) > .70:
                 rr = min(255, int(r * body_gain + 3))
                 gg = min(255, int(g * body_gain + 3))
@@ -38,7 +36,6 @@ def _remaster(frame: Image.Image) -> Image.Image:
                 elif t > .68:
                     rr, gg, bb = int(rr * .97), int(gg * .95), int(bb * .93)
                 px[x, y] = (rr, gg, bb, a)
-            # Beak and feet: richer orange without changing authored shapes.
             elif r > 145 and g / max(1, r) < .74 and b < 150:
                 px[x, y] = (min(255, int(r * 1.035 + 2)), min(255, int(g * .98 + 1)), min(255, int(b * .92)), a)
 
@@ -87,9 +84,9 @@ def main() -> None:
             alpha = fr.getchannel('A')
             if not alpha.getbbox():
                 raise SystemExit(f'Empty remastered frame {row}:{col}')
-            opaque = sum(1 for value in alpha.getdata() if value > 0)
-            if opaque >= FRAME_W * FRAME_H * .90:
-                raise SystemExit(f'Frame {row}:{col} lost transparency')
+            meaningful = sum(1 for value in alpha.getdata() if value > 64)
+            if meaningful <= 20 or meaningful >= FRAME_W * FRAME_H * .82:
+                raise SystemExit(f'Frame {row}:{col} has invalid meaningful alpha coverage: {meaningful}')
 
     print(f'Remastered {COLS * ROWS} authored frames -> {DST} ({check.size[0]}x{check.size[1]})')
 
