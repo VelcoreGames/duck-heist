@@ -1,0 +1,48 @@
+name: Inspect Duck Heist v0.4.3 bank props
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-bankprops-v043.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Inspect release bundle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('web-release/assets/duck-heist-v042.js')
+          s=p.read_text(encoding='utf-8')
+          terms=['bankProps','bankLayout','function op','function ip','LA(','wA(','v0.4.2','DH_V0_4_2_BLINK','FÁCIL','DIFÍCIL','MAD']
+          out=[]
+          for term in terms:
+            start=0;n=0
+            while True:
+              i=s.find(term,start)
+              if i<0: break
+              n+=1
+              out.append(f'\n=== {term} #{n} at {i} ===\n{s[max(0,i-6000):min(len(s),i+9000)]}\n')
+              start=i+1
+              if n>=30: break
+          Path('inspection-bankprops-v043.txt').write_text('\n'.join(out),encoding='utf-8')
+          print('matches',len(out))
+          if not out: raise SystemExit('No matches')
+          PY
+
+      - name: Commit inspection
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inspection-bankprops-v043.txt
+          git commit -m 'Inspect v0.4.3 bank props generation' || exit 0
+          git push origin HEAD:main
