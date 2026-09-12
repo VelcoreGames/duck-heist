@@ -2,20 +2,42 @@ import type { AnimationClip, AnimationSet, CharacterState, Facing } from './type
 
 const FALLBACK_FACING: Facing[] = ['down', 'right', 'left', 'up'];
 
+export interface ResolvedAnimationClip {
+  clip: AnimationClip;
+  sourceFacing: Facing;
+  flipX: boolean;
+}
+
+export function resolveClipDetailed(
+  animations: AnimationSet,
+  state: CharacterState,
+  facing: Facing,
+): ResolvedAnimationClip | undefined {
+  const stateClips = animations[state] ?? animations.idle;
+  if (!stateClips) return undefined;
+
+  const exact = stateClips[facing];
+  if (exact) return { clip: exact, sourceFacing: facing, flipX: false };
+
+  if (facing === 'left' || facing === 'right') {
+    const mirroredFacing: Facing = facing === 'left' ? 'right' : 'left';
+    const mirrored = stateClips[mirroredFacing];
+    if (mirrored) return { clip: mirrored, sourceFacing: mirroredFacing, flipX: true };
+  }
+
+  for (const fallback of FALLBACK_FACING) {
+    const clip = stateClips[fallback];
+    if (clip) return { clip, sourceFacing: fallback, flipX: false };
+  }
+  return undefined;
+}
+
 export function resolveClip(
   animations: AnimationSet,
   state: CharacterState,
   facing: Facing,
 ): AnimationClip | undefined {
-  const stateClips = animations[state] ?? animations.idle;
-  if (!stateClips) return undefined;
-  const exact = stateClips[facing];
-  if (exact) return exact;
-  for (const fallback of FALLBACK_FACING) {
-    const clip = stateClips[fallback];
-    if (clip) return clip;
-  }
-  return undefined;
+  return resolveClipDetailed(animations, state, facing)?.clip;
 }
 
 export function animationFrame(clip: AnimationClip, tick: number, phase = 0): string | undefined {
@@ -39,18 +61,24 @@ export class AnimationCursor {
   private state: CharacterState = 'idle';
   private facing: Facing = 'down';
   private startedAt = 0;
+  private phase = 0;
 
-  set(state: CharacterState, facing: Facing, tick: number): void {
+  set(state: CharacterState, facing: Facing, tick: number, phase = 0): void {
     if (this.state !== state || this.facing !== facing) {
       this.state = state;
       this.facing = facing;
       this.startedAt = tick;
     }
+    this.phase = phase;
   }
 
   frame(animations: AnimationSet, tick: number): string | undefined {
-    const clip = resolveClip(animations, this.state, this.facing);
-    return clip ? animationFrame(clip, tick - this.startedAt) : undefined;
+    const resolved = resolveClipDetailed(animations, this.state, this.facing);
+    return resolved ? animationFrame(resolved.clip, tick - this.startedAt, this.phase) : undefined;
+  }
+
+  resolved(animations: AnimationSet): ResolvedAnimationClip | undefined {
+    return resolveClipDetailed(animations, this.state, this.facing);
   }
 
   get currentState(): CharacterState {

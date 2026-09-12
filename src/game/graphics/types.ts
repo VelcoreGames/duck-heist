@@ -7,6 +7,7 @@ export enum RenderLayer {
   FLOOR_FX = 20,
   PROPS_BACK = 30,
   SHADOWS = 40,
+  WORLD = 50,
   ACTORS = 50,
   PROPS_FRONT = 60,
   PROJECTILES = 70,
@@ -18,6 +19,13 @@ export enum RenderLayer {
 export interface PixelPoint {
   x: number;
   y: number;
+}
+
+export interface PixelRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface SpriteFrame {
@@ -42,7 +50,6 @@ export interface AnimationClip {
 }
 
 export type DirectionalClips = Partial<Record<Facing, AnimationClip>>;
-
 export type AnimationSet = Partial<Record<CharacterState, DirectionalClips>>;
 
 export interface Camera2D {
@@ -60,6 +67,8 @@ export interface FrameStyle {
   vignette: number;
   shadowOpacity: number;
   shadowColor: string;
+  lightStrength: number;
+  pixelSnap: boolean;
 }
 
 export interface LightSource {
@@ -69,6 +78,7 @@ export interface LightSource {
   color: string;
   intensity: number;
   falloff?: number;
+  screenSpace?: boolean;
 }
 
 export interface RenderCommand {
@@ -76,7 +86,17 @@ export interface RenderCommand {
   layer: RenderLayer;
   sortY: number;
   order?: number;
+  depthBias?: number;
+  bounds?: PixelRect;
+  visible?: boolean;
   draw: (ctx: CanvasRenderingContext2D) => void;
+}
+
+export interface GraphicsStats {
+  submitted: number;
+  drawn: number;
+  culled: number;
+  lights: number;
 }
 
 export interface ChibiAppearance {
@@ -96,9 +116,12 @@ export interface ChibiPose {
   facing: Facing;
   state: CharacterState;
   tick: number;
+  phase?: number;
   scale?: number;
   alpha?: number;
   flash?: number;
+  mirrorX?: boolean;
+  bob?: number;
 }
 
 export interface ChibiRenderOptions {
@@ -107,4 +130,5 @@ export interface ChibiRenderOptions {
   shadowOffsetY?: number;
   shadowOpacity?: number;
   outlineFlashColor?: string;
+  flashStrength?: number;
 }

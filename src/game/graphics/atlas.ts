@@ -10,11 +10,42 @@ export interface DrawFrameOptions {
   snap?: boolean;
 }
 
+export interface AtlasLoadRequest {
+  id: string;
+  manifest: AtlasManifest;
+  baseUrl?: string;
+}
+
 const joinUrl = (base: string, file: string) => {
   if (!base) return file;
   if (/^(https?:|data:|blob:|\/)/.test(file)) return file;
   return `${base.replace(/\/$/, '')}/${file.replace(/^\//, '')}`;
 };
+
+const finite = (n: number | undefined) => n === undefined || Number.isFinite(n);
+
+function validateManifest(manifest: AtlasManifest, image: HTMLImageElement): void {
+  const errors: string[] = [];
+  for (const [name, frame] of Object.entries(manifest.frames)) {
+    const ints = [frame.x, frame.y, frame.w, frame.h].every(Number.isInteger);
+    if (!ints || frame.x < 0 || frame.y < 0 || frame.w <= 0 || frame.h <= 0) {
+      errors.push(`${name}: invalid frame rectangle`);
+      continue;
+    }
+    if (frame.x + frame.w > image.naturalWidth || frame.y + frame.h > image.naturalHeight) {
+      errors.push(`${name}: frame exceeds atlas bounds`);
+    }
+    if (!finite(frame.pivotX) || !finite(frame.pivotY)) errors.push(`${name}: invalid pivot`);
+    for (const [socketName, socket] of Object.entries(frame.sockets ?? {})) {
+      if (!Number.isFinite(socket.x) || !Number.isFinite(socket.y)) {
+        errors.push(`${name}: invalid socket ${socketName}`);
+      }
+    }
+  }
+  if (errors.length) {
+    throw new Error(`Invalid sprite atlas (${errors.slice(0, 8).join('; ')}${errors.length > 8 ? '; …' : ''})`);
+  }
+}
 
 export class SpriteAtlas {
   readonly manifest: AtlasManifest;
@@ -29,14 +60,18 @@ export class SpriteAtlas {
     const image = new Image();
     image.decoding = 'async';
     image.src = joinUrl(baseUrl, manifest.image);
-    if (image.decode) {
-      await image.decode();
-    } else {
-      await new Promise<void>((resolve, reject) => {
-        image.onload = () => resolve();
-        image.onerror = () => reject(new Error(`No se pudo cargar atlas: ${image.src}`));
-      });
+    try {
+      if (image.decode) await image.decode();
+      else {
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve();
+          image.onerror = () => reject(new Error(`No se pudo cargar atlas: ${image.src}`));
+        });
+      }
+    } catch {
+      throw new Error(`No se pudo cargar atlas: ${image.src}`);
     }
+    validateManifest(manifest, image);
     return new SpriteAtlas(manifest, image);
   }
 
@@ -56,6 +91,8 @@ export class SpriteAtlas {
     const frame = this.manifest.frames[frameName];
     if (!frame) return false;
     const scale = options.scale ?? 1;
+    const alpha = Math.max(0, Math.min(1, options.alpha ?? 1));
+    if (!Number.isFinite(scale) || scale === 0 || alpha <= 0) return false;
     const pivotX = frame.pivotX ?? Math.floor(frame.w / 2);
     const pivotY = frame.pivotY ?? frame.h;
     const snap = options.snap ?? true;
@@ -64,7 +101,7 @@ export class SpriteAtlas {
 
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    ctx.globalAlpha *= options.alpha ?? 1;
+    ctx.globalAlpha *= alpha;
     ctx.translate(x, y);
     if (options.rotation) ctx.rotate(options.rotation);
     ctx.scale((options.flipX ? -1 : 1) * scale, scale);
@@ -93,17 +130,31 @@ export class AtlasLibrary {
     if (ready) return ready;
     const active = this.pending.get(id);
     if (active) return active;
-    const promise = SpriteAtlas.load(manifest, baseUrl).then(atlas => {
-      this.atlases.set(id, atlas);
-      this.pending.delete(id);
-      return atlas;
-    });
+    const promise = SpriteAtlas.load(manifest, baseUrl)
+      .then(atlas => {
+        this.atlases.set(id, atlas);
+        this.pending.delete(id);
+        return atlas;
+      })
+      .catch(error => {
+        this.pending.delete(id);
+        throw error;
+      });
     this.pending.set(id, promise);
     return promise;
   }
 
+  async preload(requests: readonly AtlasLoadRequest[]): Promise<Map<string, SpriteAtlas>> {
+    await Promise.all(requests.map(request => this.load(request.id, request.manifest, request.baseUrl ?? '')));
+    return new Map(this.atlases);
+  }
+
   get(id: string): SpriteAtlas | undefined {
     return this.atlases.get(id);
+  }
+
+  has(id: string): boolean {
+    return this.atlases.has(id);
   }
 
   clear(): void {
