@@ -31,6 +31,13 @@ jobs:
       - name: Install Pillow
         run: python -m pip install --disable-pip-version-check pillow
 
+      - name: Restore canonical V5 art source
+        run: |
+          git fetch origin fix/base-duck-png-v5:refs/remotes/origin/fix/base-duck-png-v5
+          mkdir -p src/assets/chibi
+          git show "origin/fix/base-duck-png-v5:duck-heist-playable-bfvyg1-1788926588197-src/public/assets-v2/base-duck-final-atlas.png" > src/assets/chibi/base-duck-final-atlas.png
+          python -c "from PIL import Image; im=Image.open('src/assets/chibi/base-duck-final-atlas.png'); im.load(); assert im.size==(1040,208),im.size; print('canonical V5 source',im.size)"
+
       - name: Bake definitive atlas
         run: python scripts/build-definitive-duck-atlas.py
 
@@ -74,7 +81,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A src/assets/chibi/base-duck-definitive-atlas.png src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git add -A src/assets/chibi/base-duck-final-atlas.png src/assets/chibi/base-duck-definitive-atlas.png src/game/render.ts web-release dist VERSION package.json package-lock.json
           if git diff --cached --quiet; then
             echo 'Release already up to date.'
             exit 0
