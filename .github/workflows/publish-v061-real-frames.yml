@@ -1,0 +1,113 @@
+name: Publish Duck Heist v0.6.1 Real Frames
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v061-real-frames.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore approved 120-frame atlas from official history
+        run: |
+          git fetch origin feature/base-duck-real-frames-v4-clean:refs/remotes/origin/feature/base-duck-real-frames-v4-clean
+          mkdir -p src/assets/chibi
+          : > /tmp/base-duck-v4.b64
+          for part in 00 01 02 03 04 05; do
+            git show "origin/feature/base-duck-real-frames-v4-clean:duck-heist-playable-bfvyg1-1788926588197-src/src/visual-v2/atlas-data-v4/part${part}.txt" >> /tmp/base-duck-v4.b64
+          done
+          tr -d '\r\n\t ' < /tmp/base-duck-v4.b64 | base64 --decode > src/assets/chibi/base-duck-approved-atlas.png
+          node <<'NODE'
+          const fs=require('fs');
+          const p='src/assets/chibi/base-duck-approved-atlas.png';
+          const b=fs.readFileSync(p);
+          if (b.length < 1024 || b[0]!==0x89 || b[1]!==0x50 || b[2]!==0x4e || b[3]!==0x47) throw new Error('Invalid PNG atlas');
+          const w=b.readUInt32BE(16), h=b.readUInt32BE(20);
+          if (w!==600 || h!==120) throw new Error(`Unexpected atlas dimensions ${w}x${h}; expected 600x120`);
+          console.log(`Approved atlas OK: ${w}x${h}, ${b.length} bytes, 120 authored directional frames`);
+          NODE
+
+      - name: Activate real-frame player renderer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('src/game/render.ts')
+          s=path.read_text(encoding='utf-8')
+          old_import="import { drawChibiPlayerV3 } from './graphics/playerChibiV3';"
+          new_import="import { drawChibiPlayerAtlasV4 } from './graphics/playerChibiAtlasV4';"
+          if old_import in s:
+              s=s.replace(old_import,new_import,1)
+          elif new_import not in s:
+              raise SystemExit('Player renderer import anchor missing')
+          if 'drawChibiPlayerV3({' in s:
+              s=s.replace('drawChibiPlayerV3({','drawChibiPlayerAtlasV4({',1)
+          elif 'drawChibiPlayerAtlasV4({' not in s:
+              raise SystemExit('Player renderer call anchor missing')
+          path.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate animation source
+        run: |
+          npx tsc --noEmit
+          npx tsc --noEmit --strict --target ES2020 --module ESNext \
+            --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable \
+            --skipLibCheck src/game/graphics/*.ts src/game/graphics/gpu/*.ts
+          grep -q "drawChibiPlayerAtlasV4" src/game/render.ts
+          ! grep -q "drawChibiPlayerV3({" src/game/render.ts
+          grep -q "CHIBI_BASE_DUCK_REAL_FRAMES = 120" src/game/graphics/playerChibiAtlasV4.ts
+          test -s src/assets/chibi/base-duck-approved-atlas.png
+          npx vite build --outDir /tmp/duck-heist-v061 --emptyOutDir
+          test -s /tmp/duck-heist-v061/index.html
+
+      - name: Promote v0.6.1
+        run: |
+          npm version 0.6.1 --no-git-tag-version
+          printf '0.6.1\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v061/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q 'Duck Heist' web-release/index.html
+          grep -q '"version": "0.6.1"' package.json
+          grep -q '^0.6.1$' VERSION
+          ! grep -R -q 'v0.4.3' web-release
+          cmp web-release/index.html dist/index.html
+          echo "v0.6.1 real-frame release ready"
+
+      - name: Commit v0.6.1 release
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A src/game/render.ts src/assets/chibi/base-duck-approved-atlas.png web-release dist VERSION package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Release already up to date.'
+            exit 0
+          fi
+          git commit -m 'Release Duck Heist v0.6.1 with 120 real chibi frames'
+          git pull --rebase origin main
+          git push origin HEAD:main
