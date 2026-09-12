@@ -22,6 +22,26 @@ export interface RoomMaterialTheme {
   frameStyle: FrameStyle;
 }
 
+const frame = (
+  ambientDarkness: number,
+  ambientTint: string,
+  tintStrength: number,
+  vignette: number,
+  shadowOpacity: number,
+  shadowColor: string,
+  lightStrength: number,
+): FrameStyle => ({
+  ambientDarkness,
+  ambientTint,
+  tintStrength,
+  vignette,
+  shadowOpacity,
+  shadowColor,
+  lightStrength,
+  pixelSnap: true,
+  cullingMargin: 28,
+});
+
 export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
   {
     id: 'branch_lobby',
@@ -30,11 +50,7 @@ export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
     wood: '#5f3f2f', metal: '#394650', accent: '#8f2634', gold: '#c99635',
     floorPattern: 'checker', floorTileSize: 32, wallPanelWidth: 64,
     lightColor: '#ffe1a8', lightRadius: 112,
-    frameStyle: {
-      ambientDarkness: 0.06, ambientTint: '#e2cfad', tintStrength: 0.035,
-      vignette: 0.10, shadowOpacity: 0.30, shadowColor: '#171a1f',
-      lightStrength: 0.92, pixelSnap: true,
-    },
+    frameStyle: frame(0.06, '#e2cfad', 0.035, 0.10, 0.30, '#171a1f', 0.92),
   },
   {
     id: 'security',
@@ -43,11 +59,7 @@ export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
     wood: '#51433b', metal: '#303c44', accent: '#3f8caf', gold: '#b58a3a',
     floorPattern: 'grid', floorTileSize: 24, wallPanelWidth: 48,
     lightColor: '#9ed8ef', lightRadius: 104,
-    frameStyle: {
-      ambientDarkness: 0.11, ambientTint: '#8fc0d8', tintStrength: 0.035,
-      vignette: 0.16, shadowOpacity: 0.34, shadowColor: '#10161b',
-      lightStrength: 0.95, pixelSnap: true,
-    },
+    frameStyle: frame(0.11, '#8fc0d8', 0.035, 0.16, 0.34, '#10161b', 0.95),
   },
   {
     id: 'archives',
@@ -56,11 +68,7 @@ export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
     wood: '#6e462b', metal: '#4f5554', accent: '#b37945', gold: '#c9a050',
     floorPattern: 'stone', floorTileSize: 28, wallPanelWidth: 56,
     lightColor: '#e2b06f', lightRadius: 96,
-    frameStyle: {
-      ambientDarkness: 0.14, ambientTint: '#d1a56d', tintStrength: 0.04,
-      vignette: 0.18, shadowOpacity: 0.36, shadowColor: '#17120e',
-      lightStrength: 0.9, pixelSnap: true,
-    },
+    frameStyle: frame(0.14, '#d1a56d', 0.04, 0.18, 0.36, '#17120e', 0.90),
   },
   {
     id: 'executive',
@@ -69,11 +77,7 @@ export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
     wood: '#4b2d26', metal: '#514b4f', accent: '#9b394b', gold: '#d0a447',
     floorPattern: 'checker', floorTileSize: 32, wallPanelWidth: 64,
     lightColor: '#e7b386', lightRadius: 110,
-    frameStyle: {
-      ambientDarkness: 0.16, ambientTint: '#b97063', tintStrength: 0.035,
-      vignette: 0.22, shadowOpacity: 0.38, shadowColor: '#120e10',
-      lightStrength: 0.88, pixelSnap: true,
-    },
+    frameStyle: frame(0.16, '#b97063', 0.035, 0.22, 0.38, '#120e10', 0.88),
   },
   {
     id: 'vault',
@@ -82,11 +86,7 @@ export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
     wood: '#49362e', metal: '#697078', accent: '#a87b2c', gold: '#e0b74e',
     floorPattern: 'metal', floorTileSize: 24, wallPanelWidth: 48,
     lightColor: '#d9c88c', lightRadius: 92,
-    frameStyle: {
-      ambientDarkness: 0.19, ambientTint: '#d7bd79', tintStrength: 0.045,
-      vignette: 0.24, shadowOpacity: 0.40, shadowColor: '#0b0c0e',
-      lightStrength: 0.92, pixelSnap: true,
-    },
+    frameStyle: frame(0.19, '#d7bd79', 0.045, 0.24, 0.40, '#0b0c0e', 0.92),
   },
   {
     id: 'gold_reserve',
@@ -95,11 +95,7 @@ export const CHIBI_FLOOR_THEMES: readonly RoomMaterialTheme[] = [
     wood: '#5e3c25', metal: '#5f5946', accent: '#d8a832', gold: '#f0d56b',
     floorPattern: 'gold', floorTileSize: 24, wallPanelWidth: 48,
     lightColor: '#ffe69a', lightRadius: 126,
-    frameStyle: {
-      ambientDarkness: 0.15, ambientTint: '#f2d375', tintStrength: 0.07,
-      vignette: 0.20, shadowOpacity: 0.42, shadowColor: '#171106',
-      lightStrength: 1.08, pixelSnap: true,
-    },
+    frameStyle: frame(0.15, '#f2d375', 0.07, 0.20, 0.42, '#171106', 1.08),
   },
 ];
 
