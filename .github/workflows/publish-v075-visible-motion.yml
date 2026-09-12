@@ -1,0 +1,131 @@
+name: Publish Duck Heist v0.7.5 Visible Motion
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v075-visible-motion.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Patch persistent shot trigger and visible vertical stride
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/game/graphics/playerChibiRemastered.ts')
+          s=p.read_text()
+
+          def once(old,new,label):
+              global s
+              if old not in s:
+                  raise SystemExit(f'v0.7.5 patch missing: {label}')
+              s=s.replace(old,new,1)
+
+          once(
+              "rt = { state: 'idle', enteredAt: input.frame, lastFrame: input.frame, wasShoot: false, wasDash: false, wasHurt: false };",
+              "rt = { state: 'idle', enteredAt: input.frame, lastFrame: input.frame, lastShot: input.shotSequence, wasShoot: false, wasDash: false, wasHurt: false };",
+              'runtime init shot sequence',
+          )
+          once(
+              "const shotChanged = input.shotSequence !== undefined && input.shotSequence !== rt.lastShot;",
+              "const shotChanged = input.shotSequence !== undefined && rt.lastShot !== undefined && input.shotSequence !== rt.lastShot;",
+              'shot changed guard',
+          )
+          once(
+              "const shootStart = wanted === 'shoot' && (shotChanged || (input.shooting && !rt.wasShoot));",
+              "const shootStart = !input.dead && !input.hurt && !input.dashing && (shotChanged || (wanted === 'shoot' && input.shooting && !rt.wasShoot));",
+              'persistent shoot start',
+          )
+          once(
+              """  if (shootStart || dashStart || hurtStart || (wanted === 'down' && rt.state !== 'down')) {
+    rt.state = wanted;
+    rt.enteredAt = input.frame;
+  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 14) {""",
+              """  if (wanted === 'down' && rt.state !== 'down') {
+    rt.state = 'down';
+    rt.enteredAt = input.frame;
+  } else if (hurtStart) {
+    rt.state = 'hurt';
+    rt.enteredAt = input.frame;
+  } else if (dashStart) {
+    rt.state = 'dash';
+    rt.enteredAt = input.frame;
+  } else if (shootStart) {
+    rt.state = 'shoot';
+    rt.enteredAt = input.frame;
+  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 14) {""",
+              'state priority block',
+          )
+          once(
+              """    return {
+      authored: 'walk', index: i,
+      scaleX: 1 + compression * (vertical ? .026 : .014),
+      scaleY: 1 - compression * (vertical ? .022 : .014),
+      rotation: vertical ? sway * .018 : sideLean + sway * .008,
+      dx: sway * (vertical ? .95 : .38),
+      dy: -Math.abs(sway) * (vertical ? 1.6 : 1.05),
+    };""",
+              """    return {
+      authored: 'walk', index: i,
+      scaleX: 1 + compression * (vertical ? .045 : .014),
+      scaleY: 1 - compression * (vertical ? .038 : .014),
+      rotation: vertical ? sway * .038 : sideLean + sway * .008,
+      dx: sway * (vertical ? 1.55 : .38),
+      dy: -Math.abs(sway) * (vertical ? 2.45 : 1.05) + (vertical ? compression * .22 : 0),
+    };""",
+              'vertical stride amplitude',
+          )
+          once(
+              "document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v3';",
+              "document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v4';",
+              'renderer marker',
+          )
+          p.write_text(s)
+          PY
+      - name: Validate source and build
+        run: |
+          npx tsc --noEmit
+          grep -q "rt.state = 'shoot'" src/game/graphics/playerChibiRemastered.ts
+          grep -q "vertical ? 2.45" src/game/graphics/playerChibiRemastered.ts
+          grep -q "canvas2d-chibi-remastered-v4" src/game/graphics/playerChibiRemastered.ts
+          npx vite build --outDir /tmp/duck-heist-v075 --emptyOutDir
+          test -s /tmp/duck-heist-v075/index.html
+          grep -q 'canvas2d-chibi-remastered-v4' /tmp/duck-heist-v075/index.html
+      - name: Promote v0.7.5
+        run: |
+          npm version 0.7.5 --no-git-tag-version
+          printf '0.7.5\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v075/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.5"' package.json
+          grep -q '^0.7.5$' VERSION
+          grep -q 'canvas2d-chibi-remastered-v4' web-release/index.html
+          cmp web-release/index.html dist/index.html
+      - name: Commit v0.7.5
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A src/game/graphics/playerChibiRemastered.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.5 visible vertical walk and shot feedback'
+          git pull --rebase origin main
+          git push origin HEAD:main
