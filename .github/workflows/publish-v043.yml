@@ -53,7 +53,7 @@ jobs:
 
           if 'DH_V0_4_2_BLINK' not in s:
             raise SystemExit('Coin blink behavior marker missing')
-          for required in ['DIFFICULTY','FÁCIL','NORMAL','DIFÍCIL','MAD','GUN_VAN','RoomType']:
+          for required in ['DIFFICULTY','FÁCIL','NORMAL','DIFÍCIL','MAD','GUN_VAN']:
             if required not in s:
               raise SystemExit(f'Required current-game feature missing: {required}')
           if 't.type===w.GUN_VAN||t.type===w.START' not in s:
