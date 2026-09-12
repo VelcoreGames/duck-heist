@@ -37,8 +37,8 @@ jobs:
                   fr=im.crop((c*40,r*60,(c+1)*40,(r+1)*60))
                   a=fr.getchannel('A')
                   if a.getbbox(): nonempty += 1
-                  opaque=sum(1 for v in a.getdata() if v>0)
-                  assert 20 < opaque < 40*60*.90, (r,c,opaque)
+                  meaningful=sum(1 for v in a.getdata() if v>64)
+                  assert 20 < meaningful < 40*60*.82, (r,c,meaningful)
           assert nonempty==120, nonempty
           print('validated 120 remastered authored frames')
           PY
