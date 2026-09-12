@@ -35,7 +35,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { drawChibiPlayerAtlasV4 } from './graphics/playerChibiAtlasV4';
+import { drawChibiPlayerAtlasV5 } from './graphics/playerChibiAtlasV5';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -243,7 +243,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   if (p.hp > 0) {
-    drawChibiPlayerAtlasV4({
+    drawChibiPlayerAtlasV5({
       ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
       skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
