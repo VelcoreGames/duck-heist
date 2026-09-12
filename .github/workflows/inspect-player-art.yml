@@ -1,0 +1,53 @@
+name: Inspect Duck Heist Player Art
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-player-art.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pillow
+      - name: Restore candidate art
+        run: |
+          git fetch --all --prune
+          mkdir -p /tmp/art-inspect
+          git show c58d863f4fdcf95d0db26a8a6d1834fe12b6b09a:src/assets/chibi/base-duck-approved-atlas.png > /tmp/art-inspect/v4-approved.png
+          git show origin/feature/base-duck-approved-spritesheet-v4:duck-heist-playable-bfvyg1-1788926588197-src/public/assets-v2/base-duck-v2.png > /tmp/art-inspect/base-v2.png
+          git show origin/feature/base-duck-approved-spritesheet-v4:duck-heist-playable-bfvyg1-1788926588197-src/public/assets/macro-pato-final-sprites.png > /tmp/art-inspect/macro-pato.png
+          echo '--- candidate PNGs in real-frame branch ---'
+          git ls-tree -r --name-only origin/feature/base-duck-real-frames-v4-clean | grep -Ei '(duck|sprite).*\.png$' || true
+      - name: Analyze and create previews
+        run: |
+          python - <<'PY'
+          from PIL import Image,ImageFile
+          from pathlib import Path
+          ImageFile.LOAD_TRUNCATED_IMAGES=True
+          root=Path('/tmp/art-inspect')
+          for p in sorted(root.glob('*.png')):
+              im=Image.open(p).convert('RGBA'); im.load()
+              a=im.getchannel('A')
+              bbox=a.getbbox()
+              nonzero=sum(1 for v in a.getdata() if v)
+              total=im.width*im.height
+              print(f'{p.name}: {im.size}, bbox={bbox}, alpha_nonzero={nonzero}/{total} ({nonzero/total:.3f})')
+              scale=max(1,min(8,720//max(im.size)))
+              prev=im.resize((im.width*scale, im.height*scale),Image.Resampling.NEAREST)
+              bg=Image.new('RGBA',prev.size,(88,78,96,255))
+              bg.alpha_composite(prev)
+              bg.convert('RGB').save(root/(p.stem+'-preview.jpg'),quality=96)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: player-art-inspect
+          path: /tmp/art-inspect
+          retention-days: 1
