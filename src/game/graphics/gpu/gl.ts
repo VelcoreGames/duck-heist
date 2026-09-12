@@ -9,7 +9,7 @@ export function createWebGL2Context(
     antialias: false,
     depth: false,
     stencil: false,
-    premultipliedAlpha: true,
+    premultipliedAlpha: false,
     preserveDrawingBuffer: false,
     powerPreference,
   });
@@ -56,7 +56,7 @@ export function createTexture(gl: WebGL2RenderingContext, input: GpuTextureSourc
   const texture = gl.createTexture();
   if (!texture) throw new Error(`Unable to create texture: ${input.id}`);
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, input.premultiplyAlpha === false ? 0 : 1);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, input.premultiplyAlpha ? 1 : 0);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, input.nearest === false ? gl.LINEAR : gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, input.nearest === false ? gl.LINEAR : gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
