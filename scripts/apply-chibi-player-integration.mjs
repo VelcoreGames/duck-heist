@@ -1,5 +1,12 @@
 import fs from 'node:fs';
 
+const previewPath = 'src/game/graphics/playerChibiPreview.ts';
+let preview = fs.readFileSync(previewPath, 'utf8');
+const oldRect = "function rect(ctx: Ctx, x: number, y: number, w: number, h: number, color: string): void {";
+const newRect = "function rect(ctx: Ctx, x: number, y: number, w: number, h: number, color: string, _pixel = 1): void {";
+if (preview.includes(oldRect)) preview = preview.replace(oldRect, newRect);
+fs.writeFileSync(previewPath, preview);
+
 const path = 'src/game/render.ts';
 let source = fs.readFileSync(path, 'utf8');
 
