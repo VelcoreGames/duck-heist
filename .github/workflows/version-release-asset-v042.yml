@@ -1,0 +1,58 @@
+name: Version Duck Heist v0.4.2 web asset
+
+on:
+  push:
+    paths:
+      - '.github/workflows/version-release-asset-v042.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  version_asset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Give v0.4.2 bundle a unique filename
+        run: |
+          set -euxo pipefail
+          SRC='web-release/assets/index-BgUNQzP_.js'
+          DST='web-release/assets/duck-heist-v042.js'
+          test -s "$SRC"
+          mv "$SRC" "$DST"
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('web-release/index.html')
+          s = p.read_text(encoding='utf-8')
+          old = './assets/index-BgUNQzP_.js'
+          new = './assets/duck-heist-v042.js'
+          if old not in s:
+              raise SystemExit('Expected old bundle reference not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Validate release
+        run: |
+          set -euxo pipefail
+          node --check web-release/assets/duck-heist-v042.js
+          grep -q 'DH_V0_4_2_BLINK' web-release/assets/duck-heist-v042.js
+          grep -q 'DH_V0_4_2_CANVAS_BADGE' web-release/index.html
+          grep -q 'duck-heist-v042.js' web-release/index.html
+          npm run build
+          test -s dist/assets/duck-heist-v042.js
+          grep -q 'duck-heist-v042.js' dist/index.html
+          grep -q 'DH_V0_4_2_BLINK' dist/assets/duck-heist-v042.js
+
+      - name: Commit release
+        run: |
+          set -euxo pipefail
+          rm -f .github/workflows/version-release-asset-v042.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Version Duck Heist v0.4.2 web bundle'
+          git push origin HEAD:main
