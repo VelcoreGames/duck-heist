@@ -1,0 +1,75 @@
+name: Patch Duck Heist v0.4.2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-v042.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current stable main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Apply v0.4.2 to exact stable build
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          js_path = Path('appdeploy-live/assets/index-BgUNQzP_.js')
+          js = js_path.read_text(encoding='utf-8')
+
+          old = '''for(const b of f.pickups)b.type==="hp"||b.type==="sandwich"||b.type==="baguette"||b.type==="croissant"||b.type==="torta"||b.type==="pan_dorado"?(Sa(t,b.x-12,b.y-12+Math.round(Math.sin(c*.08)),b.type,24),t.globalAlpha=.16,t.fillStyle="#ff8f9f",t.beginPath(),t.arc(b.x,b.y,12,0,Math.PI*2),t.fill(),t.globalAlpha=1):ed(t,b.x,b.y,c,b.type==="golden_crumb");'''
+
+          new = '''/*DH_V0_4_2_BLINK*/for(const b of f.pickups){const __dhBlink=(b.type==="crumb"||b.type==="golden_crumb")&&b.lifetime<99999&&b.lifetime<180,__dhPeriod=__dhBlink?(b.lifetime<45?4:b.lifetime<90?8:14):1;if(__dhBlink&&Math.floor(b.lifetime/__dhPeriod)%2===0)continue;b.type==="hp"||b.type==="sandwich"||b.type==="baguette"||b.type==="croissant"||b.type==="torta"||b.type==="pan_dorado"?(Sa(t,b.x-12,b.y-12+Math.round(Math.sin(c*.08)),b.type,24),t.globalAlpha=.16,t.fillStyle="#ff8f9f",t.beginPath(),t.arc(b.x,b.y,12,0,Math.PI*2),t.fill(),t.globalAlpha=1):ed(t,b.x,b.y,c,b.type==="golden_crumb")}'''
+
+          if 'DH_V0_4_2_BLINK' not in js:
+              count = js.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly 1 pickup render loop, found {count}')
+              js = js.replace(old, new, 1)
+              js_path.write_text(js, encoding='utf-8')
+
+          index_path = Path('appdeploy-live/index.html')
+          html = index_path.read_text(encoding='utf-8')
+          if 'data-duck-heist-version="0.4.2"' not in html:
+              label = '''<div data-duck-heist-version="0.4.2" style="position:fixed;left:10px;top:8px;z-index:2147483647;color:#e8d79a;font:700 13px/1 monospace;letter-spacing:.7px;text-shadow:0 1px 3px #000;opacity:.92;pointer-events:none;user-select:none">v0.4.2</div>'''
+              if '</body>' not in html:
+                  raise SystemExit('Could not find </body> in appdeploy-live/index.html')
+              html = html.replace('</body>', label + '</body>', 1)
+              index_path.write_text(html, encoding='utf-8')
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['version'] = '0.4.2'
+          package_path.write_text(json.dumps(package, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+          Path('VERSION').write_text('0.4.2\n', encoding='utf-8')
+          PY
+
+      - name: Validate patched build
+        run: |
+          set -euxo pipefail
+          node --check appdeploy-live/assets/index-BgUNQzP_.js
+          grep -q 'DH_V0_4_2_BLINK' appdeploy-live/assets/index-BgUNQzP_.js
+          grep -q 'data-duck-heist-version="0.4.2"' appdeploy-live/index.html
+          npm run build
+          test -s dist/index.html
+          grep -q 'data-duck-heist-version="0.4.2"' dist/index.html
+          grep -q 'DH_V0_4_2_BLINK' dist/assets/index-BgUNQzP_.js
+
+      - name: Commit v0.4.2
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add appdeploy-live/index.html appdeploy-live/assets/index-BgUNQzP_.js package.json VERSION
+          git commit -m 'Duck Heist v0.4.2: version label and blinking coins'
+          git push origin HEAD:main
