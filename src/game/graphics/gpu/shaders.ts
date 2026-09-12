@@ -11,6 +11,7 @@ layout(location=6) in vec4 aTransform;
 layout(location=7) in vec4 aEffects;
 layout(location=8) in vec2 aPalette;
 layout(location=9) in float aSpace;
+layout(location=10) in vec4 aMaterial;
 
 uniform vec2 uResolution;
 uniform vec4 uCamera;
@@ -23,6 +24,7 @@ out vec4 vUvRect;
 out vec4 vColor;
 out vec4 vEffects;
 out vec2 vPalette;
+out vec4 vMaterial;
 flat out float vShape;
 
 void main() {
@@ -49,6 +51,7 @@ void main() {
   vColor = aColor;
   vEffects = aEffects;
   vPalette = aPalette;
+  vMaterial = aMaterial;
   vShape = aTransform.w;
 }
 `;
@@ -68,6 +71,7 @@ in vec4 vUvRect;
 in vec4 vColor;
 in vec4 vEffects;
 in vec2 vPalette;
+in vec4 vMaterial;
 flat in float vShape;
 out vec4 outColor;
 
@@ -94,6 +98,18 @@ void main() {
     vec3 mapped = texture(uPaletteLut, vec2(clamp(luma, 0.002, 0.998), row)).rgb;
     rgb = mix(rgb, mapped, paletteStrength);
   }
+
+  float emissive = clamp(vMaterial.x, 0.0, 1.5);
+  float metallic = clamp(vMaterial.y, 0.0, 1.0);
+  float sheen = clamp(vMaterial.z, 0.0, 1.0);
+  float glass = clamp(vMaterial.w, 0.0, 1.0);
+  float baseLuma = dot(rgb, vec3(0.299, 0.587, 0.114));
+  rgb = mix(rgb, mix(vec3(baseLuma), rgb, 1.12), metallic * 0.22);
+  float band = pow(max(0.0, 1.0 - abs((vLocal.x * 0.78 + vLocal.y * 0.22) - 0.18)), 9.0);
+  rgb += vec3(1.0, 0.90, 0.64) * band * sheen * (0.16 + metallic * 0.34);
+  rgb = mix(rgb, rgb * 0.80 + vec3(0.70, 0.86, 1.0) * 0.20, glass * 0.55);
+  alpha *= 1.0 - glass * 0.18;
+  rgb += rgb * emissive * 0.62;
 
   float leftA = sampleAlpha(vUv + vec2(-uTexel.x, 0.0));
   float rightA = sampleAlpha(vUv + vec2(uTexel.x, 0.0));
