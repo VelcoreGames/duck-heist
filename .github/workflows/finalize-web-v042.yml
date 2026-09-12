@@ -1,0 +1,142 @@
+name: Finalize Duck Heist web v0.4.2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/finalize-web-v042.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Migrate current web release to neutral pipeline
+        run: |
+          set -euxo pipefail
+          rm -rf web-release
+          cp -R appdeploy-live web-release
+          cat > scripts/publish-release.mjs <<'EOF'
+          import { cpSync, rmSync } from 'node:fs';
+
+          rmSync('dist', { recursive: true, force: true });
+          cpSync('web-release', 'dist', { recursive: true });
+          console.log('Duck Heist web release copied to dist/');
+          EOF
+
+      - name: Patch v0.4.2 canvas badge and coin blink
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          index_path = Path('web-release/index.html')
+          html = index_path.read_text(encoding='utf-8')
+
+          # Remove every prior browser-fixed version badge.
+          html = re.sub(r'<div[^>]*data-duck-heist-version="0\.4\.2"[^>]*>\s*v0\.4\.2\s*</div>', '', html, flags=re.I)
+          html = re.sub(r'<script>\s*/\* DH_V0_4_2_CANVAS_BADGE \*/.*?</script>', '', html, flags=re.S)
+
+          canvas_badge = r'''<script>
+          /* DH_V0_4_2_CANVAS_BADGE */
+          (() => {
+            const VERSION = 'v0.4.2';
+            const nativeRAF = window.requestAnimationFrame.bind(window);
+            const drawVersion = () => {
+              const canvas = document.querySelector('canvas');
+              if (!canvas) return;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return;
+              ctx.save();
+              ctx.setTransform(1, 0, 0, 1, 0, 0);
+              ctx.globalAlpha = 0.92;
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'top';
+              ctx.font = '700 8px "Chakra Petch", monospace';
+              ctx.fillStyle = '#e8d79a';
+              ctx.shadowColor = 'rgba(0,0,0,.95)';
+              ctx.shadowBlur = 2;
+              ctx.fillText(VERSION, 10, 10);
+              ctx.restore();
+            };
+            window.requestAnimationFrame = (callback) => nativeRAF((time) => {
+              callback(time);
+              drawVersion();
+            });
+          })();
+          </script>'''
+
+          # Must execute before the module/game bootstraps and captures requestAnimationFrame.
+          module_tag = '<script type="module"'
+          pos = html.find(module_tag)
+          if pos < 0:
+              raise SystemExit('Could not find the game module script in web-release/index.html')
+          html = html[:pos] + canvas_badge + html[pos:]
+          index_path.write_text(html, encoding='utf-8')
+
+          js_path = Path('web-release/assets/index-BgUNQzP_.js')
+          js = js_path.read_text(encoding='utf-8')
+
+          if 'DH_V0_4_2_BLINK' not in js:
+              old = '''for(const b of f.pickups)b.type==="hp"||b.type==="sandwich"||b.type==="baguette"||b.type==="croissant"||b.type==="torta"||b.type==="pan_dorado"?(Sa(t,b.x-12,b.y-12+Math.round(Math.sin(c*.08)),b.type,24),t.globalAlpha=.16,t.fillStyle="#ff8f9f",t.beginPath(),t.arc(b.x,b.y,12,0,Math.PI*2),t.fill(),t.globalAlpha=1):ed(t,b.x,b.y,c,b.type==="golden_crumb");'''
+              new = '''/*DH_V0_4_2_BLINK*/for(const b of f.pickups){const __dhBlink=(b.type==="crumb"||b.type==="golden_crumb")&&b.lifetime<99999&&b.lifetime<180,__dhPeriod=__dhBlink?(b.lifetime<45?4:b.lifetime<90?8:14):1;if(__dhBlink&&Math.floor(b.lifetime/__dhPeriod)%2===0)continue;b.type==="hp"||b.type==="sandwich"||b.type==="baguette"||b.type==="croissant"||b.type==="torta"||b.type==="pan_dorado"?(Sa(t,b.x-12,b.y-12+Math.round(Math.sin(c*.08)),b.type,24),t.globalAlpha=.16,t.fillStyle="#ff8f9f",t.beginPath(),t.arc(b.x,b.y,12,0,Math.PI*2),t.fill(),t.globalAlpha=1):ed(t,b.x,b.y,c,b.type==="golden_crumb")}'''
+              count = js.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one pickup render loop, found {count}')
+              js = js.replace(old, new, 1)
+              js_path.write_text(js, encoding='utf-8')
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['version'] = '0.4.2'
+          package.setdefault('scripts', {})['build'] = 'node scripts/publish-release.mjs'
+          package_path.write_text(json.dumps(package, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          Path('VERSION').write_text('0.4.2\n', encoding='utf-8')
+          PY
+
+      - name: Remove retired deployment artifacts and workflows
+        run: |
+          set -euxo pipefail
+          rm -rf appdeploy-live
+          rm -f scripts/publish-appdeploy.mjs
+          rm -f inspection-v042.txt
+          rm -f .github/workflows/recover-v64.yml
+          rm -f .github/workflows/materialize-v64.yml
+          rm -f .github/workflows/mirror-appdeploy-live.yml
+          rm -f .github/workflows/inspect-v042.yml
+          rm -f .github/workflows/patch-v042.yml
+          rm -f .github/workflows/finalize-web-v042.yml
+
+      - name: Validate exact Hostinger build output
+        run: |
+          set -euxo pipefail
+          node --check web-release/assets/index-BgUNQzP_.js
+          grep -q 'DH_V0_4_2_CANVAS_BADGE' web-release/index.html
+          grep -q 'ctx.fillText(VERSION, 10, 10)' web-release/index.html
+          grep -q 'DH_V0_4_2_BLINK' web-release/assets/index-BgUNQzP_.js
+          ! grep -q 'data-duck-heist-version' web-release/index.html
+          npm run build
+          test -s dist/index.html
+          test -s dist/assets/index-BgUNQzP_.js
+          grep -q 'DH_V0_4_2_CANVAS_BADGE' dist/index.html
+          grep -q 'DH_V0_4_2_BLINK' dist/assets/index-BgUNQzP_.js
+          ! grep -q 'data-duck-heist-version' dist/index.html
+          if grep -Rni --exclude-dir=.git --exclude='package-lock.json' 'appdeploy' .; then
+            echo 'Retired deployment references remain in the current tree.' >&2
+            exit 1
+          fi
+
+      - name: Commit final v0.4.2 web release
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Finalize Duck Heist v0.4.2 web release'
+          git push origin HEAD:main
