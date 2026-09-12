@@ -3,7 +3,7 @@ import { createProgram, uniform } from './gl';
 import { LIGHT_FRAGMENT_SHADER, LIGHT_VERTEX_SHADER } from './shaders';
 import type { GpuLightCommand } from './types';
 
-const INSTANCE_FLOATS = 9;
+const INSTANCE_FLOATS = 10;
 
 export class InstancedLightBatch {
   private readonly program: WebGLProgram;
@@ -51,7 +51,7 @@ export class InstancedLightBatch {
     attr(1, 2);
     attr(2, 1);
     attr(3, 4);
-    attr(4, 2);
+    attr(4, 3);
     gl.bindVertexArray(null);
 
     this.uResolution = uniform(gl, this.program, 'uResolution');
@@ -86,7 +86,9 @@ export class InstancedLightBatch {
       for (let i = 0; i < count; i++) {
         const light = lights[start + i];
         const flicker = Math.max(0, Math.min(1, light.flicker ?? 0));
-        const wave = flicker > 0 ? 1 - flicker * 0.5 + Math.sin((tick + (light.phase ?? 0)) * 0.17) * flicker * 0.5 : 1;
+        const wave = flicker > 0
+          ? 1 - flicker * 0.5 + Math.sin((tick + (light.phase ?? 0)) * 0.17) * flicker * 0.5
+          : 1;
         this.data[cursor++] = light.x;
         this.data[cursor++] = light.y;
         this.data[cursor++] = Math.max(1, light.radius);
@@ -96,11 +98,9 @@ export class InstancedLightBatch {
         this.data[cursor++] = Math.max(0, light.intensity * wave);
         this.data[cursor++] = Math.max(0, Math.min(0.95, light.innerRadius ?? 0));
         this.data[cursor++] = Math.max(0.1, light.falloff ?? 1.35);
+        this.data[cursor++] = light.space === 'screen' ? 1 : 0;
       }
 
-      // The shader's third light param is screen-space; update it through a tiny split if needed.
-      // Mixed spaces are rare, so normalize each command by encoding screen-space in falloff sign is avoided.
-      // Instead draw world and screen lists separately at the renderer level.
       gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.data.subarray(0, count * INSTANCE_FLOATS));
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
