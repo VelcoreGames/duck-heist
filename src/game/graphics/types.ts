@@ -1,5 +1,6 @@
 export type Facing = 'down' | 'up' | 'left' | 'right';
-export type CharacterState = 'idle' | 'walk' | 'shoot' | 'dash' | 'hurt' | 'down';
+export type CharacterState = 'idle' | 'walk' | 'shoot' | 'dash' | 'hurt' | 'down' | 'interact' | 'celebrate';
+export type CoordinateSpace = 'world' | 'screen';
 
 export enum RenderLayer {
   BACKGROUND = 0,
@@ -43,10 +44,16 @@ export interface AtlasManifest {
   frames: Record<string, SpriteFrame>;
 }
 
+export interface AnimationMarker {
+  frame: number;
+  event: string;
+}
+
 export interface AnimationClip {
   frames: readonly string[];
   frameDuration: number;
   loop?: boolean;
+  markers?: readonly AnimationMarker[];
 }
 
 export type DirectionalClips = Partial<Record<Facing, AnimationClip>>;
@@ -69,6 +76,7 @@ export interface FrameStyle {
   shadowColor: string;
   lightStrength: number;
   pixelSnap: boolean;
+  cullingMargin: number;
 }
 
 export interface LightSource {
@@ -78,7 +86,11 @@ export interface LightSource {
   color: string;
   intensity: number;
   falloff?: number;
+  innerRadius?: number;
+  flicker?: number;
+  phase?: number;
   screenSpace?: boolean;
+  coordinateSpace?: CoordinateSpace;
 }
 
 export interface RenderCommand {
@@ -89,12 +101,18 @@ export interface RenderCommand {
   depthBias?: number;
   bounds?: PixelRect;
   visible?: boolean;
+  space?: CoordinateSpace;
+  alpha?: number;
+  composite?: GlobalCompositeOperation;
+  clip?: PixelRect;
   draw: (ctx: CanvasRenderingContext2D) => void;
 }
 
 export interface GraphicsStats {
   submitted: number;
   drawn: number;
+  worldDrawn: number;
+  screenDrawn: number;
   culled: number;
   lights: number;
 }
