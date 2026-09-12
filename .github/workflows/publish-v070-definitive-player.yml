@@ -36,10 +36,10 @@ jobs:
           git fetch origin fix/base-duck-png-v5:refs/remotes/origin/fix/base-duck-png-v5
           mkdir -p src/assets/chibi
           git show "origin/fix/base-duck-png-v5:duck-heist-playable-bfvyg1-1788926588197-src/public/assets-v2/base-duck-final-atlas.png" > src/assets/chibi/base-duck-final-atlas.png
-          python -c "from PIL import Image; im=Image.open('src/assets/chibi/base-duck-final-atlas.png'); im.load(); assert im.size==(1040,208),im.size; print('canonical V5 source',im.size)"
+          python -c "from PIL import Image,ImageFile; ImageFile.LOAD_TRUNCATED_IMAGES=True; im=Image.open('src/assets/chibi/base-duck-final-atlas.png'); im.load(); assert im.size==(1040,208),im.size; print('canonical V5 source',im.size)"
 
       - name: Bake definitive atlas
-        run: python scripts/build-definitive-duck-atlas.py
+        run: python scripts/run-definitive-atlas-bake.py
 
       - name: Activate definitive renderer
         run: python scripts/activate-definitive-player.py
