@@ -4,6 +4,7 @@ export * from './animation';
 export * from './renderer';
 export * from './camera';
 export * from './chibi';
+export * from './composite';
 export * from './themes';
 export * from './materials';
 export * from './surfaceCache';
