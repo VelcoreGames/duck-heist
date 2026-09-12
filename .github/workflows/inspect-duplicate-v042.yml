@@ -1,0 +1,48 @@
+name: Inspect duplicate v0.4.2 badge
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-duplicate-v042.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: Extract duplicate badge contexts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('web-release/assets/duck-heist-v042.js')
+          s = p.read_text(encoding='utf-8')
+          needles = ['v0.4.2','position:fixed','position:"fixed"','position:"absolute"','data-duck-heist-version','createElement("div")','createElement("span")','top:"8px"','left:"10px"']
+          out=[]
+          seen=set()
+          for needle in needles:
+              start=0
+              n=0
+              while True:
+                  i=s.find(needle,start)
+                  if i<0: break
+                  n+=1
+                  key=(max(0,i-1200),min(len(s),i+1800))
+                  if key not in seen:
+                      seen.add(key)
+                      out.append(f'=== {needle} occurrence {n} at {i} ===\n'+s[key[0]:key[1]]+'\n')
+                  start=i+1
+                  if n>=30: break
+          Path('inspection-duplicate-v042.txt').write_text('\n'.join(out),encoding='utf-8')
+          print('snippets',len(out))
+          PY
+      - name: Commit report
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add inspection-duplicate-v042.txt
+          git commit -m 'Inspect duplicate v0.4.2 badge' || exit 0
+          git push
