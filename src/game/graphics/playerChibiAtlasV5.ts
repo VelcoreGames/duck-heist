@@ -28,17 +28,17 @@ const STATE_FRAMES: Record<AtlasState, number> = { idle: 4, walk: 6, shoot: 4, i
 const ROW: Record<DuckDir, number> = { down: 0, left: 1, right: 2, up: 3 };
 
 const RUNTIME_FRAMES: Record<VisualState, number> = {
-  idle: 12,
-  walk: 16,
-  shoot: 12,
-  dash: 14,
-  hurt: 8,
-  down: 18,
-  interact: 12,
+  idle: 16,
+  walk: 20,
+  shoot: 14,
+  dash: 18,
+  hurt: 10,
+  down: 20,
+  interact: 14,
 };
 
 export const CHIBI_BASE_DUCK_V5_AUTHORED_FRAMES = 80;
-export const CHIBI_BASE_DUCK_V5_RUNTIME_POSES = 368;
+export const CHIBI_BASE_DUCK_V5_RUNTIME_POSES = 448;
 
 export interface ChibiPlayerAtlasV5Input {
   ctx: Ctx;
@@ -152,10 +152,10 @@ function desiredState(input: ChibiPlayerAtlasV5Input): VisualState {
 }
 
 function lockFrames(state: VisualState): number {
-  if (state === 'shoot') return 12;
-  if (state === 'dash') return 14;
-  if (state === 'hurt') return 8;
-  if (state === 'interact') return 12;
+  if (state === 'shoot') return RUNTIME_FRAMES.shoot;
+  if (state === 'dash') return RUNTIME_FRAMES.dash;
+  if (state === 'hurt') return RUNTIME_FRAMES.hurt;
+  if (state === 'interact') return RUNTIME_FRAMES.interact;
   return 0;
 }
 
@@ -197,36 +197,39 @@ function resolveState(input: ChibiPlayerAtlasV5Input): { state: VisualState; tic
 
 function runtimeIndex(state: VisualState, tick: number, globalFrame: number): number {
   const count = RUNTIME_FRAMES[state];
-  if (state === 'idle') return Math.floor(globalFrame / 5) % count;
-  if (state === 'walk') return Math.floor(globalFrame / 2) % count;
+  if (state === 'idle') return Math.floor(globalFrame / 4) % count;
+  if (state === 'walk') return globalFrame % count;
   if (state === 'down') return Math.min(count - 1, Math.floor(tick / 2));
   return Math.min(count - 1, tick);
 }
 
 function atlasIndex(state: VisualState, index: number): { atlasState: AtlasState; index: number } {
   if (state === 'idle') {
-    const seq = [0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 1, 0];
+    const seq = [0,0,1,1,2,2,3,3,3,2,2,1,1,0,0,0];
     return { atlasState: 'idle', index: seq[index % seq.length] };
   }
   if (state === 'walk') {
-    const seq = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 4, 3, 2, 1];
+    const seq = [0,1,1,2,2,3,3,4,4,5,5,4,4,3,3,2,2,1,1,0];
     return { atlasState: 'walk', index: seq[index % seq.length] };
   }
   if (state === 'shoot') {
-    const seq = [0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 1, 0];
+    const seq = [0,0,1,2,3,3,2,2,1,1,0,0,0,0];
     return { atlasState: 'shoot', index: seq[index % seq.length] };
   }
   if (state === 'interact') {
-    return { atlasState: 'interact', index: Math.min(5, Math.floor(index / 2)) };
+    const seq = [0,1,2,3,4,5,5,5,4,3,2,1,0,0];
+    return { atlasState: 'interact', index: seq[index % seq.length] };
   }
   if (state === 'dash') {
-    const seq = [0, 1, 2, 3, 4, 5, 4, 3, 2, 1, 0, 1, 2, 3];
+    const seq = [0,0,1,2,3,4,5,5,5,4,3,2,1,0,0,1,1,0];
     return { atlasState: 'walk', index: seq[index % seq.length] };
   }
   if (state === 'hurt') {
-    return { atlasState: 'idle', index: index < 2 ? 3 : index < 5 ? 2 : 1 };
+    const seq = [3,3,2,2,2,1,1,1,0,0];
+    return { atlasState: 'idle', index: seq[index % seq.length] };
   }
-  return { atlasState: 'idle', index: index < 7 ? 2 : index < 13 ? 1 : 0 };
+  const seq = [2,2,2,2,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0];
+  return { atlasState: 'idle', index: seq[index % seq.length] };
 }
 
 function directionalOffset(dir: DuckDir, amount: number): { x: number; y: number } {
@@ -248,50 +251,87 @@ function poseFor(state: VisualState, tick: number, globalFrame: number, dir: Duc
   let shadowScale = 1;
 
   if (state === 'idle') {
-    const breath = Math.sin((ri / RUNTIME_FRAMES.idle) * Math.PI * 2);
-    offsetY = ri === 3 || ri === 4 ? -1 : 0;
+    const phase = (ri / RUNTIME_FRAMES.idle) * Math.PI * 2;
+    const breath = Math.sin(phase);
+    const sway = Math.sin(phase * .5);
+    offsetY = ri >= 4 && ri <= 7 ? -1 : 0;
+    offsetX = Math.abs(sway) > .92 ? Math.sign(sway) : 0;
     scaleX = 1 + breath * .012;
-    scaleY = 1 - breath * .012;
-    shadowScale = 1 - Math.max(0, -offsetY) * .04;
+    scaleY = 1 - breath * .014;
+    rotation = sway * .006;
+    shadowScale = .98 - Math.max(0, -offsetY) * .03;
   } else if (state === 'walk') {
-    const stride = Math.sin((ri / RUNTIME_FRAMES.walk) * Math.PI * 4);
-    offsetY = -Math.round(Math.abs(stride));
-    rotation = stride * .018;
-    scaleX = 1 + Math.abs(stride) * .016;
-    scaleY = 1 - Math.abs(stride) * .018;
-    shadowScale = .96 + (1 - Math.abs(stride)) * .04;
+    const phase = (ri / RUNTIME_FRAMES.walk) * Math.PI * 2;
+    const stride = Math.sin(phase);
+    const lift = Math.abs(Math.sin(phase * 2));
+    const side = Math.cos(phase);
+    offsetY = -Math.round(lift * 1.25);
+    if (dir === 'left' || dir === 'right') offsetX = Math.round(side * .55);
+    rotation = stride * (dir === 'left' ? -.022 : .022);
+    scaleX = 1 + lift * .018;
+    scaleY = 1 - lift * .02;
+    shadowScale = .94 + (1 - lift) * .06;
   } else if (state === 'shoot') {
-    const recoil = [0, 1, 3, 4, 3, 2, 1, 0, 0, 0, 0, 0][ri] ?? 0;
+    const recoilCurve = [0,-1,1,3,5,4,3,2,1,0,0,0,0,0];
+    const recoil = recoilCurve[ri] ?? 0;
     const v = directionalOffset(dir, -recoil);
     offsetX = v.x;
-    offsetY = v.y;
-    scaleX = 1 + recoil * .008;
-    scaleY = 1 - recoil * .006;
+    offsetY = v.y - (ri === 2 ? 1 : 0);
+    const kickSign = dir === 'left' ? 1 : -1;
+    rotation = (ri >= 3 && ri <= 6 ? .018 : 0) * kickSign;
+    scaleX = 1 + Math.max(0,recoil) * .009;
+    scaleY = 1 - Math.max(0,recoil) * .007;
+    flash = ri === 3 ? .11 : ri === 4 ? .06 : 0;
   } else if (state === 'dash') {
     const t = ri / Math.max(1, RUNTIME_FRAMES.dash - 1);
-    const wave = Math.sin(t * Math.PI);
-    scaleX = 1.06 + wave * .08;
-    scaleY = .94 - wave * .05;
-    offsetY = -1;
-    shadowScale = 1.12 + wave * .12;
+    const launch = Math.sin(Math.min(1, t * 1.35) * Math.PI);
+    const anticipation = ri < 3 ? (3 - ri) / 3 : 0;
+    const recovery = ri > 13 ? (ri - 13) / 4 : 0;
+    const along = .09 * launch - .035 * anticipation;
+    const across = -.055 * launch + .025 * anticipation;
+    if (dir === 'left' || dir === 'right') {
+      scaleX = 1 + along;
+      scaleY = 1 + across;
+    } else {
+      scaleX = 1 + across;
+      scaleY = 1 + along;
+    }
+    const nudge = directionalOffset(dir, Math.round(launch * 2));
+    offsetX = nudge.x;
+    offsetY = nudge.y - Math.round(launch);
+    rotation = (dir === 'left' ? -.025 : dir === 'right' ? .025 : 0) * launch;
+    if (recovery > 0) {
+      scaleX += Math.sin(recovery * Math.PI) * .015;
+      scaleY -= Math.sin(recovery * Math.PI) * .015;
+    }
+    shadowScale = 1.05 + launch * .17;
   } else if (state === 'hurt') {
-    rotation = (ri % 2 === 0 ? -1 : 1) * .055;
-    offsetX = ri % 2 === 0 ? -1 : 1;
-    offsetY = -1;
-    scaleX = 1.05;
-    scaleY = .95;
-    flash = ri < 5 ? .42 - ri * .055 : .08;
+    const t = ri / Math.max(1, RUNTIME_FRAMES.hurt - 1);
+    const knock = Math.round((1 - t) * 3);
+    const v = directionalOffset(dir, -knock);
+    offsetX = v.x + (ri % 2 === 0 ? -1 : 1);
+    offsetY = v.y - (ri < 3 ? 1 : 0);
+    rotation = (ri % 2 === 0 ? -1 : 1) * (1 - t) * .06;
+    scaleX = 1.05 - t * .04;
+    scaleY = .95 + t * .04;
+    flash = Math.max(0, .48 - ri * .055);
   } else if (state === 'down') {
     const t = ri / Math.max(1, RUNTIME_FRAMES.down - 1);
-    rotation = (dir === 'left' ? -1 : 1) * t * 1.18;
-    scaleX = 1 + t * .12;
-    scaleY = 1 - t * .18;
-    offsetY = Math.round(t * 5);
-    shadowScale = 1 + t * .16;
+    const eased = 1 - Math.pow(1 - t, 2.2);
+    rotation = (dir === 'left' ? -1 : 1) * eased * 1.22;
+    scaleX = 1 + Math.sin(t * Math.PI) * .08 + t * .08;
+    scaleY = 1 - eased * .2;
+    offsetY = Math.round(eased * 6);
+    offsetX = dir === 'left' ? -Math.round(eased * 2) : dir === 'right' ? Math.round(eased * 2) : 0;
+    shadowScale = 1 + eased * .2;
   } else if (state === 'interact') {
-    const wave = Math.sin((ri / RUNTIME_FRAMES.interact) * Math.PI * 2);
-    offsetY = -Math.round(Math.max(0, wave));
-    rotation = wave * .018;
+    const phase = (ri / Math.max(1,RUNTIME_FRAMES.interact - 1)) * Math.PI;
+    const lift = Math.sin(phase);
+    offsetY = -Math.round(lift * 3);
+    scaleX = 1 - lift * .025;
+    scaleY = 1 + lift * .035;
+    rotation = Math.sin(phase * 2) * .014;
+    shadowScale = 1 - lift * .12;
   }
 
   return { atlasState: base.atlasState, atlasIndex: base.index, runtimeIndex: ri, scaleX, scaleY, rotation, offsetX, offsetY, flash, shadowScale };
@@ -375,20 +415,20 @@ function drawGpu(input: ChibiPlayerAtlasV5Input, image: HTMLImageElement, state:
 
   if (state === 'dash') {
     const v = dashVector(input.dir);
-    for (let i = 4; i >= 1; i--) {
+    for (let i = 6; i >= 1; i--) {
       rt.renderer.submitSprite({
         id: `duck-v5-ghost-${i}`,
         layer: RenderLayer.ACTORS,
         sortY: feetY - .2,
         order: -20 + i,
-        x: x - v.x * i * 5,
-        y: y - v.y * i * 5,
+        x: x - v.x * i * 4,
+        y: y - v.y * i * 4,
         width,
         height,
         pivotX: PIVOT_X * pose.scaleX,
         pivotY: PIVOT_Y * pose.scaleY,
         rotation: pose.rotation,
-        color: [1, .9, .55, opacity * (.035 + i * .02)],
+        color: [1, .91, .62, opacity * (.025 + i * .014)],
         region: selected.region,
         effects: { rim: .08 },
       });
@@ -430,9 +470,9 @@ function drawGpu(input: ChibiPlayerAtlasV5Input, image: HTMLImageElement, state:
     });
   }
 
-  if (state === 'shoot' && pose.runtimeIndex >= 2 && pose.runtimeIndex <= 5) {
+  if (state === 'shoot' && pose.runtimeIndex >= 3 && pose.runtimeIndex <= 6) {
     const mp = muzzlePose(input.dir, feetX, feetY);
-    const pulse = pose.runtimeIndex === 2 || pose.runtimeIndex === 3 ? 12 : 9;
+    const pulse = pose.runtimeIndex === 3 || pose.runtimeIndex === 4 ? 13 : 9;
     rt.renderer.submitSprite({
       id: 'duck-v5-muzzle', layer: RenderLayer.PROJECTILES, sortY: feetY + .1, order: 5,
       x: mp.x, y: mp.y, width: pulse, height: pulse, pivotX: pulse / 2, pivotY: pulse / 2, rotation: mp.rotation,
@@ -450,8 +490,8 @@ function drawGpu(input: ChibiPlayerAtlasV5Input, image: HTMLImageElement, state:
   input.ctx.drawImage(rt.canvas, 0, 0);
   input.ctx.restore();
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'webgl2-chibi-atlas-v5';
-  document.documentElement.dataset.duckHeistPlayerFrames = '80-authored-368-runtime-poses';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'webgl2-chibi-atlas-v5-motion-v2';
+  document.documentElement.dataset.duckHeistPlayerFrames = '80-authored-448-runtime-poses';
   document.documentElement.dataset.duckHeistPlayerFrame = `${state}:${pose.runtimeIndex}:${selected.row}:${selected.col}`;
   return true;
 }
@@ -476,8 +516,8 @@ function drawCanvasFallback(input: ChibiPlayerAtlasV5Input, image: HTMLImageElem
   input.ctx.drawImage(image, sx, sy, FRAME_W, FRAME_H, -PIVOT_X * pose.scaleX, -PIVOT_Y * pose.scaleY, w, h);
   input.ctx.restore();
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-atlas-v5-fallback';
-  document.documentElement.dataset.duckHeistPlayerFrames = '80-authored-368-runtime-poses';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-atlas-v5-motion-v2-fallback';
+  document.documentElement.dataset.duckHeistPlayerFrames = '80-authored-448-runtime-poses';
   document.documentElement.dataset.duckHeistPlayerFrame = `${state}:${pose.runtimeIndex}:${selected.row}:${selected.col}`;
 }
 

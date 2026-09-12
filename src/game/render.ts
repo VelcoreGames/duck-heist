@@ -247,6 +247,7 @@ export function renderWorld(engine: GameEngine) {
       ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
       skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
+      interacting: p.switchAnim > 0 && p.shootFlash <= 0 && p.dashTimer <= 0,
       alpha: p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0 ? 0.42 : 1,
     });
   }
