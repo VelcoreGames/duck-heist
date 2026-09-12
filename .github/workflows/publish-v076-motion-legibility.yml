@@ -1,0 +1,59 @@
+name: Publish Duck Heist v0.7.6 Motion Legibility
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v076-motion-legibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply v0.7.6 motion patch
+        run: python scripts/patch-v076-motion.py
+      - name: Validate source and build
+        run: |
+          npx tsc --noEmit
+          grep -q "shootFlash = 10" src/game/engine.ts
+          grep -q "drawVerticalStepAccent" src/game/graphics/playerChibiRemastered.ts
+          grep -q "canvas2d-chibi-remastered-v5" src/game/graphics/playerChibiRemastered.ts
+          npx vite build --outDir /tmp/duck-heist-v076 --emptyOutDir
+          test -s /tmp/duck-heist-v076/index.html
+          grep -q 'canvas2d-chibi-remastered-v5' /tmp/duck-heist-v076/index.html
+      - name: Promote v0.7.6
+        run: |
+          npm version 0.7.6 --no-git-tag-version
+          printf '0.7.6\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v076/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.6"' package.json
+          grep -q '^0.7.6$' VERSION
+          grep -q 'canvas2d-chibi-remastered-v5' web-release/index.html
+          cmp web-release/index.html dist/index.html
+      - name: Commit v0.7.6
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A src/game/engine.ts src/game/graphics/playerChibiRemastered.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.6 legible vertical walk and shot feedback'
+          git pull --rebase origin main
+          git push origin HEAD:main
