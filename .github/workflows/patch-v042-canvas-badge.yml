@@ -1,0 +1,68 @@
+name: Move v0.4.2 badge into game canvas
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-v042-canvas-badge.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Move version badge into rendered game UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          html_path = Path('appdeploy-live/index.html')
+          html = html_path.read_text(encoding='utf-8')
+          html = re.sub(
+              r'<div data-duck-heist-version="0\.4\.2"[\s\S]*?</script>\s*',
+              '',
+              html,
+              count=1,
+          )
+          if 'data-duck-heist-version' in html:
+              raise SystemExit('DOM version badge still present after cleanup')
+          html_path.write_text(html, encoding='utf-8')
+
+          js_path = Path('appdeploy-live/assets/index-BgUNQzP_.js')
+          js = js_path.read_text(encoding='utf-8')
+          if 'DH_V0_4_2_CANVAS_BADGE' not in js:
+              old = 'function Rc(e){const t=e.ui,o=e.player,f='
+              new = 'function Rc(e){const t=e.ui;/*DH_V0_4_2_CANVAS_BADGE*/t.save(),t.imageSmoothingEnabled=!1,t.fillStyle="#e8d79a",t.font=\'700 5px "Chakra Petch",monospace\',t.textBaseline="top",t.textAlign="left",t.shadowColor="#000",t.shadowBlur=1,t.fillText("v0.4.2",8,8),t.restore();const o=e.player,f='
+              count = js.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one renderUI prefix, found {count}')
+              js = js.replace(old, new, 1)
+              js_path.write_text(js, encoding='utf-8')
+          PY
+
+      - name: Validate and build
+        run: |
+          set -euxo pipefail
+          node --check appdeploy-live/assets/index-BgUNQzP_.js
+          grep -q 'DH_V0_4_2_CANVAS_BADGE' appdeploy-live/assets/index-BgUNQzP_.js
+          ! grep -q 'data-duck-heist-version' appdeploy-live/index.html
+          npm run build
+          test -s dist/index.html
+          grep -q 'DH_V0_4_2_CANVAS_BADGE' dist/assets/index-BgUNQzP_.js
+          ! grep -q 'data-duck-heist-version' dist/index.html
+
+      - name: Commit corrected v0.4.2 badge placement
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add appdeploy-live/index.html appdeploy-live/assets/index-BgUNQzP_.js
+          git commit -m 'Fix v0.4.2 badge placement inside game canvas'
+          git push origin HEAD:main
