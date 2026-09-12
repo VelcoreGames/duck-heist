@@ -36,6 +36,7 @@ import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import { drawChibiPlayerPreview } from './graphics/playerChibiPreview';
+import { drawChibiPoliceDuck } from './graphics/enemyChibi';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -486,9 +487,11 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.globalAlpha = 1;
   }
 
-  // sombra más marcada
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
+  // sombra legacy sólo para entidades que aún no usan renderer chibi propio
+  if (e.type !== 'policia_pato') {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
+  }
 
   if (e.isBoss) {
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt);
@@ -496,7 +499,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
   } else {
     switch (e.type) {
-      case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;
+      case 'policia_pato':
+        drawChibiPoliceDuck({
+          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 7, dirX,
+          moving: Math.abs(e.vx) + Math.abs(e.vy) > 0.08, hurt, elite: e.elite,
+        });
+        break;
       case 'policia_rapido': drawPoliciaRapido(ctx, e.x, e.y, f, hurt, dirX); break;
       case 'policia_escopeta': drawPoliciaEscopeta(ctx, e.x, e.y, f, hurt, dirX, e.telegraph); break;
       case 'dron_policial': drawDronPolicial(ctx, e.x, e.y, f, hurt); break;
@@ -515,7 +523,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     }
   }
 
-  if (hurt) {
+  if (hurt && e.type !== 'policia_pato') {
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
