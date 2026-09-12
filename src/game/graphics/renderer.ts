@@ -7,6 +7,7 @@ import type {
   PixelRect,
   RenderCommand,
 } from './types';
+import type { GraphicsQualityProfile } from './quality';
 
 const createSurface = (width: number, height: number): HTMLCanvasElement => {
   const canvas = document.createElement('canvas');
@@ -23,6 +24,15 @@ const prepareContext = (ctx: CanvasRenderingContext2D) => {
 const intersects = (a: PixelRect, b: PixelRect) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+const emptyStats = (): GraphicsStats => ({
+  submitted: 0,
+  drawn: 0,
+  worldDrawn: 0,
+  screenDrawn: 0,
+  culled: 0,
+  lights: 0,
+});
+
 export const DEFAULT_FRAME_STYLE: FrameStyle = {
   ambientDarkness: 0.08,
   ambientTint: '#d9c8a9',
@@ -32,8 +42,27 @@ export const DEFAULT_FRAME_STYLE: FrameStyle = {
   shadowColor: '#11151c',
   lightStrength: 1,
   pixelSnap: true,
+  cullingMargin: 28,
 };
 
+interface RuntimeQuality {
+  maxLights: number;
+  lightStrengthScale: number;
+  vignetteScale: number;
+  cullingMargin: number;
+}
+
+const DEFAULT_QUALITY: RuntimeQuality = {
+  maxLights: 20,
+  lightStrengthScale: 1,
+  vignetteScale: 1,
+  cullingMargin: 28,
+};
+
+/**
+ * Compositor Canvas2D pixel-perfect para Duck Heist.
+ * Separa comandos de mundo y pantalla para que la cámara nunca transforme HUD/overlays.
+ */
 export class ChibiGraphicsEngine {
   readonly width: number;
   readonly height: number;
@@ -46,7 +75,9 @@ export class ChibiGraphicsEngine {
   private readonly lights: LightSource[] = [];
   private camera: Camera2D = { x: 0, y: 0, zoom: 1 };
   private style: FrameStyle = DEFAULT_FRAME_STYLE;
-  private stats: GraphicsStats = { submitted: 0, drawn: 0, culled: 0, lights: 0 };
+  private quality: RuntimeQuality = { ...DEFAULT_QUALITY };
+  private stats: GraphicsStats = emptyStats();
+  private frameTick = 0;
 
   constructor(width: number, height: number) {
     this.width = width;
@@ -62,7 +93,20 @@ export class ChibiGraphicsEngine {
     prepareContext(lightCtx);
   }
 
-  beginFrame(camera: Partial<Camera2D> = {}, style: Partial<FrameStyle> = {}): CanvasRenderingContext2D {
+  configureQuality(profile: GraphicsQualityProfile): void {
+    this.quality = {
+      maxLights: Math.max(0, Math.floor(profile.maxLights)),
+      lightStrengthScale: Math.max(0, profile.lightStrengthScale),
+      vignetteScale: Math.max(0, profile.vignetteScale),
+      cullingMargin: Math.max(0, profile.cullingMargin),
+    };
+  }
+
+  beginFrame(
+    camera: Partial<Camera2D> = {},
+    style: Partial<FrameStyle> = {},
+    frameTick = 0,
+  ): CanvasRenderingContext2D {
     this.camera = {
       x: camera.x ?? 0,
       y: camera.y ?? 0,
@@ -71,13 +115,11 @@ export class ChibiGraphicsEngine {
       shakeY: camera.shakeY ?? 0,
     };
     this.style = { ...DEFAULT_FRAME_STYLE, ...style };
+    this.frameTick = frameTick;
     this.commands.length = 0;
     this.lights.length = 0;
-    this.stats = { submitted: 0, drawn: 0, culled: 0, lights: 0 };
-    this.sceneCtx.setTransform(1, 0, 0, 1, 0, 0);
-    this.sceneCtx.globalAlpha = 1;
-    this.sceneCtx.globalCompositeOperation = 'source-over';
-    this.sceneCtx.clearRect(0, 0, this.width, this.height);
+    this.stats = emptyStats();
+    this.resetScene();
     return this.sceneCtx;
   }
 
@@ -87,8 +129,25 @@ export class ChibiGraphicsEngine {
   }
 
   addLight(light: LightSource): void {
-    this.lights.push(light);
-    this.stats.lights++;
+    const maxLights = this.quality.maxLights;
+    if (maxLights <= 0 || light.intensity <= 0 || light.radius <= 0) return;
+    if (this.lights.length < maxLights) {
+      this.lights.push(light);
+    } else {
+      let weakestIndex = 0;
+      let weakestScore = Infinity;
+      for (let i = 0; i < this.lights.length; i++) {
+        const candidate = this.lights[i];
+        const score = candidate.intensity * Math.sqrt(candidate.radius);
+        if (score < weakestScore) {
+          weakestScore = score;
+          weakestIndex = i;
+        }
+      }
+      const incomingScore = light.intensity * Math.sqrt(light.radius);
+      if (incomingScore > weakestScore) this.lights[weakestIndex] = light;
+    }
+    this.stats.lights = this.lights.length;
   }
 
   worldToScreen(point: PixelPoint): PixelPoint {
@@ -112,17 +171,12 @@ export class ChibiGraphicsEngine {
 
   renderQueued(target: CanvasRenderingContext2D, drawBackground?: (ctx: CanvasRenderingContext2D) => void): void {
     const ctx = this.sceneCtx;
+    const view = this.worldViewBounds();
     const zoom = Math.max(0.25, this.camera.zoom);
     const rawTx = (this.camera.shakeX ?? 0) - this.camera.x * zoom;
     const rawTy = (this.camera.shakeY ?? 0) - this.camera.y * zoom;
     const tx = this.style.pixelSnap ? Math.round(rawTx) : rawTx;
     const ty = this.style.pixelSnap ? Math.round(rawTy) : rawTy;
-    const view = this.worldViewBounds();
-
-    ctx.save();
-    ctx.translate(tx, ty);
-    ctx.scale(zoom, zoom);
-    drawBackground?.(ctx);
 
     this.commands.sort((a, b) =>
       a.layer - b.layer ||
@@ -130,30 +184,53 @@ export class ChibiGraphicsEngine {
       (a.order ?? 0) - (b.order ?? 0),
     );
 
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.scale(zoom, zoom);
+    drawBackground?.(ctx);
     for (const command of this.commands) {
+      if ((command.space ?? 'world') === 'screen') continue;
       if (command.visible === false || (command.bounds && !intersects(command.bounds, view))) {
         this.stats.culled++;
         continue;
       }
-      command.draw(ctx);
+      this.drawCommand(ctx, command);
       this.stats.drawn++;
+      this.stats.worldDrawn++;
     }
     ctx.restore();
+
+    // Los comandos screen-space se ejecutan con transform identidad y siempre después del mundo.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    for (const command of this.commands) {
+      if ((command.space ?? 'world') !== 'screen') continue;
+      if (command.visible === false) {
+        this.stats.culled++;
+        continue;
+      }
+      if (command.bounds && !intersects(command.bounds, { x: 0, y: 0, w: this.width, h: this.height })) {
+        this.stats.culled++;
+        continue;
+      }
+      this.drawCommand(ctx, command);
+      this.stats.drawn++;
+      this.stats.screenDrawn++;
+    }
+
     this.presentScene(target);
   }
 
-  /**
-   * Puente de migración: permite pasar el renderer clásico por el nuevo
-   * compositor sin cambiar todavía la lógica del juego ni las hitboxes.
-   */
-  processLegacyFrame(source: CanvasImageSource, target: CanvasRenderingContext2D, style: Partial<FrameStyle> = {}): void {
+  /** Puente de migración: mantiene el renderer clásico dentro del compositor nuevo. */
+  processLegacyFrame(
+    source: CanvasImageSource,
+    target: CanvasRenderingContext2D,
+    style: Partial<FrameStyle> = {},
+  ): void {
     this.style = { ...DEFAULT_FRAME_STYLE, ...style };
+    this.commands.length = 0;
     this.lights.length = 0;
-    this.stats = { submitted: 0, drawn: 0, culled: 0, lights: 0 };
-    this.sceneCtx.setTransform(1, 0, 0, 1, 0, 0);
-    this.sceneCtx.globalAlpha = 1;
-    this.sceneCtx.globalCompositeOperation = 'source-over';
-    this.sceneCtx.clearRect(0, 0, this.width, this.height);
+    this.stats = emptyStats();
+    this.resetScene();
     this.sceneCtx.drawImage(source, 0, 0, this.width, this.height);
     this.presentScene(target);
   }
@@ -167,13 +244,38 @@ export class ChibiGraphicsEngine {
     this.light.height = 1;
   }
 
+  private resetScene(): void {
+    this.sceneCtx.setTransform(1, 0, 0, 1, 0, 0);
+    this.sceneCtx.globalAlpha = 1;
+    this.sceneCtx.globalCompositeOperation = 'source-over';
+    this.sceneCtx.clearRect(0, 0, this.width, this.height);
+    prepareContext(this.sceneCtx);
+  }
+
+  private drawCommand(ctx: CanvasRenderingContext2D, command: RenderCommand): void {
+    ctx.save();
+    try {
+      if (command.clip) {
+        ctx.beginPath();
+        ctx.rect(command.clip.x, command.clip.y, command.clip.w, command.clip.h);
+        ctx.clip();
+      }
+      if (command.alpha !== undefined) ctx.globalAlpha *= Math.max(0, Math.min(1, command.alpha));
+      if (command.composite) ctx.globalCompositeOperation = command.composite;
+      command.draw(ctx);
+    } finally {
+      ctx.restore();
+    }
+  }
+
   private worldViewBounds(): PixelRect {
     const zoom = Math.max(0.25, this.camera.zoom);
+    const margin = Math.max(this.style.cullingMargin, this.quality.cullingMargin) / zoom;
     return {
-      x: this.camera.x - (this.camera.shakeX ?? 0) / zoom,
-      y: this.camera.y - (this.camera.shakeY ?? 0) / zoom,
-      w: this.width / zoom,
-      h: this.height / zoom,
+      x: this.camera.x - (this.camera.shakeX ?? 0) / zoom - margin,
+      y: this.camera.y - (this.camera.shakeY ?? 0) / zoom - margin,
+      w: this.width / zoom + margin * 2,
+      h: this.height / zoom + margin * 2,
     };
   }
 
@@ -199,15 +301,17 @@ export class ChibiGraphicsEngine {
     }
 
     this.renderLights();
-    if (this.lights.length && this.style.lightStrength > 0) {
+    const lightStrength = this.style.lightStrength * this.quality.lightStrengthScale;
+    if (this.lights.length && lightStrength > 0) {
       target.globalCompositeOperation = 'screen';
-      target.globalAlpha = Math.max(0, Math.min(1, this.style.lightStrength));
+      target.globalAlpha = Math.max(0, Math.min(1, lightStrength));
       target.drawImage(this.light, 0, 0);
       target.globalAlpha = 1;
       target.globalCompositeOperation = 'source-over';
     }
 
-    if (this.style.vignette > 0) {
+    const vignette = this.style.vignette * this.quality.vignetteScale;
+    if (vignette > 0) {
       const radius = Math.max(this.width, this.height) * 0.72;
       const gradient = target.createRadialGradient(
         this.width / 2,
@@ -218,7 +322,7 @@ export class ChibiGraphicsEngine {
         radius,
       );
       gradient.addColorStop(0, 'rgba(0,0,0,0)');
-      gradient.addColorStop(1, `rgba(2,4,8,${Math.max(0, Math.min(0.7, this.style.vignette))})`);
+      gradient.addColorStop(1, `rgba(2,4,8,${Math.max(0, Math.min(0.7, vignette))})`);
       target.fillStyle = gradient;
       target.fillRect(0, 0, this.width, this.height);
     }
@@ -233,16 +337,23 @@ export class ChibiGraphicsEngine {
     ctx.globalCompositeOperation = 'lighter';
 
     for (const light of this.lights) {
-      const intensity = Math.max(0, Math.min(1, light.intensity));
-      const point = light.screenSpace ? { x: light.x, y: light.y } : this.worldToScreen(light);
-      const radius = Math.max(1, light.radius * (light.screenSpace ? 1 : zoom));
+      const coordinateSpace = light.coordinateSpace ?? (light.screenSpace ? 'screen' : 'world');
+      const point = coordinateSpace === 'screen' ? { x: light.x, y: light.y } : this.worldToScreen(light);
+      const radius = Math.max(1, light.radius * (coordinateSpace === 'screen' ? 1 : zoom));
       if (
         point.x + radius < 0 || point.y + radius < 0 ||
         point.x - radius > this.width || point.y - radius > this.height
       ) continue;
+
+      const flicker = Math.max(0, Math.min(0.45, light.flicker ?? 0));
+      const flickerWave = 1 + Math.sin(this.frameTick * 0.19 + (light.phase ?? 0)) * flicker;
+      const intensity = Math.max(0, Math.min(1.5, light.intensity * flickerWave));
+      const innerRadius = Math.max(0, Math.min(radius * 0.9, (light.innerRadius ?? light.radius * 0.12) * (coordinateSpace === 'screen' ? 1 : zoom)));
+      const falloff = Math.max(innerRadius / radius + 0.02, Math.min(0.96, light.falloff ?? 0.48));
       const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
       gradient.addColorStop(0, light.color);
-      gradient.addColorStop(Math.max(0.05, Math.min(0.95, light.falloff ?? 0.45)), light.color);
+      gradient.addColorStop(Math.max(0.01, innerRadius / radius), light.color);
+      gradient.addColorStop(falloff, light.color);
       gradient.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.globalAlpha = intensity;
       ctx.fillStyle = gradient;
