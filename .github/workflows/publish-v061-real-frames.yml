@@ -73,7 +73,7 @@ jobs:
           path=Path('src/game/graphics/gpu/webgpuRenderer.ts')
           s=path.read_text(encoding='utf-8')
           old='    private readonly adapter: Wgpu,'
-          new='    _adapter: Wgpu,'
+          new='    adapter: Wgpu,'
           if old in s:
               s=s.replace(old,new,1)
           elif new not in s:
