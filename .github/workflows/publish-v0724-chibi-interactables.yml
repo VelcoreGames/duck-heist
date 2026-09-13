@@ -1,0 +1,66 @@
+name: Publish Duck Heist v0.7.24 Chibi Interactables
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0724-chibi-interactables.yml'
+      - 'scripts/patch-v0724.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply v0.7.24 chibi interactables
+        run: python3 scripts/patch-v0724.py
+      - name: Validate source and build
+        run: |
+          test -s src/game/graphics/chibiInteractablesV3.ts
+          grep -q 'drawChibiChestV3' src/game/graphics/chibiInteractablesV3.ts
+          grep -q 'drawChibiPedestalV3' src/game/graphics/chibiInteractablesV3.ts
+          grep -q 'drawChibiCandleV3' src/game/graphics/chibiInteractablesV3.ts
+          grep -q 'drawChibiStairsV3' src/game/graphics/chibiInteractablesV3.ts
+          grep -q 'drawChibiChestV3' src/game/render.ts
+          grep -q '0.7.24-chibi-interactables' index.html
+          ! grep -q 'drawChest(ctx' src/game/render.ts
+          ! grep -q 'drawCandle(ctx' src/game/render.ts
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0724 --emptyOutDir
+          test -s /tmp/duck-heist-v0724/index.html
+          grep -q '0.7.24-chibi-interactables' /tmp/duck-heist-v0724/index.html
+      - name: Promote v0.7.24
+        run: |
+          npm version 0.7.24 --no-git-tag-version
+          printf '0.7.24\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0724/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.24"' package.json
+          grep -q '^0.7.24$' VERSION
+          grep -q '0.7.24-chibi-interactables' web-release/index.html
+          cmp web-release/index.html dist/index.html
+      - name: Commit v0.7.24
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/chibiInteractablesV3.ts src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.24 chibi interactables'
+          git pull --rebase origin main
+          git push origin HEAD:main
