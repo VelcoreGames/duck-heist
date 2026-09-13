@@ -96,9 +96,11 @@ replace_once(
     """  ctx.moveTo(0, 0); ctx.lineTo(6.8, -2.2); ctx.lineTo(4.4, 0); ctx.lineTo(7.6, 2.2); ctx.closePath(); ctx.fill();\n  ctx.globalAlpha = alpha * fade * .52;\n  ctx.fillStyle = '#f5a933';\n  ctx.beginPath(); ctx.ellipse(2.2, 0, 5.8, 3.4, 0, 0, Math.PI * 2); ctx.fill();\n""",
     """  ctx.moveTo(0, 0); ctx.lineTo(8.7, -2.7); ctx.lineTo(5.4, 0); ctx.lineTo(9.4, 2.7); ctx.closePath(); ctx.fill();\n  ctx.globalAlpha = alpha * fade * .58;\n  ctx.fillStyle = '#f5a933';\n  ctx.beginPath(); ctx.ellipse(2.7, 0, 6.9, 3.9, 0, 0, Math.PI * 2); ctx.fill();\n  ctx.globalAlpha = alpha * fade * .9;\n  ctx.fillStyle = '#fff9d8';\n  ctx.beginPath(); ctx.arc(.8, 0, 1.35, 0, Math.PI * 2); ctx.fill();\n""",
 )
+# V16.3 already tracks muzzle coordinates with runtime recoil translation; keep
+# that invariant explicit so this patch fails if the renderer regresses.
 replace_once(
     RUNTIME,
-    """  if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX, feetY, tick, alpha);\n""",
+    """  if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX + pose.dx, feetY + pose.dy, tick, alpha);\n""",
     """  if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX + pose.dx, feetY + pose.dy, tick, alpha);\n""",
 )
 replace_once(INDEX,'0.7.41-chibi-v16-weapon-perspective','0.7.42-chibi-v16-combat-readability')
