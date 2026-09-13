@@ -256,10 +256,10 @@ function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha:
 }
 
 function muzzlePoint(dir: DuckDir, feetX: number, feetY: number): { x: number; y: number; a: number } {
-  if (dir === 'right') return { x: feetX + 18.0, y: feetY - 13.0, a: 0 };
-  if (dir === 'left') return { x: feetX - 18.0, y: feetY - 13.0, a: Math.PI };
-  if (dir === 'up') return { x: feetX + 3.0, y: feetY - 27.6, a: -Math.PI / 2 };
-  return { x: feetX + 7.0, y: feetY - 3.2, a: 1.29 };
+  if (dir === 'right') return { x: feetX + 20.0, y: feetY - 13.0, a: 0 };
+  if (dir === 'left') return { x: feetX - 20.0, y: feetY - 13.0, a: Math.PI };
+  if (dir === 'up') return { x: feetX + 11.5, y: feetY - 27.0, a: -Math.PI / 2 };
+  return { x: feetX + 10.8, y: feetY + .2, a: 1.08 };
 }
 
 function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: number, alpha: number): void {

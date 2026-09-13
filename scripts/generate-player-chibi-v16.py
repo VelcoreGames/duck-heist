@@ -130,7 +130,9 @@ def paste_gun(im, direction, anchor, recoil=0.0, lowered=0.0, alpha=255):
     elif direction=='up':
         angle=270; ay+=recoil
     else:
-        angle=74; ay-=recoil*.72
+        # Front aim uses a foreshortened diagonal instead of a near-vertical rifle
+        # crossing the hero's face. Keep recoil along the authored screen axis.
+        angle=62; ay-=recoil*.42
     g,pos=gun_layer(angle,(ax,ay),0,lowered,alpha)
     im.alpha_composite(g,pos)
 
@@ -277,7 +279,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     if direction=='up' and state not in ('celebrate',):
         # Offset to the shoulder so the rear weapon remains readable instead of
         # disappearing completely behind the large chibi head.
-        paste_gun(im,direction,(47.4,32.2+bob),recoil,q['lowered'])
+        paste_gun(im,direction,(49.5,34.0+bob),recoil,q['lowered'])
 
     # Tail/back wing hint.
     if side:
@@ -313,7 +315,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     if direction!='up' and state!='celebrate':
         if direction=='right': anchor=(45.2,38+bob*.25)
         elif direction=='left': anchor=(18.8,38+bob*.25)
-        else: anchor=(39.5,38.2+bob*.25)
+        else: anchor=(40.5,43.0+bob*.18)
         paste_gun(im,direction,anchor,recoil,q['lowered'])
         gx=anchor[0]-(4 if direction=='right' else -4 if direction=='left' else 2)
         gy=anchor[1]+(1 if direction=='down' else 0)
@@ -321,7 +323,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
         translucent_ellipse(im,(gx-2.4,gy-2.2,gx+1.5,gy-1.0),'#f7db84',95)
     elif direction=='up' and state!='celebrate':
         # Wing closes over the shifted rear weapon grip.
-        ellipse(im,(40.0,33.5+bob*.2,50.0,44.5+bob*.2),WING,INK,1.1)
+        ellipse(im,(41.0,35.0+bob*.2,50.8,46.0+bob*.2),WING,INK,1.1)
 
     if state=='hurt':
         lay=Image.new('RGBA',im.size,(255,90,70,0)); lay.putalpha(im.getchannel('A').point(lambda a:int(a*.11*q['hurt'])))
