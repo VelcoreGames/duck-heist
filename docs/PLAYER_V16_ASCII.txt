@@ -1,0 +1,2450 @@
+Duck Heist player V16 silhouette inspection
+Legend # outline, Y feather, O orange, C cream, g/W neutral, B blue, R red, + other
+
+=== DOWN · idle0 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · idle8 · bbox32=(4, 0, 28, 32) alpha64=378 ===
+                                
+                                
+              RO#R              
+            ##YYRY##            
+          ##YYYYYYYYO#          
+         #+YYYYYYYYYY+#         
+        #OYYYYYYYYYYYYY#        
+        OYYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYOYYYYYOYYYYO#      
+      #OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYggYYO#      
+       #OYYYOOOOOOOYggYY#       
+       #OYYYOOOOOOOgBgYO#       
+        #OYYYYOOOOO###OO        
+        #OOYOOYYYOOBB#O#        
+         ##OOOOOOOgB###         
+         OOOOOOOOO+B#OO         
+        #OOOO+++#OYOOOOO        
+        #OOOOYYYYOOOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OYO         
+          OOOYYY++Y#OO#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · walk0 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · walk5 · bbox32=(4, 0, 28, 31) alpha64=385 ===
+                                
+             #+#++              
+           ##+Y+YY###           
+          #YYYYYYYYYR#          
+        ##YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #YYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYO#       
+      #OYYYY##YYYY##YYYY#       
+      #OYYYY#OYYYY#OYYYYO       
+      #OYYYYYYYYYYYYYYYYO       
+      #OYYYYYYOOOOYYYYYY#       
+       OYYYYOOOOOOOYg+YO#       
+       #OYYYOOOOOOO+BYYO#       
+        #YYYYYOOOYY#BYO#        
+        #OOYOOOOOOO####         
+         ##OOOOOOO+BB#          
+         OOO#OOOOOgB###         
+        #OOOOO+++RYgOOOO        
+        #OYOOYCCYOYOOOOO        
+        #OOOOYYYYOOOOOO#        
+         OOOOYYYYgg#OYO#        
+         #OOOYYYYBB#OYO         
+           #OOYY+YO#OO#         
+           #OOOY+OO##           
+            #OOOOO##            
+             ##OOOOOO           
+                #OOO#           
+            OOOO                
+            OOOO                
+            #OO                 
+                                
+
+=== DOWN · walk10 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · walk15 · bbox32=(4, 0, 28, 31) alpha64=391 ===
+                                
+              #Y#+R             
+           ##OYYRYY##           
+          #OYYYYYYYYY##         
+         #+YYYYYYYYYYYR#        
+        #OYYYYYYYYYYYYY#        
+        #YYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYYO       
+       #YYYY+#YYYYY#OYYYO#      
+       #YYYYY#YYYYY#YYYYO#      
+       #YYYYYYYYYYYYYYYYO#      
+       #YYYYYYOOOOYYYYYYO#      
+       #OYYYYOOOOOOO+gYYO#      
+        #YYYYOOOOOOOggYY#       
+        #OYYYYYOOYO+BgOO#       
+         #OYOOOOOYO#####        
+          #OOOOOOOOBB##         
+         #OO#OOOOOgB##O         
+         OOOOO+++#Yg#OO#        
+        #OOOOYCYYOYOOOOO        
+        #OOOOYYYYOOOOOOO        
+        #OOOOYYYYgY#OYO#        
+         OYOOYYY+BB#OO#         
+         #OOOOYY+YY##           
+           #OOOY#OO##           
+            #OOOOO##            
+           #OOOOOO#             
+            OOO#                
+                 OOO            
+                OOOO#           
+                 OO#            
+                                
+
+=== DOWN · shoot0 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · shoot4 · bbox32=(4, 0, 28, 32) alpha64=388 ===
+              ## #              
+             #Y+#Y##            
+           #RYYYYYY+##          
+         ##YYYYYYYYYYO#         
+        #OYYYYYYYYYYYYR#        
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYY#       
+       #YYYY++YYYY+gYYYY#       
+       OYYYY##YYYY+#YYYYO#      
+      #OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #YYYYYOOOOOOY+YYYO       
+       #OYYYOOOOOOO+ggYO#       
+        #YYYYOOOOOO+BYOO#       
+        #OOOOYYYYYO#B#O#        
+         #OOOYOOOOOB###         
+         #OOOOOOOO+BB#O         
+         OYO#OOOOOgB#OO         
+        #OOOOYYYY+YgOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OOOOYYYYOOOOOO#        
+         OOOOYYYYgY#OYO         
+         #OOOYYY+gB#OO#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOO##             
+                                
+            OOOO OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · shoot11 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · dash0 · bbox32=(4, 0, 28, 32) alpha64=374 ===
+                                
+                                
+              +R#+#             
+           ###YYYYR##           
+          #OYYYYYYYYR#          
+         #+YYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #YYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgB+OO#       
+        #OYOYYYYOYO###O#        
+         #OYOOOOOOOBB##         
+         ##OOOYOYOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOOYY++OOOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          OOOYYY++Y#OO#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             ##OO#O             
+           #OOOO#OOO#           
+            OOOO OOO            
+                                
+                                
+                                
+
+=== DOWN · dash7 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+              OO #              
+            ##Y+#Y##            
+          ##+YYYYYY+##          
+         ##YYYYYYYYYYR#         
+        ##YYYYYYYYYYYYR#        
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYg+YYYY+gYYYY#       
+       #YYYY##YYYY##YYYYO       
+       #YYYYYOYYYYYOYYYYO#      
+       #YYYYYYYYYYYYYYYYO       
+       #OYYYOOOOOOOOggYO#       
+       #OYYYOOOOOOO+g+YO#       
+        #OYOYOOOOOO#BgOO        
+        ##OOYYYYYYO#####        
+         ##OOYOOOO+BB##         
+          O#OOOOOOgB#OO         
+         OOOOO+OO#+g#OO#        
+         OOOOYYYYOYOOOOO        
+        #OOOOYYYYOOOOOO#        
+        #OOOOYYYY+Y#OOO         
+         OOOOYYYYBB#O#          
+         OOOOOYY+YY#O           
+          O#OOYY#OO##           
+            #OOOOO##            
+             #OOOOOO            
+           #OOOO#OOO#           
+            OOOO OO#            
+                                
+                                
+                                
+
+=== DOWN · dash15 · bbox32=(4, 0, 28, 32) alpha64=375 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYY##YYYY+#YYYYO       
+       OYYYYOOYYYYO#YYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#O            
+           #OOOO#OOO#           
+            OOOO OOO            
+                                
+                                
+                                
+
+=== DOWN · hurt2 · bbox32=(5, 0, 29, 32) alpha64=390 ===
+                                
+               OO #             
+             ##+OO+#            
+           #OO+YYYYOO#          
+          #OYYYYYYYYYO#         
+         #OYYYYYYYYYYYO#        
+        #OYYYYYYYOOYYOYO#       
+        OOOYY++YYOOOOOOOO       
+       #OOOOYYYYOOOOOOOOO#      
+       #OOOOOOOOOOOOOOOOO#      
+       #OOOOOOOOOOOOOOOOOO      
+       #OOOOOOOOOOOOOOOOOO      
+       #OOOOOOOOOOOOYgOOO#      
+        OOOOOOOOOOOOggOOO#      
+        #OOOOOOOOOOOggOO#       
+         #OOOOOOOOO###OO#       
+          #OOOOOOOOgg#O#        
+         #OOOOOOOORgg#O         
+         OOOOOOOOORg#OO         
+        #OOOOCYY+OOOOOOO        
+        #OOOO+CYYOOOOOOO        
+         OOOOCCC+RO#OOO#        
+         OOOOYCY+gB#OOO         
+          ##OOCCR++#OO#         
+           #OOCC#OO#R           
+            #OOOOOOR            
+             #OOOO#             
+           OOOO#ROOO            
+           OOOO#OOOO            
+             #   OO             
+                                
+                                
+
+=== DOWN · down0 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+                 #              
+             #+R#Y#             
+           ##RYY+YR##           
+          #+YYYYYYYYY#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYOYYYYYOYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYOOOOYYggYYO#      
+       #OYYYOOOOOOO+ggYY#       
+       #OYYYOOOOOOOgBgOO#       
+        #OYYYYYOOYO###O#        
+         #OYOOOOOYOBB###        
+         ##OOOOOOOgB##O         
+         OOO#OOOOO+B#OO         
+        #OOOO++++OYOOOOO        
+        #OOOOYYYYOYOOOOO        
+        #OYOOYYYY+O#OYO#        
+         OOOOYYYYBB#OOO         
+          O#OYYY++Y##O#         
+           #OOYY#OO##           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · down10 · bbox32=(0, 4, 30, 32) alpha64=380 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+       #######                  
+     ##+YYYYYO##                
+   ###YYYYYYYYYO#               
+   YYYYYYYYYYYYYO#              
+  ##YYYYYYOYYYYYY#              
+  YYYYYYYY##YYBYOO#             
+  +YYYYYYYYOYYgB#O#             
+ #+YYYYYYYYYYOgB###OOO          
+ #YYYYYYYYYYOOO#BB#OOO#         
+ #YYYYYYYYYYOOOOBB#OOOO#        
+ #YYYY+#OYYOOOYYOBYO#OYO        
+ #YYYYY#OYOOOOYOOOOYO#OO        
+  OYYYYYYYOOOYOOOOOO+###        
+  #YYYYYYYOOYOOOO+YRBBY##       
+   #YYYYYYYYYOYO+YYYgYOO# O     
+   ##YYYYYYOOOOOYYYYY#OO#OO#    
+    ##OOYYOOO#OOYYYYYYOO#OO     
+      ###OO##OOOOYYYYOOOOO#     
+            OOOOOOOOOOO#O       
+             OOOOO#OO##OO       
+              #OOO    OO#       
+                      OO        
+                                
+                                
+                                
+
+=== DOWN · down19 · bbox32=(0, 8, 31, 32) alpha64=382 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+       ######                   
+     ##OYYYOO##                 
+    #RYYYYYYYOO#                
+   #+YYYYYYYYYYO#               
+  #RYYYYYYYY+YYO#  ##           
+ RYYYYYY+#YYg+B##OOOO#          
+ #YYYYYYg#YYYgB###OOOOO         
+ #YYYYYYYYYYOO#BB#OOOYO#        
+#YYYYYYYYYYOOOO+BBOO#OO#        
+ #YYYYYYYYYOOOYOO+YYO####       
+ #YYYYYYYYYOOOYYOOOO+BYO# OO    
+ #YYYYY#OYYOOOYYOO+++BYO##OO    
+ #YYYYY#OYYOOYOOO+YYY+#OO#OO    
+  OYYYYYYYYOOYOOOYYYYYYOO#O#    
+  #YYYYYYYYYYOOO#YYYYYYOO#      
+   #YYYYYYYYOYO#OO+YYOOO#OO     
+    #OYYYYYYOO#OOOOOOOO#OOO     
+     #OOOOOO##OOOOOO##  OO#     
+       #####   #OOOO#    #      
+                 ##             
+                                
+                                
+
+=== DOWN · interact6 · bbox32=(4, 0, 28, 32) alpha64=392 ===
+                                
+              ## #              
+            ##Y+#Y##            
+          ##+YYYYYYY##          
+         #OYYYYYYYYYYR#         
+        #OYYYYYYYYYYYY+#        
+        #YYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYO#       
+       #YYYY++YYYY+gYYYYO       
+       OYYYY##YYYY##YYYYO#      
+      #OYYYYOYYYYYYOYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #YYYYYOOOOOOYYYYYO       
+       #OYYYOOOOOOOOggYO#       
+        #YYYYOOOOOOYg+YO#       
+        #OOYYYYYYYOgB+O#        
+         #OOYYOOOOO####         
+          ##OOOOOO+BB#O         
+         OOO#OOOOOOg#OO#        
+         OOOOYYYYOYO#OO#        
+        #OOOOYYYYOOOOOOO        
+        #OOOOYYYY++##OOO        
+        #OOOOYYYYgB####         
+         OOOOYYYYBB##           
+         #OOOOYY++Y##           
+            #OOO#OO#            
+             ##OO###            
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== DOWN · celebrate8 · bbox32=(3, 0, 31, 29) alpha64=413 ===
+             #YR#Y#             
+           ##YYYYY+##           
+          #YYYYYYYYYY##         
+         #YYYYYYYYYYYYO#        
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYY++YYYYY+YYYYOO      
+       #YYYY##YYYY+#YYYYYY      
+       OYYYYOOYYYYOOYYYOYYO     
+      OYYYYYYYYYYYYYYYYYYY      
+     OYYYOYYYYOOOOOYYYYYOO      
+      OYYYYYOOOOOOOOYYYY#       
+       OOYYYOOOOOOOOYYYO#       
+        #OYYYYYYYYYYOYO#        
+         #OOOOOOOOOOOO#         
+          #OOOYOOOOOO##         
+           ##OOOOOO#OOO  OY     
+      O  #OOOOY++YOOOYO#OYYO    
+     OYO OOOOYYYYCYOOOO#OYYO    
+    OYYYOOYOOYYYYYYOOOO# OY     
+     OYO#OOOOYYYYYYOOO#         
+      O #OOOOYYYYYYOO#          
+        #OOOOYYYYYYOO           
+         OOOOOYYYYOO#           
+         #OO#OOOYOOO            
+             #OOOOO#            
+              ####              
+                                
+                                
+                                
+                                
+                                
+
+=== UP · idle0 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · idle8 · bbox32=(4, 0, 28, 32) alpha64=369 ===
+                                
+                                
+              #R##              
+            ##YY#Y##            
+          ##YYYYYYYYO#          
+         #+YYYYYYYYYY+#         
+        #OYYYYYYYYYYYYY#        
+        OYYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+      #OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYOYOYYOOOYYYY#        
+        ##OYOOOOOOOOYOO#        
+         ##OOYYOOOYOOO#         
+          ###OOOOOOOOO          
+          OOOOOOOYOOOO#         
+         #OYOOYOOOOOOO#         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOYO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · walk0 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · walk5 · bbox32=(4, 0, 28, 31) alpha64=374 ===
+                                
+             #R##O              
+           ###Y#YY###           
+          #YYYYYYYYYR#          
+        ##YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #YYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYO#       
+      #OYYYYYYYYYYYYYYYY#       
+      #OYYYYYYYYYYYYYYYYO       
+      #OYYYYYYYYYYYYYYYYO       
+      #OYYYYYYYYYYYYYYYY#       
+       OYYYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYYOYYYO#        
+        #OOOOOYYOOOOYO#         
+         ##OOOOOOYOOO#          
+           #OOOOOYYO##          
+          OOOOOOOOOOOO          
+         #OYOYYOOYOOOO#         
+         #OOOOOOOOOOOO#         
+         #OYOOOOOOOOYOO         
+          OOOOOOOOOOOO#         
+           #OOOOOOOOOO          
+           #OOOOOOOO##          
+            #OOOOOO#            
+             ##OOOOOO           
+                #OOO#           
+            OOOO                
+            OOOO                
+            #OO                 
+                                
+
+=== UP · walk10 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · walk15 · bbox32=(4, 0, 28, 31) alpha64=379 ===
+                                
+              #+###             
+           ###+Y#YY##           
+          #OYYYYYYYYY##         
+         #+YYYYYYYYYYYR#        
+        #OYYYYYYYYYYYYY#        
+        #YYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYYO       
+       #YYYYYYYYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYYO#      
+        #YYYYYYYYYYYYYYO#       
+        #OYYYYYYYYYYYYOO#       
+         #OOYOOYOOOOYOO#        
+          #OOOYOOOOOOO#         
+           ##OOOOOOO##          
+          OOOOOOOOOOOO          
+         #OYOOYOOYYOOO#         
+         #OYOOOOOOOOYOO         
+         #OYOOOOOOOOOO#         
+         #OYOOOOOOOOOO          
+          OOOOOOOOOO#           
+           #OOOOOOOO#           
+            #OOOOOO#            
+           #OOOOO##             
+            OOO#                
+                 OOO            
+                OOOO#           
+                 OO#            
+                                
+
+=== UP · shoot0 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · shoot4 · bbox32=(4, 0, 28, 32) alpha64=374 ===
+                                
+                                
+              ####              
+            ##YY#Y##            
+          ##YYYYYYYY##          
+         #+YYYYYYYYYY+#         
+        #OYYYYYYYYYYYYY#        
+        OYYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+      #OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYOYOYYOOOYYYY#        
+        ##OYOYOOOOOOYOO#        
+         ##OOOYOOOOOOO#         
+          ##OOOOOOOO##          
+          OOOOOOOOOOOO          
+         #OOOOYOOOOOYO#         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO#         
+          #OOOOOOOOOO#          
+           #OOOOOOOO#           
+            #OOOOOO#            
+            OOOO#OOO            
+           #OOOO#OOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · shoot11 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · dash0 · bbox32=(4, 0, 28, 32) alpha64=364 ===
+                                
+                 #              
+              RR#O#             
+           ###YYRY###           
+          #OYYYYYYYYR#          
+         #+YYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYOYYYYOOOYYYO#        
+         #OYYOYOOOOOYO#         
+          #OOOYOOOOOO#          
+          OO#OOOOOOOOO          
+         #OYOOOOOOYOOO#         
+         #OYOOOOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOYO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             ##OO##             
+           #OOOO#OOO#           
+            OOOO OOO            
+                                
+                                
+                                
+
+=== UP · dash7 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+              ## #              
+            ##YY#Y##            
+          ##+YYYYY+Y##          
+         ##YYYYYYYYYYR#         
+        ##YYYYYYYYYYYYR#        
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       #YYYYYYYYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO       
+       #OYYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYYYYYYO#        
+        ##OYYYYYOOOOYOO#        
+         ##OOOOOOOOOOO#         
+          ##OOOOOOOO##          
+          OOOOOOOOOOOO          
+         #OYOOYOOOOOOO#         
+         #OYOOOOOOOOOOO         
+         #OOOOOOOOOOOO#         
+         #OYOOOOOOOOO#          
+         #OOOOOOOOOOO           
+          OOOOOOOOOO#           
+            #OOOOOO#            
+             #OOOOOO            
+           #OOOO#OOO#           
+            OOOO OO#            
+                                
+                                
+                                
+
+=== UP · dash15 · bbox32=(4, 0, 28, 32) alpha64=366 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO##            
+           #OOOO#OOO#           
+            OOOO OOO            
+                                
+                                
+                                
+
+=== UP · hurt2 · bbox32=(5, 0, 29, 32) alpha64=379 ===
+                                
+               ## #             
+             ##+ROR#            
+           #OOOY++YOO#          
+          #OYYYYYYYYYO#         
+         #OYYYYYYYYYYYO#        
+        #OYYYYYYYOOYOOYO#       
+        OOOYYYYYYOOOOOOOO       
+       #OOOOYYYYOOOOOOOOO#      
+       #OOOOOOOOOOOOOOOOO#      
+       #OOOOOOOOOOOOOOOOOO      
+       #OOOOOOOOOOOOOOOOOO      
+       #OOOOOOOOOOOOOOOOO#      
+        OOOOOOOOOOOOOOOOO#      
+        #OOOOOOOOOOOOOOO#       
+         #OOOOOOOOOOOOOO#       
+          ROOOOOOOOOOOO#        
+           #OOOOOOOOOO#         
+          OOOOOOOOOOOO          
+         #OOOOOOOOOOOO#         
+         #OOOOOOOOOOOOO         
+         #OOOOOOOOOOOOO         
+          OOOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+           OOOO#ROOO            
+           OOOO#OOOO            
+             #   OO             
+                                
+                                
+
+=== UP · down0 · bbox32=(4, 0, 28, 32) alpha64=371 ===
+                                
+                 #              
+             #OR#O#             
+           ###YYRY###           
+          #+YYYYYYYY+#          
+         #YYYYYYYYYYYY#         
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYY#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #OYYYYYYYYYYYYYYY#       
+       #OYYYYYYYYYYYYYYO#       
+        #OYYYYYYYOOYYYO#        
+         #OYOOOOOOOOOO##        
+          #OOOOOOOYOO##         
+          OO#OOOOOOOOO          
+         #OOOOOOOYYOOO#         
+         #OYOOYOOOOOYOO         
+         #OYOOOOOOOOOOO         
+         #OYOOOOOOOOOO#         
+          OOOOOOOOOOOO          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · down10 · bbox32=(0, 4, 30, 32) alpha64=372 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+       #######                  
+     ##+YYYYYO##                
+   ###YYYYYYYYYO#               
+   #YYYYYYYYYYYYO#              
+  ##YYYYYYYYYYYYY#              
+  +YYYYYYYYYYYYYYO#             
+  RYYYYYYYYYYYYYYO#             
+ #RYYYYYYYYYYYYYYO#             
+ #YYYYYYYYYYYYYYOO#OO#          
+ #YYYYYYYYYYYYYOOO#OOOO         
+ #YYYYYYYYYYYYOOOOOOOYOO        
+ #YYYYYYYYYYYYOOOOOOOOOO        
+  OYYYYYYYYYYOOOOOOOOOO#        
+  #YYYYYYYYYYOOOOOOOOOOO#       
+   #YYYYYYYYOOOOOOOOOOOO# O     
+   ##YYYYYYYOOOOYOOOOOOO#OO#    
+    ##OOYYYOOO#OOOOOOOOO#OO     
+      ###OO###OOOOOOOOOOOO#     
+             #OOYOOOOOO#O       
+              #OOOOOO##OO       
+               ##O#   OO#       
+                      OO        
+                                
+                                
+                                
+
+=== UP · down19 · bbox32=(0, 8, 31, 31) alpha64=372 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+       ######                   
+     ##OYYYOO##                 
+    #RYYYYYYYOO#                
+   #+YYYYYYYYYYO#               
+  #OYYYYYYYYYYYY#               
+ #+YYYYYYYYYYYYYO# ##           
+ #YYYYYYYYYYYYYYO#OOOO#         
+ O#YYYYYYYYYYYYOO#OYOOO#        
+#YYYYYYYYYYYYYOOOOOOOOO#        
+ #YYYYYYYYYYYYOYOOOOOOOO#       
+ #YYYYYYYYYYYYOOYYOOOOOOO OO    
+ #YYYYYYYYYYYYOOOOOOOOOOO#OO    
+ #YYYYYYYYYYYYYYO#OOOOOOO#OO    
+  OYYYYYYYYYYOOOOOOOOOOOO#O#    
+  #YYYYYYYYYYYYO#OOOOOOOO#      
+   #YYYYYYYYYOO#OOOOOOOO#OO     
+    #OYYYYYYOO#OOOOOOOO#OOO     
+     #OOOOOO## #OOOOO#  OO#     
+       #####    ##OO#    #      
+                                
+                                
+                                
+
+=== UP · interact6 · bbox32=(4, 0, 28, 32) alpha64=380 ===
+                                
+              ## #              
+            ##YY#Y##            
+          ##++YY+Y+Y##          
+         #OYYYYYYYYYYR#         
+        #OYYYYYYYYYYYY+#        
+        #YYYYYYYYYYYYYYO#       
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYYO       
+       OYYYYYYYYYYYYYYYYO#      
+      #OYYYYYYYYYYYYYYYYO#      
+       OYYYYYYYYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO       
+       #OYYYYYYYYYYYYYYO#       
+        #YYYYYYYYYYYYYYO#       
+        #OYOOYOYOOOOYYO#        
+         #OOYYOOOOOOOO#         
+          ##OOOOOOOO##          
+          OO#OOOOOOOOO          
+         #OOOOYOOOOOOO#         
+         #OYOOOOOOOOYOO         
+         #OYOOOOOOOOOO#         
+         #OYOOOOOOOOO#          
+         #OYOOOOOOOOO           
+          OOOOOOOOOO#           
+            #OOOOOO#            
+             ##OO##             
+            OOO##OOO            
+           #OOOOOOOO#           
+             ##  ##             
+                                
+                                
+
+=== UP · celebrate8 · bbox32=(3, 0, 31, 29) alpha64=401 ===
+             #+Y#+#             
+           ###YYRYRO#           
+          #YYYYYYYYYY##         
+         #YYYYYYYYYYYYO#        
+        #YYYYYYYYYYYYYY#        
+       #OYYYYYYYYYYYYYYO#       
+       #YYYYYYYYYYYYYYYYOO      
+       #YYYYYYYYYYYYYYYYYY      
+       OYYYYYYYYYYYYYYYOYYO     
+      OYYYYYYYYYYYYYYYYYYY      
+     OYYYOYYYYYYYYYYYYYYOO      
+      OYYYYYYYYYYYYYYYYY#       
+       OOYYYYYYYYYYYYYYO#       
+        #OYYYYYYYYYYYYO#        
+         #OOYOOOOOOOOO#         
+          #OOOOOOOOOO#          
+           ##OOOOOO##    OY     
+      O   OOOYOOOOOO#   OYYO    
+     OYO  OOOYYYYYYOOO# OYYO    
+    OYYYO#OYOOOOOOOOYO#  OY     
+     OYO #OOOOOOOOOOOO#         
+      O  #OYOOOOOOOOO#          
+         #OYOOOOOOOOO           
+         #OYOOOOOOOO#           
+          OO#OOOOOOO            
+           ###OOOOO#            
+              ####              
+                                
+                                
+                                
+                                
+                                
+
+=== LEFT · idle0 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · idle8 · bbox32=(1, 0, 27, 32) alpha64=391 ===
+                                
+                                
+             R##R               
+           ##Y++Y##             
+         ##YYYYYYYY##           
+        #+YYYYYYYYYY+#          
+       #OYYYYYYYYYYYY+#         
+       OYYYYYYYYYYYYYYO         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+      RYYYYYYYYYYYYYYYYO#       
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+    #OOOOYYYYYYYYYYYYYO#        
+       #OOOYOYYYYOYOYO#         
+       #OOOYYOOOOOOYO##         
+    ####OOOOOOOOOOOO##          
+  B+g#####OYO#OOOOOOO#          
+  ++B#BBBBOYO+OOR+OYOOO         
+  ggg##gggOOOg#+YYYOOOO         
+          #OOOOOYOYOOOO         
+          #OYOOYYOYOOOO         
+           #OOOOYYOOO#          
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · walk0 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · walk5 · bbox32=(1, 0, 27, 32) alpha64=400 ===
+                                
+            #+#Y+               
+          ##YYOYY###            
+         #YYYYYYYYYR#           
+        #YYYYYYYYYYY+#          
+       #YYYYYYYYYYYYYO#         
+      #YYYYYYYYYYYYYYY#         
+      #YYYYYYYYYYYYYYYO#        
+     #OYYYY#+YYYYYYYYYY#        
+     #OYYYY#YYYYYYYYYYY#        
+     #OYYYYYYYYYYYYYYYY#        
+    OOOOYYYYYYYYYYYYYYO#        
+    OOOOOYYYYYYYYYYYYYO#        
+    #OOOYYYYYYYYYYYYYY#         
+      #OOOOYYYYYYYYYYO#         
+       #OOOOOOOOOOYYO#          
+       #OOOOOOOOOOOO#           
+    ####OO#O##OOOOOO#           
+  BBB#####OYOYOO+YYYOO          
+ B++B#BBBgOOOgYOYYYOOOO         
+  ggg##ggg#OOY#YYYYOOOO         
+          #OYOOYOOYOOOO         
+          #OOOOYOYOOO#          
+           #OOOOYYOO#           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             ##O###             
+             OOOOOO             
+             OOOOOO             
+               #                
+                                
+                                
+
+=== LEFT · walk10 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · walk15 · bbox32=(1, 0, 27, 32) alpha64=407 ===
+                                
+             RY#YR              
+          ##OYY+YY##            
+         #OYYYYYYYYY##          
+        #YYYYYYYYYYYY##         
+       #OYYYYYYYYYYYYY#         
+       #YYYYYYYYYYYYYYY#        
+      #OYYYY+YYYYYYYYYY#        
+      #YYYY##YYYYYYYYYYO#       
+      #YYYYYOYYYYYYYYYYO#       
+      #YYYYYYYYYYYYYYYYO#       
+    OOOOOYYYYYYYYYYYYYYO#       
+    #OOOOYYYYYYYYYYYYYYO        
+     ###YYYYYYYYYYYYYYO#        
+       #OOOYOYYYYYYYYO#         
+        OOOYOOOOOYYYOO#         
+     #O#OOOOOOOOYYOO##          
+   g####OO#OO#OOOO#OO           
+  BBB#BBB#OYO+OO+YOYO#          
+  ggB#BBggOOOgYOYYYYOOO         
+    #######OOOO+YYYOOOO         
+          OOYYOOOOYOOOO         
+          #OOOOYOOYOO#          
+           OOOOOYYOOO           
+            #OOOOOOO#           
+            #OOOOOO#            
+              #OO##             
+         #OOOO    OOOO          
+         #OOOO    OOOO          
+                    #           
+                                
+                                
+
+=== LEFT · shoot0 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · shoot4 · bbox32=(0, 0, 28, 32) alpha64=409 ===
+                                
+              OR RR             
+            ##YY#YR#            
+          ##RYYYYYYY##          
+         ##YYYYYYYYYY+#         
+        ##YYYYYYYYYYYYY#        
+        #YYYYYYYYYYYYYY+#       
+       #OYYYYYYYYYYYYYYY#       
+       #YYYY##YYYYYYYYYYO#      
+       #YYYYO#YYYYYYYYYYO#      
+       #YYYYYYYYYYYYYYYYO#      
+      OOOYYYYYYYYYYYYYYYO#      
+     #OOOOYYYYYYYYYYYYYYO#      
+      OOOOYYYYYYYYYYYYYO#       
+        #OOYYYYYYYYYYYOO#       
+        OOOYOOOOOOYOYOO#        
+        OOOOOOOOOYYYOO#         
+     ####OOOOOOOOOOOOO          
+  BBgB#B##OYO#YO#R+OYO#O        
+  gg+B#BBBOOOg+OYYYYYOOO        
+   gg###+g#OO++#OYYYYOOO#       
+           #OOOOOYOYOOOO        
+            OOOOYYOYOO##        
+            #OOOOYYOOO#         
+             #OOOOOOO#          
+             #OOOOOO#           
+               #####            
+            OOO  OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · shoot11 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · dash0 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+             +#R+#              
+          ###YYYY###            
+         #RYYYYYYYYR#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      OYYYY##YYYYYYYYYYO        
+     #OYYYYOOYYYYYYYYYYO#       
+     #OYYYYYYYYYYYYYYYYO#       
+    OOOOOYYYYYYYYYYYYYYO#       
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OOOOYYYYYYYYYYYO#        
+       #OOOYYYYOYYOYYO#         
+       #OOOOYYOOOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOOOOO#          
+  ++B#BBBBOYOYOO+YYYOOO         
+  ggg##gggROOg#+YYYYOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYYOYOO##         
+           #OOOOYYOOO#          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             ##OO##O            
+           #OOO##OOOO           
+            OOO  OOOO           
+                                
+                                
+                                
+
+=== LEFT · dash7 · bbox32=(1, 0, 27, 31) alpha64=403 ===
+                                
+             O# #               
+           ##YR+Y##             
+         ##+YYYYYY+##           
+        #OYYYYYYYYYYO#          
+       #OYYYYYYYYYYYYO#         
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYY##YYYYYYYYYYO        
+      OYYYYYYYYYYYYYYYYO#       
+     OOOYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+    #OOOOYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYYYYYYYYOO#         
+       #OOOOOOOYYYOOO#          
+    ####OO#OOOOOOOOO#           
+  BBB#####OYO#OO#ROYO#          
+  ggB#BBBBOOOgYOYYYYOOO         
+  ggg###+g#OOY#+YYYOOOO         
+          OOOOOOYOYOOOO         
+          #OOOO+OOYOO#          
+          #OYOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+            OOOOOOOO            
+           #OOOO#OOO#           
+            OOO  OOO            
+                                
+                                
+                                
+
+=== LEFT · dash15 · bbox32=(1, 0, 27, 32) alpha64=393 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYYOOYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#O            
+           #OOO##OOOO           
+            OOO  OOOO           
+                                
+                                
+                                
+
+=== LEFT · hurt2 · bbox32=(1, 0, 27, 32) alpha64=404 ===
+                                
+              O  #              
+            ##+OR+#             
+          #OOYYYYYOO#           
+         #OYYYYYYYYYO#          
+        #OYYYYYYYYYYYO#         
+       #OYYYYYYYOOOOYYO#        
+       OOOYYYYYYOOOOOOOO        
+      #OOOOYYYYOOOOOOOOO#       
+      #OOOOOOOOOOOOOOOOO#       
+      #OOOOOOOOOOOOOOOOO#       
+     OOOOOOOOOOOOOOOOOOO#       
+    #OOOOOOOOOOOOOOOOOOO#       
+     #OOOOOOOOOOOOOOOOOO#       
+       #OOOOOOOOOOOOOOO#        
+        OOOOOOOOOOOOOOO         
+     OO#OOOOOOOOOOOOOO#         
+  ggR###OOOOO#OOOOOO#           
+  ggg#ggg#OOOOOOOOOOO#          
+  ggg#ggggOOO+OOOOOOOOO         
+     OOOOR#OOOOOOOOOOOO         
+          #OOOOOOOOOOOO         
+           OOOOOOOOOOOO         
+           #OOOOOOOOO#          
+            OOOOOOOOO           
+            #OOOOOOO            
+             ##OOO#             
+           OOOO #OOO            
+           OOOO OOOO#           
+             #   #O#            
+                                
+                                
+
+=== LEFT · down0 · bbox32=(1, 0, 27, 32) alpha64=395 ===
+                                
+                                
+            #+#R+#              
+          ##RYYYYR##            
+         #+YYYYYYYY+#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYYYYYYYYYYYYYY#        
+      #YYYYYYYYYYYYYYYY#        
+      OYYYYYYYYYYYYYYYYO        
+     #RYYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OOOYYYYYYYYYYO#         
+       #OOOYYOOYOOOYO#          
+    ####OOOOOOOOOOOO#           
+  B+g#####OYO#OOOO#OO#          
+  ++B#BBBBOYO+OO+YOYOOO         
+  ggg##gggROOg#+YYYOOOO         
+          #OOOO+YOYOOOO         
+          #OYOOYOOYOOOO         
+           #OOOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · down10 · bbox32=(2, 4, 32, 32) alpha64=398 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                  ######        
+             OO ##OYYYY+##      
+       B     OOOOYYYYYYYY+#     
+      ggB#   #OOYYYYYYYYYYYY#   
+       gB##  #OOOYYYYYYYYYYY#   
+       gB### #OOYYYY##YYYYYYY+  
+       ##B##OOOYYYYY#+YYYYYYYR  
+        #BB#OOOOYYYYYYYYYYYYY#  
+         ++B#OYYYYYYYYYYYYYYY#  
+         #gYOOOYYYYYYYYYYYYYYO  
+          #OYYOOOYYYYYYYYYYYYR  
+         #OOOO#OOYYYYYYYYYYYY#  
+         OOO#YOOOYYYYYYYYYYYY#  
+        #OOOYYOOOOYYYYYYYYYYO#  
+       #OOOOO##OOOOYYYYYYYYO#   
+     O #OOOOYOY+OOOOYYYYYYO#    
+    #OO#OOOOOYYYO#OOYYYYYO#     
+     OO#OOOYOOYYYO##OOOO##      
+     #O#OOOOOYOOOOO  ##         
+        #OOOOOOOOOO             
+       OO##OOOOOOO              
+       #OO  #  OO               
+        OO                      
+         #                      
+                                
+                                
+
+=== LEFT · down19 · bbox32=(2, 6, 32, 32) alpha64=395 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+          gB     #              
+          gBg    OO #####       
+          +BB#  #OO#OOOOO##     
+          ####   OOOYYYYYY+#    
+          ##B## #OOOYYYYYYYY#   
+           gB##OOOOYYYYYYYYYY#  
+           +BBOOOOYYYYY#YYYYY++ 
+           RgB#OOOYYYY##YYYYYYY 
+           #+OOOOYYYYYYYYYYYYY# 
+          #OOYYOOYYYYYYYYYYYYYY+
+         #OYOOO#OOOYYYYYYYYYYYY#
+        ##OYOgY#OYOYYYYYYYYYYY+#
+     O  OOOOO#OOOYOYYYYYYYYYYY+#
+    #OO#OOOOOO#OOOYOYYYYYYYYYY# 
+     OO#OOOYYYY#OYOYYYYYYYYYYY# 
+     OO#OOOOOYYYOOOOYYYYYYYYY#  
+       #OOOYOYYYOOOYYYYYYYYYO#  
+      OO#OOOOOOOO#OOYYYYYYYO#   
+      OO##OOOOOOO###OOOOOO##    
+      OOO ###OOOO   ######      
+       O     OOO#               
+                                
+                                
+                                
+
+=== LEFT · interact6 · bbox32=(1, 0, 27, 32) alpha64=404 ===
+                                
+             #  #               
+           ##YR+Y##             
+         ##+YYYYYY+##           
+        #OYYYYYYYYYYR#          
+       #OYYYYYYYYYYYYO#         
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYY##YYYYYYYYYY#        
+      OYYYY##YYYYYYYYYYO        
+      OYYYYYYYYYYYYYYYYO#       
+     OOOYYYYYYYYYYYYYYYO        
+    OOOOOYYYYYYYYYYYYYY#        
+    #OOOOYYYYYYYYYYYYYO#        
+      ##YYYYYYYYYYYYYYO         
+       #OOOOOYOOYYOYYO#         
+        OOOOOOOOOYOOO#          
+       #OO#OOOOOOOO##           
+    ####OOOYO#OOOROOO#          
+  B+g#####OOO#OOYYYYOOO         
+  ++B#BBBBgYggOOYYYOOOO         
+  ggg##ggggg++#+OOYOOOO         
+          #OOOO+OOYOOO          
+          #OYYOOYYOOO           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             ##OO##             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== LEFT · celebrate8 · bbox32=(1, 0, 31, 29) alpha64=403 ===
+            #Y#RY#              
+          ##+YYYY+##            
+         #YYYYYYYYYY#           
+        #YYYYYYYYYYYY#          
+       #YYYYYYYYYYYYYY#         
+      #OYYYYYYYYYYYYYYO#        
+      #YYYY++YYYYYYYYYY#OO      
+      OYYYY##YYYYYYYYYY#YY      
+      OOYYYOOYYYYYYYYYYOYYO     
+     #OYYYYYYYYYYYYYYYYOYY      
+    OOOYYOYYYYYYYYYYYYY#OO      
+    OOOYOYYYYYYYYYYYYYO#        
+     ##OYYYYYYYYYYYYYYO#        
+       #OYYYYYYYYYYYYO#         
+        #OOYOOOOOYYOO#          
+         #OOOYOOYOOO#           
+          ##OOOOOOOO#    OY     
+      O    #O#OOOOYYO#  OYYO    
+     OYO   OOOOYYYYYOOO OYYO    
+    OYYYO #OYOOYYYYYOOO  OY     
+     OYY  #OOOO+YYYOOOO         
+      O   OOOOOOOOYOOOO         
+          #OOOO+YYOOO#          
+          #OOYOOOOOO#           
+           OOOOOOOOO            
+            ##OOOOO#            
+              ####              
+                                
+                                
+                                
+                                
+                                
+
+=== RIGHT · idle0 · bbox32=(5, 0, 31, 32) alpha64=399 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO      
+        #YYYYYYYYYYOOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · idle8 · bbox32=(5, 0, 31, 32) alpha64=395 ===
+                                
+                                
+               RR#+O            
+             ##YY#YR#           
+           ##YYYYYYYYO#         
+          #OYYYYYYYYYY+#        
+         #OYYYYYYYYYYYYY#       
+         #YYYYYYYYYYYYYYO#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYYYYYYYYO      
+        #YYYYYYYYYYYOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYYOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOO#    
+         #OYOOOYYYYYYYYOO       
+          #OYYOOOOOOOOOO#       
+           #OOYOO#g+O+ggg##ggg  
+          #OO#OOOOgOYOgBBB#B++  
+         #OOYO+ROO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOYYOOYO#OO        
+           OOOYYYOOO##          
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · walk0 · bbox32=(5, 0, 31, 32) alpha64=399 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO      
+        #YYYYYYYYYYOOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · walk5 · bbox32=(5, 0, 31, 32) alpha64=402 ===
+                                
+              #+#+Y#            
+            ##+YYYYR##          
+           #+YYYYYYYY+#         
+          #YYYYYYYYYYYY#        
+         #YYYYYYYYYYYYYY#       
+        #YYYYYYYYYYYYYYYO#      
+        #YYYYYYYYYYYYYYYO#      
+        OYYYYYYYYYY#gYYYY#      
+       #OYYYYYYYYYYOOYYYYO      
+       #OYYYYYYYYYYYYYYYY##     
+        OYYYYYYYYYYYYYYOOOOO    
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYY###     
+         #OYYYYYYYYYYYYO#       
+         ##OYOOOOOOYOYO#        
+          ##OOYOOOOOOO#####+    
+           #OOOO##BgOgggBB#Bgg  
+          O#YYO+OOgOYO#BBB#BBB  
+         OOOYYYYOO#OOOOO####    
+         OOOOYYYYOOOO#OO#       
+         OOOOYOYOOOYO#OO        
+          #OOOYOYOOOO#OO        
+           #OOOYOOOOO           
+            OOOOOOOO#           
+            #OOOOOO#            
+              #####             
+             OOOOOO             
+             OOOOOO             
+               #                
+                                
+                                
+
+=== RIGHT · walk10 · bbox32=(5, 0, 31, 32) alpha64=399 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO      
+        #YYYYYYYYYYOOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · walk15 · bbox32=(6, 0, 31, 32) alpha64=415 ===
+                                
+               #+#++            
+             ##YYRYY##          
+           ##YYYYYYYYY##        
+          #OYYYYYYYYYYYO#       
+         #OYYYYYYYYYYYYY#       
+         #YYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYYO      
+        #OYYYYYYYYYOBYYYYO#     
+        #YYYYYYYYYYY#YYYYO#     
+        #OYYYYYYYYYYYYYYYO#     
+        #OYYYYYYYYYYYYYYOOOO    
+        #OYYYYYYYYYYYYYOOOOO#   
+         #OYYYYYYYYYYYYYOOO#    
+         #OYYYYYYYYYOYYYO#      
+          #OOOOOOYYYOOYO#       
+           #OOOOOOOOOOO#        
+           #OOOOO#Bg+#gggg#ggg  
+          OOYYY+OO+OYOgBBB#B++B 
+         OOOYYYYOO#OOOO#####gB  
+         OOOYYYY+OOOO#OO####    
+         OOOOYOOYOYOOOOO        
+          #OOYYOYOYOO#OO        
+           OOOOYOOOOO#          
+           #OOOOOOO##           
+            #OOOOOO#            
+             ##OO#              
+         #OOOO    OOOO          
+         #OOOO    OOOO          
+                    #           
+                                
+                                
+
+=== RIGHT · shoot0 · bbox32=(5, 0, 31, 32) alpha64=399 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO      
+        #YYYYYYYYYYOOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · shoot4 · bbox32=(4, 0, 32, 32) alpha64=412 ===
+                                
+              R##R              
+            ##YR+Y##            
+          ##YYYYYYY+##          
+         #RYYYYYYYYYYO#         
+        #OYYYYYYYYYYYYR#        
+       #OYYYYYYYYYYYYYY#        
+       #YYYYYYYYYYYYYYYO#       
+       OYYYYYYYYYYggYYYY#       
+      #OYYYYYYYYYY##YYYYO       
+      #OYYYYYYYYYYYYYYYYO       
+      #OYYYYYYYYYYYYYYYOOO      
+       #YYYYYYYYYYYYYYOOOOO     
+       #OYYYYYYYYYYYYYOOOO#     
+        #OYYYYYYYYYYYYO#        
+        #OYYOYOYYYYYYO##        
+         #OOOOOOOOOOO## #       
+          #OOOOO#gg+O+ggg##ggg  
+         #OYO+R#OYBOYOgBB#BB++  
+        OOOYYYY+OY#OOO#####gB   
+        OOOYYYY+OOOOOOOO###     
+        OOOOYOY+OOOO#OOO        
+         #OOYOOYOOOO#OOO        
+         #OOOYYOOOO#            
+          #OOOOOOOO#            
+           #OOOOOO#             
+            #####               
+            OOO  OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · shoot11 · bbox32=(5, 0, 31, 32) alpha64=399 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO      
+        #YYYYYYYYYYOOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · dash0 · bbox32=(5, 0, 31, 32) alpha64=397 ===
+                                
+                                
+               RR#YR            
+            ###YY+Y+##          
+           #OYYYYYYYY+#         
+          #YYYYYYYYYYYY#        
+         #YYYYYYYYYYYYYY#       
+        #OYYYYYYYYYYYYYYO#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO#     
+        OYYYYYYYYYYOOYYYYO#     
+        OYYYYYYYYYYYYYYYYO#     
+        OYYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYOYYYYYYYYYYOO       
+          #OYYOYOOOOOOO##       
+           #OOOOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         OOOYYY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYYYYOOOOOOO#       
+          #OOYOOYOOOO#OO        
+          #OOOYYOOOO##          
+           #OOOOOOOO#           
+            #OOOOOO#            
+             ##OO##O            
+           #OOO##OOOO           
+            OOO  OOOO           
+                                
+                                
+                                
+
+=== RIGHT · dash7 · bbox32=(5, 0, 31, 31) alpha64=407 ===
+                                
+               OO O             
+             ##YY#YR#           
+           ##+YYYYYYY##         
+          ##YYYYYYYYYY+#        
+         ##YYYYYYYYYYYY+#       
+         #YYYYYYYYYYYYYYO#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY+gYYYYO      
+        #YYYYYYYYYY##YYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYYOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOO#    
+         #OYYYYYYYYYYYYYO#      
+         ##OYOYYYYYYYYOO#       
+          ##OYYYOOOOOOO#  #     
+           #OOOOO#g+O+gggg#ggg  
+          #OYORROOgOYOgBBB#BBB  
+         OOOYYYYOO#OOO######gB  
+         OOOOYYYYOOOO#OO####    
+         OOOOYOYYOOOOOOO        
+          #OOYOOYOOOOOOO        
+           OOOYYOOOOO#          
+           #OOOOOOOO#           
+            #OOOOOO#            
+            OOOOOOOO            
+           #OOOO#OOO#           
+            OOO  OOO            
+                                
+                                
+                                
+
+=== RIGHT · dash15 · bbox32=(5, 0, 31, 32) alpha64=397 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY#BYYYYO      
+        #YYYYYYYYYYOOYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOO#            
+             #OOOO#R            
+           #OOO##OOOO           
+            OOO  OOOO           
+                                
+                                
+                                
+
+=== RIGHT · hurt2 · bbox32=(6, 0, 31, 32) alpha64=411 ===
+                                
+                RR #            
+              ##+O#+O           
+            ##O+YY+YOO#         
+           #OYYYYYYYYYO#        
+          #OYYYYYYYYYYYO#       
+         #OYYYYYYYOOOOOYO#      
+         #OOYYYYYYOOOOOOYO      
+         OOOOYYYYOOOOOOOOO#     
+        #OOOOOOOOOOOOOOOOO#     
+        #OOOOOOOOOOOOOOOOOO     
+        #OOOOOOOOOOOOOOOOO#     
+        #OOOOOOOOOOOOOOOOOOO    
+         OOOOOOOOOOOOOOOOOOOO   
+         #OOOOOOOOOOOOOOO#O#    
+          #OOOOOOOOOOOOOO#      
+           #OOOOOOOOOOOO#       
+           OOOOOO#++OO+RRR#R    
+          OOOOOOOO+OOOgggg#gggg 
+         OOOOOOOOO#OOOO#gg#gggg 
+         OOOOCOOOOOOOOOO####    
+         OOOOOOOOOOOO#OOR       
+          #OOOOOOOOOO#OO        
+           OOOOOOOOOO #O        
+           #OOOOOOOO#           
+            OOOOOOOO            
+             #OOOO#             
+           OOOO #OOO            
+           OOOO OOOO#           
+             #   #O#            
+                                
+                                
+
+=== RIGHT · down0 · bbox32=(5, 0, 31, 32) alpha64=399 ===
+                                
+                                
+               RR#YR            
+            ##OYY+Y+##          
+           #OYYYYYYYYY#         
+          #YYYYYYYYYYYY#        
+         #OYYYYYYYYYYYYY#       
+         OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYYYOYYYYO      
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYYYO#     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYYO###    
+         #OYYYYYYYYYYYYO#       
+          #OYOYOOOOOOOO##       
+           #OOYOO#g+O+ggg##ggg  
+          #OOOOOOOgOYOgBBB#B++  
+         #OOYOY+OO#OYO#####g+B  
+         OOOOYYY+#OOOOOO####    
+         OOOOYOYYOOOOOOO#       
+          OOOYOOYOOYO#OO        
+           #OOYYOOOO#           
+           #OOOOOOOO#           
+            #OOOOOOO            
+             #OOOO#             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · down10 · bbox32=(0, 3, 30, 32) alpha64=401 ===
+                                
+                                
+                                
+                                
+                                
+                                
+        #######                 
+      ##YYYYYYO##OO             
+    O#+YYYYYYYYOOOO   ggB       
+   #YYYYYYYYYYYYOO#  +gBB       
+   #+YYYYYYYYYYOOO# ##B+        
+  RYYYYYYYg#YYYYOO# #B###       
+  #YYYYYYYO#YYYYYYO#BB##        
+  #YYYYYYYYYYYYYYYOgB##         
+  #YYYYYYYYYYYYYYYRBBOO         
+  #YYYYYYYYYYYYYOOROOOOO        
+  #YYYYYYYYYYYYYO+OYO#OO#       
+  #YYYYYYYYYYYYOOBOOOO##        
+  #YYYYYYYYYYYYO#YY#OOO#        
+   #YYYYYYYYYYOOOOOOOOO#        
+   #OYYYYYYYYOYO#++OOOOO#       
+    #OYYYYYYOOO#+YYY+OOO# OO    
+     #OOYYYYOO#OYYOOOOOO#OO#    
+      ###OOO##OYYYOOYOOO#OO     
+             OOOOOOOOOOO#O#     
+             #OOOOOOOOO#        
+              OOO#OOO##OO       
+               #O     OO#       
+                      OO        
+                                
+                                
+                                
+
+=== RIGHT · down19 · bbox32=(0, 5, 31, 31) alpha64=405 ===
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+              ##   ggB          
+        #####OOO   g+B          
+      #OYYYOOOOO  #BB#          
+    ##YYYYYYYOO#  ####          
+   ##YYYYYYYYOOO# #B##          
+   #YYYYYYYYYYYYO#gB##          
+ #YYYYYY+gYYYYYYO++BOO          
+  YYYYYY+#OYYYYYO+g#OOO#        
+ #+YYYYYYYYYYYYYOROO#OO         
+ +YYYYYYYYYYYYYOOOYOOO#         
+ #YYYYYYYYYYYYYO++OOOOO#        
+ #YYYYYYYYYYYYYOgY#OYYO##       
+ #YYYYYYYYYYYOYO#OOOYOOOO OO    
+  +YYYYYYYYYYYOOO#OOOOOOO#OO    
+  #YYYYYYYYYYYOOORYYYYOOO#OO    
+  #OYYYYYYYYYOYO#YOYOYOOO#O     
+   #YYYYYYYYYYO#OOYYYYOOO#      
+    #OYYYYYYOO#OOOOOOOOO#OO     
+     ##OOOOOO# #OOOOOOO#OOO     
+       #####   #OOO###  OO#     
+                #OO#    OO      
+                                
+                                
+                                
+
+=== RIGHT · interact6 · bbox32=(5, 0, 31, 32) alpha64=409 ===
+                                
+               ## O             
+             ##YY#YR#           
+            #RYYYYYY+##         
+          ##YYYYYYYYYYR#        
+         ##YYYYYYYYYYYY+#       
+         #YYYYYYYYYYYYYYO#      
+        #OYYYYYYYYYYYYYYY#      
+        #YYYYYYYYYY+gYYYYO      
+        #YYYYYYYYYY##YYYYO#     
+        #YYYYYYYYYYYOYYYYO#     
+        #YYYYYYYYYYYYYYYYOO     
+        #YYYYYYYYYYYYYYOOOOO    
+        #OYYYYYYYYYYYYYOOOOO    
+         #OYYYYYYYYYYYYYO#      
+         #OOOYYYOYYOOOYO#       
+          #OOYOOOOOOOOO#        
+           ##OOOOOOOOO#         
+          #OOORO###OYO+gg##ggg  
+         OOOYYYYOOgOOOgBBB#B++  
+         OOOOYYYOO#########g+B  
+         OOOOYYY+OOOO#OO####    
+          OOOYOOYOOOOOOO#       
+           #OOYYOOOYO#OO        
+           #OOOOOOOO# #         
+            #OOOOOO#            
+             ##OO##             
+            OOO##OOOO           
+           #OOO# OOOO           
+             #    ##            
+                                
+                                
+
+=== RIGHT · celebrate8 · bbox32=(3, 0, 31, 29) alpha64=399 ===
+              #++#YR            
+            ##+YYYYY##          
+           #+YYYYYYYYY##        
+          #YYYYYYYYYYYYO#       
+         #YYYYYYYYYYYYYY#       
+        #OYYYYYYYYYYYYYYY#      
+        #OYYYYYYYYYYgYYYYO      
+        #YYYYYYYYYY#BYYYYY#     
+       OOYYYYYYYYYYOOYYOYYO     
+      OYOYYYYYYYYYYYYYYYYY#     
+     OYYYOYYYYYYYYYYYYYOOOOO    
+      OYOOYYYYYYYYYYYYYOOOOO    
+       OO#YYYYYYYYYYYYYYO##     
+         #OYYYYYYYYYOYYO#       
+          #OOYOOOOOOOYO#        
+           #OOOYOOOOOO#         
+            OOOOOOOO##   OY     
+      O    #YYOOOO###   OYYO    
+     OYO #OOYOYYYOOOO#  OYYO    
+    OYYYOOOOOYYYYOOYO#   OY     
+     OYY OOOOYYYYOOOOO          
+      O  #OOOYOO+OOOOO          
+          #OOOYYYOOOOO          
+           #OOOOOOYYO#          
+            #OOOOOOOO           
+             #OOOO##            
+              ####              
+                                
+                                
+                                
+                                
+                                
