@@ -46,6 +46,7 @@ import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import { drawChibiThemedDoorV3, drawChibiThemedObstacleV3 } from './graphics/chibiWorldPropsV3';
 import { drawChibiChestV3, drawChibiPedestalV3, drawChibiCandleV3, drawChibiStairsV3 } from './graphics/chibiInteractablesV3';
 import { drawChibiItemRoomDecorV3, drawChibiShopRoomDecorV3, drawChibiBossRoomDecorV3, drawChibiTreasureRoomDecorV3, drawChibiHiddenDoorV3 } from './graphics/chibiRoomDecorV3';
+import { drawChibiFloorTileV3 } from './graphics/chibiFloorArtV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -340,6 +341,8 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
       if (t === TILE_DOOR) {
         ctx.fillStyle = '#07070f';
         ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      } else if (!special && floorIndex > 0) {
+        drawChibiFloorTileV3(ctx, x, y, t === 1, room.gx, room.gy, f, floorIndex);
       } else {
         drawRichTile(ctx, x, y, t === 1, special ? { floor: floorPal, wall: wallPal, trim: '#c58ae8', glow: '#c58ae8', deco: 'vault' } : th, room.gx, room.gy, f);
       }
