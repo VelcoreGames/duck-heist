@@ -844,8 +844,15 @@ function drawHUD(engine: GameEngine) {
   const ctx = engine.ui!;
   const p = engine.player;
 
-  ctx.fillStyle='rgba(8,20,26,.78)';ctx.fillRect(3,3,Math.min(p.maxHp,10)*14+10,22);
-  ctx.strokeStyle='rgba(244,208,63,.25)';ctx.strokeRect(3.5,3.5,Math.min(p.maxHp,10)*14+9,21);
+  const hpPanelW = Math.min(p.maxHp, 10) * 14 + 12;
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,38,40,.88)';
+  ctx.beginPath(); ctx.roundRect(3, 3, hpPanelW, 23, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(211,178,105,.36)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(3.5, 3.5, hpPanelW - 1, 22, 5.5); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,244,218,.055)';
+  ctx.beginPath(); ctx.roundRect(6, 5, Math.max(8, hpPanelW - 12), 4, 2); ctx.fill();
+  ctx.restore();
   for (let i = 0; i < p.maxHp; i++) {
     ctx.save();
     ctx.imageSmoothingEnabled=false;
@@ -861,21 +868,32 @@ function drawHUD(engine: GameEngine) {
 
   // --- Monedas ---
   const cw=100;
-  ctx.fillStyle='rgba(8,20,26,.78)';ctx.fillRect(376,4,cw,38);
-  drawItemIcon(ctx,380,4,'crumb',16);text(ctx,'MIGAJAS',399,14,6,'#899f98','left');
-  text(ctx,`${p.crumbs}`,468,17,10,'#e8c99b','right',true);
-  drawItemIcon(ctx,380,22,'golden_crumb',16);text(ctx,'DORADAS',399,32,6,'#ac9a65','left');
-  text(ctx,`${engine.totalGoldenCrumbs}`,468,36,10,'#f4d03f','right',true);
+  ctx.save();
+  ctx.fillStyle='rgba(15,38,40,.88)';ctx.beginPath();ctx.roundRect(376,4,cw,39,6);ctx.fill();
+  ctx.strokeStyle='rgba(211,178,105,.26)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(376.5,4.5,cw-1,38,5.5);ctx.stroke();
+  ctx.fillStyle='rgba(211,178,105,.28)';ctx.fillRect(383,22,86,1);
+  ctx.restore();
+  drawItemIcon(ctx,380,4,'crumb',16);text(ctx,'MIGAJAS',399,14,6,'#9bb0aa','left');
+  text(ctx,`${p.crumbs}`,468,17,10,'#ead5a8','right',true);
+  drawItemIcon(ctx,380,22,'golden_crumb',16);text(ctx,'DORADAS',399,32,6,'#b6a371','left');
+  text(ctx,`${engine.totalGoldenCrumbs}`,468,36,10,'#e8c86d','right',true);
 
   // --- Piso ---
-  text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,12,7,'#d3c999','center',true);
-  text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,23,6.5,'#829c98');
+  ctx.save();
+  ctx.fillStyle='rgba(15,38,40,.76)';ctx.beginPath();ctx.roundRect(196,4,88,25,7);ctx.fill();
+  ctx.strokeStyle='rgba(211,178,105,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(196.5,4.5,87,24,6.5);ctx.stroke();
+  ctx.restore();
+  text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,12,7,'#e5d1a1','center',true);
+  text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,23,6.5,'#93aaa4');
 
   drawMinimap(engine);
   drawBossBar(engine);
-  ctx.fillStyle='rgba(8,20,26,.7)';ctx.fillRect(6,40,74,16);
-  text(ctx,`ALERTA ${Math.round(engine.alert)}`,10,48,6.5,'#d4b47c','left',true);
-  ctx.fillStyle='#1a2c32';ctx.fillRect(10,51,66,4);ctx.fillStyle='#c78868';ctx.fillRect(10,51,66*engine.alert/100,4);
+  ctx.save();
+  ctx.fillStyle='rgba(15,38,40,.72)';ctx.beginPath();ctx.roundRect(6,40,76,18,5);ctx.fill();
+  ctx.strokeStyle='rgba(211,178,105,.15)';ctx.beginPath();ctx.roundRect(6.5,40.5,75,17,4.5);ctx.stroke();
+  ctx.restore();
+  text(ctx,`ALERTA ${Math.round(engine.alert)}`,11,48,6.5,'#d5bb86','left',true);
+  ctx.fillStyle='#223b3e';ctx.fillRect(11,52,66,3);ctx.fillStyle=engine.alert>70?'#c96e5f':'#b88b59';ctx.fillRect(11,52,66*engine.alert/100,3);
 
   // --- Armas (dos huecos) ---
   const slotW = 118, slotH = 32;
@@ -888,11 +906,11 @@ function drawHUD(engine: GameEngine) {
     const y = baseY - (on ? 4 : 0);
     ctx.save();
     if (on) {
-      ctx.shadowColor = 'rgba(244,208,63,0.55)';
+      ctx.shadowColor = 'rgba(214,182,106,0.38)';
       ctx.shadowBlur = 10;
     }
-    drawPanel(ctx, x, y, slotW, slotH, on ? 'rgba(22,26,40,0.95)' : 'rgba(8,10,18,0.8)',
-      on ? '#f4d03f' : '#2f3644');
+    drawPanel(ctx, x, y, slotW, slotH, on ? 'rgba(20,50,52,0.95)' : 'rgba(12,30,33,0.84)',
+      on ? '#d6b66a' : '#365356');
     ctx.restore();
     // pequeño deslice al cambiar
     const slide = on && p.switchAnim > 0 ? (1 - p.switchAnim / 12) * 6 - 6 : 0;
@@ -912,7 +930,7 @@ function drawHUD(engine: GameEngine) {
     }
     ctx.restore();
     const name = w ? w.name : T.empty;
-    wrappedText(ctx,`[${i+1}] ${name}`,x+29,y+10,slotW-34,6.7,8,2,w?(on?'#efe1ac':'#8f99aa'):'#4f586a',on);
+    wrappedText(ctx,`[${i+1}] ${name}`,x+29,y+10,slotW-34,6.7,8,2,w?(on?'#f1dfb2':'#94a7a5'):'#4f586a',on);
     if (w) {
       const rl = 1 - p.fireCooldown / Math.max(1, activeWeapon(p).fireRate);
       if (on) {
@@ -924,7 +942,7 @@ function drawHUD(engine: GameEngine) {
         text(ctx, 'RUEDA', x + slotW - 8, y + 26, 7, '#5c6472', 'right');
       }
       if (on) {
-        ctx.fillStyle = '#f4d03f';
+        ctx.fillStyle = '#d6b66a';
         ctx.beginPath();
         ctx.moveTo(x - 4, y + slotH / 2);
         ctx.lineTo(x + 1, y + slotH / 2 - 5);
@@ -947,7 +965,7 @@ function drawHUD(engine: GameEngine) {
       ctx.shadowColor = '#f4d03f';
       ctx.shadowBlur = 12;
     }
-    drawPanel(ctx, ax, ay, aw, ah, 'rgba(8,10,18,0.85)', flash ? '#fff3b0' : ready ? '#f4d03f' : '#2f3644');
+    drawPanel(ctx, ax, ay, aw, ah, 'rgba(12,30,33,.88)', flash ? '#fff0bd' : ready ? '#d6b66a' : '#365356');
     ctx.restore();
     ctx.save();
     ctx.translate(ax + 6, ay + 6);
@@ -956,7 +974,7 @@ function drawHUD(engine: GameEngine) {
     drawItem(ctx, 0, 0, p.activeItem, engine.frame);
     ctx.restore();
     const def = ACTIVE_ITEMS[p.activeItem];
-    wrappedText(ctx,def?.name ?? '',ax+29,ay+10,aw-35,6.7,8,2,ready?'#eee1b2':'#7c8494',true);
+    wrappedText(ctx,def?.name ?? '',ax+29,ay+10,aw-35,6.7,8,2,ready?'#f1dfb2':'#829592',true);
     if (flash) {
       text(ctx, 'LISTO', ax + aw - 8, ay + 26, 9, '#39d353', 'right', true);
     } else if (ready) {
@@ -982,10 +1000,10 @@ function drawHUD(engine: GameEngine) {
     ctx.shadowBlur = 10;
   }
   text(ctx, engine.lastInput==='gamepad'?'B · ESQUIVE':'ESQUIVE', 302, CANVAS_HEIGHT - 9, 6,
-    dashFlash ? '#fff' : dashReady ? '#1abc9c' : '#4f586a', 'right', true);
+    dashFlash ? '#fff6d7' : dashReady ? '#69b8a5' : '#536764', 'right', true);
   ctx.fillStyle = 'rgba(255,255,255,0.10)';
   ctx.fillRect(265, CANVAS_HEIGHT - 25, 62, 4);
-  ctx.fillStyle = dashFlash ? '#a3f0c2' : dashReady ? '#1abc9c' : '#4f586a';
+  ctx.fillStyle = dashFlash ? '#b9e3cf' : dashReady ? '#69b8a5' : '#536764';
   ctx.fillRect(265,CANVAS_HEIGHT-25,62*clamp(1-p.dashCooldown/(45*getBuild(p).dashCooldown),0,1),4);
   if (dashFlash) {
     text(ctx, 'ESQUIVE LISTO', 296, CANVAS_HEIGHT - 29, 6.5, '#39d353', 'center', true);
@@ -995,7 +1013,7 @@ function drawHUD(engine: GameEngine) {
   // --- Objetos pasivos ---
   if (p.items.length) {
     const n = Math.min(p.items.length, 10);
-    ctx.fillStyle='rgba(8,19,25,.66)';ctx.fillRect(4,294,n*18+8,19);
+    ctx.fillStyle='rgba(15,38,40,.68)';ctx.beginPath();ctx.roundRect(4,294,n*18+8,19,5);ctx.fill();ctx.strokeStyle='rgba(211,178,105,.12)';ctx.beginPath();ctx.roundRect(4.5,294.5,n*18+7,18,4.5);ctx.stroke();
     for(let i=0;i<n;i++) drawItemIcon(ctx,8+i*18,295,p.items[i],16);
     if (p.items.length > 10) text(ctx, `+${p.items.length - 10}`, 16 + n * 17, CANVAS_HEIGHT - 44, 9, '#f4d03f', 'left');
   }
