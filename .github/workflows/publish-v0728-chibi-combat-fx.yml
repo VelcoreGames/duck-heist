@@ -1,0 +1,67 @@
+name: Publish Duck Heist v0.7.28 Chibi Combat FX
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0728-chibi-combat-fx.yml'
+      - 'scripts/patch-v0728.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply v0.7.28 chibi combat effects
+        run: python3 scripts/patch-v0728.py
+      - name: Validate source and build
+        run: |
+          test -s src/game/graphics/chibiEffectsV3.ts
+          grep -q 'drawChibiProjectileV3' src/game/graphics/chibiEffectsV3.ts
+          grep -q 'drawChibiCoinV3' src/game/graphics/chibiEffectsV3.ts
+          grep -q 'drawChibiParticleV3' src/game/graphics/chibiEffectsV3.ts
+          grep -q 'drawChibiEnemyFxV3' src/game/graphics/chibiEffectsV3.ts
+          grep -q 'drawChibiProjectileV3' src/game/render.ts
+          grep -q '0.7.28-chibi-combat-fx' index.html
+          ! grep -q 'drawProjectile(ctx' src/game/render.ts
+          ! grep -q 'drawCoin(ctx' src/game/render.ts
+          ! grep -q 'drawParticle(ctx' src/game/render.ts
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0728 --emptyOutDir
+          test -s /tmp/duck-heist-v0728/index.html
+          grep -q '0.7.28-chibi-combat-fx' /tmp/duck-heist-v0728/index.html
+      - name: Promote v0.7.28
+        run: |
+          npm version 0.7.28 --no-git-tag-version
+          printf '0.7.28\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0728/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.28"' package.json
+          grep -q '^0.7.28$' VERSION
+          grep -q '0.7.28-chibi-combat-fx' web-release/index.html
+          cmp web-release/index.html dist/index.html
+      - name: Commit v0.7.28
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/chibiEffectsV3.ts src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.28 chibi combat effects'
+          git pull --rebase origin main
+          git push origin HEAD:main
