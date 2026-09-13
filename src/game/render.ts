@@ -6,8 +6,8 @@ import {
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
 } from './constants';
 import {
-  drawDuck, drawHeart, drawSecurityPigeon,
-  drawProjectile, drawCoin, drawChest, drawBoss, drawDoor,
+  drawDuck, drawHeart,
+  drawProjectile, drawCoin, drawChest, drawDoor,
   drawParticle, drawItem, drawWeaponIcon,
   drawPedestal, drawCandle, drawObstacle,
   drawDuckSkin,
@@ -40,6 +40,7 @@ import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
 import { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';
 import { drawChibiBirdEnemyV3 } from './graphics/chibiBirdEnemiesV3';
 import { drawChibiFoodEnemyV3 } from './graphics/chibiFoodEnemiesV3';
+import { drawChibiBossV3 as drawBoss } from './graphics/chibiBossesV3';
 import { drawChibiCompanionDuckV3, drawChibiMerchantPigeonV3, drawChibiInjuredDuckV3 } from './graphics/chibiSupportV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
@@ -219,7 +220,7 @@ export function renderWorld(engine: GameEngine) {
         case 'policia_pato':
           drawChibiPoliceDuckV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite});
           break;
-        default:drawSecurityPigeon(ctx,-8,-8,f,false);
+        default:drawChibiBirdEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'pigeon'});
       }
     }
     ctx.restore();
@@ -534,7 +535,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   }
 
   // sombra legacy sólo para entidades que aún no usan renderer chibi propio
-  if (!usesChibiEnemyRenderer(e.type)) {
+  if (!e.isBoss && !usesChibiEnemyRenderer(e.type)) {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
   }
@@ -610,11 +611,11 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
         drawChibiFoodEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*7,dirX,dirY,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'croissant'});break;
       case 'banker_chicken':
         drawChibiFoodEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*11,dirX:Math.abs(toPlayerX)>=Math.abs(toPlayerY)?dirX:0,dirY:Math.abs(toPlayerY)>Math.abs(toPlayerX)?dirY:0,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'banker_chicken'});break;
-      default: drawSecurityPigeon(ctx, e.x, e.y, f, hurt);
+      default: drawChibiBirdEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f,dirX,dirY,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'pigeon'});
     }
   }
 
-  if (hurt && !usesChibiEnemyRenderer(e.type)) {
+  if (hurt && !e.isBoss && !usesChibiEnemyRenderer(e.type)) {
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
