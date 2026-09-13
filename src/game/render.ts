@@ -33,6 +33,7 @@ import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import { drawChibiPlayerRemastered } from './graphics/playerChibiRemastered';
+import { drawPlayerVisualLab, isPlayerVisualLab } from './graphics/playerVisualLab';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
 import { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';
@@ -59,6 +60,10 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 // ===========================================================================
 export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
+  if (isPlayerVisualLab()) {
+    drawPlayerVisualLab(ctx, engine.frame);
+    return;
+  }
   const s = engine.state;
   if(s===GameState.MENU || s===GameState.HEIST_INTRO) {
     const opening=s===GameState.HEIST_INTRO?Math.max(0,(90-engine.heistIntroTimer-15)/75):0;
@@ -533,6 +538,10 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
 export function renderUI(engine: GameEngine) {
   const ctx = engine.ui;
   if (!ctx) return;
+  if (isPlayerVisualLab()) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    return;
+  }
   const s = engine.state;
   ctx.save();
   ctx.scale(engine.uiScale, engine.uiScale);
