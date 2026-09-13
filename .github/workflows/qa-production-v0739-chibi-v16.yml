@@ -1,0 +1,143 @@
+name: QA Production v0.7.39 Chibi V16
+
+on:
+  push:
+    paths:
+      - '.github/workflows/qa-production-v0739-chibi-v16.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Chromium QA runtime
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Exercise live production build
+        env:
+          PROD_URL: https://velcoregames.com/?qa=v0739-playwright
+        run: |
+          mkdir -p /tmp/duck-heist-prod-qa
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const assert = require('assert');
+
+          const expectedBuild = '0.7.39-chibi-v16-premium-motion';
+          const expectedRenderer = 'canvas2d-chibi-atlas-v16';
+          const expectedFrames = '464-raster-chibi-v16';
+          const outDir = '/tmp/duck-heist-prod-qa';
+          const errors = [];
+          const samples = {};
+
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          async function dataset(page) {
+            return page.evaluate(() => ({
+              build: document.querySelector('meta[name="duck-heist-build"]')?.getAttribute('content') || '',
+              renderer: document.documentElement.dataset.duckHeistPlayerRenderer || '',
+              frames: document.documentElement.dataset.duckHeistPlayerFrames || '',
+              state: document.documentElement.dataset.duckHeistPlayerState || '',
+              visualFrame: document.documentElement.dataset.duckHeistPlayerVisualFrame || '',
+            }));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 1440, height: 1000 },
+              deviceScaleFactor: 1,
+            });
+            const page = await context.newPage();
+            page.on('console', msg => {
+              if (msg.type() === 'error') errors.push(`console: ${msg.text()}`);
+            });
+            page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
+
+            const url = `${process.env.PROD_URL}&t=${Date.now()}`;
+            const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            assert(response && response.ok(), `production returned ${response?.status()}`);
+            await page.waitForSelector('canvas.game-canvas', { timeout: 30000 });
+            await page.waitForFunction(() => document.documentElement.dataset.duckHeistPlayerRenderer === 'canvas2d-chibi-atlas-v16', null, { timeout: 30000 });
+
+            samples.loaded = await dataset(page);
+            assert.strictEqual(samples.loaded.build, expectedBuild, `wrong live build: ${samples.loaded.build}`);
+            assert.strictEqual(samples.loaded.renderer, expectedRenderer);
+            assert.strictEqual(samples.loaded.frames, expectedFrames);
+
+            const intro = page.getByRole('button', { name: 'ENTENDIDO' });
+            if (await intro.isVisible().catch(() => false)) await intro.click();
+            await sleep(250);
+            await page.screenshot({ path: `${outDir}/00-idle.png`, fullPage: true });
+
+            async function movementSample(key, label) {
+              await page.keyboard.down(key);
+              await sleep(140);
+              const first = await dataset(page);
+              assert.strictEqual(first.state, 'walk', `${label} did not enter walk: ${JSON.stringify(first)}`);
+              await sleep(300);
+              const second = await dataset(page);
+              assert.strictEqual(second.state, 'walk', `${label} walk did not persist`);
+              assert.notStrictEqual(first.visualFrame, second.visualFrame, `${label} walk frame did not advance`);
+              await page.screenshot({ path: `${outDir}/${label}.png`, fullPage: true });
+              await page.keyboard.up(key);
+              await sleep(120);
+              return { first, second };
+            }
+
+            samples.up = await movementSample('ArrowUp', '01-walk-up');
+            samples.down = await movementSample('ArrowDown', '02-walk-down');
+
+            await page.keyboard.down('ArrowRight');
+            await sleep(100);
+            await page.keyboard.press('Space');
+            await sleep(55);
+            samples.dash = await dataset(page);
+            assert.strictEqual(samples.dash.state, 'dash', `dash state missing: ${JSON.stringify(samples.dash)}`);
+            await page.screenshot({ path: `${outDir}/03-dash-right.png`, fullPage: true });
+            await page.keyboard.up('ArrowRight');
+            await sleep(320);
+
+            const canvas = page.locator('canvas.game-canvas');
+            const box = await canvas.boundingBox();
+            assert(box, 'canvas has no bounding box');
+            await page.mouse.move(box.x + box.width * .78, box.y + box.height * .48);
+            await page.mouse.down();
+            await sleep(55);
+            samples.shoot = await dataset(page);
+            assert.strictEqual(samples.shoot.state, 'shoot', `shoot state missing: ${JSON.stringify(samples.shoot)}`);
+            await page.screenshot({ path: `${outDir}/04-shoot-right.png`, fullPage: true });
+            await page.mouse.up();
+            await sleep(180);
+
+            samples.final = await dataset(page);
+            const canvasStillThere = await page.locator('canvas.game-canvas').count();
+            assert.strictEqual(canvasStillThere, 1, 'game canvas disappeared after input QA');
+            assert.strictEqual(errors.length, 0, `browser errors: ${errors.join(' | ')}`);
+
+            fs.writeFileSync(`${outDir}/qa.json`, JSON.stringify({ url, samples, errors }, null, 2));
+            console.log(JSON.stringify({ expectedBuild, samples, errors }, null, 2));
+            await browser.close();
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
+      - name: Upload visual QA captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0739-production-qa
+          path: /tmp/duck-heist-prod-qa
+          if-no-files-found: warn
+          retention-days: 7
