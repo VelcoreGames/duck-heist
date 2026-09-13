@@ -1,0 +1,119 @@
+name: Publish Duck Heist v0.7.41 Chibi V16 Weapon Perspective
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0741-chibi-v16-weapon-perspective.yml'
+      - 'scripts/patch-v0741-v16-weapon-perspective.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: pip install --disable-pip-version-check pillow
+
+      - name: Apply V16.3 weapon perspective pass
+        run: |
+          python scripts/patch-v0741-v16-weapon-perspective.py
+          python scripts/generate-player-chibi-v16.py
+
+      - name: Validate atlas and create directional review sheets
+        run: |
+          mkdir -p /tmp/v0741-art-qa
+          python - <<'PY'
+          from PIL import Image, ImageDraw
+          from pathlib import Path
+          im=Image.open('src/assets/chibi/base-duck-chibi-v16-atlas.png').convert('RGBA'); im.load()
+          assert im.size==(7424,256),im.size
+          starts={'idle':0,'walk':12,'shoot':32,'dash':44,'hurt':60,'down':68,'interact':88,'celebrate':100}
+          counts={'idle':12,'walk':20,'shoot':12,'dash':16,'hurt':8,'down':20,'interact':12,'celebrate':16}
+          dirs=['down','up','left','right']
+          worst=[]
+          for r in range(4):
+              for c in range(116):
+                  a=im.crop((c*64,r*64,(c+1)*64,(r+1)*64)).getchannel('A')
+                  b=a.point(lambda v:255 if v>64 else 0).getbbox(); assert b,(r,c)
+                  if b[0]<1 or b[1]<1 or b[2]>63 or b[3]>63: worst.append((r,c,b))
+          assert not worst,worst[:20]
+
+          scale=3; cell=192; labelw=112; top=34
+          for r,direction in enumerate(dirs):
+              sheet=Image.new('RGB',(labelw+cell*3,top+cell*len(starts)),(24,25,30)); d=ImageDraw.Draw(sheet)
+              d.text((8,8),f'V16.3 {direction} — start / middle / end',fill=(244,220,150))
+              for row,(state,start) in enumerate(starts.items()):
+                  n=counts[state]; ids=[0,n//2,n-1]; y=top+row*cell
+                  d.text((8,y+cell//2-6),state,fill=(235,235,235))
+                  for col,i in enumerate(ids):
+                      fr=im.crop(((start+i)*64,r*64,(start+i+1)*64,(r+1)*64))
+                      tile=Image.new('RGBA',(64,64),(235,226,205,255)); tile.alpha_composite(fr)
+                      sheet.paste(tile.convert('RGB').resize((cell,cell),Image.Resampling.NEAREST),(labelw+col*cell,y))
+              sheet.save(f'/tmp/v0741-art-qa/{direction}.png')
+          im.save('/tmp/v0741-art-qa/base-duck-chibi-v16-atlas.png')
+          print('v0.7.41 atlas: 464 frames with clipping margins; sheets ready')
+          PY
+          grep -q 'angle=62' scripts/generate-player-chibi-v16.py
+          grep -q "anchor=(40.5,43.0+bob\*.18)" scripts/generate-player-chibi-v16.py
+          grep -q "paste_gun(im,direction,(49.5,34.0+bob)" scripts/generate-player-chibi-v16.py
+          grep -q 'feetX + 10.8, y: feetY + .2, a: 1.08' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'const DRAW = 42' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '0.7.41-chibi-v16-weapon-perspective' index.html
+
+      - name: Upload authored visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0741-authored-art-qa
+          path: /tmp/v0741-art-qa
+          retention-days: 7
+
+      - name: Validate source and build
+        run: |
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0741 --emptyOutDir
+          test -s /tmp/duck-heist-v0741/index.html
+          grep -q '0.7.41-chibi-v16-weapon-perspective' /tmp/duck-heist-v0741/index.html
+          grep -q '464-raster-chibi-v16' /tmp/duck-heist-v0741/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/duck-heist-v0741/index.html
+
+      - name: Promote v0.7.41
+        run: |
+          npm version 0.7.41 --no-git-tag-version
+          printf '0.7.41\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0741/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.41"' package.json
+          grep -q '^0.7.41$' VERSION
+          grep -q '0.7.41-chibi-v16-weapon-perspective' web-release/index.html
+          cmp web-release/index.html dist/index.html
+
+      - name: Commit v0.7.41 to main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A scripts/generate-player-chibi-v16.py src/game/graphics/playerChibiAtlasV16.ts src/assets/chibi/base-duck-chibi-v16-atlas.png index.html web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.41 chibi V16 weapon perspective'
+          git pull --rebase origin main
+          git push origin HEAD:main
