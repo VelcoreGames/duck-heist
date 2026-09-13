@@ -104,16 +104,18 @@ def translucent_ellipse(im, b, color, alpha):
 
 
 def gun_layer(angle: float, anchor: tuple[float,float], recoil: float=0.0, lowered: float=0.0, alpha: int=255):
-    # Compact blaster, designed to read at 30-ish final pixels without becoming a black block.
-    local=Image.new('RGBA',(S(32),S(18)),(0,0,0,0)); d=ImageDraw.Draw(local)
-    d.rounded_rectangle(box(3,5,27,12), radius=S(2.1), fill=rgba(GUN_DARK,alpha), outline=rgba(INK,alpha), width=S(1.1))
-    d.rounded_rectangle(box(6,6,23,9.5), radius=S(1), fill=rgba(GUN_MID,alpha))
-    d.rounded_rectangle(box(8,6.25,19,7.15), radius=S(.35), fill=rgba(GUN_HI,int(alpha*.9)))
-    d.rounded_rectangle(box(25,6.1,31,9.8), radius=S(.8), fill=rgba('#697980',alpha))
-    d.rectangle(box(27,6.6,31,7.25), fill=rgba('#d9e2df',int(alpha*.72)))
-    d.rounded_rectangle(box(4.2,7.3,7.1,10.4), radius=S(.6), fill=rgba(BRASS,alpha))
-    d.polygon([(S(15),S(10)),(S(20),S(10)),(S(18.2),S(17)),(S(14.2),S(17))], fill=rgba(INK,alpha))
-    d.rounded_rectangle(box(15.2,11,18.2,16), radius=S(.6), fill=rgba(WOOD,alpha))
+    # Compact hero blaster: readable metal planes, a short stock and a tucked grip.
+    # It stays visually attached to the wing instead of reading like a floating prop.
+    local=Image.new('RGBA',(S(34),S(18)),(0,0,0,0)); d=ImageDraw.Draw(local)
+    d.rounded_rectangle(box(3,5,28.5,12), radius=S(2.0), fill=rgba(GUN_DARK,alpha), outline=rgba(INK,alpha), width=S(1.1))
+    d.rounded_rectangle(box(6.2,6.0,24.2,9.55), radius=S(.9), fill=rgba(GUN_MID,alpha))
+    d.rounded_rectangle(box(8.2,6.18,20.6,7.1), radius=S(.32), fill=rgba(GUN_HI,int(alpha*.92)))
+    d.rounded_rectangle(box(26.3,6.05,33.0,9.9), radius=S(.72), fill=rgba('#697980',alpha))
+    d.rectangle(box(29.0,6.52,33.0,7.22), fill=rgba('#e4ece8',int(alpha*.78)))
+    d.rounded_rectangle(box(3.6,7.1,7.3,10.6), radius=S(.62), fill=rgba(BRASS,alpha))
+    d.polygon([(S(14.7),S(10)),(S(20.0),S(10)),(S(18.1),S(17)),(S(14.0),S(17))], fill=rgba(INK,alpha))
+    d.rounded_rectangle(box(15.0,10.9,18.1,16.1), radius=S(.55), fill=rgba(WOOD,alpha))
+    d.rounded_rectangle(box(4.3,10.6,11.2,12.6), radius=S(.55), fill=rgba('#6f452a',alpha))
     local=local.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
     cx=S(anchor[0]); cy=S(anchor[1]+lowered)
     return local,(int(cx-local.width/2),int(cy-local.height/2))
@@ -148,10 +150,10 @@ def pose(state: str, i: int, n: int):
         # Premium gait: clear planted steps, less pogo bounce and a small lateral
         # weight transfer that makes vertical walking read instead of slide.
         q['stride']=sin(phase)
-        q['bob']=-1.55*abs(sin(phase))
-        q['lean']=.92*sin(phase)
-        q['wing']=1.45*sin(phase+pi)
-        q['sway']=1.15*cos(phase)
+        q['bob']=-1.35*abs(sin(phase))
+        q['lean']=.82*sin(phase)
+        q['wing']=1.55*sin(phase+pi)
+        q['sway']=1.35*cos(phase)
         q['plant']=cos(phase*2)
     elif state=='shoot':
         t=i/(n-1); attack=min(1,t/.22); recover=max(0,1-(t-.22)/.78) if t>.22 else 1
@@ -220,14 +222,14 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     # Front/back movement gets its own lateral weight transfer so vertical walk
     # frames have a readable planted gait at gameplay scale.
     vertical_sway=q['sway'] if (not side and state=='walk') else 0
-    head_cx=32 + (2.2*sign if side else vertical_sway*.42)
+    head_cx=32 + (2.4*sign if side else vertical_sway*.46)
     head_cy=22+bob
-    body_cx=32 + (.7*sign*q['lean']/4 if side else vertical_sway*.78)
-    body_cy=42+bob*.35
-    rx=18.2*(1+q['squash']*.12-q['stretch']*.05)
-    ry=16.9*(1-q['squash']*.10+q['stretch']*.03)
-    body_rx=10.7*(1+q['squash']*.45+q['stretch']*.18)
-    body_ry=12.4*(1-q['squash']*.40+q['stretch']*.18)
+    body_cx=32 + (.65*sign*q['lean']/4 if side else vertical_sway*.82)
+    body_cy=42.2+bob*.35
+    rx=18.4*(1+q['squash']*.12-q['stretch']*.05)
+    ry=17.0*(1-q['squash']*.10+q['stretch']*.03)
+    body_rx=11.0*(1+q['squash']*.45+q['stretch']*.18)
+    body_ry=12.6*(1-q['squash']*.40+q['stretch']*.18)
     # Directional recoil shifts the body opposite barrel.
     if state=='shoot':
         r=q['recoil']
@@ -259,9 +261,9 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
         lfx=27+stride*3.35; rfx=37-stride*3.35; lfy=fy; rfy=fy
         lfs=rfs=1.0
     else:
-        lfx=27.5+q['sway']*.16; rfx=36.5+q['sway']*.16
-        lfy=fy+stride*2.75; rfy=fy-stride*2.75
-        depth=.11*stride
+        lfx=27.5+q['sway']*.19; rfx=36.5+q['sway']*.19
+        lfy=fy+stride*3.05; rfy=fy-stride*3.05
+        depth=.13*stride
         if direction=='down': lfs,rfs=1+depth,1-depth
         else: lfs,rfs=1-depth,1+depth
     if state!='celebrate' or q['jump']<2.55:
@@ -275,7 +277,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     if direction=='up' and state not in ('celebrate',):
         # Offset to the shoulder so the rear weapon remains readable instead of
         # disappearing completely behind the large chibi head.
-        paste_gun(im,direction,(46.5,31.5+bob),recoil,q['lowered'])
+        paste_gun(im,direction,(47.4,32.2+bob),recoil,q['lowered'])
 
     # Tail/back wing hint.
     if side:
@@ -309,9 +311,9 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
 
     # Foreground weapon and gripping wing. It is integrated into every pose.
     if direction!='up' and state!='celebrate':
-        if direction=='right': anchor=(45.5,38+bob*.25)
-        elif direction=='left': anchor=(18.5,38+bob*.25)
-        else: anchor=(39.5,38.5+bob*.25)
+        if direction=='right': anchor=(45.2,38+bob*.25)
+        elif direction=='left': anchor=(18.8,38+bob*.25)
+        else: anchor=(39.5,38.2+bob*.25)
         paste_gun(im,direction,anchor,recoil,q['lowered'])
         gx=anchor[0]-(4 if direction=='right' else -4 if direction=='left' else 2)
         gy=anchor[1]+(1 if direction=='down' else 0)
@@ -319,7 +321,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
         translucent_ellipse(im,(gx-2.4,gy-2.2,gx+1.5,gy-1.0),'#f7db84',95)
     elif direction=='up' and state!='celebrate':
         # Wing closes over the shifted rear weapon grip.
-        ellipse(im,(39.0,33+bob*.2,49.0,44+bob*.2),WING,INK,1.1)
+        ellipse(im,(40.0,33.5+bob*.2,50.0,44.5+bob*.2),WING,INK,1.1)
 
     if state=='hurt':
         lay=Image.new('RGBA',im.size,(255,90,70,0)); lay.putalpha(im.getchannel('A').point(lambda a:int(a*.11*q['hurt'])))

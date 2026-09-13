@@ -10,7 +10,7 @@ const COLS = 116;
 const ROWS = 4;
 const ATLAS_W = COLS * FRAME;
 const ATLAS_H = ROWS * FRAME;
-const DRAW = 40;
+const DRAW = 42;
 const PIVOT_X = DRAW * (32 / 64);
 const PIVOT_Y = DRAW * (58 / 64);
 
@@ -141,7 +141,7 @@ function frameIndex(state: State, tick: number, frame: number, walkDistance: num
   if (state === 'idle') return Math.floor(frame / 7) % COUNT.idle;
   if (state === 'walk') {
     const vertical = dir === 'up' || dir === 'down';
-    const strideDistance = vertical ? 34 : 40;
+    const strideDistance = vertical ? 32 : 38;
     const cycle = ((walkDistance % strideDistance) + strideDistance) % strideDistance;
     return Math.floor((cycle / strideDistance) * COUNT.walk) % COUNT.walk;
   }
@@ -161,9 +161,12 @@ function visualPose(state: State, tick: number, index: number, dir: DuckDir, tur
     const stride = Math.sin(phase);
     const lift = Math.abs(stride);
     const vertical = dir === 'up' || dir === 'down';
-    dx = vertical ? stride * .34 : stride * .20;
-    dy = -lift * .58;
-    rotation = vertical ? stride * .008 : stride * (dir === 'left' ? -.012 : .012);
+    const plant = Math.cos(phase * 2);
+    dx = vertical ? stride * .42 : stride * .23;
+    dy = vertical ? -lift * .68 : -lift * .58;
+    scaleX = 1 + plant * .005;
+    scaleY = 1 - plant * .006;
+    rotation = vertical ? stride * .010 : stride * (dir === 'left' ? -.013 : .013);
   } else if (state === 'shoot') {
     const attack = Math.min(1, tick / 4);
     const recover = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 20);
@@ -183,12 +186,12 @@ function visualPose(state: State, tick: number, index: number, dir: DuckDir, tur
   } else if (state === 'hurt') {
     const impact = Math.max(0, 1 - tick / 14);
     const snap = tick < 3 ? -1 : tick < 7 ? .55 : -.18;
-    rotation = snap * .038 * impact;
+    rotation = snap * .048 * impact;
     const v = dashVector(dir);
-    dx = -v.x * impact * .68; dy = -v.y * impact * .45 - impact * .28;
+    dx = -v.x * impact * .82; dy = -v.y * impact * .52 - impact * .34;
   } else if (state === 'down') {
     const settle = Math.min(1, index / Math.max(1, COUNT.down - 1));
-    scaleX = 1 + settle * .025; scaleY = 1 - settle * .028; dy = settle * .34;
+    scaleX = 1 + settle * .038; scaleY = 1 - settle * .040; dy = settle * .44;
   }
   if (turnAge >= 0 && turnAge < 4 && state !== 'down' && state !== 'hurt') {
     const turn = 1 - turnAge / 4;
@@ -218,7 +221,7 @@ function drawFrame(
   ctx.globalAlpha = alpha;
   ctx.translate(feetX + pose.dx + ox, feetY + pose.dy + oy);
   ctx.rotate(pose.rotation);
-  ctx.filter = 'saturate(1.045) contrast(1.028)';
+  ctx.filter = 'saturate(1.060) contrast(1.035)';
   ctx.shadowColor = 'rgba(54, 37, 25, .18)';
   ctx.shadowBlur = .8;
   ctx.shadowOffsetY = .35;
@@ -241,8 +244,8 @@ function dashVector(dir: DuckDir): { x: number; y: number } {
 
 function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha: number, index: number): void {
   const airborne = state === 'walk' ? Math.abs(Math.sin((index / COUNT.walk) * Math.PI * 2)) : state === 'dash' ? .42 : 0;
-  const w = (state === 'down' ? 11.2 : state === 'dash' ? 9.6 : 9.0) * (1 - airborne * .12);
-  const h = (state === 'down' ? 2.8 : 2.25) * (1 - airborne * .08);
+  const w = (state === 'down' ? 11.8 : state === 'dash' ? 10.0 : 9.45) * (1 - airborne * .12);
+  const h = (state === 'down' ? 2.95 : 2.36) * (1 - airborne * .08);
   ctx.save();
   ctx.fillStyle = '#231912';
   ctx.globalAlpha = .065 * alpha;
@@ -253,10 +256,10 @@ function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha:
 }
 
 function muzzlePoint(dir: DuckDir, feetX: number, feetY: number): { x: number; y: number; a: number } {
-  if (dir === 'right') return { x: feetX + 16.5, y: feetY - 12.5, a: 0 };
-  if (dir === 'left') return { x: feetX - 16.5, y: feetY - 12.5, a: Math.PI };
-  if (dir === 'up') return { x: feetX + 2.4, y: feetY - 26.2, a: -Math.PI / 2 };
-  return { x: feetX + 6.5, y: feetY - 2.8, a: 1.29 };
+  if (dir === 'right') return { x: feetX + 18.0, y: feetY - 13.0, a: 0 };
+  if (dir === 'left') return { x: feetX - 18.0, y: feetY - 13.0, a: Math.PI };
+  if (dir === 'up') return { x: feetX + 3.0, y: feetY - 27.6, a: -Math.PI / 2 };
+  return { x: feetX + 7.0, y: feetY - 3.2, a: 1.29 };
 }
 
 function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: number, alpha: number): void {
@@ -283,14 +286,14 @@ function drawDashFx(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: 
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineCap = 'round';
-  for (let i = 0; i < 4; i++) {
-    const side = (i - 1.5) * 3.0;
+  for (let i = 0; i < 3; i++) {
+    const side = (i - 1) * 3.4;
     const px = -v.y, py = v.x;
     const sx = feetX - v.x * (8 + i * 3.5) + px * side;
     const sy = feetY - 15 - v.y * (8 + i * 3.5) + py * side;
-    ctx.globalAlpha = alpha * (1 - t) * (.11 + i * .025);
+    ctx.globalAlpha = alpha * (1 - t) * (.13 + i * .022);
     ctx.strokeStyle = i % 2 ? '#f4c95d' : '#fff0b5';
-    ctx.lineWidth = 1.15 + (3 - i) * .12;
+    ctx.lineWidth = 1.20 + (2 - i) * .12;
     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - v.x * (9 + i * 2), sy - v.y * (9 + i * 2)); ctx.stroke();
   }
   ctx.restore();
@@ -338,12 +341,12 @@ export function drawChibiPlayerAtlasV16(input: ChibiPlayerAtlasV16Input): void {
   if (state === 'dash') {
     const v = dashVector(input.dir);
     drawDashFx(ctx, input.dir, feetX, feetY, tick, alpha);
-    for (let i = 4; i >= 1; i--) {
-      drawFrame(ctx, image, input.dir, state, Math.max(0, index - i), feetX, feetY, alpha * (.035 + (4 - i) * .026), pose, -v.x * i * 3.8, -v.y * i * 3.8);
+    for (let i = 3; i >= 1; i--) {
+      drawFrame(ctx, image, input.dir, state, Math.max(0, index - i), feetX, feetY, alpha * (.025 + (3 - i) * .020), pose, -v.x * i * 4.4, -v.y * i * 4.4);
     }
   }
 
-  drawFrame(ctx, image, input.dir, state, index, feetX, feetY, alpha * (state === 'dash' ? .96 : 1), pose);
+  drawFrame(ctx, image, input.dir, state, index, feetX, feetY, alpha, pose);
   if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX + pose.dx, feetY + pose.dy, tick, alpha);
   if (state === 'hurt') drawHurtFx(ctx, feetX, feetY, tick, alpha);
 
