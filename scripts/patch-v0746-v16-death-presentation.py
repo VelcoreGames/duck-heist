@@ -79,8 +79,8 @@ replace_once(
 """,
 )
 
-# Prevent direct keyboard actions (pause/dash/active) from bypassing the frozen
-# death presentation between update ticks.
+# Prevent direct keyboard, gamepad and focus-loss pause actions from bypassing
+# the frozen death presentation between update ticks.
 replace_once(
     APP,
     """        case GameState.PLAYING:
@@ -89,6 +89,23 @@ replace_once(
     """        case GameState.PLAYING:
           if (engine.player.hp <= 0 || engine.player.deathTimer > 0) break;
           if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
+""",
+)
+replace_once(
+    APP,
+    """    const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING)goTo(GameState.PAUSED);};
+""",
+    """    const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING&&engine.player.hp>0&&engine.player.deathTimer===0)goTo(GameState.PAUSED);};
+""",
+)
+replace_once(
+    APP,
+    """    const padAction=(action:PadAction)=>{
+      if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
+""",
+    """    const padAction=(action:PadAction)=>{
+      if(engine.player.hp<=0 || engine.player.deathTimer>0) return;
+      if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
 """,
 )
 
