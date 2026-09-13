@@ -32,6 +32,7 @@ jobs:
           sed -i "/const YELLOW_DARK=/d" src/game/graphics/chibiBossesV3.ts
           sed -i "s/,dark=goose?'#cabc9c':YELLOW_DARK//" src/game/graphics/chibiBossesV3.ts
           sed -i "s/function auditorBoss(c:Ctx,id:string,frame:number,ratio:number){/function auditorBoss(c:Ctx,id:string,frame:number,ratio:number){ void frame;/" src/game/graphics/chibiBossesV3.ts
+          git restore scripts/patch-v0722.py
       - name: Validate source and build
         run: |
           grep -q 'drawChibiBossV3' src/game/graphics/chibiBossesV3.ts
