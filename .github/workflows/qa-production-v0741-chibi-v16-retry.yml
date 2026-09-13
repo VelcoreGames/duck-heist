@@ -22,7 +22,8 @@ jobs:
           node-version: 22
       - name: Confirm live build
         run: |
-          curl -fsSL "https://velcoregames.com/?qa=v0741-retry&t=$(date +%s%N)" | grep -q '0.7.41-chibi-v16-weapon-perspective'
+          html="$(curl -fsSL "https://velcoregames.com/?qa=v0741-retry&t=$(date +%s%N)")"
+          grep -q '0.7.41-chibi-v16-weapon-perspective' <<< "$html"
       - name: Install Playwright
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
@@ -59,7 +60,6 @@ jobs:
             samples.up=await move(p,'w','02-walk-up');samples.down=await move(p,'s','03-walk-down');samples.right=await move(p,'d','04-walk-right');
             await p.keyboard.down('d');await sleep(90);await p.keyboard.press('Shift');await sleep(55);samples.dash=await ds(p);assert.strictEqual(samples.dash.state,'dash');await p.screenshot({path:`${out}/05-dash-right.png`,fullPage:true});await p.keyboard.up('d');
             await sleep(900);
-            // Fresh game state removes residual dash inertia from the combat-direction checks.
             await start(p);samples.shootRight=await shoot(p,'ArrowRight','06-shoot-right');samples.shootDown=await shoot(p,'ArrowDown','07-shoot-down');samples.shootUp=await shoot(p,'ArrowUp','08-shoot-up');samples.final=await ds(p);
             assert.strictEqual(samples.final.renderer,'canvas2d-chibi-atlas-v16');assert.strictEqual(samples.final.frames,'464-raster-chibi-v16');assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));
             fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples,errors,failed,bad},null,2));await browser.close();
