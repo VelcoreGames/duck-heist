@@ -286,7 +286,7 @@ export function renderWorld(engine: GameEngine) {
   ctx.restore();
 
   // flash rojo al recibir daño
-  if (p.flash > 0) {
+  if (p.flash > 0 && p.hp > 0) {
     ctx.fillStyle = `rgba(220,40,40,${(p.flash / 10) * 0.3})`;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
@@ -298,7 +298,7 @@ export function renderWorld(engine: GameEngine) {
   vg.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  if(p.hp<=1) {
+  if(p.hp>0 && p.hp<=1) {
     const danger=ctx.createRadialGradient(240,176,130,240,176,275);
     danger.addColorStop(0,'rgba(145,25,32,0)');danger.addColorStop(1,`rgba(145,25,32,${.16+Math.sin(f*.05)*.035})`);
     ctx.fillStyle=danger;ctx.fillRect(0,0,480,352);

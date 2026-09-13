@@ -354,6 +354,27 @@ function drawHurtFx(ctx: Ctx, feetX: number, feetY: number, tick: number, alpha:
   ctx.restore();
 }
 
+function drawDownFocus(ctx: Ctx, feetX: number, feetY: number, tick: number, alpha: number): void {
+  const t = Math.max(0, Math.min(1, tick / 34));
+  const fade = 1 - Math.max(0, (t - .78) / .22);
+  const strength = alpha * (.92 + Math.sin(Math.min(1, t * 1.4) * Math.PI) * .08) * fade;
+  if (strength <= .01) return;
+  ctx.save();
+  const g = ctx.createRadialGradient(feetX, feetY - 10, 3, feetX, feetY - 10, 31);
+  g.addColorStop(0, `rgba(10,7,7,${.20 * strength})`);
+  g.addColorStop(.58, `rgba(10,7,7,${.12 * strength})`);
+  g.addColorStop(1, 'rgba(10,7,7,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(feetX - 34, feetY - 44, 68, 50);
+
+  // A restrained warm contact glow separates the yellow body from nearby
+  // enemies without reading as a magical shield or changing scene lighting.
+  ctx.globalAlpha = .11 * strength;
+  ctx.fillStyle = '#f6d789';
+  ctx.beginPath(); ctx.ellipse(feetX, feetY + .8, 14.5, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
 function drawDownFx(ctx: Ctx, feetX: number, feetY: number, tick: number, alpha: number): void {
   if (tick < 15 || tick > 33) return;
   const t = Math.max(0, Math.min(1, (tick - 15) / 18));
@@ -411,14 +432,17 @@ export function drawChibiPlayerAtlasV16(input: ChibiPlayerAtlasV16Input): void {
     }
   }
 
-  if (state === 'down') drawDownFx(ctx, feetX, feetY, tick, alpha);
+  if (state === 'down') {
+    drawDownFocus(ctx, feetX, feetY, tick, alpha);
+    drawDownFx(ctx, feetX, feetY, tick, alpha);
+  }
   drawFrame(ctx, image, input.dir, state, index, feetX, feetY, alpha, pose);
   if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX + pose.dx, feetY + pose.dy, tick, alpha);
   if (state === 'hurt') drawHurtFx(ctx, feetX, feetY, tick, alpha);
 
   document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-atlas-v16';
   document.documentElement.dataset.duckHeistPlayerFrames = '464-raster-chibi-v16';
-  document.documentElement.dataset.duckHeistPlayerFx = 'v16.7-impact-fx';
+  document.documentElement.dataset.duckHeistPlayerFx = 'v16.8-death-focus';
   document.documentElement.dataset.duckHeistPlayerState = state;
   document.documentElement.dataset.duckHeistPlayerVisualFrame = `${state}:${index}`;
 }
