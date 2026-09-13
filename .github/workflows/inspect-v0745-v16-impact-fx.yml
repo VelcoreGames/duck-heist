@@ -1,0 +1,93 @@
+name: Inspect Duck Heist v0.7.45 V16 Impact FX
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-v0745-v16-impact-fx.yml'
+      - 'scripts/patch-v0745-v16-impact-fx.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply V16.7 impact FX candidate
+        run: python scripts/patch-v0745-v16-impact-fx.py
+
+      - name: Add local-only QA state controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/App.tsx')
+          s=p.read_text()
+          old='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n'''
+          new='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n    (window as Window & { __duckQaEngine?: GameEngine; __duckQaFreeze?: boolean }).__duckQaEngine = engine;\n'''
+          if s.count(old)!=1: raise SystemExit('engine QA hook anchor mismatch')
+          s=s.replace(old,new,1)
+          old2='''      const st = engine.state;\n      const live = st === GameState.PLAYING || st === GameState.FLOOR_INTRO ||\n        st === GameState.BOSS_INTRO || st === GameState.FLOOR_CLEAR || st===GameState.HEIST_INTRO;\n      if (live) updateEngine(engine);\n      else if(st===GameState.MAP) engine.mapView.frame++;\n      else engine.frame++;\n'''
+          new2='''      const st = engine.state;\n      const live = st === GameState.PLAYING || st === GameState.FLOOR_INTRO ||\n        st === GameState.BOSS_INTRO || st === GameState.FLOOR_CLEAR || st===GameState.HEIST_INTRO;\n      const qaFreeze=(window as Window & { __duckQaFreeze?: boolean }).__duckQaFreeze===true;\n      if (live && !qaFreeze) updateEngine(engine);\n      else if (qaFreeze) engine.frame++;\n      else if(st===GameState.MAP) engine.mapView.frame++;\n      else engine.frame++;\n'''
+          if s.count(old2)!=1: raise SystemExit('loop QA freeze anchor mismatch')
+          p.write_text(s.replace(old2,new2,1))
+          PY
+
+      - name: Validate TypeScript and build
+        run: |
+          grep -q 'const DRAW = 46' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'v16.7-impact-fx' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'drawDownFx' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '0.7.45-chibi-v16-impact-fx-candidate' index.html
+          grep -q '464-raster-chibi-v16' src/game/graphics/playerChibiAtlasV16.ts
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/v0745-build --emptyOutDir
+          grep -q '0.7.45-chibi-v16-impact-fx-candidate' /tmp/v0745-build/index.html
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify movement combat hurt and down presentation
+        run: |
+          mkdir -p /tmp/v0745-review
+          cd /tmp/v0745-build
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v0745-http.log 2>&1 &
+          echo $! >/tmp/v0745-http.pid
+          cd "$GITHUB_WORKSPACE"
+          node <<'NODE'
+          const { chromium }=require('playwright');
+          const fs=require('fs'),assert=require('assert');
+          const out='/tmp/v0745-review', expected='0.7.45-chibi-v16-impact-fx-candidate';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms)); const errors=[],failed=[],bad=[],samples={};
+          async function ds(p){return p.evaluate(()=>({build:document.querySelector('meta[name="duck-heist-build"]')?.content||'',renderer:document.documentElement.dataset.duckHeistPlayerRenderer||'',frames:document.documentElement.dataset.duckHeistPlayerFrames||'',fx:document.documentElement.dataset.duckHeistPlayerFx||'',state:document.documentElement.dataset.duckHeistPlayerState||'',visualFrame:document.documentElement.dataset.duckHeistPlayerVisualFrame||''}));}
+          async function start(p){await p.goto(`http://127.0.0.1:4173/?qa=v0745&t=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});await sleep(1800);assert.strictEqual((await ds(p)).build,expected);const c=p.locator('canvas[role="application"]');assert.strictEqual(await c.count(),1);await c.focus();await p.keyboard.press('Enter');for(let i=0;i<5;i++){await sleep(850);const d=await ds(p);if(d.renderer==='canvas2d-chibi-atlas-v16'&&d.frames==='464-raster-chibi-v16')break;await p.keyboard.press('Enter');}await sleep(3000);const d=await ds(p);assert.strictEqual(d.state,'idle');assert.strictEqual(d.fx,'v16.7-impact-fx');}
+          async function move(p,key,label){await p.keyboard.down(key);await sleep(150);const a=await ds(p);await sleep(330);const b=await ds(p);await p.screenshot({path:`${out}/${label}.png`,fullPage:true});await p.keyboard.up(key);await sleep(180);assert.strictEqual(a.state,'walk');assert.strictEqual(b.state,'walk');assert.notStrictEqual(a.visualFrame,b.visualFrame);return {a,b};}
+          async function shoot(p,key,label){await p.keyboard.down(key);let found=null;for(let i=0;i<35;i++){await sleep(16);const d=await ds(p);if(d.state==='shoot'){found=d;break;}}assert(found,`${label}: shoot missing`);await p.screenshot({path:`${out}/${label}.png`,fullPage:true});await p.keyboard.up(key);await sleep(420);return found;}
+          (async()=>{const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});const p=await context.newPage();p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} ${r.failure()?.errorText||''}`));p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()} ${r.url()}`)});
+          await start(p);samples.idle=await ds(p);await p.screenshot({path:`${out}/01-idle.png`,fullPage:true});samples.up=await move(p,'w','02-walk-up');samples.down=await move(p,'s','03-walk-down');samples.right=await move(p,'d','04-walk-right');await p.keyboard.down('d');await sleep(90);await p.keyboard.press('Shift');await sleep(55);samples.dash=await ds(p);assert.strictEqual(samples.dash.state,'dash');await p.screenshot({path:`${out}/05-dash-right.png`,fullPage:true});await p.keyboard.up('d');await sleep(900);await start(p);samples.shootRight=await shoot(p,'ArrowRight','06-shoot-right');samples.shootDown=await shoot(p,'ArrowDown','07-shoot-down');samples.shootUp=await shoot(p,'ArrowUp','08-shoot-up');
+          await p.evaluate(()=>{const w=window;w.__duckQaFreeze=true;const e=w.__duckQaEngine;if(!e)throw new Error('QA engine missing');e.player.hp=Math.max(1,e.player.hp);e.player.hurtTimer=22;});await sleep(85);samples.hurtEarly=await ds(p);assert.strictEqual(samples.hurtEarly.state,'hurt');await p.screenshot({path:`${out}/09-hurt-early.png`,fullPage:true});await sleep(145);samples.hurtLate=await ds(p);assert.strictEqual(samples.hurtLate.state,'hurt');await p.screenshot({path:`${out}/10-hurt-late.png`,fullPage:true});
+          await p.evaluate(()=>{const w=window;const e=w.__duckQaEngine;if(!e)throw new Error('QA engine missing');e.player.hurtTimer=0;e.player.hp=0;});await sleep(105);samples.downEarly=await ds(p);assert.strictEqual(samples.downEarly.state,'down');await p.screenshot({path:`${out}/11-down-early.png`,fullPage:true});await sleep(240);samples.downMid=await ds(p);assert.strictEqual(samples.downMid.state,'down');await p.screenshot({path:`${out}/12-down-mid.png`,fullPage:true});await sleep(330);samples.downEnd=await ds(p);assert.strictEqual(samples.downEnd.state,'down');await p.screenshot({path:`${out}/13-down-end.png`,fullPage:true});
+          samples.final=await ds(p);assert.strictEqual(samples.final.renderer,'canvas2d-chibi-atlas-v16');assert.strictEqual(samples.final.frames,'464-raster-chibi-v16');assert.strictEqual(samples.final.fx,'v16.7-impact-fx');assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples,errors,failed,bad},null,2));await browser.close();})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          kill "$(cat /tmp/v0745-http.pid)" || true
+
+      - name: Upload candidate review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0745-impact-fx-candidate
+          path: /tmp/v0745-review
+          if-no-files-found: warn
+          retention-days: 7
