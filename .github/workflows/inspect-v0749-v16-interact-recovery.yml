@@ -77,37 +77,44 @@ jobs:
           async function ds(p){return p.evaluate(()=>{const e=window.__duckQaEngine;return {build:document.querySelector('meta[name="duck-heist-build"]')?.content||'',renderer:document.documentElement.dataset.duckHeistPlayerRenderer||'',frames:document.documentElement.dataset.duckHeistPlayerFrames||'',fx:document.documentElement.dataset.duckHeistPlayerFx||'',state:document.documentElement.dataset.duckHeistPlayerState||'',visualFrame:document.documentElement.dataset.duckHeistPlayerVisualFrame||'',engineState:e?.state,switchAnim:e?.player.switchAnim,moving:e?.player.moving,dashTimer:e?.player.dashTimer,hurtTimer:e?.player.hurtTimer};});}
           async function start(p){await p.goto(`http://127.0.0.1:4173/?qa=v0749&t=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});await sleep(1500);assert.strictEqual((await ds(p)).build,expected);const c=p.locator('canvas[role="application"]');await c.focus();await p.keyboard.press('Enter');for(let i=0;i<10;i++){await sleep(650);const d=await ds(p);if(d.engineState==='PLAYING'&&d.state==='idle')return d;await p.keyboard.press('Enter');}throw new Error('did not reach PLAYING idle');}
           async function setSwitch(p,n){await p.evaluate(n=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');e.keys={};e.mouseDown=false;e.player.moving=false;e.player.shootFlash=0;e.player.dashTimer=0;e.player.hurtTimer=0;e.player.switchAnim=n;},n);}
-          async function observe(p,ms=420){const seen=[];const t0=Date.now();while(Date.now()-t0<ms){seen.push(await ds(p));await sleep(10);}return seen;}
+          async function observe(p,ms=420){const seen=[];const t0=Date.now();while(Date.now()-t0<ms){seen.push(await ds(p));await sleep(7);}return seen;}
+          async function waitForFrame(p,target,timeout=500){const t0=Date.now();while(Date.now()-t0<timeout){const d=await ds(p);if(d.visualFrame===target)return d;await sleep(5);}throw new Error(`did not observe ${target}`);}
           (async()=>{const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});const p=await context.newPage();p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} ${r.failure()?.errorText||''}`));p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()} ${r.url()}`)});
           samples.idle=await start(p);assert.strictEqual(samples.idle.renderer,'canvas2d-chibi-atlas-v16');assert.strictEqual(samples.idle.frames,'464-raster-chibi-v16');
 
-          // Normal 12-tick weapon cycle must expose all authored interact frames and settle to idle.
-          await setSwitch(p,12);await sleep(28);await p.screenshot({path:`${out}/01-interact-early.png`,fullPage:true});samples.normal=await observe(p,360);
+          // Sample immediately: browser screenshots are intentionally outside the timing assertions.
+          await setSwitch(p,12);samples.normal=await observe(p,360);
           const normalFrames=new Set(samples.normal.filter(x=>x.state==='interact').map(x=>x.visualFrame));
-          assert(normalFrames.has('interact:0')||normalFrames.has('interact:1')||normalFrames.has('interact:2'),'interact did not start near authored beginning');
+          assert(normalFrames.size>=7,`too few interact frames observed: ${[...normalFrames].join(',')}`);
           assert(normalFrames.has('interact:11'),'normal switch never reached authored interact frame 11');
           assert(samples.normal.some(x=>x.state==='idle'),'normal switch did not recover to idle');
-          await p.screenshot({path:`${out}/02-interact-recovered.png`,fullPage:true});
 
-          // Short 10-tick equip gets only the two missing visual recovery ticks when stationary.
+          // Short 10-tick equip gets only the missing visual recovery ticks when stationary.
           await setSwitch(p,10);samples.short=await observe(p,320);const shortFrames=new Set(samples.short.filter(x=>x.state==='interact').map(x=>x.visualFrame));
           assert(shortFrames.has('interact:11'),'short stationary equip did not finish authored recovery');
           assert(samples.short.some(x=>x.switchAnim===0&&x.state==='interact'),'short equip did not use visual-only recovery after gameplay timer ended');
           assert(samples.short.some(x=>x.state==='idle'),'short equip did not settle to idle');
 
-          // Movement must win as soon as the gameplay switch timer expires; no visual sliding hold.
+          // Movement wins as soon as the gameplay switch timer expires; no sliding visual hold.
           await setSwitch(p,10);await p.keyboard.down('d');samples.move=await observe(p,300);await p.keyboard.up('d');
           const zeroAt=samples.move.findIndex(x=>x.switchAnim===0);assert(zeroAt>=0,'moving switch never reached zero');
           assert(samples.move.slice(zeroAt).some(x=>x.state==='walk'),'movement did not take over after switch timer');
 
-          // Hurt always has higher presentation priority than interact.
-          await setSwitch(p,12);await sleep(35);await p.evaluate(()=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');e.player.hurtTimer=8;});await sleep(35);samples.hurt=await ds(p);assert.strictEqual(samples.hurt.state,'hurt');
+          // Hurt has higher presentation priority than interact.
+          await setSwitch(p,12);await sleep(30);await p.evaluate(()=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');e.player.hurtTimer=8;});await sleep(25);samples.hurt=await ds(p);assert.strictEqual(samples.hurt.state,'hurt');
 
-          // Dash always has higher presentation priority than interact.
-          await setSwitch(p,12);await p.keyboard.down('d');await sleep(30);await p.keyboard.press('Shift');await sleep(35);samples.dash=await ds(p);await p.keyboard.up('d');assert.strictEqual(samples.dash.state,'dash');
-          await p.screenshot({path:`${out}/03-interrupt-dash.png`,fullPage:true});
+          // Dash has higher presentation priority than interact.
+          await setSwitch(p,12);await p.keyboard.down('d');await sleep(25);await p.keyboard.press('Shift');await sleep(30);samples.dash=await ds(p);await p.keyboard.up('d');assert.strictEqual(samples.dash.state,'dash');
 
-          assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples:{idle:samples.idle,normalFrames:[...normalFrames],shortFrames:[...shortFrames],move:samples.move.slice(-8),hurt:samples.hurt,dash:samples.dash},errors,failed,bad},null,2));await browser.close();})().catch(e=>{console.error(e);process.exit(1)});
+          // Existing gameplay allows fire once switchAnim <= 6; presentation must yield to shoot.
+          await setSwitch(p,6);await p.keyboard.down('ArrowRight');let shoot=null;for(let i=0;i<35;i++){await sleep(10);const d=await ds(p);if(d.state==='shoot'){shoot=d;break;}}await p.keyboard.up('ArrowRight');assert(shoot,'shoot did not interrupt interact once gameplay switch gate allowed fire');samples.shoot=shoot;
+
+          // Visual review after timing assertions: capture mid gesture and authored recovery frame.
+          await sleep(450);await setSwitch(p,12);await waitForFrame(p,'interact:5');await p.screenshot({path:`${out}/01-interact-mid.png`,fullPage:true});
+          await sleep(300);await setSwitch(p,12);await waitForFrame(p,'interact:11');await p.screenshot({path:`${out}/02-interact-recovery.png`,fullPage:true});
+          await sleep(320);await p.screenshot({path:`${out}/03-idle-after-interact.png`,fullPage:true});
+
+          assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples:{idle:samples.idle,normalFrames:[...normalFrames],shortFrames:[...shortFrames],move:samples.move.slice(-8),hurt:samples.hurt,dash:samples.dash,shoot:samples.shoot},errors,failed,bad},null,2));await browser.close();})().catch(e=>{console.error(e);process.exit(1)});
           NODE
           kill "$(cat /tmp/v0749-http.pid)" || true
 
