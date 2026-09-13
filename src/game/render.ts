@@ -9,8 +9,7 @@ import {
   drawDuck, drawHeart, drawSecurityPigeon, drawGuardGoose, drawToasterTurret,
   drawRollingBagel, drawProjectile, drawCoin, drawChest, drawBoss, drawDoor,
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
-  drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
-  drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
+  drawBankerChicken, drawPedestal, drawCandle, drawObstacle,
   drawDuckSkin,
 } from './sprites';
 import {
@@ -38,6 +37,7 @@ import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt
 import { drawChibiPlayerRemastered } from './graphics/playerChibiRemastered';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
+import { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -191,11 +191,21 @@ export function renderWorld(engine: GameEngine) {
         case 'evil_croissant':drawEvilCroissant(ctx,-8,-8,f,false);break;
         case 'banker_chicken':drawBankerChicken(ctx,-8,-8,f,false);break;
         case 'guard_goose':drawGuardGoose(ctx,-10,-10,f,false);break;
-        case 'dron_policial':drawDronPolicial(ctx,-8,-8,f,false);break;
-        case 'policia_rapido':drawPoliciaRapido(ctx,-8,-8,f,false,1);break;
-        case 'policia_escopeta':drawPoliciaEscopeta(ctx,-9,-9,f,false,1,0);break;
-        case 'policia_antidisturbios':drawPoliciaAntidisturbios(ctx,-11,-11,f,false,{x:0,y:1},false,true);break;
-        case 'policia_pato':drawPoliciaPato(ctx,-8,-8,f,false,1);break;
+        case 'dron_policial':
+          drawChibiPoliceDroneV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,hurt:false,elite:d.enemy.elite});
+          break;
+        case 'policia_rapido':
+          drawChibiPoliceVariantV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,variant:'rapid'});
+          break;
+        case 'policia_escopeta':
+          drawChibiPoliceVariantV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,variant:'shotgun'});
+          break;
+        case 'policia_antidisturbios':
+          drawChibiPoliceVariantV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:0,dirY:1,moving:false,hurt:false,elite:d.enemy.elite,variant:'riot',shieldAngle:Math.PI/2,recovering:true});
+          break;
+        case 'policia_pato':
+          drawChibiPoliceDuckV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite});
+          break;
         default:drawSecurityPigeon(ctx,-8,-8,f,false);
       }
     }
@@ -539,7 +549,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
           variant: 'shotgun', telegraph: e.telegraph,
         });
         break;
-      case 'dron_policial': drawDronPolicial(ctx, e.x, e.y, f, hurt); break;
+      case 'dron_policial':
+        drawChibiPoliceDroneV3({
+          ctx, x:e.x, y:e.y, size:e.size, frame:f + e.id * 5,
+          hurt, elite:e.elite, telegraph:e.telegraph,
+        });
+        break;
       case 'policia_antidisturbios':
         drawChibiPoliceVariantV3({
           ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 13,
