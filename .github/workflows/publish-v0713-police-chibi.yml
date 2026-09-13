@@ -1,0 +1,69 @@
+name: Publish Duck Heist v0.7.13 Police Chibi
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0713-police-chibi.yml'
+      - 'scripts/patch-v0713.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply v0.7.13 police chibi patch
+        run: python3 scripts/patch-v0713.py
+
+      - name: Validate source and build
+        run: |
+          grep -q 'size / 22' src/game/graphics/enemyChibiV3.ts
+          grep -q 'drawFrontHead' src/game/graphics/enemyChibiV3.ts
+          grep -q 'drawBackHead' src/game/graphics/enemyChibiV3.ts
+          grep -q 'dirY:' src/game/render.ts
+          grep -q '0.7.13-police-chibi' index.html
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0713 --emptyOutDir
+          test -s /tmp/duck-heist-v0713/index.html
+          grep -q '0.7.13-police-chibi' /tmp/duck-heist-v0713/index.html
+          grep -q 'canvas2d-chibi-remastered-v9' /tmp/duck-heist-v0713/index.html
+
+      - name: Promote v0.7.13
+        run: |
+          npm version 0.7.13 --no-git-tag-version
+          printf '0.7.13\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0713/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.13"' package.json
+          grep -q '^0.7.13$' VERSION
+          grep -q '0.7.13-police-chibi' web-release/index.html
+          grep -q 'canvas2d-chibi-remastered-v9' web-release/index.html
+          cmp web-release/index.html dist/index.html
+
+      - name: Commit v0.7.13
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/enemyChibiV3.ts src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.13 police chibi consistency'
+          git pull --rebase origin main
+          git push origin HEAD:main
