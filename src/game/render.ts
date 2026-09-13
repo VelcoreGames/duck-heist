@@ -6,7 +6,7 @@ import {
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
 } from './constants';
 import {
-  drawDuck, drawHeart, drawSecurityPigeon, drawGuardGoose, drawToasterTurret,
+  drawDuck, drawHeart, drawSecurityPigeon, drawToasterTurret,
   drawRollingBagel, drawProjectile, drawCoin, drawChest, drawBoss, drawDoor,
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
   drawBankerChicken, drawPedestal, drawCandle, drawObstacle,
@@ -38,6 +38,7 @@ import { drawChibiPlayerRemastered } from './graphics/playerChibiRemastered';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
 import { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';
+import { drawChibiBirdEnemyV3 } from './graphics/chibiBirdEnemiesV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -190,7 +191,12 @@ export function renderWorld(engine: GameEngine) {
         case 'rolling_bagel':drawRollingBagel(ctx,-8,-8,f,false);break;
         case 'evil_croissant':drawEvilCroissant(ctx,-8,-8,f,false);break;
         case 'banker_chicken':drawBankerChicken(ctx,-8,-8,f,false);break;
-        case 'guard_goose':drawGuardGoose(ctx,-10,-10,f,false);break;
+        case 'guard_goose':
+          drawChibiBirdEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'goose'});
+          break;
+        case 'security_pigeon':
+          drawChibiBirdEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'pigeon'});
+          break;
         case 'dron_policial':
           drawChibiPoliceDroneV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,hurt:false,elite:d.enemy.elite});
           break;
@@ -453,6 +459,12 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
   void engine;
 }
 
+function usesChibiEnemyRenderer(type: string) {
+  return type === 'policia_pato' || type === 'policia_rapido' || type === 'policia_escopeta' ||
+    type === 'policia_antidisturbios' || type === 'dron_policial' ||
+    type === 'security_pigeon' || type === 'guard_goose';
+}
+
 function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: GameEngine) {
   const hurt = e.hurtTimer > 0;
   const player = engine.player;
@@ -513,7 +525,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   }
 
   // sombra legacy sólo para entidades que aún no usan renderer chibi propio
-  if (e.type !== 'policia_pato') {
+  if (!usesChibiEnemyRenderer(e.type)) {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
   }
@@ -565,8 +577,22 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
           charging: e.chargeTimer > 0, recovering: e.recover > 0,
         });
         break;
-      case 'security_pigeon': drawSecurityPigeon(ctx, e.x, e.y, f, hurt); break;
-      case 'guard_goose': drawGuardGoose(ctx, e.x, e.y, f, hurt); break;
+      case 'security_pigeon':
+        drawChibiBirdEnemyV3({
+          ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*5,
+          dirX:Math.abs(toPlayerX)>=Math.abs(toPlayerY)?dirX:0,
+          dirY:Math.abs(toPlayerY)>Math.abs(toPlayerX)?dirY:0,
+          moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'pigeon',
+        });
+        break;
+      case 'guard_goose':
+        drawChibiBirdEnemyV3({
+          ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*7,
+          dirX:Math.abs(toPlayerX)>=Math.abs(toPlayerY)?dirX:0,
+          dirY:Math.abs(toPlayerY)>Math.abs(toPlayerX)?dirY:0,
+          moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'goose',
+        });
+        break;
       case 'toaster_turret': drawToasterTurret(ctx, e.x, e.y, f, hurt); break;
       case 'rolling_bagel': drawRollingBagel(ctx, e.x, e.y, f, hurt); break;
       case 'evil_croissant': drawEvilCroissant(ctx, e.x, e.y, f, hurt); break;
@@ -575,7 +601,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     }
   }
 
-  if (hurt && e.type !== 'policia_pato') {
+  if (hurt && !usesChibiEnemyRenderer(e.type)) {
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
