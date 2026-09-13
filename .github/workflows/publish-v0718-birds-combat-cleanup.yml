@@ -1,0 +1,69 @@
+name: Publish Duck Heist v0.7.18 Birds Combat Cleanup
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0718-birds-combat-cleanup.yml'
+      - 'scripts/patch-v0718.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply v0.7.18 birds and combat cleanup
+        run: python3 scripts/patch-v0718.py
+
+      - name: Validate source and build
+        run: |
+          grep -q 'drawChibiBirdEnemyV3' src/game/graphics/chibiBirdEnemiesV3.ts
+          grep -q 'usesChibiEnemyRenderer' src/game/render.ts
+          grep -q "kind:'pigeon'" src/game/render.ts
+          grep -q "kind:'goose'" src/game/render.ts
+          grep -q '0.7.18-birds-combat-cleanup' index.html
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0718 --emptyOutDir
+          test -s /tmp/duck-heist-v0718/index.html
+          grep -q '0.7.18-birds-combat-cleanup' /tmp/duck-heist-v0718/index.html
+          grep -q 'canvas2d-chibi-remastered-v9' /tmp/duck-heist-v0718/index.html
+
+      - name: Promote v0.7.18
+        run: |
+          npm version 0.7.18 --no-git-tag-version
+          printf '0.7.18\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0718/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.18"' package.json
+          grep -q '^0.7.18$' VERSION
+          grep -q '0.7.18-birds-combat-cleanup' web-release/index.html
+          grep -q 'canvas2d-chibi-remastered-v9' web-release/index.html
+          cmp web-release/index.html dist/index.html
+
+      - name: Commit v0.7.18
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/chibiBirdEnemiesV3.ts src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.18 birds and chibi combat cleanup'
+          git pull --rebase origin main
+          git push origin HEAD:main
