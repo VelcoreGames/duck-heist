@@ -8,7 +8,7 @@ import {
 import {
   drawDuck, drawHeart, drawSecurityPigeon,
   drawProjectile, drawCoin, drawChest, drawBoss, drawDoor,
-  drawParticle, drawItem, drawWeaponIcon, drawShopPigeon,
+  drawParticle, drawItem, drawWeaponIcon,
   drawPedestal, drawCandle, drawObstacle,
   drawDuckSkin,
 } from './sprites';
@@ -40,6 +40,7 @@ import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
 import { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';
 import { drawChibiBirdEnemyV3 } from './graphics/chibiBirdEnemiesV3';
 import { drawChibiFoodEnemyV3 } from './graphics/chibiFoodEnemiesV3';
+import { drawChibiCompanionDuckV3, drawChibiMerchantPigeonV3, drawChibiInjuredDuckV3 } from './graphics/chibiSupportV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -146,12 +147,12 @@ export function renderWorld(engine: GameEngine) {
   if(content.event) {
     const event=content.event;
     drawPedestal(ctx,event.x-4,event.y+9,f,event.used);
-    if(event.kind==='injured') drawDuckSkin(ctx,event.x,event.y,f,'robber','down',false,false,false,false,!event.used);
+    if(event.kind==='injured') drawChibiInjuredDuckV3(ctx,event.x,event.y,f,event.used);
     else drawItemIcon(ctx,event.x-8,event.y-11,EVENTS[event.kind].icon,32);
   }
 
   if (room.type === RoomType.SHOP && content.shopItems) {
-    drawShopPigeon(ctx, CANVAS_WIDTH / 2 - 8, CANVAS_HEIGHT * 0.22, f);
+    drawChibiMerchantPigeonV3(ctx, CANVAS_WIDTH / 2 - 11, CANVAS_HEIGHT * 0.22 - 5, f);
     for (const it of content.shopItems) {
       if (it.sold) continue;
       if (it.isWeapon) drawWeaponIcon(ctx, it.x - 8, it.y - 8, it.itemId);
@@ -244,7 +245,7 @@ export function renderWorld(engine: GameEngine) {
   for(const child of p.companions) {
     ctx.save();ctx.translate(child.x+8,child.y+8);ctx.scale(.72,.72);
     if(child.kind==='chicken')drawChibiFoodEnemyV3({ctx,x:-8,y:-8,size:16,frame:f,dirX:1,dirY:0,moving:p.moving,hurt:false,kind:'banker_chicken'});
-    else {drawDuck(ctx,-8,-8,f*.7,'down',p.moving);if(child.kind==='guard'){ctx.fillStyle=p.guardianCooldown>0?'#4a5f6b':'#b3dce0';ctx.fillRect(3,0,7,9);}}
+    else drawChibiCompanionDuckV3(ctx,-8,-8,f,p.moving,child.kind==='guard',p.guardianCooldown);
     ctx.restore();
   }
   if(b.aura>0) {
