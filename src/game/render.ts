@@ -47,6 +47,7 @@ import { drawChibiThemedDoorV3, drawChibiThemedObstacleV3 } from './graphics/chi
 import { drawChibiChestV3, drawChibiPedestalV3, drawChibiCandleV3, drawChibiStairsV3 } from './graphics/chibiInteractablesV3';
 import { drawChibiItemRoomDecorV3, drawChibiShopRoomDecorV3, drawChibiBossRoomDecorV3, drawChibiTreasureRoomDecorV3, drawChibiHiddenDoorV3 } from './graphics/chibiRoomDecorV3';
 import { drawChibiFloorTileV3 } from './graphics/chibiFloorArtV3';
+import { drawChibiFloorAtmosphereV3 } from './graphics/chibiAtmosphereV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -349,7 +350,8 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
     }
   }
   drawInnerWallShadow(ctx);
-  drawRoomAtmosphere(ctx, special ? 'vault' : th.deco, f, special);
+  if (!special && floorIndex > 0) drawChibiFloorAtmosphereV3(ctx, f, floorIndex);
+  else drawRoomAtmosphere(ctx, special ? 'vault' : th.deco, f, special);
 
   // composición chibi por tipo de sala; solo arte, sin alterar colisiones.
   if (special) {
