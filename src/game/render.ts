@@ -7,9 +7,8 @@ import {
 } from './constants';
 import {
   drawDuck, drawHeart,
-  drawProjectile, drawCoin, drawChest,
+  drawProjectile, drawCoin,
   drawParticle, drawItem, drawWeaponIcon,
-  drawPedestal, drawCandle,
   drawDuckSkin,
 } from './sprites';
 import {
@@ -45,6 +44,7 @@ import { drawChibiCompanionDuckV3, drawChibiMerchantPigeonV3, drawChibiInjuredDu
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import { drawChibiThemedDoorV3, drawChibiThemedObstacleV3 } from './graphics/chibiWorldPropsV3';
+import { drawChibiChestV3, drawChibiPedestalV3, drawChibiCandleV3, drawChibiStairsV3 } from './graphics/chibiInteractablesV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -102,7 +102,7 @@ export function renderWorld(engine: GameEngine) {
   }
 
   // luces doradas de la escalera
-  if (content.stairs) drawStairs(ctx, content.stairs, f);
+  if (content.stairs) drawChibiStairsV3(ctx, content.stairs.x, content.stairs.y, f, content.stairs.glow, engine.map.floorIndex);
 
   // puertas
   for (const d of room.doors) {
@@ -137,18 +137,18 @@ export function renderWorld(engine: GameEngine) {
   }
 
   if (room.type === RoomType.ITEM) {
-    drawCandle(ctx, TILE_SIZE * 3, CANVAS_HEIGHT / 2 - 30, f);
-    drawCandle(ctx, CANVAS_WIDTH - TILE_SIZE * 3 - 8, CANVAS_HEIGHT / 2 - 30, f);
-    drawCandle(ctx, TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40);
-    drawCandle(ctx, CANVAS_WIDTH - TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40);
+    drawChibiCandleV3(ctx, TILE_SIZE * 3, CANVAS_HEIGHT / 2 - 30, f, engine.map.floorIndex);
+    drawChibiCandleV3(ctx, CANVAS_WIDTH - TILE_SIZE * 3 - 8, CANVAS_HEIGHT / 2 - 30, f, engine.map.floorIndex);
+    drawChibiCandleV3(ctx, TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40, engine.map.floorIndex);
+    drawChibiCandleV3(ctx, CANVAS_WIDTH - TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40, engine.map.floorIndex);
   }
 
-  if (content.chest) drawChest(ctx, content.chest.x, content.chest.y, content.chest.opened, f);
+  if (content.chest) drawChibiChestV3(ctx, content.chest.x, content.chest.y, content.chest.opened, f, engine.map.floorIndex);
   if (content.pedestal) drawPedestalFull(ctx, content.pedestal, f, engine);
   for(const ped of content.choices ?? []) if(!ped.taken) drawPedestalFull(ctx,ped,f,engine);
   if(content.event) {
     const event=content.event;
-    drawPedestal(ctx,event.x-4,event.y+9,f,event.used);
+    drawChibiPedestalV3(ctx,event.x-4,event.y+9,f,event.used,engine.map.floorIndex);
     if(event.kind==='injured') drawChibiInjuredDuckV3(ctx,event.x,event.y,f,event.used);
     else drawItemIcon(ctx,event.x-8,event.y-11,EVENTS[event.kind].icon,32);
   }
@@ -393,41 +393,11 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
   }
 }
 
-function drawStairs(ctx: CanvasRenderingContext2D, st: NonNullable<RoomContent['stairs']>, f: number) {
-  const px = st.x, py = st.y;
-  const glow = 0.35 + Math.sin(f * 0.06) * 0.18;
-  // luz subiendo desde abajo
-  const g = ctx.createLinearGradient(px, py - 40, px, py + 36);
-  g.addColorStop(0, `rgba(244,208,63,${0.28 * glow * st.glow})`);
-  g.addColorStop(1, 'rgba(244,208,63,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(px - 22, py - 44, 76, 80);
-
-  ctx.fillStyle = '#0a0d16';
-  ctx.fillRect(px - 2, py - 2, 36, 34);
-  // peldaños
-  for (let i = 0; i < 5; i++) {
-    const d = 1 - i * 0.15;
-    ctx.fillStyle = `rgb(${Math.round(40 * d)},${Math.round(46 * d)},${Math.round(62 * d)})`;
-    ctx.fillRect(px + i * 2, py + 26 - i * 6, 32 - i * 4, 6);
-    ctx.fillStyle = `rgba(255,214,102,${0.12 + i * 0.06})`;
-    ctx.fillRect(px + i * 2, py + 26 - i * 6, 32 - i * 4, 1);
-  }
-  // barandillas
-  ctx.fillStyle = '#f4d03f';
-  ctx.fillRect(px - 4, py - 4, 3, 32);
-  ctx.fillRect(px + 33, py - 4, 3, 32);
-  for (let i = 0; i < 3; i++) {
-    ctx.fillStyle = (f >> 4) % 2 === 0 ? '#39d353' : '#1c5c33';
-    ctx.fillRect(px - 3 + i * 18, py - 8, 3, 3);
-  }
-}
-
 function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: number, engine: GameEngine) {
   const def=WEAPONS[ped.itemId]??ITEMS[ped.itemId]??ACTIVE_ITEMS[ped.itemId]??FOODS[ped.itemId];
   const color=ITEMS[ped.itemId]?.cursed?'#8b54a6':RARITY_COLORS[def?.rarity ?? 3];
   ctx.save();ctx.translate(0,Math.round(18*(1-(ped.rise ?? 1))));ctx.globalAlpha=ped.rise ?? 1;
-  drawPedestal(ctx,ped.x,ped.y+6,f,ped.taken,color);
+  drawChibiPedestalV3(ctx,ped.x,ped.y+6,f,ped.taken,engine.map.floorIndex,color);
   if(ped.taken) {ctx.restore();return;}
 
   // foco de luz para el botín del jefe
