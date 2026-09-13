@@ -170,12 +170,12 @@ function visualPose(state: State, tick: number, index: number, dir: DuckDir, tur
   } else if (state === 'shoot') {
     const attack = Math.min(1, tick / 4);
     const recover = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 20);
-    const kick = .82 * (tick <= 4 ? 1 - Math.pow(1 - attack, 3) : Math.pow(recover, 1.6));
+    const kick = 1.05 * (tick <= 4 ? 1 - Math.pow(1 - attack, 3) : Math.pow(recover, 1.72));
     if (dir === 'left') dx = kick;
     else if (dir === 'right') dx = -kick;
-    else if (dir === 'up') dy = kick * .68;
-    else dy = -kick * .48;
-    scaleX = 1 + kick * .018; scaleY = 1 - kick * .016;
+    else if (dir === 'up') dy = kick * .72;
+    else dy = -kick * .54;
+    scaleX = 1 + kick * .020; scaleY = 1 - kick * .018;
   } else if (state === 'dash') {
     const t = Math.min(1, tick / 15);
     const drive = Math.sin(t * Math.PI);
@@ -256,16 +256,16 @@ function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha:
 }
 
 function muzzlePoint(dir: DuckDir, feetX: number, feetY: number): { x: number; y: number; a: number } {
-  if (dir === 'right') return { x: feetX + 20.0, y: feetY - 13.0, a: 0 };
-  if (dir === 'left') return { x: feetX - 20.0, y: feetY - 13.0, a: Math.PI };
-  if (dir === 'up') return { x: feetX + 11.5, y: feetY - 27.0, a: -Math.PI / 2 };
-  return { x: feetX + 10.8, y: feetY + .2, a: 1.08 };
+  if (dir === 'right') return { x: feetX + 17.6, y: feetY - 13.0, a: 0 };
+  if (dir === 'left') return { x: feetX - 17.6, y: feetY - 13.0, a: Math.PI };
+  if (dir === 'up') return { x: feetX + 11.7, y: feetY - 27.8, a: -Math.PI / 2 };
+  return { x: feetX + 8.7, y: feetY - .5, a: Math.PI / 2 };
 }
 
 function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: number, alpha: number): void {
-  if (tick > 4) return;
+  if (tick > 6) return;
   const p = muzzlePoint(dir, feetX, feetY);
-  const fade = Math.max(.10, 1 - tick / 5);
+  const fade = Math.max(.08, 1 - tick / 7);
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.a);
@@ -273,10 +273,13 @@ function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: 
   ctx.globalAlpha = alpha * fade;
   ctx.fillStyle = '#fff2ad';
   ctx.beginPath();
-  ctx.moveTo(0, 0); ctx.lineTo(6.8, -2.2); ctx.lineTo(4.4, 0); ctx.lineTo(7.6, 2.2); ctx.closePath(); ctx.fill();
-  ctx.globalAlpha = alpha * fade * .52;
+  ctx.moveTo(0, 0); ctx.lineTo(8.7, -2.7); ctx.lineTo(5.4, 0); ctx.lineTo(9.4, 2.7); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = alpha * fade * .58;
   ctx.fillStyle = '#f5a933';
-  ctx.beginPath(); ctx.ellipse(2.2, 0, 5.8, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(2.7, 0, 6.9, 3.9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = alpha * fade * .9;
+  ctx.fillStyle = '#fff9d8';
+  ctx.beginPath(); ctx.arc(.8, 0, 1.35, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
