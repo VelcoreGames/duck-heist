@@ -51,6 +51,11 @@ replace_once(
 replace_once(GEN, "ang=64*turn_sign*(1-(1-down)**2)\n", "ang=68*turn_sign*(1-(1-down)**2)\n")
 replace_once(GEN, "translate=(S(turn_sign*3.6*down),S(7.2*down))", "translate=(S(turn_sign*3.4*down),S(7.6*down))")
 replace_once(GEN, "a:int(a*.11*q['hurt'])", "a:int(a*.15*q['hurt'])")
+replace_once(
+    GEN,
+    "    # Keep the base silhouette smooth: no hair tuft, hat or glasses.\n",
+    "    # Keep the base silhouette smooth: no hair, no glasses, no hat or tuft.\n",
+)
 
 replace_once(INDEX, '0.7.42-chibi-v16-combat-readability', '0.7.43-chibi-v16-impact-scale')
 
