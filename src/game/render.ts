@@ -32,7 +32,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { drawChibiPlayerRemastered } from './graphics/playerChibiRemastered';
+import { drawChibiPlayerAtlasV16 } from './graphics/playerChibiAtlasV16';
 import { drawPlayerVisualLab, isPlayerVisualLab } from './graphics/playerVisualLab';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
@@ -271,7 +271,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   {
-    drawChibiPlayerRemastered({
+    drawChibiPlayerAtlasV16({
       ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
       dead: p.hp <= 0,

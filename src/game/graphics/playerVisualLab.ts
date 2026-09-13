@@ -1,5 +1,5 @@
 import type { DuckDir } from '../types';
-import { drawChibiPlayerRemastered } from './playerChibiRemastered';
+import { drawChibiPlayerAtlasV16 } from './playerChibiAtlasV16';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -46,7 +46,7 @@ export function drawPlayerVisualLab(ctx: Ctx, frame: number): void {
   ctx.fillStyle = '#f2d287';
   ctx.font = 'bold 9px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('PLAYER VISUAL LAB · v15 · 120 AUTHORED', 10, 15);
+  ctx.fillText('PLAYER VISUAL LAB · v16 · 464 RASTER', 10, 15);
   ctx.restore();
 
   // Row 1: four-direction walk. The synthetic position moves enough to advance
@@ -57,7 +57,7 @@ export function drawPlayerVisualLab(ctx: Ctx, frame: number): void {
     const travel = Math.sin(phase) * 11;
     const x = baseX + (dir === 'left' || dir === 'right' ? travel : 0);
     const y = 76 + (dir === 'up' || dir === 'down' ? travel : 0);
-    drawChibiPlayerRemastered({
+    drawChibiPlayerAtlasV16({
       ctx, x: x - 8, y: y - 18, frame, dir, moving: true,
       hurt: false, dashing: false, shooting: false, runtimeKey: KEYS[i], shotSequence: 0,
     });
@@ -69,7 +69,7 @@ export function drawPlayerVisualLab(ctx: Ctx, frame: number): void {
   DIRS.forEach((dir, i) => {
     const baseX = 48 + i * 120;
     const cycle = frame % 60;
-    drawChibiPlayerRemastered({
+    drawChibiPlayerAtlasV16({
       ctx, x: baseX, y: 138, frame, dir, moving: false,
       hurt: false, dashing: false, shooting: cycle < 14,
       runtimeKey: KEYS[4 + i], shotSequence: Math.floor(frame / 30),
@@ -86,7 +86,7 @@ export function drawPlayerVisualLab(ctx: Ctx, frame: number): void {
   ];
   states.forEach((s, i) => {
     const baseX = 48 + i * 120;
-    drawChibiPlayerRemastered({
+    drawChibiPlayerAtlasV16({
       ctx, x: baseX, y: 235, frame, dir: s.dir, moving: false,
       hurt: s.hurt, dashing: s.dashing, shooting: false, dead: s.dead,
       interacting: s.interacting, runtimeKey: KEYS[8 + i], shotSequence: 0,
@@ -97,7 +97,7 @@ export function drawPlayerVisualLab(ctx: Ctx, frame: number): void {
   // Bottom: idle quartet to inspect silhouette, scale and weapon attachment.
   DIRS.forEach((dir, i) => {
     const x = 78 + i * 108;
-    drawChibiPlayerRemastered({
+    drawChibiPlayerAtlasV16({
       ctx, x, y: 302, frame, dir, moving: false,
       hurt: false, dashing: false, shooting: false, runtimeKey: KEYS[12 + i], shotSequence: 0,
     });

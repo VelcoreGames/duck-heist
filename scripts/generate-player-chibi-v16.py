@@ -76,8 +76,9 @@ def gradient_ellipse(im: Image.Image, b, top: str, bottom: str, outline: str = I
         c = (int(tr+(br-tr)*t),int(tg+(bg-tg)*t),int(tb+(bb-tb)*t),255)
         for xx in range(xa,xb): gp[xx,yy]=c
     im.alpha_composite(Image.composite(grad, Image.new('RGBA', im.size), mask))
-    d = ImageDraw.Draw(im)
-    d.ellipse(box(x0,y0,x1,y1), outline=rgba(outline), width=max(1,S(width)))
+    if outline:
+        d = ImageDraw.Draw(im)
+        d.ellipse(box(x0,y0,x1,y1), outline=rgba(outline), width=max(1,S(width)))
 
 
 def ellipse(im, b, fill, outline=None, width=1.4):
@@ -113,18 +114,22 @@ def gun_layer(angle: float, anchor: tuple[float,float], recoil: float=0.0, lower
     d.rounded_rectangle(box(4.2,7.3,7.1,10.4), radius=S(.6), fill=rgba(BRASS,alpha))
     d.polygon([(S(15),S(10)),(S(20),S(10)),(S(18.2),S(17)),(S(14.2),S(17))], fill=rgba(INK,alpha))
     d.rounded_rectangle(box(15.2,11,18.2,16), radius=S(.6), fill=rgba(WOOD,alpha))
-    # Move recoil opposite local barrel direction before rotation.
     local=local.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
-    cx=S(anchor[0]-recoil); cy=S(anchor[1]+lowered)
+    cx=S(anchor[0]); cy=S(anchor[1]+lowered)
     return local,(int(cx-local.width/2),int(cy-local.height/2))
 
 
 def paste_gun(im, direction, anchor, recoil=0.0, lowered=0.0, alpha=255):
-    if direction=='right': angle=0
-    elif direction=='left': angle=180
-    elif direction=='up': angle=270
-    else: angle=74
-    g,pos=gun_layer(angle,anchor,recoil,lowered,alpha)
+    ax,ay=anchor
+    if direction=='right':
+        angle=0; ax-=recoil
+    elif direction=='left':
+        angle=180; ax+=recoil
+    elif direction=='up':
+        angle=270; ay+=recoil
+    else:
+        angle=74; ay-=recoil*.72
+    g,pos=gun_layer(angle,(ax,ay),0,lowered,alpha)
     im.alpha_composite(g,pos)
 
 
