@@ -127,46 +127,51 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
 function poseFor(state: State, tick: number, _frame: number, dir: DuckDir): Pose {
   if (state === 'walk') {
     const vertical = dir === 'up' || dir === 'down';
-    const i = Math.floor(tick / 2) % 12;
-    const phase = (i / 12) * Math.PI * 2;
+    const cycle = tick % 24;
+    const i = Math.floor(cycle / 2) % 12;
+    const phase = (cycle / 24) * Math.PI * 2;
     const stride = Math.sin(phase);
     const plant = Math.cos(phase * 2);
-    const lift = Math.max(0, Math.sin(phase * 2));
-    const sideLean = dir === 'left' ? -.026 : dir === 'right' ? .026 : 0;
+    const lift = Math.abs(Math.sin(phase));
+    const sideLean = dir === 'left' ? -.024 : dir === 'right' ? .024 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: vertical ? 1 + plant * .022 : 1 + plant * .034,
-      scaleY: vertical ? 1 - plant * .028 : 1 - plant * .038,
-      rotation: vertical ? stride * .026 : sideLean + stride * .034,
-      dx: vertical ? stride * .72 : stride * .9,
-      dy: vertical ? -lift * 1.45 + plant * .18 : -Math.abs(stride) * 1.9 + plant * .2,
+      scaleX: vertical ? 1 + plant * .025 : 1 + plant * .032,
+      scaleY: vertical ? 1 - plant * .031 : 1 - plant * .036,
+      rotation: vertical ? stride * .031 : sideLean + stride * .036,
+      dx: vertical ? stride * .86 : stride * .96,
+      dy: vertical ? -lift * 1.68 + plant * .17 : -lift * 1.92 + plant * .18,
     };
   }
   if (state === 'shoot') {
     const i = Math.min(5, Math.floor(tick / 3));
-    const kick = [1.0, 4.4, 5.4, 3.9, 2.1, .65][i] ?? 0;
+    const attackT = Math.min(1, tick / 4);
+    const recoverT = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 17);
+    const attack = 1 - Math.pow(1 - attackT, 3);
+    const kick = 5.65 * (tick <= 4 ? attack : Math.pow(recoverT, 1.55));
     const horizontal = dir === 'left' || dir === 'right';
     const dx = dir === 'left' ? kick : dir === 'right' ? -kick : 0;
-    const dy = dir === 'up' ? kick * .92 : dir === 'down' ? -kick * .78 : 0;
-    const recoilPeak = i === 1 || i === 2;
+    const dy = dir === 'up' ? kick * .90 : dir === 'down' ? -kick * .76 : 0;
+    const recoilPeak = tick >= 2 && tick <= 7;
     return {
       authored: 'shoot', index: i,
-      scaleX: recoilPeak ? (horizontal ? 1.065 : 1.045) : 1,
-      scaleY: recoilPeak ? .94 : 1,
-      rotation: dir === 'left' ? -.036 * (kick / 5.4) : dir === 'right' ? .036 * (kick / 5.4) : 0,
+      scaleX: recoilPeak ? (horizontal ? 1.068 : 1.047) : 1 + kick * .0015,
+      scaleY: recoilPeak ? .938 : 1 - kick * .0012,
+      rotation: dir === 'left' ? -.038 * (kick / 5.65) : dir === 'right' ? .038 * (kick / 5.65) : 0,
       dx, dy,
     };
   }
   if (state === 'interact') {
     const i = Math.min(7, Math.floor(tick / 2));
-    const arc = Math.sin((i / 7) * Math.PI);
+    const progress = Math.min(1, tick / 15);
+    const arc = Math.sin(progress * Math.PI);
     return {
       authored: 'interact', index: i,
-      scaleX: 1 + arc * .012,
-      scaleY: 1 + arc * .018,
-      rotation: Math.sin((i / 7) * Math.PI * 2) * .01,
-      dx: 0,
-      dy: -arc * 1.7,
+      scaleX: 1 + arc * .014,
+      scaleY: 1 + arc * .021,
+      rotation: Math.sin(progress * Math.PI * 2) * .012,
+      dx: Math.sin(progress * Math.PI * 2) * .18,
+      dy: -arc * 1.82,
     };
   }
   if (state === 'dash') {
@@ -251,7 +256,13 @@ function drawFrame(
   ctx.globalAlpha = alpha;
   ctx.translate(feetX + pose.dx + ghostOffsetX, feetY + pose.dy + ghostOffsetY);
   ctx.rotate(pose.rotation);
+  ctx.filter = 'saturate(1.07) contrast(1.035)';
+  ctx.shadowColor = 'rgba(54, 37, 25, .22)';
+  ctx.shadowBlur = 1.15;
+  ctx.shadowOffsetY = .55;
   ctx.drawImage(image, sx, sy, FRAME_W, FRAME_H, -PIVOT_X * pose.scaleX, -PIVOT_Y * pose.scaleY, w, h);
+  ctx.shadowColor = 'transparent';
+  ctx.filter = 'none';
   ctx.restore();
 }
 
@@ -283,22 +294,50 @@ function drawWeapon(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alpha:
   ctx.imageSmoothingEnabled = true;
   ctx.translate(p.x, p.y);
   ctx.rotate(p.a);
-  ctx.fillStyle = '#17191d';
+
+  ctx.fillStyle = '#14181d';
   ctx.beginPath();
-  ctx.moveTo(-5.6, -2.35); ctx.lineTo(5.5, -2.35); ctx.lineTo(6.7, -.6);
-  ctx.lineTo(5.6, 1.55); ctx.lineTo(-5.6, 1.55); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#4f5960';
-  ctx.fillRect(-3.9, -1.45, 8.9, 2.15);
-  ctx.fillStyle = '#a9b3b4';
-  ctx.fillRect(-2.7, -1.35, 5.4, .65);
-  ctx.fillStyle = '#20252a';
-  ctx.beginPath(); ctx.moveTo(.3, 1.2); ctx.lineTo(3.2, 1.2); ctx.lineTo(2.2, 5.2); ctx.lineTo(.1, 4.45); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#a96f32';
-  ctx.fillRect(.7, 2.25, 1.65, 2.25);
-  ctx.fillStyle = '#d7b66d';
-  ctx.fillRect(-4.55, -.55, 1.25, 1.05);
-  ctx.fillStyle = '#d5dcda';
-  ctx.fillRect(4.9, -.75, 2.05, .9);
+  ctx.roundRect(-5.9, -2.25, 11.7, 4.15, 1.45);
+  ctx.fill();
+
+  ctx.fillStyle = '#505b62';
+  ctx.beginPath();
+  ctx.roundRect(-4.7, -1.48, 8.9, 2.15, .82);
+  ctx.fill();
+
+  ctx.fillStyle = '#aeb8b8';
+  ctx.beginPath();
+  ctx.roundRect(-3.15, -1.30, 5.7, .62, .28);
+  ctx.fill();
+
+  ctx.fillStyle = '#22272b';
+  ctx.beginPath();
+  ctx.moveTo(.25, 1.15);
+  ctx.quadraticCurveTo(2.75, 1.0, 3.05, 1.8);
+  ctx.lineTo(2.0, 5.15);
+  ctx.quadraticCurveTo(.7, 5.0, -.05, 4.18);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#a86e32';
+  ctx.beginPath();
+  ctx.roundRect(.62, 2.18, 1.55, 2.42, .48);
+  ctx.fill();
+
+  ctx.fillStyle = '#d8b76b';
+  ctx.beginPath();
+  ctx.roundRect(-4.72, -.55, 1.25, 1.0, .38);
+  ctx.fill();
+
+  ctx.fillStyle = '#cfd8d7';
+  ctx.beginPath();
+  ctx.roundRect(4.55, -.72, 2.65, .88, .36);
+  ctx.fill();
+
+  ctx.fillStyle = '#77858a';
+  ctx.beginPath();
+  ctx.roundRect(6.45, -.92, 1.15, 1.26, .34);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -391,6 +430,25 @@ function drawWalkStepAccent(ctx: Ctx, feetX: number, feetY: number, poseIndex: n
   ctx.restore();
 }
 
+
+function drawFootfallDust(ctx: Ctx, feetX: number, feetY: number, poseIndex: number, dir: DuckDir, alpha: number): void {
+  if (poseIndex !== 0 && poseIndex !== 6) return;
+  const side = poseIndex === 0 ? -1 : 1;
+  const backX = dir === 'left' ? 1.8 : dir === 'right' ? -1.8 : side * 1.1;
+  const backY = dir === 'up' ? 1.15 : dir === 'down' ? -.35 : .45;
+  ctx.save();
+  ctx.fillStyle = '#f4dfba';
+  ctx.globalAlpha = .13 * alpha;
+  for (let i = 0; i < 3; i++) {
+    const ox = backX * (i + 1) + side * (i - 1) * .75;
+    const oy = backY * (i + 1) + i * .22;
+    ctx.beginPath();
+    ctx.ellipse(feetX + ox, feetY + oy, 1.25 - i * .18, .56 - i * .06, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawDashBurst(ctx: Ctx, feetX: number, feetY: number, dir: DuckDir, tick: number, alpha: number): void {
   const v = dashVector(dir);
   const px = -v.y;
@@ -478,6 +536,7 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
   }
 
   if (state === 'walk') {
+    drawFootfallDust(ctx, feetX, feetY, pose.index, input.dir, opacity);
     drawWalkStepAccent(ctx, feetX, feetY, pose.index, input.dir, opacity);
   }
 
@@ -519,8 +578,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     ctx.restore();
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v8';
-  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v8';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v9';
+  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v9';
   document.documentElement.dataset.duckHeistPlayerState = state;
   document.documentElement.dataset.duckHeistPlayerVisualFrame = `${pose.authored}:${pose.index}`;
 }
