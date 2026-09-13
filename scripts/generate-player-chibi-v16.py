@@ -226,8 +226,10 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     down=q['down']
     if down>0:
         base=draw_duck(direction,'idle',0,COUNTS['idle'])
-        ang=(74 if direction!='left' else -74)*(1-(1-down)**2)
-        rot=base.rotate(ang,resample=Image.Resampling.BICUBIC,center=(S(32),S(36)),translate=(S((down-.5)*1.5),S(7*down)),fillcolor=(0,0,0,0))
+        turn_sign=-1 if direction=='left' else 1
+        ang=66*turn_sign*(1-(1-down)**2)
+        # Counter-shift the fall so the head/weapon never clip the 64px frame.
+        rot=base.rotate(ang,resample=Image.Resampling.BICUBIC,center=(S(32),S(36)),translate=(S(turn_sign*4.2*down),S(7*down)),fillcolor=(0,0,0,0))
         fade=max(.72,1-down*.15)
         if fade<1: rot.putalpha(rot.getchannel('A').point(lambda a:int(a*fade)))
         # Closed eye/impact star remains part of the authored death sequence.
@@ -252,7 +254,9 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     # Weapon behind the body only when aiming upward.
     recoil=q['recoil']*.55
     if direction=='up' and state not in ('celebrate',):
-        paste_gun(im,direction,(36,29+bob),recoil,q['lowered'])
+        # Offset to the shoulder so the rear weapon remains readable instead of
+        # disappearing completely behind the large chibi head.
+        paste_gun(im,direction,(47,31+bob),recoil,q['lowered'])
 
     # Tail/back wing hint.
     if side:
@@ -296,8 +300,8 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
         ellipse(im,(gx-3.6,gy-3.0,gx+3.6,gy+3.2),WING,INK,1.1)
         translucent_ellipse(im,(gx-2.4,gy-2.2,gx+1.5,gy-1.0),'#f7db84',95)
     elif direction=='up' and state!='celebrate':
-        # wing closes over the rear weapon grip
-        ellipse(im,(31,31+bob*.2,40,42+bob*.2),WING,INK,1.1)
+        # Wing closes over the shifted rear weapon grip.
+        ellipse(im,(39.5,33+bob*.2,49.5,44+bob*.2),WING,INK,1.1)
 
     if state=='hurt':
         lay=Image.new('RGBA',im.size,(255,90,70,0)); lay.putalpha(im.getchannel('A').point(lambda a:int(a*.11*q['hurt'])))
