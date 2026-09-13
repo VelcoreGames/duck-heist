@@ -91,8 +91,7 @@ jobs:
             await gameCanvas.focus();
             await page.keyboard.press('Enter');
 
-            // INICIAR ATRACO is selected by default. Wait for the actual player renderer;
-            // one extra Enter is tolerated for first-run confirmation overlays.
+            // INICIAR ATRACO is selected by default. Wait until the V16 player is actually drawing.
             let started = false;
             for (let attempt = 0; attempt < 3; attempt++) {
               await sleep(900);
@@ -102,7 +101,12 @@ jobs:
             }
             assert(started, `player renderer did not start: ${JSON.stringify(await dataset(page))}`);
 
+            // A new run opens the floor/room title card. Confirm it before testing movement.
+            await page.keyboard.press('Enter');
+            await sleep(800);
             samples.loaded = await dataset(page);
+            assert.strictEqual(samples.loaded.renderer, expectedRenderer);
+            assert.strictEqual(samples.loaded.frames, expectedFrames);
             await page.screenshot({ path: `${outDir}/01-idle.png`, fullPage: true });
 
             async function movementSample(key, label) {
@@ -120,11 +124,9 @@ jobs:
               return { first, second };
             }
 
-            // Actual live controls: WASD moves. This specifically exercises vertical gait.
             samples.up = await movementSample('w', '02-walk-up');
             samples.down = await movementSample('s', '03-walk-down');
 
-            // Actual live control: Shift dashes while movement direction is held.
             await page.keyboard.down('d');
             await sleep(100);
             await page.keyboard.press('Shift');
@@ -135,7 +137,6 @@ jobs:
             await page.keyboard.up('d');
             await sleep(360);
 
-            // Actual live control: arrows shoot. Hold briefly so the V16 shoot/recoil state is sampled.
             await page.keyboard.down('ArrowRight');
             await sleep(55);
             samples.shoot = await dataset(page);
