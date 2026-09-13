@@ -23,7 +23,6 @@ const NAVY = '#294b63';
 const NAVY_LIGHT = '#52768b';
 const NAVY_DARK = '#182f40';
 const METAL = '#718386';
-const METAL_LIGHT = '#b8c7c4';
 const BRASS = '#cca858';
 const BRASS_LIGHT = '#f0d886';
 const RED = '#b94d51';
@@ -59,7 +58,6 @@ export function drawChibiPoliceDroneV3(input: PoliceDroneV3Input) {
   ctx.rotate(tilt);
   ctx.scale(scale, scale);
 
-  // Rotor arms and rotors: thin, rounded and readable at gameplay scale.
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(-16, -8); ctx.moveTo(9, -4); ctx.lineTo(16, -8); ctx.stroke();
   ctx.strokeStyle = METAL; ctx.lineWidth = 1.4;
@@ -75,23 +73,19 @@ export function drawChibiPoliceDroneV3(input: PoliceDroneV3Input) {
     ellipse(ctx, side * 16, -8, 2.6, 2.3, BRASS, OUTLINE, 1.1);
   }
 
-  // Main chibi body.
   ellipse(ctx, 0, 0, 11.7, 8.7, NAVY, OUTLINE, 1.65);
   ctx.globalAlpha = .55; ellipse(ctx, -3.8, -3.2, 5.2, 2.8, NAVY_LIGHT, '', 0); ctx.globalAlpha = 1;
   rr(ctx, -8.2, 1.7, 16.4, 5.8, 2.4, NAVY_DARK, OUTLINE, 1.2);
 
-  // Camera eye.
   ellipse(ctx, 0, 2.2, 4.25, 4.0, METAL, OUTLINE, 1.15);
   ellipse(ctx, 0, 2.1, 2.25, 2.15, elite ? BRASS : RED, '', 0);
   ctx.globalAlpha = .78 + Math.sin(frame * .14) * .12;
   ellipse(ctx, -.65, 1.5, .65, .65, '#fff2d0', '', 0);
   ctx.globalAlpha = 1;
 
-  // Police/brass badge top.
   rr(ctx, -2.8, -7.2, 5.6, 4.6, 1.6, BRASS, OUTLINE, 1.0);
   ctx.globalAlpha = .65; ctx.fillStyle = BRASS_LIGHT; ctx.fillRect(-1.8, -6.3, 2.9, .8); ctx.globalAlpha = 1;
 
-  // Small rear stabilizers.
   rr(ctx, -10.5, 3.8, 3.7, 4.0, 1.2, METAL, OUTLINE, 1.0);
   rr(ctx, 6.8, 3.8, 3.7, 4.0, 1.2, METAL, OUTLINE, 1.0);
 
@@ -117,7 +111,6 @@ import_marker = "import { drawChibiPoliceVariantV3 } from './graphics/policeVari
 if import_marker not in render: raise SystemExit('police variants import missing')
 render = render.replace(import_marker, import_marker + "\nimport { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';", 1)
 
-# Replace legacy police/drone death echoes with the current chibi renderers.
 old_echo = """        case 'dron_policial':drawDronPolicial(ctx,-8,-8,f,false);break;
         case 'policia_rapido':drawPoliciaRapido(ctx,-8,-8,f,false,1);break;
         case 'policia_escopeta':drawPoliciaEscopeta(ctx,-9,-9,f,false,1,0);break;
