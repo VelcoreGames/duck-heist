@@ -10,7 +10,7 @@ const COLS = 116;
 const ROWS = 4;
 const ATLAS_W = COLS * FRAME;
 const ATLAS_H = ROWS * FRAME;
-const DRAW = 44;
+const DRAW = 46;
 const PIVOT_X = DRAW * (32 / 64);
 const PIVOT_Y = DRAW * (58 / 64);
 
@@ -248,8 +248,8 @@ function dashVector(dir: DuckDir): { x: number; y: number } {
 
 function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha: number, index: number): void {
   const airborne = state === 'walk' ? Math.abs(Math.sin((index / COUNT.walk) * Math.PI * 2)) : state === 'dash' ? .42 : 0;
-  const w = (state === 'down' ? 12.25 : state === 'dash' ? 10.4 : 9.85) * (1 - airborne * .12);
-  const h = (state === 'down' ? 3.05 : 2.46) * (1 - airborne * .08);
+  const w = (state === 'down' ? 12.55 : state === 'dash' ? 10.65 : 10.05) * (1 - airborne * .12);
+  const h = (state === 'down' ? 3.10 : 2.50) * (1 - airborne * .08);
   ctx.save();
   ctx.fillStyle = '#231912';
   ctx.globalAlpha = .065 * alpha;
@@ -260,10 +260,10 @@ function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha:
 }
 
 function muzzlePoint(dir: DuckDir, feetX: number, feetY: number): { x: number; y: number; a: number } {
-  if (dir === 'right') return { x: feetX + 18.45, y: feetY - 13.6, a: 0 };
-  if (dir === 'left') return { x: feetX - 18.45, y: feetY - 13.6, a: Math.PI };
-  if (dir === 'up') return { x: feetX + 12.25, y: feetY - 29.15, a: -Math.PI / 2 };
-  return { x: feetX + 9.1, y: feetY - .55, a: Math.PI / 2 };
+  if (dir === 'right') return { x: feetX + 19.25, y: feetY - 14.2, a: 0 };
+  if (dir === 'left') return { x: feetX - 19.25, y: feetY - 14.2, a: Math.PI };
+  if (dir === 'up') return { x: feetX + 12.80, y: feetY - 30.45, a: -Math.PI / 2 };
+  return { x: feetX + 9.50, y: feetY - .58, a: Math.PI / 2 };
 }
 
 function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: number, alpha: number): void {
