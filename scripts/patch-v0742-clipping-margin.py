@@ -1,17 +1,23 @@
 from pathlib import Path
 
-
-def replace_once(path: str, old: str, new: str) -> None:
-    p=Path(path); text=p.read_text(); count=text.count(old)
-    if count != 1:
-        raise SystemExit(f'{path}: expected one match, found {count}: {old!r}')
-    p.write_text(text.replace(old,new,1))
-
 GEN='scripts/generate-player-chibi-v16.py'
 RUNTIME='src/game/graphics/playerChibiAtlasV16.ts'
 
-replace_once(GEN,"            anchor=(49.0,41.5+bob*.18)\n","            anchor=(47.0,41.5+bob*.18)\n")
-replace_once(GEN,"            ellipse(im,(40.0,37.8+bob*.16,48.8,47.2+bob*.16),WING,INK,1.1)\n","            ellipse(im,(38.4,37.8+bob*.16,47.2,47.2+bob*.16),WING,INK,1.1)\n")
-replace_once(GEN,"            translucent_ellipse(im,(41.2,39.0+bob*.16,45.6,40.5+bob*.16),'#f7db84',95)\n","            translucent_ellipse(im,(39.6,39.0+bob*.16,44.0,40.5+bob*.16),'#f7db84',95)\n")
-replace_once(RUNTIME,"  return { x: feetX + 11.2, y: feetY - .4, a: Math.PI / 2 };\n","  return { x: feetX + 9.8, y: feetY - .4, a: Math.PI / 2 };\n")
-print('shifted front projection left for late down-state clipping margin')
+gen=Path(GEN).read_text()
+runtime=Path(RUNTIME).read_text()
+
+# The compact V16.4 front projection was authored inside the safe frame area.
+# Do not apply the old forced left shift; the workflow's strict alpha-margin
+# scan is now the source of truth and will fail if any generated frame clips.
+required=(
+    "anchor=(47.0,41.5+bob*.18)",
+    "front_gun_layer",
+    "rear_gun_layer",
+)
+for token in required:
+    if token not in gen:
+        raise SystemExit(f'missing compact projection invariant: {token}')
+if "feetX + 9.1" not in runtime:
+    raise SystemExit('missing front muzzle alignment invariant')
+
+print('compact front projection uses authored margins; strict atlas scan remains authoritative')
