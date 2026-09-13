@@ -123,6 +123,8 @@ function resolve(input: ChibiPlayerAtlasV16Input): { state: State; tick: number;
     // play full sixteen-frame anticipation/drive/recovery arc
   } else if (rt.state === 'hurt' && age < 12) {
     // keep impact readable
+  } else if (rt.state === 'interact' && wanted === 'idle' && age < COUNT.interact) {
+    // Finish only the authored visual recovery when a short equip ends at rest.
   } else if (rt.state === 'down') {
     // terminal for this runtime key
   } else if (rt.state !== wanted) {
@@ -151,7 +153,8 @@ function frameIndex(state: State, tick: number, frame: number, walkDistance: num
   if (state === 'hurt') return Math.min(COUNT.hurt - 1, Math.floor(tick * COUNT.hurt / 14));
   if (state === 'down') return Math.min(COUNT.down - 1, Math.floor(tick * COUNT.down / 34));
   if (state === 'celebrate') return Math.floor(tick / 3) % COUNT.celebrate;
-  return Math.floor(tick / 2) % COUNT.interact;
+  // interact is authored as a short non-looping weapon/equip gesture.
+  return Math.min(COUNT.interact - 1, tick);
 }
 
 interface VisualPose { scaleX: number; scaleY: number; rotation: number; dx: number; dy: number; }
