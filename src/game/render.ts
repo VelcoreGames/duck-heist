@@ -7,9 +7,9 @@ import {
 } from './constants';
 import {
   drawDuck, drawHeart,
-  drawProjectile, drawCoin, drawChest, drawDoor,
+  drawProjectile, drawCoin, drawChest,
   drawParticle, drawItem, drawWeaponIcon,
-  drawPedestal, drawCandle, drawObstacle,
+  drawPedestal, drawCandle,
   drawDuckSkin,
 } from './sprites';
 import {
@@ -44,6 +44,7 @@ import { drawChibiBossV3 as drawBoss } from './graphics/chibiBossesV3';
 import { drawChibiCompanionDuckV3, drawChibiMerchantPigeonV3, drawChibiInjuredDuckV3 } from './graphics/chibiSupportV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
+import { drawChibiThemedDoorV3, drawChibiThemedObstacleV3 } from './graphics/chibiWorldPropsV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -120,7 +121,7 @@ export function renderWorld(engine: GameEngine) {
     if (engine.map.floorIndex === 0) {
       drawChibiLobbyDoorV3(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
     } else {
-      drawDoor(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
+      drawChibiThemedDoorV3(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f, engine.map.floorIndex);
     }
   }
 
@@ -130,7 +131,7 @@ export function renderWorld(engine: GameEngine) {
       const t = room.layout[y][x];
       if (t >= OBSTACLE_BASE) {
         if (engine.map.floorIndex === 0) drawChibiLobbyObstacleV3(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
-        else drawObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
+        else drawChibiThemedObstacleV3(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f, engine.map.floorIndex);
       }
     }
   }
