@@ -277,6 +277,7 @@ export function renderWorld(engine: GameEngine) {
       dead: p.hp <= 0,
       skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
       interacting: p.switchAnim > 0 && p.shootFlash <= 0 && p.dashTimer <= 0,
+      celebrating: engine.state === GameState.FLOOR_CLEAR,
       alpha: p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0 ? 0.42 : 1,
     });
   }
@@ -1324,13 +1325,36 @@ function renderFloorClearUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const t = engine.floorClearTimer;
   const a = clamp(t / 30, 0, 1) * clamp((120 - t) / 20, 0, 1);
-  ctx.fillStyle = `rgba(4,5,12,${0.92 * clamp(a + 0.2, 0, 1)})`;
+  const eased = clamp(a, 0, 1);
+  ctx.fillStyle = `rgba(4,5,12,${0.72 * clamp(a + 0.18, 0, 1)})`;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.globalAlpha = clamp(a, 0, 1);
-  titleText(ctx, T.floorComplete, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 14, 22, '#39d353');
-  text(ctx, T.descending, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 8, 12, '#a9b3c4', 'center', true);
+
+  // Reveal the player through the UI dimmer so the celebration is readable
+  // wherever the stairs left the character. This only affects presentation.
+  if (eased > .01) {
+    const px = engine.player.x + 7;
+    const py = engine.player.y + 8;
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    const spot = ctx.createRadialGradient(px, py, 12, px, py, 64);
+    spot.addColorStop(0, `rgba(0,0,0,${0.94 * eased})`);
+    spot.addColorStop(.48, `rgba(0,0,0,${0.62 * eased})`);
+    spot.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = spot;
+    ctx.fillRect(px - 70, py - 70, 140, 140);
+    ctx.restore();
+  }
+
+  ctx.globalAlpha = eased;
+  ctx.fillStyle = 'rgba(8,12,18,.84)';
+  ctx.fillRect(104, 30, 272, 94);
+  ctx.strokeStyle = 'rgba(244,208,63,.28)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(104.5, 30.5, 271, 93);
+  titleText(ctx, T.floorComplete, CANVAS_WIDTH / 2, 58, 20, '#39d353');
+  text(ctx, T.descending, CANVAS_WIDTH / 2, 84, 11, '#a9b3c4', 'center', true);
   const dots = '.'.repeat(1 + Math.floor(engine.frame / 14) % 3);
-  text(ctx,engine.map.floorIndex+1>=TOTAL_FLOORS?'SALIDA DEL BANCO':`${T.floor} ${engine.map.floorIndex+2}/6${dots}`,240,206,12,'#f4d03f','center',true);
+  text(ctx,engine.map.floorIndex+1>=TOTAL_FLOORS?'SALIDA DEL BANCO':`${T.floor} ${engine.map.floorIndex+2}/6${dots}`,240,108,11,'#f4d03f','center',true);
   ctx.globalAlpha = 1;
 }
 

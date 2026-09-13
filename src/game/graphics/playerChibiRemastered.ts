@@ -30,6 +30,7 @@ export interface ChibiPlayerRemasteredInput {
   shooting: boolean;
   dead?: boolean;
   interacting?: boolean;
+  celebrating?: boolean;
   skinId?: string;
   alpha?: number;
   runtimeKey?: object;
@@ -84,6 +85,7 @@ function desiredState(input: ChibiPlayerRemasteredInput): State {
   if (input.hurt) return 'hurt';
   if (input.dashing) return 'dash';
   if (input.shooting) return 'shoot';
+  if (input.celebrating) return 'interact';
   if (input.interacting) return 'interact';
   return input.moving ? 'walk' : 'idle';
 }

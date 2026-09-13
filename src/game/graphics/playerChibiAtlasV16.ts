@@ -2,7 +2,7 @@ import type { DuckDir } from '../types';
 import { drawChibiPlayerRemastered, type ChibiPlayerRemasteredInput } from './playerChibiRemastered';
 
 type Ctx = CanvasRenderingContext2D;
-type State = 'idle' | 'walk' | 'shoot' | 'dash' | 'hurt' | 'down' | 'interact';
+type State = 'idle' | 'walk' | 'shoot' | 'dash' | 'hurt' | 'down' | 'interact' | 'celebrate';
 
 const ATLAS_URL = new URL('../../assets/chibi/base-duck-chibi-v16-atlas.png', import.meta.url).href;
 const FRAME = 64;
@@ -73,6 +73,7 @@ function desired(input: ChibiPlayerAtlasV16Input): State {
   if (input.hurt) return 'hurt';
   if (input.dashing) return 'dash';
   if (input.shooting) return 'shoot';
+  if (input.celebrating) return 'celebrate';
   if (input.interacting) return 'interact';
   if (input.moving) return 'walk';
   return 'idle';
@@ -149,6 +150,7 @@ function frameIndex(state: State, tick: number, frame: number, walkDistance: num
   if (state === 'dash') return Math.min(COUNT.dash - 1, tick);
   if (state === 'hurt') return Math.min(COUNT.hurt - 1, Math.floor(tick * COUNT.hurt / 14));
   if (state === 'down') return Math.min(COUNT.down - 1, Math.floor(tick * COUNT.down / 34));
+  if (state === 'celebrate') return Math.floor(tick / 3) % COUNT.celebrate;
   return Math.floor(tick / 2) % COUNT.interact;
 }
 
@@ -196,6 +198,12 @@ function visualPose(state: State, tick: number, index: number, dir: DuckDir, tur
     scaleX = 1 + settle * .052 + contact * .010;
     scaleY = 1 - settle * .052 - contact * .008;
     dy = settle * .65;
+  } else if (state === 'celebrate') {
+    const phase = (index / COUNT.celebrate) * Math.PI * 2;
+    const lift = Math.max(0, Math.sin(phase));
+    scaleX = 1 + lift * .012;
+    scaleY = 1 - lift * .010;
+    dy = -lift * .35;
   }
   if (turnAge >= 0 && turnAge < 4 && state !== 'down' && state !== 'hurt') {
     const turn = 1 - turnAge / 4;
