@@ -140,36 +140,47 @@ def pose(state: str, i: int, n: int):
         'bob':0.0,'lean':0.0,'stride':0.0,'wing':0.0,'blink':False,
         'recoil':0.0,'squash':0.0,'stretch':0.0,'hurt':0.0,
         'down':0.0,'reach':0.0,'jump':0.0,'lowered':0.0,
+        'sway':0.0,'plant':0.0,
     }
     if state=='idle':
         q['bob']=-.55*sin(phase); q['wing']=.25*sin(phase); q['blink']=i in (8,9)
     elif state=='walk':
-        q['stride']=sin(phase); q['bob']=-2.0*abs(sin(phase)); q['lean']=1.4*sin(phase); q['wing']=1.6*sin(phase+pi)
+        # Premium gait: clear planted steps, less pogo bounce and a small lateral
+        # weight transfer that makes vertical walking read instead of slide.
+        q['stride']=sin(phase)
+        q['bob']=-1.55*abs(sin(phase))
+        q['lean']=.92*sin(phase)
+        q['wing']=1.45*sin(phase+pi)
+        q['sway']=1.15*cos(phase)
+        q['plant']=cos(phase*2)
     elif state=='shoot':
-        t=i/(n-1); attack=min(1,t/.28); recover=max(0,1-(t-.28)/.72) if t>.28 else 1
-        q['recoil']=3.1*((1-(1-attack)**3) if t<=.28 else recover**1.6)
-        q['bob']=-.55*q['recoil']; q['squash']=.035*q['recoil']; q['blink']=False
+        t=i/(n-1); attack=min(1,t/.22); recover=max(0,1-(t-.22)/.78) if t>.22 else 1
+        q['recoil']=3.55*((1-(1-attack)**3) if t<=.22 else recover**1.72)
+        q['bob']=-.48*q['recoil']; q['squash']=.031*q['recoil']; q['blink']=False
     elif state=='dash':
         t=i/(n-1)
         if t<.18: q['squash']=.13*(1-t/.18)
         else: q['stretch']=.12*sin(min(1,(t-.18)/.65)*pi)
         q['bob']=-1.2*sin(t*pi); q['wing']=2.4*sin(t*pi); q['stride']=.7*sin(t*pi*2)
     elif state=='hurt':
-        t=i/(n-1); q['hurt']=1-t; q['lean']=(-1 if i%2==0 else 1)*4.0*(1-t); q['bob']=-1.2*(1-t); q['blink']=True
+        t=i/(n-1); impact=1-t
+        snap=(1 if i<2 else -1 if i<4 else .42 if i<6 else 0)
+        q['hurt']=impact; q['lean']=snap*3.25*impact; q['bob']=-1.35*impact; q['squash']=.055*impact; q['blink']=True
     elif state=='down': q['down']=i/(n-1); q['blink']=True
     elif state=='interact':
         q['reach']=sin(p*pi); q['bob']=-1.0*sin(p*pi); q['lowered']=2.2*sin(p*pi); q['wing']=2.4*sin(p*pi)
     elif state=='celebrate':
-        q['jump']=max(0,sin(p*pi))*4.4; q['bob']=-q['jump']; q['wing']=4.2*sin(p*pi); q['stride']=sin(phase)
+        # Keep the celebratory hop energetic without touching the 64px frame edge.
+        q['jump']=max(0,sin(p*pi))*3.0; q['bob']=-q['jump']; q['wing']=4.2*sin(p*pi); q['stride']=sin(phase)
     return q
 
 
 def draw_face(im, direction, cx, cy, blink=False, hurt=0.0):
     d=ImageDraw.Draw(im)
     if direction=='up':
-        # Three-feather tuft/rim on back of head, no face pasted on backwards.
-        polygon(im,[(cx-5,cy-14),(cx-2,cy-18),(cx,cy-14),(cx+3,cy-18),(cx+5,cy-13)],FEATHER_TOP,INK,1.1)
+        # Smooth clean crown: the base duck has no hair, hat or eyewear.
         translucent_ellipse(im,(cx-10,cy-10,cx-3,cy-5),'#fff8cd',72)
+        translucent_ellipse(im,(cx+2,cy-9,cx+9,cy-5),'#c8923d',34)
         return
     if direction=='down':
         eyes=[(cx-6.1,cy-2.4),(cx+6.1,cy-2.4)]
@@ -206,9 +217,12 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     sign=-1 if direction=='left' else 1
     side=direction in ('left','right')
     # Whole chibi dimensions: ~55-60% head, compact body, small feet.
-    head_cx=32 + (2.2*sign if side else 0)
+    # Front/back movement gets its own lateral weight transfer so vertical walk
+    # frames have a readable planted gait at gameplay scale.
+    vertical_sway=q['sway'] if (not side and state=='walk') else 0
+    head_cx=32 + (2.2*sign if side else vertical_sway*.42)
     head_cy=22+bob
-    body_cx=32 + (.7*sign*q['lean']/4 if side else 0)
+    body_cx=32 + (.7*sign*q['lean']/4 if side else vertical_sway*.78)
     body_cy=42+bob*.35
     rx=18.2*(1+q['squash']*.12-q['stretch']*.05)
     ry=16.9*(1-q['squash']*.10+q['stretch']*.03)
@@ -225,11 +239,11 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     # Down state is authored as a real fall: rotate the complete bird, gun drops separately.
     down=q['down']
     if down>0:
-        base=draw_duck(direction,'idle',0,COUNTS['idle'])
+        base=draw_duck(direction,'idle',8,COUNTS['idle'])
         turn_sign=-1 if direction=='left' else 1
-        ang=66*turn_sign*(1-(1-down)**2)
+        ang=64*turn_sign*(1-(1-down)**2)
         # Counter-shift the fall so the head/weapon never clip the 64px frame.
-        rot=base.rotate(ang,resample=Image.Resampling.BICUBIC,center=(S(32),S(36)),translate=(S(turn_sign*4.2*down),S(7*down)),fillcolor=(0,0,0,0))
+        rot=base.rotate(ang,resample=Image.Resampling.BICUBIC,center=(S(32),S(36)),translate=(S(turn_sign*3.6*down),S(7.2*down)),fillcolor=(0,0,0,0))
         fade=max(.72,1-down*.15)
         if fade<1: rot.putalpha(rot.getchannel('A').point(lambda a:int(a*fade)))
         # Closed eye/impact star remains part of the authored death sequence.
@@ -242,21 +256,26 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     fy=56+bob*.15
     if state=='dash': fy-=1.2
     if side:
-        lfx=27+stride*3.5; rfx=37-stride*3.5; lfy=fy; rfy=fy
+        lfx=27+stride*3.35; rfx=37-stride*3.35; lfy=fy; rfy=fy
+        lfs=rfs=1.0
     else:
-        lfx=27.5; rfx=36.5; lfy=fy+stride*2.4; rfy=fy-stride*2.4
-    if state!='celebrate' or q['jump']<3.7:
-        ellipse(im,(lfx-4.1,lfy-1.6,lfx+3.7,lfy+2.4),FEET,INK,1.05)
-        ellipse(im,(rfx-3.7,rfy-1.6,rfx+4.1,rfy+2.4),FEET,INK,1.05)
-        translucent_ellipse(im,(lfx-2.8,lfy-1.0,lfx+1.7,lfy-.15),BEAK_HI,120)
-        translucent_ellipse(im,(rfx-1.7,rfy-1.0,rfx+2.8,rfy-.15),BEAK_HI,120)
+        lfx=27.5+q['sway']*.16; rfx=36.5+q['sway']*.16
+        lfy=fy+stride*2.75; rfy=fy-stride*2.75
+        depth=.11*stride
+        if direction=='down': lfs,rfs=1+depth,1-depth
+        else: lfs,rfs=1-depth,1+depth
+    if state!='celebrate' or q['jump']<2.55:
+        ellipse(im,(lfx-4.1*lfs,lfy-1.6*lfs,lfx+3.7*lfs,lfy+2.4*lfs),FEET,INK,1.05)
+        ellipse(im,(rfx-3.7*rfs,rfy-1.6*rfs,rfx+4.1*rfs,rfy+2.4*rfs),FEET,INK,1.05)
+        translucent_ellipse(im,(lfx-2.8*lfs,lfy-1.0*lfs,lfx+1.7*lfs,lfy-.15*lfs),BEAK_HI,120)
+        translucent_ellipse(im,(rfx-1.7*rfs,rfy-1.0*rfs,rfx+2.8*rfs,rfy-.15*rfs),BEAK_HI,120)
 
     # Weapon behind the body only when aiming upward.
     recoil=q['recoil']*.55
     if direction=='up' and state not in ('celebrate',):
         # Offset to the shoulder so the rear weapon remains readable instead of
         # disappearing completely behind the large chibi head.
-        paste_gun(im,direction,(47,31+bob),recoil,q['lowered'])
+        paste_gun(im,direction,(46.5,31.5+bob),recoil,q['lowered'])
 
     # Tail/back wing hint.
     if side:
@@ -285,15 +304,14 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     # Head is deliberately dominant and overlaps the body.
     gradient_ellipse(im,(head_cx-rx,head_cy-ry,head_cx+rx,head_cy+ry),FEATHER_TOP,FEATHER_SHADOW,INK,1.85)
     translucent_ellipse(im,(head_cx-rx*.62,head_cy-ry*.72,head_cx-rx*.03,head_cy-ry*.18),'#fff9d2',105)
-    # tiny crown feathers are feathers, not hair/accessories
-    polygon(im,[(head_cx-5,head_cy-15),(head_cx-2.4,head_cy-18),(head_cx,head_cy-15.2),(head_cx+3,head_cy-18.2),(head_cx+5.2,head_cy-14.6)],FEATHER_TOP,INK,1.0)
+    # Keep the base silhouette smooth: no hair tuft, hat or glasses.
     draw_face(im,direction,head_cx,head_cy,q['blink'],q['hurt'])
 
     # Foreground weapon and gripping wing. It is integrated into every pose.
     if direction!='up' and state!='celebrate':
-        if direction=='right': anchor=(45.0,38+bob*.25)
-        elif direction=='left': anchor=(19.0,38+bob*.25)
-        else: anchor=(39.0,39+bob*.25)
+        if direction=='right': anchor=(45.5,38+bob*.25)
+        elif direction=='left': anchor=(18.5,38+bob*.25)
+        else: anchor=(39.5,38.5+bob*.25)
         paste_gun(im,direction,anchor,recoil,q['lowered'])
         gx=anchor[0]-(4 if direction=='right' else -4 if direction=='left' else 2)
         gy=anchor[1]+(1 if direction=='down' else 0)
@@ -301,7 +319,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
         translucent_ellipse(im,(gx-2.4,gy-2.2,gx+1.5,gy-1.0),'#f7db84',95)
     elif direction=='up' and state!='celebrate':
         # Wing closes over the shifted rear weapon grip.
-        ellipse(im,(39.5,33+bob*.2,49.5,44+bob*.2),WING,INK,1.1)
+        ellipse(im,(39.0,33+bob*.2,49.0,44+bob*.2),WING,INK,1.1)
 
     if state=='hurt':
         lay=Image.new('RGBA',im.size,(255,90,70,0)); lay.putalpha(im.getchannel('A').point(lambda a:int(a*.11*q['hurt'])))

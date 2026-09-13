@@ -10,7 +10,7 @@ const COLS = 116;
 const ROWS = 4;
 const ATLAS_W = COLS * FRAME;
 const ATLAS_H = ROWS * FRAME;
-const DRAW = 38;
+const DRAW = 40;
 const PIVOT_X = DRAW * (32 / 64);
 const PIVOT_Y = DRAW * (58 / 64);
 
@@ -50,6 +50,8 @@ interface Runtime {
   prevX: number;
   prevY: number;
   walkDistance: number;
+  lastDir: DuckDir;
+  turnAt?: number;
 }
 
 const runtimes = new WeakMap<object, Runtime>();
@@ -76,14 +78,14 @@ function desired(input: ChibiPlayerAtlasV16Input): State {
   return 'idle';
 }
 
-function resolve(input: ChibiPlayerAtlasV16Input): { state: State; tick: number; walkDistance: number } {
+function resolve(input: ChibiPlayerAtlasV16Input): { state: State; tick: number; walkDistance: number; turnAge: number } {
   const key = input.runtimeKey ?? fallbackKey;
   let rt = runtimes.get(key);
   if (!rt || input.frame < rt.lastFrame) {
     rt = {
       state: 'idle', enteredAt: input.frame, lastFrame: input.frame,
       lastShot: input.shotSequence, wasShoot: false, wasDash: false, wasHurt: false,
-      prevX: input.x, prevY: input.y, walkDistance: 0,
+      prevX: input.x, prevY: input.y, walkDistance: 0, lastDir: input.dir,
     };
     runtimes.set(key, rt);
   }
@@ -91,9 +93,13 @@ function resolve(input: ChibiPlayerAtlasV16Input): { state: State; tick: number;
   const dx = input.x - rt.prevX;
   const dy = input.y - rt.prevY;
   const step = Math.hypot(dx, dy);
-  if (input.moving && step > .01 && step < 10) rt.walkDistance += step;
+  if (input.moving && !input.dashing && step > .01 && step < 8) rt.walkDistance += step;
   rt.prevX = input.x;
   rt.prevY = input.y;
+  if (rt.lastDir !== input.dir) {
+    rt.lastDir = input.dir;
+    rt.turnAt = input.frame;
+  }
 
   const wanted = desired(input);
   const shotChanged = input.shotSequence !== undefined && rt.lastShot !== undefined && input.shotSequence !== rt.lastShot;
@@ -127,21 +133,68 @@ function resolve(input: ChibiPlayerAtlasV16Input): { state: State; tick: number;
   rt.wasShoot = input.shooting;
   rt.wasDash = input.dashing;
   rt.wasHurt = input.hurt;
-  return { state: rt.state, tick: Math.max(0, input.frame - rt.enteredAt), walkDistance: rt.walkDistance };
+  const turnAge = rt.turnAt === undefined ? -1 : input.frame - rt.turnAt;
+  return { state: rt.state, tick: Math.max(0, input.frame - rt.enteredAt), walkDistance: rt.walkDistance, turnAge };
 }
 
-function frameIndex(state: State, tick: number, frame: number, walkDistance: number): number {
-  if (state === 'idle') return Math.floor(frame / 6) % COUNT.idle;
+function frameIndex(state: State, tick: number, frame: number, walkDistance: number, dir: DuckDir): number {
+  if (state === 'idle') return Math.floor(frame / 7) % COUNT.idle;
   if (state === 'walk') {
-    const strideDistance = 44;
+    const vertical = dir === 'up' || dir === 'down';
+    const strideDistance = vertical ? 34 : 40;
     const cycle = ((walkDistance % strideDistance) + strideDistance) % strideDistance;
     return Math.floor((cycle / strideDistance) * COUNT.walk) % COUNT.walk;
   }
   if (state === 'shoot') return Math.min(COUNT.shoot - 1, Math.floor(tick / 2));
   if (state === 'dash') return Math.min(COUNT.dash - 1, tick);
-  if (state === 'hurt') return Math.min(COUNT.hurt - 1, Math.floor(tick * COUNT.hurt / 12));
-  if (state === 'down') return Math.min(COUNT.down - 1, Math.floor(tick * COUNT.down / 30));
+  if (state === 'hurt') return Math.min(COUNT.hurt - 1, Math.floor(tick * COUNT.hurt / 14));
+  if (state === 'down') return Math.min(COUNT.down - 1, Math.floor(tick * COUNT.down / 34));
   return Math.floor(tick / 2) % COUNT.interact;
+}
+
+interface VisualPose { scaleX: number; scaleY: number; rotation: number; dx: number; dy: number; }
+
+function visualPose(state: State, tick: number, index: number, dir: DuckDir, turnAge: number): VisualPose {
+  let scaleX = 1, scaleY = 1, rotation = 0, dx = 0, dy = 0;
+  if (state === 'walk') {
+    const phase = (index / COUNT.walk) * Math.PI * 2;
+    const stride = Math.sin(phase);
+    const lift = Math.abs(stride);
+    const vertical = dir === 'up' || dir === 'down';
+    dx = vertical ? stride * .34 : stride * .20;
+    dy = -lift * .58;
+    rotation = vertical ? stride * .008 : stride * (dir === 'left' ? -.012 : .012);
+  } else if (state === 'shoot') {
+    const attack = Math.min(1, tick / 4);
+    const recover = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 20);
+    const kick = .82 * (tick <= 4 ? 1 - Math.pow(1 - attack, 3) : Math.pow(recover, 1.6));
+    if (dir === 'left') dx = kick;
+    else if (dir === 'right') dx = -kick;
+    else if (dir === 'up') dy = kick * .68;
+    else dy = -kick * .48;
+    scaleX = 1 + kick * .018; scaleY = 1 - kick * .016;
+  } else if (state === 'dash') {
+    const t = Math.min(1, tick / 15);
+    const drive = Math.sin(t * Math.PI);
+    const horizontal = dir === 'left' || dir === 'right';
+    scaleX = horizontal ? 1 + drive * .034 : 1 - drive * .020;
+    scaleY = horizontal ? 1 - drive * .020 : 1 + drive * .034;
+    dy = -drive * .42;
+  } else if (state === 'hurt') {
+    const impact = Math.max(0, 1 - tick / 14);
+    const snap = tick < 3 ? -1 : tick < 7 ? .55 : -.18;
+    rotation = snap * .038 * impact;
+    const v = dashVector(dir);
+    dx = -v.x * impact * .68; dy = -v.y * impact * .45 - impact * .28;
+  } else if (state === 'down') {
+    const settle = Math.min(1, index / Math.max(1, COUNT.down - 1));
+    scaleX = 1 + settle * .025; scaleY = 1 - settle * .028; dy = settle * .34;
+  }
+  if (turnAge >= 0 && turnAge < 4 && state !== 'down' && state !== 'hurt') {
+    const turn = 1 - turnAge / 4;
+    scaleX *= 1 - turn * .018; scaleY *= 1 + turn * .010;
+  }
+  return { scaleX, scaleY, rotation, dx, dy };
 }
 
 function drawFrame(
@@ -153,6 +206,7 @@ function drawFrame(
   feetX: number,
   feetY: number,
   alpha: number,
+  pose: VisualPose,
   ox = 0,
   oy = 0,
 ): void {
@@ -162,12 +216,18 @@ function drawFrame(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.globalAlpha = alpha;
-  ctx.filter = 'saturate(1.035) contrast(1.025)';
+  ctx.translate(feetX + pose.dx + ox, feetY + pose.dy + oy);
+  ctx.rotate(pose.rotation);
+  ctx.filter = 'saturate(1.045) contrast(1.028)';
+  ctx.shadowColor = 'rgba(54, 37, 25, .18)';
+  ctx.shadowBlur = .8;
+  ctx.shadowOffsetY = .35;
   ctx.drawImage(
     image,
     col * FRAME, row * FRAME, FRAME, FRAME,
-    feetX - PIVOT_X + ox, feetY - PIVOT_Y + oy, DRAW, DRAW,
+    -PIVOT_X * pose.scaleX, -PIVOT_Y * pose.scaleY, DRAW * pose.scaleX, DRAW * pose.scaleY,
   );
+  ctx.shadowColor = 'transparent';
   ctx.filter = 'none';
   ctx.restore();
 }
@@ -200,9 +260,9 @@ function muzzlePoint(dir: DuckDir, feetX: number, feetY: number): { x: number; y
 }
 
 function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: number, alpha: number): void {
-  if (tick > 10) return;
+  if (tick > 4) return;
   const p = muzzlePoint(dir, feetX, feetY);
-  const fade = Math.max(.12, 1 - tick / 11);
+  const fade = Math.max(.10, 1 - tick / 5);
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.a);
@@ -269,8 +329,9 @@ export function drawChibiPlayerAtlasV16(input: ChibiPlayerAtlasV16Input): void {
   const feetX = Math.round(input.x + 8);
   const feetY = Math.round(input.y + 18);
   const alpha = Math.max(0, Math.min(1, input.alpha ?? 1));
-  const { state, tick, walkDistance } = resolve(input);
-  const index = frameIndex(state, tick, input.frame, walkDistance);
+  const { state, tick, walkDistance, turnAge } = resolve(input);
+  const index = frameIndex(state, tick, input.frame, walkDistance, input.dir);
+  const pose = visualPose(state, tick, index, input.dir, turnAge);
   const ctx = input.ctx;
 
   drawShadow(ctx, feetX, feetY, state, alpha, index);
@@ -278,12 +339,12 @@ export function drawChibiPlayerAtlasV16(input: ChibiPlayerAtlasV16Input): void {
     const v = dashVector(input.dir);
     drawDashFx(ctx, input.dir, feetX, feetY, tick, alpha);
     for (let i = 4; i >= 1; i--) {
-      drawFrame(ctx, image, input.dir, state, Math.max(0, index - i), feetX, feetY, alpha * (.035 + (4 - i) * .026), -v.x * i * 3.8, -v.y * i * 3.8);
+      drawFrame(ctx, image, input.dir, state, Math.max(0, index - i), feetX, feetY, alpha * (.035 + (4 - i) * .026), pose, -v.x * i * 3.8, -v.y * i * 3.8);
     }
   }
 
-  drawFrame(ctx, image, input.dir, state, index, feetX, feetY, alpha * (state === 'dash' ? .96 : 1));
-  if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX, feetY, tick, alpha);
+  drawFrame(ctx, image, input.dir, state, index, feetX, feetY, alpha * (state === 'dash' ? .96 : 1), pose);
+  if (state === 'shoot') drawMuzzle(ctx, input.dir, feetX + pose.dx, feetY + pose.dy, tick, alpha);
   if (state === 'hurt') drawHurtFx(ctx, feetX, feetY, tick, alpha);
 
   document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-atlas-v16';
