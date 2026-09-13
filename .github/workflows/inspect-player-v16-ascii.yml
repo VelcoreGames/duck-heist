@@ -1,0 +1,34 @@
+name: Inspect Player V16 Atlas
+
+on:
+  push:
+    paths:
+      - 'scripts/player_v16_ascii.py'
+      - '.github/workflows/inspect-player-v16-ascii.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --disable-pip-version-check pillow
+      - run: python scripts/player_v16_ascii.py
+      - run: test -s docs/PLAYER_V16_ASCII.txt
+      - name: Commit inspection
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PLAYER_V16_ASCII.txt
+          git commit -m 'docs: inspect v16 player atlas silhouettes'
+          git pull --rebase origin main
+          git push origin HEAD:main
