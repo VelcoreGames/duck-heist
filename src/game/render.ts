@@ -38,6 +38,7 @@ import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt
 import { drawChibiPlayerRemastered } from './graphics/playerChibiRemastered';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
+import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -111,7 +112,11 @@ export function renderWorld(engine: GameEngine) {
       : target?.type === RoomType.BOSS ? 'boss' : target?.type===RoomType.SHOP?'green'
       :target?.type===RoomType.MINIBOSS?'orange':target?.type===RoomType.CHOICE||target?.type===RoomType.TREASURE||target?.type===RoomType.SECRET?'purple':'silver';
     const t = DOOR_TILE[d];
-    drawDoor(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
+    if (engine.map.floorIndex === 0) {
+      drawChibiLobbyDoorV3(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
+    } else {
+      drawDoor(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
+    }
   }
 
   // obstáculos

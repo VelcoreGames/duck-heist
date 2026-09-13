@@ -1,7 +1,7 @@
 type Ctx = CanvasRenderingContext2D;
 
-const OUTLINE = '#29242b';
-const SHADOW = 'rgba(28,22,26,.22)';
+const OUTLINE = '#352a2d';
+const SHADOW = 'rgba(28,22,26,.13)';
 const WOOD = '#6b4738';
 const WOOD_LIGHT = '#8a6250';
 const WOOD_DARK = '#3b2824';
@@ -21,16 +21,24 @@ const METAL_DARK = '#485255';
 const RED = '#8f3440';
 const RED_LIGHT = '#bd4f5c';
 
-function ellipse(ctx: Ctx, x: number, y: number, rx: number, ry: number, fill: string, stroke = OUTLINE, lw = 2) {
+function ellipse(ctx: Ctx, x: number, y: number, rx: number, ry: number, fill: string, stroke = OUTLINE, lw = 1.55) {
   ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill();
   if (stroke && lw) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
 }
-function rr(ctx: Ctx, x: number, y: number, w: number, h: number, r: number, fill: string, stroke = OUTLINE, lw = 2) {
+function rr(ctx: Ctx, x: number, y: number, w: number, h: number, r: number, fill: string, stroke = OUTLINE, lw = 1.55) {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fillStyle = fill; ctx.fill();
   if (stroke && lw) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
 }
 function rect(ctx: Ctx, x: number, y: number, w: number, h: number, fill: string) { ctx.fillStyle = fill; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
-function shadow(ctx: Ctx, x: number, y: number, rx = 14, ry = 4) { ellipse(ctx, x + 16, y + 28, rx, ry, SHADOW, '', 0); }
+function shadow(ctx: Ctx, x: number, y: number, rx = 14, ry = 4) {
+  ctx.save();
+  ctx.fillStyle = SHADOW;
+  ctx.globalAlpha = .62;
+  ctx.beginPath(); ctx.ellipse(x + 16, y + 28.3, rx * 1.12, ry * 1.22, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = .72;
+  ctx.beginPath(); ctx.ellipse(x + 16, y + 27.9, rx * .82, ry * .72, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 
 function counter(ctx: Ctx, x: number, y: number) {
   shadow(ctx, x, y, 15, 4);
@@ -39,6 +47,8 @@ function counter(ctx: Ctx, x: number, y: number) {
   rect(ctx, x + 6, y + 13, 20, 2, WOOD_LIGHT);
   rr(ctx, x, y + 6, 32, 7, 3, MARBLE);
   rect(ctx, x + 3, y + 7, 26, 1, MARBLE_LIGHT);
+  ctx.globalAlpha = .22; rect(ctx, x + 5, y + 9, 17, 1, '#ffffff'); ctx.globalAlpha = 1;
+  rect(ctx, x + 5, y + 25, 22, 1, GOLD_DARK);
   rr(ctx, x + 8, y + 17, 16, 7, 2, GOLD_DARK, '', 0);
   rr(ctx, x + 9, y + 18, 14, 5, 2, TEAL, '', 0);
   rect(ctx, x + 10, y + 19, 12, 1, TEAL_LIGHT);
@@ -55,6 +65,7 @@ function barrier(ctx: Ctx, x: number, y: number) {
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x + 9, y + 12); ctx.bezierCurveTo(x + 14, y + 18, x + 18, y + 18, x + 23, y + 12); ctx.stroke();
   ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 9, y + 12); ctx.bezierCurveTo(x + 14, y + 18, x + 18, y + 18, x + 23, y + 12); ctx.stroke();
   ctx.strokeStyle = RED_LIGHT; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 10, y + 11.5); ctx.bezierCurveTo(x + 14, y + 16, x + 18, y + 16, x + 22, y + 11.5); ctx.stroke();
+  ctx.globalAlpha = .32; ellipse(ctx, x + 6.4, y + 8.4, 1.4, .8, '#fff0b6', '', 0); ellipse(ctx, x + 24.4, y + 8.4, 1.4, .8, '#fff0b6', '', 0); ctx.globalAlpha = 1;
 }
 
 function shelf(ctx: Ctx, x: number, y: number) {
@@ -110,6 +121,7 @@ function safe(ctx: Ctx, x: number, y: number, frame: number) {
   rr(ctx, x + 5, y + 7, 22, 19, 3, METAL);
   rect(ctx, x + 7, y + 9, 18, 2, METAL_LIGHT);
   rr(ctx, x + 9, y + 12, 14, 11, 2, '#59676a');
+  ctx.globalAlpha = .24; rect(ctx, x + 7, y + 9, 11, 1, '#ffffff'); ctx.globalAlpha = 1;
   ellipse(ctx, x + 16, y + 17, 5, 5, GOLD_DARK);
   const a = frame * .025; const hx = Math.cos(a) * 4, hy = Math.sin(a) * 4;
   ellipse(ctx, x + 16 + hx, y + 17 + hy, 1.8, 1.8, GOLD_LIGHT, '', 0);
