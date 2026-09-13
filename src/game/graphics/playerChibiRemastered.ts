@@ -105,7 +105,7 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
   } else if (shootStart) {
     rt.state = 'shoot';
     rt.enteredAt = input.frame;
-  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 22) {
+  } else if (rt.state === 'shoot' && input.frame - rt.enteredAt < 24) {
     // Hold the full authored recoil and recovery sequence.
   } else if (rt.state === 'hurt' && input.frame - rt.enteredAt < 10) {
     // Keep the impact reaction readable.
@@ -126,101 +126,108 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
 
 function poseFor(state: State, tick: number, _frame: number, dir: DuckDir): Pose {
   if (state === 'walk') {
-    const vertical = dir === 'up' || dir === 'down';
+    // Los 12 dibujos authored se recorren completos. El movimiento extra sólo
+    // acompaña el peso: ya no deforma la silueta de forma agresiva.
     const cycle = tick % 24;
     const i = Math.floor(cycle / 2) % 12;
     const phase = (cycle / 24) * Math.PI * 2;
     const stride = Math.sin(phase);
     const plant = Math.cos(phase * 2);
     const lift = Math.abs(Math.sin(phase));
-    const sideLean = dir === 'left' ? -.024 : dir === 'right' ? .024 : 0;
+    const vertical = dir === 'up' || dir === 'down';
+    const sideLean = dir === 'left' ? -.016 : dir === 'right' ? .016 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: vertical ? 1 + plant * .025 : 1 + plant * .032,
-      scaleY: vertical ? 1 - plant * .031 : 1 - plant * .036,
-      rotation: vertical ? stride * .031 : sideLean + stride * .036,
-      dx: vertical ? stride * .86 : stride * .96,
-      dy: vertical ? -lift * 1.68 + plant * .17 : -lift * 1.92 + plant * .18,
+      scaleX: vertical ? 1 + plant * .012 : 1 + plant * .016,
+      scaleY: vertical ? 1 - plant * .014 : 1 - plant * .018,
+      rotation: vertical ? stride * .018 : sideLean + stride * .024,
+      dx: vertical ? stride * .55 : stride * .72,
+      dy: vertical ? -lift * 1.45 + plant * .12 : -lift * 1.62 + plant * .13,
     };
   }
   if (state === 'shoot') {
-    const i = Math.min(5, Math.floor(tick / 3));
+    // Ataque + recuperación authored: no congelar el frame 5 al final.
+    const seq = [0,1,2,3,4,5,5,4,3,2,1,0];
+    const i = seq[Math.min(seq.length - 1, Math.floor(tick / 2))];
     const attackT = Math.min(1, tick / 4);
-    const recoverT = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 17);
+    const recoverT = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 20);
     const attack = 1 - Math.pow(1 - attackT, 3);
-    const kick = 5.65 * (tick <= 4 ? attack : Math.pow(recoverT, 1.55));
+    const kick = 4.75 * (tick <= 4 ? attack : Math.pow(recoverT, 1.6));
     const horizontal = dir === 'left' || dir === 'right';
     const dx = dir === 'left' ? kick : dir === 'right' ? -kick : 0;
-    const dy = dir === 'up' ? kick * .90 : dir === 'down' ? -kick * .76 : 0;
+    const dy = dir === 'up' ? kick * .82 : dir === 'down' ? -kick * .68 : 0;
     const recoilPeak = tick >= 2 && tick <= 7;
     return {
       authored: 'shoot', index: i,
-      scaleX: recoilPeak ? (horizontal ? 1.068 : 1.047) : 1 + kick * .0015,
-      scaleY: recoilPeak ? .938 : 1 - kick * .0012,
-      rotation: dir === 'left' ? -.038 * (kick / 5.65) : dir === 'right' ? .038 * (kick / 5.65) : 0,
+      scaleX: recoilPeak ? (horizontal ? 1.042 : 1.028) : 1,
+      scaleY: recoilPeak ? .958 : 1,
+      rotation: dir === 'left' ? -.028 * (kick / 4.75) : dir === 'right' ? .028 * (kick / 4.75) : 0,
       dx, dy,
     };
   }
   if (state === 'interact') {
-    const i = Math.min(7, Math.floor(tick / 2));
-    const progress = Math.min(1, tick / 15);
+    const seq = [0,1,2,3,4,5,6,7,6,5,4,3,2,1,0];
+    const i = seq[Math.min(seq.length - 1, Math.floor(tick / 2))];
+    const progress = Math.min(1, tick / 28);
     const arc = Math.sin(progress * Math.PI);
     return {
       authored: 'interact', index: i,
-      scaleX: 1 + arc * .014,
-      scaleY: 1 + arc * .021,
-      rotation: Math.sin(progress * Math.PI * 2) * .012,
-      dx: Math.sin(progress * Math.PI * 2) * .18,
-      dy: -arc * 1.82,
+      scaleX: 1 + arc * .008,
+      scaleY: 1 + arc * .012,
+      rotation: Math.sin(progress * Math.PI * 2) * .009,
+      dx: Math.sin(progress * Math.PI * 2) * .14,
+      dy: -arc * 1.45,
     };
   }
   if (state === 'dash') {
-    const i = Math.floor(tick * 1.35) % 12;
+    const i = Math.floor(tick * 1.2) % 12;
     const t = Math.min(1, tick / 10);
     const pulse = Math.sin(t * Math.PI);
     const horizontal = dir === 'left' || dir === 'right';
     return {
       authored: 'walk', index: i,
-      scaleX: horizontal ? 1.05 + pulse * .08 : .98 - pulse * .018,
-      scaleY: horizontal ? .965 - pulse * .018 : 1.05 + pulse * .08,
+      scaleX: horizontal ? 1.035 + pulse * .035 : .985 - pulse * .012,
+      scaleY: horizontal ? .978 - pulse * .012 : 1.035 + pulse * .035,
       rotation: 0,
       dx: 0,
-      dy: horizontal ? -.7 : 0,
+      dy: horizontal ? -.55 : 0,
     };
   }
   if (state === 'hurt') {
-    const i = Math.floor(tick / 2) % 4;
-    const snap = tick % 2 === 0 ? -1 : 1;
+    const seq = [2,3,2,1,0];
+    const i = seq[Math.min(seq.length - 1, Math.floor(tick / 2))];
+    const snap = tick < 3 ? -1 : tick < 6 ? 1 : 0;
     return {
       authored: 'idle', index: i,
-      scaleX: 1.025, scaleY: .975,
-      rotation: snap * .026,
-      dx: snap * .85,
-      dy: -.8,
+      scaleX: 1.018, scaleY: .984,
+      rotation: snap * .018,
+      dx: snap * .65,
+      dy: -.58,
     };
   }
   if (state === 'down') {
-    const t = Math.min(1, tick / 20);
+    const t = Math.min(1, tick / 22);
     const ease = 1 - Math.pow(1 - t, 3);
+    const fallSign = dir === 'left' || dir === 'up' ? -1 : 1;
     return {
-      authored: 'idle', index: 0,
-      scaleX: 1 + ease * .10,
-      scaleY: 1 - ease * .18,
-      rotation: (dir === 'left' ? -1 : 1) * ease * 1.16,
-      dx: (dir === 'left' ? -1 : 1) * ease * 2.1,
-      dy: ease * 3.4,
+      authored: 'idle', index: Math.min(3, Math.floor(tick / 6)),
+      scaleX: 1 + ease * .08,
+      scaleY: 1 - ease * .20,
+      rotation: fallSign * ease * 1.22,
+      dx: fallSign * ease * 2.45,
+      dy: ease * 3.6,
     };
   }
-  const i = Math.floor(tick / 7) % 4;
-  const breathe = Math.sin(tick * .11);
-  const settle = Math.cos(tick * .055);
+  const i = Math.floor(tick / 10) % 4;
+  const breathe = Math.sin(tick * .075);
+  const settle = Math.cos(tick * .04);
   return {
     authored: 'idle', index: i,
-    scaleX: 1 - breathe * .012,
-    scaleY: 1 + breathe * .022,
-    rotation: settle * .006,
-    dx: settle * .18,
-    dy: -breathe * .72,
+    scaleX: 1 - breathe * .006,
+    scaleY: 1 + breathe * .011,
+    rotation: settle * .004,
+    dx: settle * .10,
+    dy: -breathe * .48,
   };
 }
 
@@ -543,15 +550,15 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
   if (state === 'dash') {
     const v = dashVector(input.dir);
     drawDashBurst(ctx, feetX, feetY, input.dir, tick, opacity);
-    for (let i = 6; i >= 1; i--) {
-      const ghostAlpha = opacity * (.022 + (7 - i) * .024);
-      drawFrame(ctx, image, input.dir, pose, feetX, feetY, ghostAlpha, -v.x * i * 4.15, -v.y * i * 4.15);
+    for (let i = 4; i >= 1; i--) {
+      const ghostAlpha = opacity * (.028 + (5 - i) * .028);
+      drawFrame(ctx, image, input.dir, pose, feetX, feetY, ghostAlpha, -v.x * i * 4.4, -v.y * i * 4.4);
     }
   }
 
   const actorFeetX = feetX + pose.dx;
   const actorFeetY = feetY + pose.dy;
-  const authoredWeapon = state === 'shoot' || state === 'interact' || state === 'down';
+  const authoredWeapon = state === 'shoot' || state === 'interact';
   const wp = weaponAnchor(input.dir, actorFeetX, actorFeetY, 0, pose.rotation);
   if (!authoredWeapon && wp.behind) {
     drawWeapon(ctx, input.dir, actorFeetX, actorFeetY, opacity, 0, pose.rotation);
@@ -567,7 +574,7 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
 
   if (state === 'shoot') {
     drawShotGlow(ctx, input.dir, actorFeetX, actorFeetY, opacity, tick, pose.rotation);
-    if (tick <= 14) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.56, 1 - tick * .045), tick, pose.rotation);
+    if (tick <= 10) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.52, 1 - tick * .06), tick, pose.rotation);
   }
 
   if (state === 'hurt') {
@@ -578,8 +585,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     ctx.restore();
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v9';
-  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v9';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v10';
+  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v10';
   document.documentElement.dataset.duckHeistPlayerState = state;
   document.documentElement.dataset.duckHeistPlayerVisualFrame = `${pose.authored}:${pose.index}`;
 }
