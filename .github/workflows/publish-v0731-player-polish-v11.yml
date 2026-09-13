@@ -1,0 +1,62 @@
+name: Publish Duck Heist v0.7.31 Player Polish v11
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0731-player-polish-v11.yml'
+      - 'scripts/patch-v0731.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply v0.7.31 player polish
+        run: python3 scripts/patch-v0731.py
+      - name: Validate player source and build
+        run: |
+          grep -q 'canvas2d-chibi-remastered-v11' src/game/graphics/playerChibiRemastered.ts
+          grep -q '120-authored-remastered-v11' src/game/graphics/playerChibiRemastered.ts
+          grep -q 'drawDashLanding' src/game/graphics/playerChibiRemastered.ts
+          grep -q 'drawHurtAccent' src/game/graphics/playerChibiRemastered.ts
+          grep -q '0.7.31-player-polish-v11' index.html
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0731 --emptyOutDir
+          test -s /tmp/duck-heist-v0731/index.html
+          grep -q '0.7.31-player-polish-v11' /tmp/duck-heist-v0731/index.html
+      - name: Promote v0.7.31
+        run: |
+          npm version 0.7.31 --no-git-tag-version
+          printf '0.7.31\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0731/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.31"' package.json
+          grep -q '^0.7.31$' VERSION
+          grep -q '0.7.31-player-polish-v11' web-release/index.html
+          cmp web-release/index.html dist/index.html
+      - name: Commit v0.7.31
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/playerChibiRemastered.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.31 player polish v11'
+          git pull --rebase origin main
+          git push origin HEAD:main
