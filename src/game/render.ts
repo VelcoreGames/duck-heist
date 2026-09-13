@@ -48,6 +48,7 @@ import { drawChibiItemRoomDecorV3, drawChibiShopRoomDecorV3, drawChibiBossRoomDe
 import { drawChibiFloorTileV3 } from './graphics/chibiFloorArtV3';
 import { drawChibiFloorAtmosphereV3 } from './graphics/chibiAtmosphereV3';
 import { drawChibiCoinV3, drawChibiProjectileV3, drawChibiParticleV3, drawChibiPickupGlowV3, drawChibiEnemyFxV3 } from './graphics/chibiEffectsV3';
+import { drawChibiEnemyHealthV3, drawChibiEnemyTelegraphV3 } from './graphics/chibiCombatReadabilityV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -513,39 +514,14 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   ctx.globalAlpha = 1;
   drawChibiEnemyFxV3(ctx,e,f,'over');
 
-  if (!e.isBoss && e.hp < e.maxHp) {
-    const w = e.size;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(e.x - 1, e.y - 7, w + 2, 4);
-    ctx.fillStyle = e.elite ? '#f4d03f' : '#c0392b';
-    ctx.fillRect(e.x, e.y - 6, Math.round(w * (e.hp / e.maxHp)), 2);
-  }
+  drawChibiEnemyHealthV3(ctx,e);
 
-  // --- AVISO DE ATAQUE (telegrafía legible) ---
+  // --- AVISO DE ATAQUE (telegrafía chibi legible) ---
   if (e.telegraph > 0.05) {
-    const t = e.telegraph;
     const cx = e.x + e.size / 2, cy = e.y + e.size / 2;
     const ang=e.behavior==='shielded'?e.shieldAngle:e.behavior==='sniper'||e.behavior==='k9'?e.moveAngle:Math.atan2(engine.player.y + 8 - cy, engine.player.x + 7 - cx);
-    ctx.save();
-    // línea de puntería
-    ctx.globalAlpha = 0.18 + t * 0.42;
-    ctx.strokeStyle = e.behavior === 'shotgunner' ? '#ff9f43' : '#ff5b4f';
-    ctx.lineWidth = e.behavior === 'shotgunner' ? 5 : 2;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(ang) * (e.size * 0.5), cy + Math.sin(ang) * (e.size * 0.5));
     const reach=e.behavior==='sniper'?440:e.behavior==='k9'?135:e.behavior==='shielded'?90:e.behavior==='shotgunner'?150:110;
-    ctx.lineTo(cx+Math.cos(ang)*reach*(e.behavior==='sniper'?1:t),cy+Math.sin(ang)*reach*(e.behavior==='sniper'?1:t));
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // marca de peligro encima
-    ctx.globalAlpha = 0.55 + t * 0.45;
-    ctx.fillStyle = '#ff3b30';
-    const my = e.y - 14 - Math.round(t * 3);
-    ctx.fillRect(cx - 1, my, 2, 6);
-    ctx.fillRect(cx - 1, my + 7, 2, 2);
-    ctx.restore();
-    ctx.globalAlpha = 1;
+    drawChibiEnemyTelegraphV3(ctx,e,f,ang,reach);
   }
 
   ctx.globalAlpha = 1;
