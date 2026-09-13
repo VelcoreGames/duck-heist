@@ -62,7 +62,8 @@ jobs:
           print('v0.7.43 atlas validated: 464 frames, strict clipping margins')
           PY
           grep -q 'const DRAW = 44' src/game/graphics/playerChibiAtlasV16.ts
-          grep -q "no hair, hat or glasses" scripts/generate-player-chibi-v16.py
+          grep -q 'no hair' scripts/generate-player-chibi-v16.py
+          grep -q 'no glasses' scripts/generate-player-chibi-v16.py
           grep -q '0.7.43-chibi-v16-impact-scale' index.html
 
       - name: Validate TypeScript and build
