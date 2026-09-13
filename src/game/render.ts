@@ -37,6 +37,7 @@ import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import { drawChibiPlayerRemastered } from './graphics/playerChibiRemastered';
 import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
+import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
 import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -521,13 +522,33 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
           moving: Math.abs(e.vx) + Math.abs(e.vy) > 0.08, hurt, elite: e.elite,
         });
         break;
-      case 'policia_rapido': drawPoliciaRapido(ctx, e.x, e.y, f, hurt, dirX); break;
-      case 'policia_escopeta': drawPoliciaEscopeta(ctx, e.x, e.y, f, hurt, dirX, e.telegraph); break;
+      case 'policia_rapido':
+        drawChibiPoliceVariantV3({
+          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 9,
+          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
+          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
+          moving: Math.abs(e.vx) + Math.abs(e.vy) > .08, hurt, elite: e.elite, variant: 'rapid',
+        });
+        break;
+      case 'policia_escopeta':
+        drawChibiPoliceVariantV3({
+          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 11,
+          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
+          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
+          moving: Math.abs(e.vx) + Math.abs(e.vy) > .08, hurt, elite: e.elite,
+          variant: 'shotgun', telegraph: e.telegraph,
+        });
+        break;
       case 'dron_policial': drawDronPolicial(ctx, e.x, e.y, f, hurt); break;
       case 'policia_antidisturbios':
-        drawPoliciaAntidisturbios(ctx, e.x, e.y, f, hurt,
-          { x: Math.cos(e.shieldAngle), y: Math.sin(e.shieldAngle) },
-          e.chargeTimer > 0, e.recover > 0);
+        drawChibiPoliceVariantV3({
+          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 13,
+          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
+          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
+          moving: Math.abs(e.vx) + Math.abs(e.vy) > .08, hurt, elite: e.elite,
+          variant: 'riot', shieldAngle: e.shieldAngle,
+          charging: e.chargeTimer > 0, recovering: e.recover > 0,
+        });
         break;
       case 'security_pigeon': drawSecurityPigeon(ctx, e.x, e.y, f, hurt); break;
       case 'guard_goose': drawGuardGoose(ctx, e.x, e.y, f, hurt); break;
