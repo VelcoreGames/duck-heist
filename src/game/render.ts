@@ -440,7 +440,10 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
 function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: GameEngine) {
   const hurt = e.hurtTimer > 0;
   const player = engine.player;
-  const dirX = (player.x + 7) > (e.x + e.size / 2) ? 1 : -1;
+  const toPlayerX = (player.x + 7) - (e.x + e.size / 2);
+  const toPlayerY = (player.y + 8) - (e.y + e.size / 2);
+  const dirX = toPlayerX >= 0 ? 1 : -1;
+  const dirY = toPlayerY >= 0 ? 1 : -1;
 
   if (e.spawnAnim > 0) {
     ctx.globalAlpha = 1 - e.spawnAnim / 18;
@@ -507,7 +510,9 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     switch (e.type) {
       case 'policia_pato':
         drawChibiPoliceDuckV3({
-          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 7, dirX,
+          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 7,
+          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
+          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
           moving: Math.abs(e.vx) + Math.abs(e.vy) > 0.08, hurt, elite: e.elite,
         });
         break;
