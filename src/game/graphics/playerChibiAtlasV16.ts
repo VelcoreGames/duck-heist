@@ -10,7 +10,7 @@ const COLS = 116;
 const ROWS = 4;
 const ATLAS_W = COLS * FRAME;
 const ATLAS_H = ROWS * FRAME;
-const DRAW = 42;
+const DRAW = 44;
 const PIVOT_X = DRAW * (32 / 64);
 const PIVOT_Y = DRAW * (58 / 64);
 
@@ -185,13 +185,17 @@ function visualPose(state: State, tick: number, index: number, dir: DuckDir, tur
     dy = -drive * .42;
   } else if (state === 'hurt') {
     const impact = Math.max(0, 1 - tick / 14);
-    const snap = tick < 3 ? -1 : tick < 7 ? .55 : -.18;
-    rotation = snap * .048 * impact;
+    const snap = tick < 3 ? -1 : tick < 7 ? .58 : -.20;
+    rotation = snap * .062 * impact;
     const v = dashVector(dir);
-    dx = -v.x * impact * .82; dy = -v.y * impact * .52 - impact * .34;
+    dx = -v.x * impact * 1.05; dy = -v.y * impact * .70 - impact * .48;
+    scaleX = 1 + impact * .024; scaleY = 1 - impact * .030;
   } else if (state === 'down') {
     const settle = Math.min(1, index / Math.max(1, COUNT.down - 1));
-    scaleX = 1 + settle * .038; scaleY = 1 - settle * .040; dy = settle * .44;
+    const contact = Math.sin(Math.min(1, settle * 1.35) * Math.PI);
+    scaleX = 1 + settle * .052 + contact * .010;
+    scaleY = 1 - settle * .052 - contact * .008;
+    dy = settle * .65;
   }
   if (turnAge >= 0 && turnAge < 4 && state !== 'down' && state !== 'hurt') {
     const turn = 1 - turnAge / 4;
@@ -244,8 +248,8 @@ function dashVector(dir: DuckDir): { x: number; y: number } {
 
 function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha: number, index: number): void {
   const airborne = state === 'walk' ? Math.abs(Math.sin((index / COUNT.walk) * Math.PI * 2)) : state === 'dash' ? .42 : 0;
-  const w = (state === 'down' ? 11.8 : state === 'dash' ? 10.0 : 9.45) * (1 - airborne * .12);
-  const h = (state === 'down' ? 2.95 : 2.36) * (1 - airborne * .08);
+  const w = (state === 'down' ? 12.25 : state === 'dash' ? 10.4 : 9.85) * (1 - airborne * .12);
+  const h = (state === 'down' ? 3.05 : 2.46) * (1 - airborne * .08);
   ctx.save();
   ctx.fillStyle = '#231912';
   ctx.globalAlpha = .065 * alpha;
@@ -256,10 +260,10 @@ function drawShadow(ctx: Ctx, feetX: number, feetY: number, state: State, alpha:
 }
 
 function muzzlePoint(dir: DuckDir, feetX: number, feetY: number): { x: number; y: number; a: number } {
-  if (dir === 'right') return { x: feetX + 17.6, y: feetY - 13.0, a: 0 };
-  if (dir === 'left') return { x: feetX - 17.6, y: feetY - 13.0, a: Math.PI };
-  if (dir === 'up') return { x: feetX + 11.7, y: feetY - 27.8, a: -Math.PI / 2 };
-  return { x: feetX + 8.7, y: feetY - .5, a: Math.PI / 2 };
+  if (dir === 'right') return { x: feetX + 18.45, y: feetY - 13.6, a: 0 };
+  if (dir === 'left') return { x: feetX - 18.45, y: feetY - 13.6, a: Math.PI };
+  if (dir === 'up') return { x: feetX + 12.25, y: feetY - 29.15, a: -Math.PI / 2 };
+  return { x: feetX + 9.1, y: feetY - .55, a: Math.PI / 2 };
 }
 
 function drawMuzzle(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, tick: number, alpha: number): void {
@@ -306,9 +310,10 @@ function drawHurtFx(ctx: Ctx, feetX: number, feetY: number, tick: number, alpha:
   if (tick > 9) return;
   const t = 1 - tick / 10;
   ctx.save();
-  ctx.globalAlpha = alpha * t * .65;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = alpha * t * .72;
   ctx.strokeStyle = '#fff2c8';
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1.28;
   for (let i = 0; i < 5; i++) {
     const a = -.9 + i * .45;
     ctx.beginPath();

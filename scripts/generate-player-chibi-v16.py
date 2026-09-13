@@ -213,8 +213,9 @@ def pose(state: str, i: int, n: int):
         q['bob']=-1.2*sin(t*pi); q['wing']=2.4*sin(t*pi); q['stride']=.7*sin(t*pi*2)
     elif state=='hurt':
         t=i/(n-1); impact=1-t
-        snap=(1 if i<2 else -1 if i<4 else .42 if i<6 else 0)
-        q['hurt']=impact; q['lean']=snap*3.25*impact; q['bob']=-1.35*impact; q['squash']=.055*impact; q['blink']=True
+        snap=(1 if i<2 else -1 if i<4 else .46 if i<6 else 0)
+        q['hurt']=impact; q['lean']=snap*4.10*impact; q['bob']=-1.65*impact
+        q['squash']=.065*impact; q['wing']=1.65*impact; q['lowered']=1.45*impact; q['blink']=True
     elif state=='down': q['down']=i/(n-1); q['blink']=True
     elif state=='interact':
         q['reach']=sin(p*pi); q['bob']=-1.0*sin(p*pi); q['lowered']=2.2*sin(p*pi); q['wing']=2.4*sin(p*pi)
@@ -290,9 +291,9 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     if down>0:
         base=draw_duck(direction,'idle',8,COUNTS['idle'])
         turn_sign=-1 if direction=='left' else 1
-        ang=64*turn_sign*(1-(1-down)**2)
+        ang=68*turn_sign*(1-(1-down)**2)
         # Counter-shift the fall so the head/weapon never clip the 64px frame.
-        rot=base.rotate(ang,resample=Image.Resampling.BICUBIC,center=(S(32),S(36)),translate=(S(turn_sign*3.6*down),S(7.2*down)),fillcolor=(0,0,0,0))
+        rot=base.rotate(ang,resample=Image.Resampling.BICUBIC,center=(S(32),S(36)),translate=(S(turn_sign*3.4*down),S(7.6*down)),fillcolor=(0,0,0,0))
         fade=max(.72,1-down*.15)
         if fade<1: rot.putalpha(rot.getchannel('A').point(lambda a:int(a*fade)))
         # Closed eye/impact star remains part of the authored death sequence.
@@ -348,7 +349,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
     # Head is deliberately dominant and overlaps the body.
     gradient_ellipse(im,(head_cx-rx,head_cy-ry,head_cx+rx,head_cy+ry),FEATHER_TOP,FEATHER_SHADOW,INK,1.85)
     translucent_ellipse(im,(head_cx-rx*.62,head_cy-ry*.72,head_cx-rx*.03,head_cy-ry*.18),'#fff9d2',105)
-    # Keep the base silhouette smooth: no hair tuft, hat or glasses.
+    # Keep the base silhouette smooth: no hair, no glasses, no hat or tuft.
     draw_face(im,direction,head_cx,head_cy,q['blink'],q['hurt'])
 
     # Direction-specific weapon perspective. Side views retain the long hero
@@ -373,7 +374,7 @@ def draw_duck(direction: str, state: str, i: int, n: int) -> Image.Image:
             translucent_ellipse(im,(42.5,35.8+bob*.2,46.8,37.2+bob*.2),'#f7db84',72)
 
     if state=='hurt':
-        lay=Image.new('RGBA',im.size,(255,90,70,0)); lay.putalpha(im.getchannel('A').point(lambda a:int(a*.11*q['hurt'])))
+        lay=Image.new('RGBA',im.size,(255,90,70,0)); lay.putalpha(im.getchannel('A').point(lambda a:int(a*.15*q['hurt'])))
         im=Image.alpha_composite(im,lay)
     if state=='celebrate':
         # Raised wings + small warm sparkles, still clean enough for gameplay scale.
