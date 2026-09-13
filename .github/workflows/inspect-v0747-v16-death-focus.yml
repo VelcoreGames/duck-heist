@@ -1,0 +1,97 @@
+name: Inspect Duck Heist v0.7.47 V16 Death Focus
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-v0747-v16-death-focus.yml'
+      - 'scripts/patch-v0747-v16-death-focus.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply render-only death focus candidate
+        run: python scripts/patch-v0747-v16-death-focus.py
+
+      - name: Validate candidate scope
+        run: |
+          grep -q 'function drawDownFocus' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q "v16.8-death-focus" src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'p.flash > 0 && p.hp > 0' src/game/render.ts
+          grep -q 'p.hp>0 && p.hp<=1' src/game/render.ts
+          grep -q '0.7.47-chibi-v16-death-focus-candidate' index.html
+          grep -q 'const DRAW = 46' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '464-raster-chibi-v16' src/game/graphics/playerChibiAtlasV16.ts
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' index.html src/game/graphics/playerChibiAtlasV16.ts src/game/render.ts | sort)"
+          test "$changed" = "$expected"
+          git diff --check
+
+      - name: Add local-only QA engine hook
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/App.tsx'); s=p.read_text()
+          old='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n'''
+          new='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n    (window as Window & { __duckQaEngine?: GameEngine }).__duckQaEngine = engine;\n'''
+          if s.count(old)!=1: raise SystemExit('QA engine hook anchor mismatch')
+          p.write_text(s.replace(old,new,1))
+          PY
+
+      - name: Validate TypeScript and build
+        run: |
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/v0747-build --emptyOutDir
+          grep -q '0.7.47-chibi-v16-death-focus-candidate' /tmp/v0747-build/index.html
+          grep -q 'v16.8-death-focus' /tmp/v0747-build/index.html
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify forced death presentation
+        run: |
+          mkdir -p /tmp/v0747-review
+          cd /tmp/v0747-build
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v0747-http.log 2>&1 &
+          echo $! >/tmp/v0747-http.pid
+          cd "$GITHUB_WORKSPACE"
+          node <<'NODE'
+          const { chromium }=require('playwright');
+          const fs=require('fs'),assert=require('assert');
+          const out='/tmp/v0747-review',expected='0.7.47-chibi-v16-death-focus-candidate';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));const errors=[],failed=[],bad=[],samples={};
+          async function ds(p){return p.evaluate(()=>{const e=window.__duckQaEngine;return {build:document.querySelector('meta[name="duck-heist-build"]')?.content||'',renderer:document.documentElement.dataset.duckHeistPlayerRenderer||'',frames:document.documentElement.dataset.duckHeistPlayerFrames||'',fx:document.documentElement.dataset.duckHeistPlayerFx||'',playerState:document.documentElement.dataset.duckHeistPlayerState||'',visualFrame:document.documentElement.dataset.duckHeistPlayerVisualFrame||'',engineState:e?.state,deathTimer:e?.player?.deathTimer,hp:e?.player?.hp};});}
+          async function start(p){await p.goto(`http://127.0.0.1:4173/?qa=v0747&t=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});await sleep(1500);assert.strictEqual((await ds(p)).build,expected);const c=p.locator('canvas[role="application"]');assert.strictEqual(await c.count(),1);await c.focus();await p.keyboard.press('Enter');for(let i=0;i<10;i++){await sleep(650);const d=await ds(p);if(d.engineState==='PLAYING'&&d.renderer==='canvas2d-chibi-atlas-v16'&&d.playerState==='idle')return d;await p.keyboard.press('Enter');}throw new Error('did not reach PLAYING V16 idle');}
+          async function waitFor(p,pred,timeout=1800){const t=Date.now();while(Date.now()-t<timeout){const d=await ds(p);if(pred(d))return d;await sleep(10);}throw new Error('waitFor timeout');}
+          (async()=>{const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});const p=await context.newPage();p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} ${r.failure()?.errorText||''}`));p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()} ${r.url()}`)});
+          samples.idle=await start(p);assert.strictEqual(samples.idle.fx,'v16.8-death-focus');await p.screenshot({path:`${out}/01-idle.png`,fullPage:true});
+          await p.evaluate(()=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');e.player.hp=0;});samples.early=await waitFor(p,d=>d.playerState==='down'&&d.deathTimer>=3&&d.deathTimer<13);assert.strictEqual(samples.early.fx,'v16.8-death-focus');await p.screenshot({path:`${out}/02-down-focus.png`,fullPage:true});
+          samples.gameOver=await waitFor(p,d=>d.engineState==='GAME_OVER',1800);assert.strictEqual(samples.gameOver.deathTimer,36);await p.screenshot({path:`${out}/03-game-over.png`,fullPage:true});
+          assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples,errors,failed,bad},null,2));await browser.close();})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          kill "$(cat /tmp/v0747-http.pid)" || true
+
+      - name: Upload candidate review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0747-death-focus-candidate
+          path: /tmp/v0747-review
+          if-no-files-found: warn
+          retention-days: 7
