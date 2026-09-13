@@ -45,6 +45,7 @@ import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
 import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
 import { drawChibiThemedDoorV3, drawChibiThemedObstacleV3 } from './graphics/chibiWorldPropsV3';
 import { drawChibiChestV3, drawChibiPedestalV3, drawChibiCandleV3, drawChibiStairsV3 } from './graphics/chibiInteractablesV3';
+import { drawChibiItemRoomDecorV3, drawChibiShopRoomDecorV3, drawChibiBossRoomDecorV3, drawChibiTreasureRoomDecorV3, drawChibiHiddenDoorV3 } from './graphics/chibiRoomDecorV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -110,9 +111,7 @@ export function renderWorld(engine: GameEngine) {
     const target = engine.map.rooms.get(`${room.gx + v.x},${room.gy + v.y}`);
     if(target?.type===RoomType.SECRET && !target.revealed) {
       const t=DOOR_TILE[d],x=t.x*32,y=t.y*32;
-      ctx.fillStyle='#233843';ctx.fillRect(x,y,32,32);
-      ctx.strokeStyle='#0b1c25';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+15,y+2);ctx.lineTo(x+11,y+13);ctx.lineTo(x+18,y+21);ctx.lineTo(x+14,y+29);ctx.stroke();
-      ctx.fillStyle='#a68d57';ctx.fillRect(x+22,y+27,2,2);continue;
+      drawChibiHiddenDoorV3(ctx,x,y,d,f,engine.map.floorIndex);continue;
     }
     const style = target?.type === RoomType.ITEM ? 'gold'
       : target?.type === RoomType.BOSS ? 'boss' : target?.type===RoomType.SHOP?'green'
@@ -349,47 +348,17 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
   drawInnerWallShadow(ctx);
   drawRoomAtmosphere(ctx, special ? 'vault' : th.deco, f, special);
 
-  // brillos por tipo de sala
-  const cx = CANVAS_WIDTH / 2, cy = CANVAS_HEIGHT / 2;
+  // composición chibi por tipo de sala; solo arte, sin alterar colisiones.
   if (special) {
-    const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 190);
-    g.addColorStop(0, 'rgba(180,80,220,0.14)');
-    g.addColorStop(0.6, 'rgba(120,40,80,0.10)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    ctx.fillStyle = 'rgba(96,20,42,0.5)';
-    ctx.fillRect(cx - 62, cy - 52, 124, 104);
-    ctx.fillStyle = 'rgba(150,40,70,0.5)';
-    ctx.fillRect(cx - 56, cy - 46, 112, 92);
-    ctx.fillStyle = 'rgba(244,208,63,0.22)';
-    ctx.fillRect(cx - 52, cy - 42, 104, 2);
-    ctx.fillRect(cx - 52, cy + 40, 104, 2);
-    for (let i = 0; i < 12; i++) {
-      const t = (f * 0.012 + i * 0.083) % 1;
-      const px = cx + Math.sin(i * 2.3 + f * 0.01) * 70;
-      const py = CANVAS_HEIGHT - 40 - t * 200;
-      ctx.globalAlpha = (1 - t) * 0.6;
-      ctx.fillStyle = i % 3 === 0 ? '#f4d03f' : '#c58ae8';
-      ctx.fillRect(px, py, 2, 2);
-    }
-    ctx.globalAlpha = 1;
+    drawChibiItemRoomDecorV3(ctx, f, floorIndex);
   } else if (room.type === RoomType.SHOP) {
-    ctx.fillStyle = 'rgba(120,72,30,0.28)';
-    ctx.fillRect(TILE_SIZE + 20, TILE_SIZE + 40, CANVAS_WIDTH - TILE_SIZE * 2 - 40, CANVAS_HEIGHT - TILE_SIZE * 2 - 60);
+    drawChibiShopRoomDecorV3(ctx, f, floorIndex);
   } else if (room.type === RoomType.BOSS) {
-    ctx.fillStyle = 'rgba(200,40,40,0.05)';
-    ctx.fillRect(TILE_SIZE, TILE_SIZE, CANVAS_WIDTH - TILE_SIZE * 2, CANVAS_HEIGHT - TILE_SIZE * 2);
-    if (content.stairs) {
-      ctx.fillStyle = `rgba(244,208,63,${0.05 + Math.sin(f * 0.04) * 0.03})`;
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-  } else if (room.type === RoomType.TREASURE || room.type === RoomType.SECRET) {
-    const g = ctx.createRadialGradient(cx, cy, 8, cx, cy, 150);
-    g.addColorStop(0, 'rgba(244,208,63,0.14)');
-    g.addColorStop(1, 'rgba(244,208,63,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawChibiBossRoomDecorV3(ctx, f, floorIndex, Boolean(content.stairs));
+  } else if (room.type === RoomType.TREASURE) {
+    drawChibiTreasureRoomDecorV3(ctx, f, floorIndex, false);
+  } else if (room.type === RoomType.SECRET) {
+    drawChibiTreasureRoomDecorV3(ctx, f, floorIndex, true);
   }
 }
 
