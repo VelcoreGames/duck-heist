@@ -159,7 +159,7 @@ function poseFor(state: State, tick: number, _frame: number, dir: DuckDir, walkD
   if (state === 'walk') {
     // Los 12 dibujos authored se recorren completos. El movimiento extra sólo
     // acompaña el peso: ya no deforma la silueta de forma agresiva.
-    const strideDistance = 36;
+    const strideDistance = 30;
     const cycleDistance = ((walkDistance % strideDistance) + strideDistance) % strideDistance;
     const i = Math.floor((cycleDistance / strideDistance) * 12) % 12;
     const phase = (cycleDistance / strideDistance) * Math.PI * 2;
@@ -170,11 +170,11 @@ function poseFor(state: State, tick: number, _frame: number, dir: DuckDir, walkD
     const sideLean = dir === 'left' ? -.016 : dir === 'right' ? .016 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: vertical ? 1 + plant * .012 : 1 + plant * .016,
-      scaleY: vertical ? 1 - plant * .014 : 1 - plant * .018,
-      rotation: vertical ? stride * .018 : sideLean + stride * .024,
-      dx: vertical ? stride * .55 : stride * .72,
-      dy: vertical ? -lift * 1.45 + plant * .12 : -lift * 1.62 + plant * .13,
+      scaleX: vertical ? 1 + plant * .022 : 1 + plant * .018,
+      scaleY: vertical ? 1 - plant * .028 : 1 - plant * .020,
+      rotation: vertical ? stride * .030 : sideLean + stride * .026,
+      dx: vertical ? stride * .82 : stride * .76,
+      dy: vertical ? -lift * 2.15 + plant * .24 : -lift * 1.72 + plant * .16,
     };
   }
   if (state === 'shoot') {
@@ -184,16 +184,16 @@ function poseFor(state: State, tick: number, _frame: number, dir: DuckDir, walkD
     const attackT = Math.min(1, tick / 4);
     const recoverT = tick <= 4 ? 1 : Math.max(0, 1 - (tick - 4) / 20);
     const attack = 1 - Math.pow(1 - attackT, 3);
-    const kick = 4.75 * (tick <= 4 ? attack : Math.pow(recoverT, 1.6));
+    const kick = 5.45 * (tick <= 4 ? attack : Math.pow(recoverT, 1.55));
     const horizontal = dir === 'left' || dir === 'right';
     const dx = dir === 'left' ? kick : dir === 'right' ? -kick : 0;
     const dy = dir === 'up' ? kick * .82 : dir === 'down' ? -kick * .68 : 0;
-    const recoilPeak = tick >= 2 && tick <= 7;
+    const recoilPeak = tick >= 2 && tick <= 8;
     return {
       authored: 'shoot', index: i,
-      scaleX: recoilPeak ? (horizontal ? 1.042 : 1.028) : 1,
-      scaleY: recoilPeak ? .958 : 1,
-      rotation: dir === 'left' ? -.028 * (kick / 4.75) : dir === 'right' ? .028 * (kick / 4.75) : 0,
+      scaleX: recoilPeak ? (horizontal ? 1.052 : 1.034) : 1,
+      scaleY: recoilPeak ? .948 : 1,
+      rotation: dir === 'left' ? -.034 * (kick / 5.45) : dir === 'right' ? .034 * (kick / 5.45) : 0,
       dx, dy,
     };
   }
@@ -509,13 +509,13 @@ function drawWalkStepAccent(ctx: Ctx, feetX: number, feetY: number, poseIndex: n
   const cx = horizontal ? feetX + facing * lead * 2.25 : feetX + lead * 1.95;
   const cy = horizontal ? feetY + .72 : feetY + front * lead * .58 + .62;
   ctx.save();
-  ctx.globalAlpha = .13 * alpha;
+  ctx.globalAlpha = .20 * alpha;
   ctx.strokeStyle = '#6f4b31';
   ctx.lineWidth = .75;
   ctx.beginPath();
   ctx.ellipse(cx, cy, 2.55, .78, horizontal ? facing * .12 : lead * .08, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.globalAlpha = .085 * alpha;
+  ctx.globalAlpha = .12 * alpha;
   ctx.fillStyle = '#fff1c8';
   ctx.beginPath();
   ctx.ellipse(cx - .35, cy - .28, 1.35, .32, 0, 0, Math.PI * 2);
@@ -762,7 +762,7 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
 
   if (state === 'shoot') {
     drawShotGlow(ctx, input.dir, actorFeetX, actorFeetY, opacity, tick, pose.rotation);
-    if (tick <= 10) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.52, 1 - tick * .06), tick, pose.rotation);
+    if (tick <= 12) drawMuzzle(ctx, input.dir, actorFeetX, actorFeetY, opacity * Math.max(.46, 1 - tick * .052), tick, pose.rotation);
     drawCasing(ctx, input.dir, actorFeetX, actorFeetY, opacity, tick, pose.rotation);
   }
 
@@ -770,8 +770,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     drawHurtAccent(ctx, actorFeetX, actorFeetY, input.dir, tick, opacity);
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v14';
-  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v14';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v15';
+  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v15';
   document.documentElement.dataset.duckHeistPlayerState = state;
   document.documentElement.dataset.duckHeistPlayerVisualFrame = `${pose.authored}:${pose.index}`;
 }
