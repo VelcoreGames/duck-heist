@@ -7,8 +7,7 @@ import {
 } from './constants';
 import {
   drawDuck, drawHeart,
-  drawProjectile, drawCoin,
-  drawParticle, drawItem, drawWeaponIcon,
+  drawItem, drawWeaponIcon,
   drawDuckSkin,
 } from './sprites';
 import {
@@ -48,6 +47,7 @@ import { drawChibiChestV3, drawChibiPedestalV3, drawChibiCandleV3, drawChibiStai
 import { drawChibiItemRoomDecorV3, drawChibiShopRoomDecorV3, drawChibiBossRoomDecorV3, drawChibiTreasureRoomDecorV3, drawChibiHiddenDoorV3 } from './graphics/chibiRoomDecorV3';
 import { drawChibiFloorTileV3 } from './graphics/chibiFloorArtV3';
 import { drawChibiFloorAtmosphereV3 } from './graphics/chibiAtmosphereV3';
+import { drawChibiCoinV3, drawChibiProjectileV3, drawChibiParticleV3, drawChibiPickupGlowV3, drawChibiEnemyFxV3 } from './graphics/chibiEffectsV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -167,20 +167,14 @@ export function renderWorld(engine: GameEngine) {
     if (p.type === 'hp' || p.type === 'sandwich' || p.type === 'baguette' ||
         p.type === 'croissant' || p.type === 'torta' || p.type === 'pan_dorado') {
       drawItemIcon(ctx,p.x-12,p.y-12+Math.round(Math.sin(f*.08)),p.type,24);
-      // halo curativo
-      ctx.globalAlpha = 0.16;
-      ctx.fillStyle = '#ff8f9f';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    } else drawCoin(ctx, p.x, p.y, f, p.type === 'golden_crumb');
+      drawChibiPickupGlowV3(ctx, p.x, p.y, f, '#ff9fa9', false);
+    } else drawChibiCoinV3(ctx, p.x, p.y, f, p.type === 'golden_crumb');
   }
 
   for (const it of content.items) {
     const fy = it.y + Math.sin(f * 0.07) * 2;
     const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
-    ctx.globalAlpha=ITEMS[it.itemId]?.cursed?.3:.14;ctx.fillStyle=ITEMS[it.itemId]?.cursed?'#663174':RARITY_COLORS[def?.rarity ?? 3];ctx.beginPath();ctx.arc(it.x+8,fy+8,17,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    drawChibiPickupGlowV3(ctx,it.x+8,fy+8,f,ITEMS[it.itemId]?.cursed?'#8c5a9d':RARITY_COLORS[def?.rarity ?? 3],true);
     drawItemIcon(ctx,it.x-4,fy-4,it.itemId,24,RARITY_COLORS[def?.rarity ?? 3]);
   }
 
@@ -227,11 +221,7 @@ export function renderWorld(engine: GameEngine) {
     }
     ctx.restore();
   }
-  for (const p of engine.projectiles) {
-    ctx.save();ctx.translate(p.x,p.y);ctx.scale(p.nuclear?1.65:1,p.nuclear?1.65:1);
-    if(p.nuclear) {ctx.fillStyle='rgba(150,224,94,.2)';ctx.fillRect(-7,-7,14,14);}
-    drawProjectile(ctx,0,0,p.type,f);ctx.restore();
-  }
+  for (const p of engine.projectiles) drawChibiProjectileV3(ctx,p,f);
   for (const g of engine.grenades) {
     ctx.fillStyle = 'rgba(0,0,0,.28)';
     ctx.beginPath(); ctx.ellipse(g.x, g.y + 4, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
@@ -285,7 +275,7 @@ export function renderWorld(engine: GameEngine) {
     });
   }
 
-  for (const pt of engine.particles) drawParticle(ctx, pt.x, pt.y, pt.type, pt.life, pt.color);
+  for (const pt of engine.particles) drawChibiParticleV3(ctx,pt,f);
 
   ctx.restore();
 
@@ -428,56 +418,9 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   const dirX = toPlayerX >= 0 ? 1 : -1;
   const dirY = toPlayerY >= 0 ? 1 : -1;
 
-  if (e.spawnAnim > 0) {
-    ctx.globalAlpha = 1 - e.spawnAnim / 18;
-    ctx.fillStyle = '#ff3b30';
-    ctx.fillRect(e.x + e.size / 2 - 1, e.y - 10, 2, 10);
-  }
-
-  // aura de élite
-  if (e.elite) {
-    const pulse = 0.22 + Math.sin(f * 0.09 + e.id) * 0.1;
-    ctx.save();
-    ctx.globalAlpha = pulse;
-    ctx.fillStyle = '#f4d03f';
-    ctx.beginPath();
-    ctx.ellipse(e.x + e.size / 2, e.y + e.size / 2 + 4, e.size * 0.85, e.size * 0.62, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    for (let i = 0; i < 2; i++) {
-      const t = (f * 0.025 + i * 0.5) % 1;
-      ctx.globalAlpha = (1 - t) * 0.8;
-      ctx.fillStyle = '#fff3b0';
-      ctx.fillRect(e.x + e.size / 2 + Math.sin(f * 0.06 + i * 3) * e.size * 0.5, e.y + e.size - t * e.size * 1.4, 2, 2);
-    }
-    ctx.globalAlpha = 1;
-    // corona de élite
-    const cy2 = e.y - 12;
-    ctx.fillStyle = '#f4d03f';
-    ctx.fillRect(e.x + e.size / 2 - 4, cy2 + 3, 8, 3);
-    ctx.fillRect(e.x + e.size / 2 - 4, cy2, 2, 3);
-    ctx.fillRect(e.x + e.size / 2 - 1, cy2 + 1, 2, 2);
-    ctx.fillRect(e.x + e.size / 2 + 2, cy2, 2, 3);
-  }
-
-  // ardiendo por salsa picante / tostadas
-  if (e.burn > 0) {
-    for (let i = 0; i < 2; i++) {
-      const t = ((f + i * 13) % 22) / 22;
-      ctx.globalAlpha = (1 - t) * 0.85;
-      ctx.fillStyle = i % 2 ? '#ff9f43' : '#ff5b4f';
-      ctx.fillRect(e.x + e.size / 2 - 3 + Math.round(Math.sin((f + i * 7) * 0.3) * 4),
-        e.y + e.size - 2 - t * 12, 2, 3);
-    }
-    ctx.globalAlpha = 1;
-  }
-  // ralentizado por charcos
-  if (e.slowTimer > 0) {
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = '#7fb3d5';
-    ctx.fillRect(e.x, e.y + e.size - 1, e.size, 2);
-    ctx.globalAlpha = 1;
-  }
+  const spawnAlpha = e.spawnAnim > 0 ? Math.max(0, 1 - e.spawnAnim / 18) : 1;
+  drawChibiEnemyFxV3(ctx,e,f,'under');
+  ctx.globalAlpha = spawnAlpha;
 
   // sombra legacy sólo para entidades que aún no usan renderer chibi propio
   if (!e.isBoss && !usesChibiEnemyRenderer(e.type)) {
@@ -566,6 +509,9 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
     ctx.globalAlpha = 1;
   }
+
+  ctx.globalAlpha = 1;
+  drawChibiEnemyFxV3(ctx,e,f,'over');
 
   if (!e.isBoss && e.hp < e.maxHp) {
     const w = e.size;
@@ -1184,7 +1130,7 @@ function renderWardrobeUI(engine: GameEngine) {
   text(ctx,`ASPECTOS ${engine.unlockedSkins.length} / ${SKINS.length}`,450,33,6,'#96b1aa','right');
 
   // Monedas doradas permanentes
-  drawCoin(ctx, CANVAS_WIDTH / 2 - 80, 48, engine.frame, true);
+  drawChibiCoinV3(ctx, CANVAS_WIDTH / 2 - 80, 48, engine.frame, true);
   text(ctx, `${T.permCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2, 52, 11, '#f4d03f', 'center', true);
 
   // --- PANEL IZQUIERDO (PREVIEW GRANDE FIJO) ---
@@ -1324,7 +1270,7 @@ function renderUpgradesUI(engine: GameEngine) {
   const ctx = engine.ui!;
   drawPanel(ctx, 26, 16, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
   titleText(ctx, T.upgradesTitle, CANVAS_WIDTH / 2, 40, 17, '#f4d03f');
-  drawCoin(ctx, CANVAS_WIDTH / 2 - 52, 58, engine.frame, true);
+  drawChibiCoinV3(ctx, CANVAS_WIDTH / 2 - 52, 58, engine.frame, true);
   text(ctx, `${T.upgradesCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2 + 4, 62, 12, '#f4d03f', 'center', true);
 
   META_UPGRADES.forEach((up, i) => {
