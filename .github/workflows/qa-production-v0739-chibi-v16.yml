@@ -62,9 +62,7 @@ jobs:
               userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
             });
             const page = await context.newPage();
-            page.on('console', msg => {
-              if (msg.type() === 'error') errors.push(`console: ${msg.text()}`);
-            });
+            page.on('console', msg => { if (msg.type() === 'error') errors.push(`console: ${msg.text()}`); });
             page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
             page.on('requestfailed', req => failedRequests.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText || 'failed'}`));
             page.on('response', res => { if (res.status() >= 400) badResponses.push(`${res.status()} ${res.url()}`); });
@@ -72,83 +70,85 @@ jobs:
             const url = `${process.env.PROD_URL}&t=${Date.now()}`;
             const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
             assert(response && response.ok(), `production returned ${response?.status()}`);
-            await sleep(3500);
+            await sleep(2500);
 
             const preflight = await page.evaluate(() => ({
               title: document.title,
               href: location.href,
               build: document.querySelector('meta[name="duck-heist-build"]')?.getAttribute('content') || '',
               readyState: document.readyState,
-              rootHtml: document.querySelector('#root')?.innerHTML.slice(0, 1800) || '',
-              bodyText: document.body?.innerText.slice(0, 2500) || '',
-              scripts: Array.from(document.scripts).map(s => s.src || '[inline]'),
-              canvases: Array.from(document.querySelectorAll('canvas')).map(c => ({ className: c.className, width: c.width, height: c.height, rect: c.getBoundingClientRect().toJSON() })),
-              renderer: document.documentElement.dataset.duckHeistPlayerRenderer || '',
-              frames: document.documentElement.dataset.duckHeistPlayerFrames || '',
+              canvases: Array.from(document.querySelectorAll('canvas')).map(c => ({ role: c.getAttribute('role'), label: c.getAttribute('aria-label'), className: c.className, width: c.width, height: c.height })),
             }));
             fs.writeFileSync(`${outDir}/preflight.json`, JSON.stringify({ preflight, errors, failedRequests, badResponses }, null, 2));
-            fs.writeFileSync(`${outDir}/preflight.html`, await page.content());
-            await page.screenshot({ path: `${outDir}/00-preflight.png`, fullPage: true });
+            await page.screenshot({ path: `${outDir}/00-menu.png`, fullPage: true });
             console.log('PREFLIGHT', JSON.stringify({ preflight, errors, failedRequests, badResponses }, null, 2));
             assert.strictEqual(preflight.build, expectedBuild, `wrong live build: ${preflight.build}`);
+            assert.strictEqual(errors.length, 0, `preflight browser errors: ${errors.join(' | ')}`);
+            assert.strictEqual(failedRequests.length, 0, `preflight failed requests: ${failedRequests.join(' | ')}`);
 
-            const canvasCount = await page.locator('canvas.game-canvas').count();
-            assert.strictEqual(canvasCount, 1, `game canvas missing; diagnostics saved (${JSON.stringify({ errors, failedRequests, badResponses })})`);
-            await page.waitForFunction(() => document.documentElement.dataset.duckHeistPlayerRenderer === 'canvas2d-chibi-atlas-v16', null, { timeout: 30000 });
+            const gameCanvas = page.locator('canvas[role="application"]');
+            assert.strictEqual(await gameCanvas.count(), 1, 'accessible game canvas missing');
+            await gameCanvas.focus();
+            await page.keyboard.press('Enter');
+
+            // INICIAR ATRACO is selected by default. Wait for the actual player renderer;
+            // one extra Enter is tolerated for first-run confirmation overlays.
+            let started = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              await sleep(900);
+              const d = await dataset(page);
+              if (d.renderer === expectedRenderer && d.frames === expectedFrames) { started = true; break; }
+              await page.keyboard.press('Enter');
+            }
+            assert(started, `player renderer did not start: ${JSON.stringify(await dataset(page))}`);
 
             samples.loaded = await dataset(page);
-            assert.strictEqual(samples.loaded.renderer, expectedRenderer);
-            assert.strictEqual(samples.loaded.frames, expectedFrames);
-
-            const intro = page.getByRole('button', { name: 'ENTENDIDO' });
-            if (await intro.isVisible().catch(() => false)) await intro.click();
-            await sleep(250);
             await page.screenshot({ path: `${outDir}/01-idle.png`, fullPage: true });
 
             async function movementSample(key, label) {
               await page.keyboard.down(key);
-              await sleep(140);
+              await sleep(150);
               const first = await dataset(page);
               assert.strictEqual(first.state, 'walk', `${label} did not enter walk: ${JSON.stringify(first)}`);
-              await sleep(300);
+              await sleep(320);
               const second = await dataset(page);
               assert.strictEqual(second.state, 'walk', `${label} walk did not persist`);
               assert.notStrictEqual(first.visualFrame, second.visualFrame, `${label} walk frame did not advance`);
               await page.screenshot({ path: `${outDir}/${label}.png`, fullPage: true });
               await page.keyboard.up(key);
-              await sleep(120);
+              await sleep(160);
               return { first, second };
             }
 
-            samples.up = await movementSample('ArrowUp', '02-walk-up');
-            samples.down = await movementSample('ArrowDown', '03-walk-down');
+            // Actual live controls: WASD moves. This specifically exercises vertical gait.
+            samples.up = await movementSample('w', '02-walk-up');
+            samples.down = await movementSample('s', '03-walk-down');
 
-            await page.keyboard.down('ArrowRight');
+            // Actual live control: Shift dashes while movement direction is held.
+            await page.keyboard.down('d');
             await sleep(100);
-            await page.keyboard.press('Space');
-            await sleep(55);
+            await page.keyboard.press('Shift');
+            await sleep(45);
             samples.dash = await dataset(page);
             assert.strictEqual(samples.dash.state, 'dash', `dash state missing: ${JSON.stringify(samples.dash)}`);
             await page.screenshot({ path: `${outDir}/04-dash-right.png`, fullPage: true });
-            await page.keyboard.up('ArrowRight');
-            await sleep(320);
+            await page.keyboard.up('d');
+            await sleep(360);
 
-            const canvas = page.locator('canvas.game-canvas');
-            const box = await canvas.boundingBox();
-            assert(box, 'canvas has no bounding box');
-            await page.mouse.move(box.x + box.width * .78, box.y + box.height * .48);
-            await page.mouse.down();
+            // Actual live control: arrows shoot. Hold briefly so the V16 shoot/recoil state is sampled.
+            await page.keyboard.down('ArrowRight');
             await sleep(55);
             samples.shoot = await dataset(page);
             assert.strictEqual(samples.shoot.state, 'shoot', `shoot state missing: ${JSON.stringify(samples.shoot)}`);
             await page.screenshot({ path: `${outDir}/05-shoot-right.png`, fullPage: true });
-            await page.mouse.up();
-            await sleep(180);
+            await page.keyboard.up('ArrowRight');
+            await sleep(220);
 
             samples.final = await dataset(page);
-            assert.strictEqual(await page.locator('canvas.game-canvas').count(), 1, 'game canvas disappeared after input QA');
+            assert.strictEqual(await gameCanvas.count(), 1, 'game canvas disappeared after input QA');
             assert.strictEqual(errors.length, 0, `browser errors: ${errors.join(' | ')}`);
             assert.strictEqual(failedRequests.length, 0, `failed requests: ${failedRequests.join(' | ')}`);
+            assert.strictEqual(badResponses.length, 0, `bad responses: ${badResponses.join(' | ')}`);
 
             fs.writeFileSync(`${outDir}/qa.json`, JSON.stringify({ url, samples, errors, failedRequests, badResponses }, null, 2));
             console.log('QA', JSON.stringify({ expectedBuild, samples, errors, failedRequests, badResponses }, null, 2));
