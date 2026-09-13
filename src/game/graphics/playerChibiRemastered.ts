@@ -8,8 +8,8 @@ type AuthoredState = 'idle' | 'walk' | 'shoot' | 'interact';
 const ATLAS_URL = new URL('../../assets/chibi/base-duck-remastered-atlas.png', import.meta.url).href;
 const FRAME_W = 40;
 const FRAME_H = 60;
-const DRAW_W = 27;
-const DRAW_H = 40.5;
+const DRAW_W = 24;
+const DRAW_H = 36;
 const PIVOT_X = DRAW_W / 2;
 const PIVOT_Y = DRAW_H - 1.35;
 const STATE_START: Record<AuthoredState, number> = { idle: 0, walk: 4, shoot: 16, interact: 22 };
@@ -124,21 +124,22 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
   return { state: rt.state, tick: Math.max(0, input.frame - rt.enteredAt) };
 }
 
-function poseFor(state: State, tick: number, frame: number, dir: DuckDir): Pose {
+function poseFor(state: State, tick: number, _frame: number, dir: DuckDir): Pose {
   if (state === 'walk') {
     const vertical = dir === 'up' || dir === 'down';
-    const i = Math.floor(frame / (vertical ? 3 : 2)) % 12;
+    const i = Math.floor(tick / 2) % 12;
     const phase = (i / 12) * Math.PI * 2;
     const sway = Math.sin(phase);
     const compression = Math.cos(phase * 2);
-    const sideLean = dir === 'left' ? -.018 : dir === 'right' ? .018 : 0;
+    const lift = Math.abs(sway);
+    const sideLean = dir === 'left' ? -.028 : dir === 'right' ? .028 : 0;
     return {
       authored: 'walk', index: i,
-      scaleX: 1 + compression * (vertical ? .058 : .014),
-      scaleY: 1 - compression * (vertical ? .050 : .014),
-      rotation: vertical ? sway * .052 : sideLean + sway * .008,
-      dx: sway * (vertical ? 2.05 : .38),
-      dy: -Math.abs(sway) * (vertical ? 3.05 : 1.05) + (vertical ? compression * .34 : 0),
+      scaleX: 1 + compression * (vertical ? .052 : .038),
+      scaleY: 1 - compression * (vertical ? .046 : .042),
+      rotation: vertical ? sway * .046 : sideLean + sway * .038,
+      dx: sway * (vertical ? 1.55 : .95),
+      dy: -lift * (vertical ? 2.45 : 2.15) + compression * .28,
     };
   }
   if (state === 'shoot') {
@@ -205,15 +206,16 @@ function poseFor(state: State, tick: number, frame: number, dir: DuckDir): Pose 
       dy: ease * 3.4,
     };
   }
-  const i = Math.floor(frame / 12) % 4;
-  const breathe = Math.sin(frame * .052);
+  const i = Math.floor(tick / 7) % 4;
+  const breathe = Math.sin(tick * .11);
+  const settle = Math.cos(tick * .055);
   return {
     authored: 'idle', index: i,
-    scaleX: 1 - breathe * .006,
-    scaleY: 1 + breathe * .009,
-    rotation: 0,
-    dx: 0,
-    dy: -breathe * .28,
+    scaleX: 1 - breathe * .012,
+    scaleY: 1 + breathe * .022,
+    rotation: settle * .006,
+    dx: settle * .18,
+    dy: -breathe * .72,
   };
 }
 
@@ -338,21 +340,32 @@ function drawShotGlow(ctx: Ctx, dir: DuckDir, feetX: number, feetY: number, alph
   ctx.restore();
 }
 
-function drawVerticalStepAccent(ctx: Ctx, feetX: number, feetY: number, poseIndex: number, dir: DuckDir, alpha: number): void {
+function drawWalkStepAccent(ctx: Ctx, feetX: number, feetY: number, poseIndex: number, dir: DuckDir, alpha: number): void {
   const phase = (poseIndex / 12) * Math.PI * 2;
   const stride = Math.sin(phase);
   const lead = stride >= 0 ? 1 : -1;
-  const depth = dir === 'up' ? -1.2 : .25;
+  const horizontal = dir === 'left' || dir === 'right';
+  const facing = dir === 'left' ? -1 : 1;
   ctx.save();
-  ctx.globalAlpha = .86 * alpha;
+  ctx.globalAlpha = .88 * alpha;
   ctx.fillStyle = '#e68b2f';
   ctx.beginPath();
-  ctx.ellipse(feetX + lead * 3.25, feetY + depth, 2.45, 1.05, lead * .12, 0, Math.PI * 2);
+  if (horizontal) {
+    ctx.ellipse(feetX + facing * lead * 3.1, feetY + .18, 2.75, 1.02, facing * .16, 0, Math.PI * 2);
+  } else {
+    const depth = dir === 'up' ? -1.05 : .22;
+    ctx.ellipse(feetX + lead * 3.05, feetY + depth, 2.35, 1.0, lead * .12, 0, Math.PI * 2);
+  }
   ctx.fill();
-  ctx.globalAlpha = .42 * alpha;
+  ctx.globalAlpha = .40 * alpha;
   ctx.fillStyle = '#c86d22';
   ctx.beginPath();
-  ctx.ellipse(feetX - lead * 2.65, feetY + depth + .55, 1.9, .78, -lead * .08, 0, Math.PI * 2);
+  if (horizontal) {
+    ctx.ellipse(feetX - facing * lead * 2.2, feetY + .62, 1.85, .72, -facing * .12, 0, Math.PI * 2);
+  } else {
+    const depth = dir === 'up' ? -1.05 : .22;
+    ctx.ellipse(feetX - lead * 2.45, feetY + depth + .55, 1.75, .72, -lead * .08, 0, Math.PI * 2);
+  }
   ctx.fill();
   ctx.restore();
 }
@@ -408,8 +421,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     return;
   }
 
-  if (state === 'walk' && (input.dir === 'up' || input.dir === 'down')) {
-    drawVerticalStepAccent(ctx, feetX, feetY, pose.index, input.dir, opacity);
+  if (state === 'walk') {
+    drawWalkStepAccent(ctx, feetX, feetY, pose.index, input.dir, opacity);
   }
 
   if (state === 'dash') {
@@ -449,7 +462,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     ctx.restore();
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v5';
-  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v6';
+  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v6';
   document.documentElement.dataset.duckHeistPlayerState = state;
+  document.documentElement.dataset.duckHeistPlayerVisualFrame = `${pose.authored}:${pose.index}`;
 }
