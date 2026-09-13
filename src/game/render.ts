@@ -187,6 +187,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);ctx.rotate((20-d.life)*.035);
     ctx.scale(Math.max(.3,d.life/20),Math.max(.2,d.life/24));
     if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false);
+    else if(SPECIAL_ENEMIES.has(d.enemy.type)) drawTacticalEnemy(ctx,d.enemy.type,-d.enemy.size/2,-d.enemy.size/2,f,false,d.enemy.moveAngle,0);
     else {
       switch(d.enemy.type) {
         case 'toaster_turret':
@@ -469,7 +470,8 @@ function usesChibiEnemyRenderer(type: string) {
   return type === 'policia_pato' || type === 'policia_rapido' || type === 'policia_escopeta' ||
     type === 'policia_antidisturbios' || type === 'dron_policial' ||
     type === 'security_pigeon' || type === 'guard_goose' ||
-    type === 'toaster_turret' || type === 'rolling_bagel' || type === 'evil_croissant' || type === 'banker_chicken';
+    type === 'toaster_turret' || type === 'rolling_bagel' || type === 'evil_croissant' || type === 'banker_chicken' ||
+    SPECIAL_ENEMIES.has(type);
 }
 
 function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: GameEngine) {
