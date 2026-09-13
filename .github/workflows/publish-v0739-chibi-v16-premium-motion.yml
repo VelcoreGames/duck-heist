@@ -1,0 +1,98 @@
+name: Publish Duck Heist v0.7.39 Chibi V16 Premium Motion
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0739-chibi-v16-premium-motion.yml'
+      - 'scripts/patch-v0739-v16-premium-motion.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: pip install --disable-pip-version-check pillow
+
+      - name: Apply V16 premium art and motion pass
+        run: |
+          python scripts/patch-v0739-v16-premium-motion.py
+          python scripts/generate-player-chibi-v16.py
+
+      - name: Validate atlas silhouette and clipping
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          im=Image.open('src/assets/chibi/base-duck-chibi-v16-atlas.png').convert('RGBA'); im.load()
+          assert im.size==(7424,256),im.size
+          nonempty=0
+          worst=[]
+          for r in range(4):
+              for c in range(116):
+                  a=im.crop((c*64,r*64,(c+1)*64,(r+1)*64)).getchannel('A')
+                  mask=a.point(lambda v:255 if v>64 else 0)
+                  b=mask.getbbox(); assert b,(r,c)
+                  nonempty+=1
+                  if b[0] < 1 or b[1] < 1 or b[2] > 63 or b[3] > 63:
+                      worst.append((r,c,b))
+          assert nonempty==464,nonempty
+          assert not worst,worst[:12]
+          print('validated 464 V16 frames with meaningful-alpha margin and no clipping')
+          PY
+          grep -q "Smooth clean crown: the base duck has no hair, hat or eyewear" scripts/generate-player-chibi-v16.py
+          ! grep -q 'tiny crown feathers' scripts/generate-player-chibi-v16.py
+          grep -q 'vertical_sway' scripts/generate-player-chibi-v16.py
+          grep -q 'const DRAW = 40' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'strideDistance = vertical ? 34 : 40' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '0.7.39-chibi-v16-premium-motion' index.html
+
+      - name: Validate TypeScript and production build
+        run: |
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0739 --emptyOutDir
+          test -s /tmp/duck-heist-v0739/index.html
+          grep -q '0.7.39-chibi-v16-premium-motion' /tmp/duck-heist-v0739/index.html
+          grep -q '464-raster-chibi-v16' /tmp/duck-heist-v0739/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/duck-heist-v0739/index.html
+
+      - name: Promote v0.7.39
+        run: |
+          npm version 0.7.39 --no-git-tag-version
+          printf '0.7.39\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0739/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.39"' package.json
+          grep -q '^0.7.39$' VERSION
+          grep -q '0.7.39-chibi-v16-premium-motion' web-release/index.html
+          grep -q '464-raster-chibi-v16' web-release/index.html
+          cmp web-release/index.html dist/index.html
+
+      - name: Commit v0.7.39 to main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A scripts/generate-player-chibi-v16.py src/game/graphics/playerChibiAtlasV16.ts src/assets/chibi/base-duck-chibi-v16-atlas.png index.html web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.39 chibi V16 premium motion'
+          git pull --rebase origin main
+          git push origin HEAD:main
