@@ -238,6 +238,7 @@ export default function App() {
           else if (k === 'escape') { playUiBack(); goTo(subReturn); }
           break;
         case GameState.PLAYING:
+          if (engine.player.hp <= 0 || engine.player.deathTimer > 0) break;
           if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
           else if (k === 'shift') handleDash(engine);
           else if (k === ' ') handleActiveItem(engine);
@@ -437,7 +438,7 @@ export default function App() {
       if (ev.button === 0) engine.mouseDown = false;
     };
     const padInput=new GamepadInput();
-    const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING)goTo(GameState.PAUSED);};
+    const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING&&engine.player.hp>0&&engine.player.deathTimer===0)goTo(GameState.PAUSED);};
     const onCtx = (ev: Event) => ev.preventDefault();
 
     const playUiMoveSafe = () => { try { playUiBack(); } catch { /* silencioso */ } };
@@ -464,6 +465,7 @@ export default function App() {
     let lastBrightness=-1;
     let lastDevice=engine.lastInput;
     const padAction=(action:PadAction)=>{
+      if(engine.player.hp<=0 || engine.player.deathTimer>0) return;
       if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
       const key:Record<Exclude<PadAction,'previousWeapon'|'nextWeapon'>,string>={
         map:'m',pause:'Escape',dash:'Shift',active:' ',interact:'e',back:'Escape',confirm:'Enter',up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',
