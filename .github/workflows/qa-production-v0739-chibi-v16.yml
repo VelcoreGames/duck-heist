@@ -101,9 +101,8 @@ jobs:
             }
             assert(started, `player renderer did not start: ${JSON.stringify(await dataset(page))}`);
 
-            // A new run opens the floor/room title card. Confirm it before testing movement.
-            await page.keyboard.press('Enter');
-            await sleep(800);
+            // FLOOR_INTRO is a 110-tick timed state and ignores Enter. Let it expire naturally.
+            await sleep(3000);
             samples.loaded = await dataset(page);
             assert.strictEqual(samples.loaded.renderer, expectedRenderer);
             assert.strictEqual(samples.loaded.frames, expectedFrames);
