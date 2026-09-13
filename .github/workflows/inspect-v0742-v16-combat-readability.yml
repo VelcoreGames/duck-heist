@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/inspect-v0742-v16-combat-readability.yml'
       - 'scripts/patch-v0742-v16-combat-readability.py'
+      - 'scripts/patch-v0742-clipping-margin.py'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,7 @@ jobs:
       - name: Apply candidate art/runtime pass
         run: |
           python scripts/patch-v0742-v16-combat-readability.py
+          python scripts/patch-v0742-clipping-margin.py
           python scripts/generate-player-chibi-v16.py
 
       - name: Validate atlas margins and create review sheets
