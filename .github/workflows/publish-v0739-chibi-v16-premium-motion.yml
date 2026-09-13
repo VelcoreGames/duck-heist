@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/publish-v0739-chibi-v16-premium-motion.yml'
       - 'scripts/patch-v0739-v16-premium-motion.py'
+      - 'scripts/patch-v0739-v16-frame-margin.py'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,7 @@ jobs:
       - name: Apply V16 premium art and motion pass
         run: |
           python scripts/patch-v0739-v16-premium-motion.py
+          python scripts/patch-v0739-v16-frame-margin.py
           python scripts/generate-player-chibi-v16.py
 
       - name: Validate atlas silhouette and clipping
@@ -56,6 +58,7 @@ jobs:
           grep -q "Smooth clean crown: the base duck has no hair, hat or eyewear" scripts/generate-player-chibi-v16.py
           ! grep -q 'tiny crown feathers' scripts/generate-player-chibi-v16.py
           grep -q 'vertical_sway' scripts/generate-player-chibi-v16.py
+          grep -q "q\['jump'\]=max(0,sin(p\*pi))\*3.0" scripts/generate-player-chibi-v16.py
           grep -q 'const DRAW = 40' src/game/graphics/playerChibiAtlasV16.ts
           grep -q 'strideDistance = vertical ? 34 : 40' src/game/graphics/playerChibiAtlasV16.ts
           grep -q '0.7.39-chibi-v16-premium-motion' index.html
