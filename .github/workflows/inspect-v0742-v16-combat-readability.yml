@@ -1,0 +1,95 @@
+name: Inspect Duck Heist v0.7.42 V16 Combat Readability
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-v0742-v16-combat-readability.yml'
+      - 'scripts/patch-v0742-v16-combat-readability.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: pip install --disable-pip-version-check pillow
+
+      - name: Apply candidate art/runtime pass
+        run: |
+          python scripts/patch-v0742-v16-combat-readability.py
+          python scripts/generate-player-chibi-v16.py
+
+      - name: Validate atlas margins and create review sheets
+        run: |
+          mkdir -p /tmp/v0742-review
+          python - <<'PY'
+          from PIL import Image, ImageDraw
+          im=Image.open('src/assets/chibi/base-duck-chibi-v16-atlas.png').convert('RGBA'); im.load()
+          assert im.size==(7424,256),im.size
+          starts={'idle':0,'walk':12,'shoot':32,'dash':44,'hurt':60,'down':68,'interact':88,'celebrate':100}
+          counts={'idle':12,'walk':20,'shoot':12,'dash':16,'hurt':8,'down':20,'interact':12,'celebrate':16}
+          dirs=['down','up','left','right']
+          bad=[]
+          for r in range(4):
+            for c in range(116):
+              a=im.crop((c*64,r*64,(c+1)*64,(r+1)*64)).getchannel('A')
+              b=a.point(lambda v:255 if v>64 else 0).getbbox(); assert b,(r,c)
+              if b[0]<1 or b[1]<1 or b[2]>63 or b[3]>63: bad.append((r,c,b))
+          assert not bad,bad[:20]
+
+          scale=4; cell=64*scale; labelw=122; top=38
+          for r,direction in enumerate(dirs):
+            sheet=Image.new('RGB',(labelw+cell*3,top+cell*len(starts)),(24,25,30)); d=ImageDraw.Draw(sheet)
+            d.text((8,9),f'V16.4 {direction} — start / middle / end',fill=(244,220,150))
+            for row,(state,start) in enumerate(starts.items()):
+              n=counts[state]; ids=[0,n//2,n-1]; y=top+row*cell
+              d.text((8,y+cell//2-6),state,fill=(235,235,235))
+              for col,i in enumerate(ids):
+                fr=im.crop(((start+i)*64,r*64,(start+i+1)*64,(r+1)*64))
+                tile=Image.new('RGBA',(64,64),(235,226,205,255)); tile.alpha_composite(fr)
+                sheet.paste(tile.convert('RGB').resize((cell,cell),Image.Resampling.NEAREST),(labelw+col*cell,y))
+            sheet.save(f'/tmp/v0742-review/{direction}.png')
+
+            start=starts['shoot']; n=counts['shoot']; ids=[0,2,4,6,8,11]
+            strip=Image.new('RGB',(cell*len(ids),cell),(235,226,205))
+            for col,i in enumerate(ids):
+              fr=im.crop(((start+i)*64,r*64,(start+i+1)*64,(r+1)*64))
+              tile=Image.new('RGBA',(64,64),(235,226,205,255)); tile.alpha_composite(fr)
+              strip.paste(tile.convert('RGB').resize((cell,cell),Image.Resampling.NEAREST),(col*cell,0))
+            strip.save(f'/tmp/v0742-review/{direction}-shoot-sequence.png')
+          im.save('/tmp/v0742-review/base-duck-chibi-v16-atlas.png')
+          print('candidate atlas validated: 464 frames, no meaningful-alpha clipping')
+          PY
+          grep -q 'front_gun_layer' scripts/generate-player-chibi-v16.py
+          grep -q 'rear_gun_layer' scripts/generate-player-chibi-v16.py
+          grep -q "no hair, hat or eyewear" scripts/generate-player-chibi-v16.py
+          grep -q '0.7.42-chibi-v16-combat-readability' index.html
+
+      - name: Validate TypeScript and candidate build
+        run: |
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/v0742-build --emptyOutDir
+          grep -q '0.7.42-chibi-v16-combat-readability' /tmp/v0742-build/index.html
+          grep -q '464-raster-chibi-v16' /tmp/v0742-build/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/v0742-build/index.html
+
+      - name: Upload candidate review
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0742-candidate-review
+          path: /tmp/v0742-review
+          retention-days: 7
