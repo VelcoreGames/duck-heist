@@ -1,0 +1,67 @@
+name: Publish Duck Heist v0.7.42 Chibi V16 Combat Readability
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0742-chibi-v16-combat-readability.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Validate release source
+        run: |
+          grep -q '0.7.42-chibi-v16-combat-readability' index.html
+          grep -q '"version": "0.7.42"' package.json
+          grep -q '464-raster-chibi-v16' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'canvas2d-chibi-atlas-v16' src/game/graphics/playerChibiAtlasV16.ts
+          npx tsc --noEmit
+
+      - name: Build v0.7.42 web release
+        run: |
+          rm -rf /tmp/duck-heist-v0742 web-release dist
+          npx vite build --outDir /tmp/duck-heist-v0742 --emptyOutDir
+          test -s /tmp/duck-heist-v0742/index.html
+          grep -q '0.7.42-chibi-v16-combat-readability' /tmp/duck-heist-v0742/index.html
+          grep -q '464-raster-chibi-v16' /tmp/duck-heist-v0742/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/duck-heist-v0742/index.html
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0742/. web-release/
+          node scripts/publish-release.mjs
+          printf '0.7.42\n' > VERSION
+
+      - name: Validate publish artifacts
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '^0.7.42$' VERSION
+          grep -q '0.7.42-chibi-v16-combat-readability' web-release/index.html
+          grep -q '0.7.42-chibi-v16-combat-readability' dist/index.html
+          cmp web-release/index.html dist/index.html
+          git diff --check
+
+      - name: Commit publish artifacts to main
+        run: |
+          git config user.name 'VelcoreGames'
+          git config user.email 'contacto@velcore.com.mx'
+          git add web-release dist VERSION
+          git diff --cached --stat
+          git diff --cached --quiet && { echo 'No publish changes to commit'; exit 1; }
+          git commit -m 'Publish Duck Heist v0.7.42 web release'
+          git pull --rebase origin main
+          git push origin HEAD:main
