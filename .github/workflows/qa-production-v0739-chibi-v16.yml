@@ -39,9 +39,11 @@ jobs:
           const expectedFrames = '464-raster-chibi-v16';
           const outDir = '/tmp/duck-heist-prod-qa';
           const errors = [];
+          const failedRequests = [];
+          const badResponses = [];
           const samples = {};
-
           const sleep = ms => new Promise(r => setTimeout(r, ms));
+
           async function dataset(page) {
             return page.evaluate(() => ({
               build: document.querySelector('meta[name="duck-heist-build"]')?.getAttribute('content') || '',
@@ -57,28 +59,51 @@ jobs:
             const context = await browser.newContext({
               viewport: { width: 1440, height: 1000 },
               deviceScaleFactor: 1,
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
             });
             const page = await context.newPage();
             page.on('console', msg => {
               if (msg.type() === 'error') errors.push(`console: ${msg.text()}`);
             });
             page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
+            page.on('requestfailed', req => failedRequests.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText || 'failed'}`));
+            page.on('response', res => { if (res.status() >= 400) badResponses.push(`${res.status()} ${res.url()}`); });
 
             const url = `${process.env.PROD_URL}&t=${Date.now()}`;
             const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
             assert(response && response.ok(), `production returned ${response?.status()}`);
-            await page.waitForSelector('canvas.game-canvas', { timeout: 30000 });
+            await sleep(3500);
+
+            const preflight = await page.evaluate(() => ({
+              title: document.title,
+              href: location.href,
+              build: document.querySelector('meta[name="duck-heist-build"]')?.getAttribute('content') || '',
+              readyState: document.readyState,
+              rootHtml: document.querySelector('#root')?.innerHTML.slice(0, 1800) || '',
+              bodyText: document.body?.innerText.slice(0, 2500) || '',
+              scripts: Array.from(document.scripts).map(s => s.src || '[inline]'),
+              canvases: Array.from(document.querySelectorAll('canvas')).map(c => ({ className: c.className, width: c.width, height: c.height, rect: c.getBoundingClientRect().toJSON() })),
+              renderer: document.documentElement.dataset.duckHeistPlayerRenderer || '',
+              frames: document.documentElement.dataset.duckHeistPlayerFrames || '',
+            }));
+            fs.writeFileSync(`${outDir}/preflight.json`, JSON.stringify({ preflight, errors, failedRequests, badResponses }, null, 2));
+            fs.writeFileSync(`${outDir}/preflight.html`, await page.content());
+            await page.screenshot({ path: `${outDir}/00-preflight.png`, fullPage: true });
+            console.log('PREFLIGHT', JSON.stringify({ preflight, errors, failedRequests, badResponses }, null, 2));
+            assert.strictEqual(preflight.build, expectedBuild, `wrong live build: ${preflight.build}`);
+
+            const canvasCount = await page.locator('canvas.game-canvas').count();
+            assert.strictEqual(canvasCount, 1, `game canvas missing; diagnostics saved (${JSON.stringify({ errors, failedRequests, badResponses })})`);
             await page.waitForFunction(() => document.documentElement.dataset.duckHeistPlayerRenderer === 'canvas2d-chibi-atlas-v16', null, { timeout: 30000 });
 
             samples.loaded = await dataset(page);
-            assert.strictEqual(samples.loaded.build, expectedBuild, `wrong live build: ${samples.loaded.build}`);
             assert.strictEqual(samples.loaded.renderer, expectedRenderer);
             assert.strictEqual(samples.loaded.frames, expectedFrames);
 
             const intro = page.getByRole('button', { name: 'ENTENDIDO' });
             if (await intro.isVisible().catch(() => false)) await intro.click();
             await sleep(250);
-            await page.screenshot({ path: `${outDir}/00-idle.png`, fullPage: true });
+            await page.screenshot({ path: `${outDir}/01-idle.png`, fullPage: true });
 
             async function movementSample(key, label) {
               await page.keyboard.down(key);
@@ -95,8 +120,8 @@ jobs:
               return { first, second };
             }
 
-            samples.up = await movementSample('ArrowUp', '01-walk-up');
-            samples.down = await movementSample('ArrowDown', '02-walk-down');
+            samples.up = await movementSample('ArrowUp', '02-walk-up');
+            samples.down = await movementSample('ArrowDown', '03-walk-down');
 
             await page.keyboard.down('ArrowRight');
             await sleep(100);
@@ -104,7 +129,7 @@ jobs:
             await sleep(55);
             samples.dash = await dataset(page);
             assert.strictEqual(samples.dash.state, 'dash', `dash state missing: ${JSON.stringify(samples.dash)}`);
-            await page.screenshot({ path: `${outDir}/03-dash-right.png`, fullPage: true });
+            await page.screenshot({ path: `${outDir}/04-dash-right.png`, fullPage: true });
             await page.keyboard.up('ArrowRight');
             await sleep(320);
 
@@ -116,17 +141,17 @@ jobs:
             await sleep(55);
             samples.shoot = await dataset(page);
             assert.strictEqual(samples.shoot.state, 'shoot', `shoot state missing: ${JSON.stringify(samples.shoot)}`);
-            await page.screenshot({ path: `${outDir}/04-shoot-right.png`, fullPage: true });
+            await page.screenshot({ path: `${outDir}/05-shoot-right.png`, fullPage: true });
             await page.mouse.up();
             await sleep(180);
 
             samples.final = await dataset(page);
-            const canvasStillThere = await page.locator('canvas.game-canvas').count();
-            assert.strictEqual(canvasStillThere, 1, 'game canvas disappeared after input QA');
+            assert.strictEqual(await page.locator('canvas.game-canvas').count(), 1, 'game canvas disappeared after input QA');
             assert.strictEqual(errors.length, 0, `browser errors: ${errors.join(' | ')}`);
+            assert.strictEqual(failedRequests.length, 0, `failed requests: ${failedRequests.join(' | ')}`);
 
-            fs.writeFileSync(`${outDir}/qa.json`, JSON.stringify({ url, samples, errors }, null, 2));
-            console.log(JSON.stringify({ expectedBuild, samples, errors }, null, 2));
+            fs.writeFileSync(`${outDir}/qa.json`, JSON.stringify({ url, samples, errors, failedRequests, badResponses }, null, 2));
+            console.log('QA', JSON.stringify({ expectedBuild, samples, errors, failedRequests, badResponses }, null, 2));
             await browser.close();
           })().catch(err => {
             console.error(err);
