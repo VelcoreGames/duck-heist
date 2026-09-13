@@ -1,0 +1,78 @@
+name: Publish Duck Heist v0.7.48 Chibi V16 Floor Celebrate
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0748-chibi-v16-floor-celebrate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply approved floor celebration
+        run: |
+          python scripts/patch-v0748-v16-floor-celebrate.py
+          sed -i 's/0.7.48-chibi-v16-floor-celebrate-candidate/0.7.48-chibi-v16-floor-celebrate/g' index.html
+          npm version 0.7.48 --no-git-tag-version
+          printf '0.7.48\n' > VERSION
+      - name: Validate release source
+        run: |
+          grep -q 'celebrating?: boolean' src/game/graphics/playerChibiRemastered.ts
+          grep -q "state === 'celebrate'" src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'celebrating: engine.state === GameState.FLOOR_CLEAR' src/game/render.ts
+          grep -q "globalCompositeOperation = 'destination-out'" src/game/render.ts
+          grep -q '0.7.48-chibi-v16-floor-celebrate' index.html
+          ! grep -q 'floor-celebrate-candidate' index.html
+          grep -q '"version": "0.7.48"' package.json
+          grep -q 'const DRAW = 46' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '464-raster-chibi-v16' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q "v16.8-death-focus" src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'no hair' scripts/generate-player-chibi-v16.py
+          grep -q 'no glasses' scripts/generate-player-chibi-v16.py
+          npx tsc --noEmit
+          git diff --check
+      - name: Build v0.7.48 web release
+        run: |
+          rm -rf /tmp/duck-heist-v0748 web-release dist
+          npx vite build --outDir /tmp/duck-heist-v0748 --emptyOutDir
+          test -s /tmp/duck-heist-v0748/index.html
+          grep -q '0.7.48-chibi-v16-floor-celebrate' /tmp/duck-heist-v0748/index.html
+          grep -q '464-raster-chibi-v16' /tmp/duck-heist-v0748/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/duck-heist-v0748/index.html
+          grep -q 'v16.8-death-focus' /tmp/duck-heist-v0748/index.html
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0748/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate publish artifacts
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '^0.7.48$' VERSION
+          grep -q '0.7.48-chibi-v16-floor-celebrate' web-release/index.html
+          grep -q '0.7.48-chibi-v16-floor-celebrate' dist/index.html
+          cmp web-release/index.html dist/index.html
+          git diff --check
+      - name: Commit v0.7.48 to main
+        run: |
+          git config user.name 'VelcoreGames'
+          git config user.email 'contacto@velcore.com.mx'
+          git add src/game/graphics/playerChibiAtlasV16.ts src/game/graphics/playerChibiRemastered.ts src/game/render.ts index.html package.json package-lock.json VERSION web-release dist
+          git diff --cached --stat
+          git diff --cached --quiet && { echo 'No release changes to commit'; exit 1; }
+          git commit -m 'Release Duck Heist v0.7.48 Chibi V16 floor celebrate'
+          git pull --rebase origin main
+          git push origin HEAD:main
