@@ -50,6 +50,9 @@ interface Runtime {
   moveStartedAt?: number;
   moveStoppedAt?: number;
   turnAt?: number;
+  lastX: number;
+  lastY: number;
+  walkDistance: number;
 }
 
 interface Pose {
@@ -85,15 +88,25 @@ function desiredState(input: ChibiPlayerRemasteredInput): State {
   return input.moving ? 'walk' : 'idle';
 }
 
-function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: number; dashRecovery: number; moveStartAge: number; moveStopAge: number; turnAge: number } {
+function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: number; dashRecovery: number; moveStartAge: number; moveStopAge: number; turnAge: number; walkDistance: number } {
   const key = input.runtimeKey ?? fallbackKey;
   let rt = runtimes.get(key);
   if (!rt || input.frame < rt.lastFrame) {
-    rt = { state: 'idle', enteredAt: input.frame, lastFrame: input.frame, lastShot: input.shotSequence, wasShoot: false, wasDash: false, wasHurt: false, lastDir: input.dir, wasMoving: input.moving };
+    rt = { state: 'idle', enteredAt: input.frame, lastFrame: input.frame, lastShot: input.shotSequence, wasShoot: false, wasDash: false, wasHurt: false, lastDir: input.dir, wasMoving: input.moving, lastX: input.x, lastY: input.y, walkDistance: 0 };
     runtimes.set(key, rt);
   }
 
   const wanted = desiredState(input);
+  const worldDx = input.x - rt.lastX;
+  const worldDy = input.y - rt.lastY;
+  const worldStep = Math.hypot(worldDx, worldDy);
+  // Ignore room teleports/respawns. Normal locomotion advances the authored
+  // gait by actual distance so feet no longer skate at different speeds.
+  if (input.moving && !input.dashing && worldStep > .01 && worldStep < 8) {
+    rt.walkDistance += worldStep;
+  }
+  rt.lastX = input.x;
+  rt.lastY = input.y;
   if (rt.lastDir !== input.dir) {
     rt.lastDir = input.dir;
     rt.turnAt = input.frame;
@@ -139,16 +152,17 @@ function resolveState(input: ChibiPlayerRemasteredInput): { state: State; tick: 
   const moveStartAge = rt.moveStartedAt === undefined ? -1 : input.frame - rt.moveStartedAt;
   const moveStopAge = rt.moveStoppedAt === undefined ? -1 : input.frame - rt.moveStoppedAt;
   const turnAge = rt.turnAt === undefined ? -1 : input.frame - rt.turnAt;
-  return { state: rt.state, tick: Math.max(0, input.frame - rt.enteredAt), dashRecovery, moveStartAge, moveStopAge, turnAge };
+  return { state: rt.state, tick: Math.max(0, input.frame - rt.enteredAt), dashRecovery, moveStartAge, moveStopAge, turnAge, walkDistance: rt.walkDistance };
 }
 
-function poseFor(state: State, tick: number, _frame: number, dir: DuckDir): Pose {
+function poseFor(state: State, tick: number, _frame: number, dir: DuckDir, walkDistance = 0): Pose {
   if (state === 'walk') {
     // Los 12 dibujos authored se recorren completos. El movimiento extra sólo
     // acompaña el peso: ya no deforma la silueta de forma agresiva.
-    const cycle = tick % 24;
-    const i = Math.floor(cycle / 2) % 12;
-    const phase = (cycle / 24) * Math.PI * 2;
+    const strideDistance = 36;
+    const cycleDistance = ((walkDistance % strideDistance) + strideDistance) % strideDistance;
+    const i = Math.floor((cycleDistance / strideDistance) * 12) % 12;
+    const phase = (cycleDistance / strideDistance) * Math.PI * 2;
     const stride = Math.sin(phase);
     const plant = Math.cos(phase * 2);
     const lift = Math.abs(Math.sin(phase));
@@ -630,8 +644,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
   const feetX = Math.round(input.x + 8);
   const feetY = Math.round(input.y + 18);
   const opacity = Math.max(0, Math.min(1, input.alpha ?? 1));
-  const { state, tick, dashRecovery, moveStartAge, moveStopAge, turnAge } = resolveState(input);
-  const pose = poseFor(state, tick, input.frame, input.dir);
+  const { state, tick, dashRecovery, moveStartAge, moveStopAge, turnAge, walkDistance } = resolveState(input);
+  const pose = poseFor(state, tick, input.frame, input.dir, walkDistance);
   if (state === 'walk' && moveStartAge >= 0 && moveStartAge < 5) {
     const a = 1 - moveStartAge / 5;
     pose.scaleX *= 1 + a * .018;
@@ -702,8 +716,8 @@ export function drawChibiPlayerRemastered(input: ChibiPlayerRemasteredInput): vo
     drawHurtAccent(ctx, actorFeetX, actorFeetY, input.dir, tick, opacity);
   }
 
-  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v12';
-  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v12';
+  document.documentElement.dataset.duckHeistPlayerRenderer = 'canvas2d-chibi-remastered-v13';
+  document.documentElement.dataset.duckHeistPlayerFrames = '120-authored-remastered-v13';
   document.documentElement.dataset.duckHeistPlayerState = state;
   document.documentElement.dataset.duckHeistPlayerVisualFrame = `${pose.authored}:${pose.index}`;
 }
