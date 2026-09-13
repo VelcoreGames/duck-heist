@@ -1,0 +1,63 @@
+name: Publish Duck Heist v0.7.20 Support Cast Chibi
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0720-support-cast.yml'
+      - 'scripts/patch-v0720.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply v0.7.20 chibi support cast
+        run: python3 scripts/patch-v0720.py
+      - name: Validate source and build
+        run: |
+          grep -q 'drawChibiCompanionDuckV3' src/game/graphics/chibiSupportV3.ts
+          grep -q 'drawChibiMerchantPigeonV3' src/game/graphics/chibiSupportV3.ts
+          grep -q 'drawChibiInjuredDuckV3' src/game/graphics/chibiSupportV3.ts
+          grep -q '0.7.20-support-cast-chibi' index.html
+          ! grep -q 'drawShopPigeon(ctx' src/game/render.ts
+          ! grep -q "drawDuck(ctx,-8,-8" src/game/render.ts
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0720 --emptyOutDir
+          test -s /tmp/duck-heist-v0720/index.html
+          grep -q '0.7.20-support-cast-chibi' /tmp/duck-heist-v0720/index.html
+      - name: Promote v0.7.20
+        run: |
+          npm version 0.7.20 --no-git-tag-version
+          printf '0.7.20\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0720/. web-release/
+          node scripts/publish-release.mjs
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.20"' package.json
+          grep -q '^0.7.20$' VERSION
+          grep -q '0.7.20-support-cast-chibi' web-release/index.html
+          cmp web-release/index.html dist/index.html
+      - name: Commit v0.7.20
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/chibiSupportV3.ts src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.20 chibi support cast'
+          git pull --rebase origin main
+          git push origin HEAD:main
