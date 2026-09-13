@@ -1,0 +1,68 @@
+name: Publish Duck Heist v0.7.17 Drone Death Echoes
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0717-drone-death-echoes.yml'
+      - 'scripts/patch-v0717.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply v0.7.17 drone and death echoes patch
+        run: python3 scripts/patch-v0717.py
+
+      - name: Validate source and build
+        run: |
+          grep -q 'drawChibiPoliceDroneV3' src/game/graphics/policeDroneV3.ts
+          grep -q 'drawChibiPoliceDroneV3' src/game/render.ts
+          grep -q "variant:'riot'" src/game/render.ts
+          grep -q '0.7.17-drone-death-echoes' index.html
+          npx tsc --noEmit
+          npx vite build --outDir /tmp/duck-heist-v0717 --emptyOutDir
+          test -s /tmp/duck-heist-v0717/index.html
+          grep -q '0.7.17-drone-death-echoes' /tmp/duck-heist-v0717/index.html
+          grep -q 'canvas2d-chibi-remastered-v9' /tmp/duck-heist-v0717/index.html
+
+      - name: Promote v0.7.17
+        run: |
+          npm version 0.7.17 --no-git-tag-version
+          printf '0.7.17\n' > VERSION
+          rm -rf web-release dist
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0717/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate promoted release
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '"version": "0.7.17"' package.json
+          grep -q '^0.7.17$' VERSION
+          grep -q '0.7.17-drone-death-echoes' web-release/index.html
+          grep -q 'canvas2d-chibi-remastered-v9' web-release/index.html
+          cmp web-release/index.html dist/index.html
+
+      - name: Commit v0.7.17
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html src/game/graphics/policeDroneV3.ts src/game/render.ts web-release dist VERSION package.json package-lock.json
+          git commit -m 'Release Duck Heist v0.7.17 drone and death echoes chibi'
+          git pull --rebase origin main
+          git push origin HEAD:main
