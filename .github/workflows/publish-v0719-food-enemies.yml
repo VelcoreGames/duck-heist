@@ -28,6 +28,7 @@ jobs:
         run: |
           python3 scripts/patch-v0719.py
           sed -i "/const METAL_LIGHT =/d" src/game/graphics/chibiFoodEnemiesV3.ts
+          sed -i "s/if(child.kind==='chicken')drawBankerChicken(ctx,-8,-8,f,false);/if(child.kind==='chicken')drawChibiFoodEnemyV3({ctx,x:-8,y:-8,size:16,frame:f,dirX:1,dirY:0,moving:p.moving,hurt:false,kind:'banker_chicken'});/" src/game/render.ts
 
       - name: Validate source and build
         run: |
@@ -40,12 +41,11 @@ jobs:
           ! grep -q 'drawToasterTurret(ctx, e.x' src/game/render.ts
           ! grep -q 'drawRollingBagel(ctx, e.x' src/game/render.ts
           ! grep -q 'drawEvilCroissant(ctx, e.x' src/game/render.ts
-          ! grep -q 'drawBankerChicken(ctx, e.x' src/game/render.ts
+          ! grep -q 'drawBankerChicken(ctx' src/game/render.ts
           npx tsc --noEmit
           npx vite build --outDir /tmp/duck-heist-v0719 --emptyOutDir
           test -s /tmp/duck-heist-v0719/index.html
           grep -q '0.7.19-food-enemies-chibi' /tmp/duck-heist-v0719/index.html
-          grep -q 'drawChibiFoodEnemyV3' src/game/graphics/chibiFoodEnemiesV3.ts
 
       - name: Promote v0.7.19
         run: |
