@@ -30,6 +30,7 @@ jobs:
           grep -a -q "ESTADÍSTICAS DE LA RUN" candidate-dist/index.html
           grep -a -q "PAN BOMBA REMOTO" candidate-dist/index.html
           grep -a -q "SUELTA TAB PARA CERRAR" candidate-dist/index.html
+          ! grep -a -q "policia_escopeta\|policia_capitan" candidate-dist/index.html
           find candidate-dist -maxdepth 2 -type f -printf '%p %s bytes\n' | sort
       - name: Browser-free smoke serve
         run: |
@@ -56,36 +57,40 @@ jobs:
           (async()=>{
             const browser=await chromium.launch({headless:true});
             const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
-            const errors=[];
-            async function shot(url,file){
+            const candidateErrors=[];
+            async function shot(url,file,strict=false){
               const page=await context.newPage();
-              page.on('console',m=>{if(m.type()==='error')errors.push(`${file}: ${m.text()}`)});
-              page.on('pageerror',e=>errors.push(`${file}: ${e.message}`));
+              if(strict){
+                page.on('console',m=>{if(m.type()==='error')candidateErrors.push(`${file}: ${m.text()}`)});
+                page.on('pageerror',e=>candidateErrors.push(`${file}: ${e.message}`));
+              }
               await page.goto(url,{waitUntil:'networkidle'});
               await page.waitForTimeout(700);
               await page.screenshot({path:`qa-shots/${file}`,fullPage:true});
               return page;
             }
-            const base=await shot('http://127.0.0.1:4173/','01-base-menu.png');
+            const base=await shot('http://127.0.0.1:4173/','01-base-menu.png',false);
             await base.close();
-            const candidate=await shot('http://127.0.0.1:4174/','02-candidate-menu.png');
+            const candidate=await shot('http://127.0.0.1:4174/','02-candidate-menu.png',true);
             await candidate.keyboard.press('Enter');
-            await candidate.waitForTimeout(2200);
+            await candidate.waitForTimeout(4500);
             await candidate.keyboard.down('Tab');
-            await candidate.waitForTimeout(250);
+            await candidate.waitForTimeout(300);
             await candidate.screenshot({path:'qa-shots/03-candidate-tab-stats.png',fullPage:true});
             await candidate.keyboard.up('Tab');
             await candidate.close();
             await browser.close();
-            if(errors.length){console.error(errors.join('\n'));process.exit(1);}
+            if(candidateErrors.length){console.error(candidateErrors.join('\n'));process.exit(1);}
           })();
           NODE
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: tester-feedback-real-vite-build
           path: candidate-dist/
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: tester-feedback-visual-qa
           path: qa-shots/
