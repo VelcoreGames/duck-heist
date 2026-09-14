@@ -14,7 +14,7 @@ import {
   RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS,
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
-import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar } from './ui';
+import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar, drawPremiumBackdrop, drawPremiumPanel, drawPremiumButton, drawPremiumMeter } from './ui';
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice } from './engine';
 import { drawVaultScene } from './titleScene';
@@ -1048,64 +1048,111 @@ export const MENU_ITEMS = [
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
-  text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
-  MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex,x=MAIN_MENU.x,y=MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap),w=MAIN_MENU.w,h=MAIN_MENU.h;
-    ctx.save();if(on) {ctx.shadowColor='#e8b95066';ctx.shadowBlur=15;ctx.translate(x+w/2,y+h/2);ctx.scale(1.025,1.025);ctx.translate(-x-w/2,-y-h/2);}
-    ctx.fillStyle=on?'#d9bc70':'rgba(18,36,42,.95)';ctx.fillRect(x,y,w,h);
-    ctx.strokeStyle=on?'#fff0b0':'#3b5355';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-    ctx.fillStyle=on?'#f5dc92':'#203a42';ctx.fillRect(x+3,y+2,w-6,1);
-    ctx.fillStyle=on?'#8c6b39':'#0a1b22';ctx.fillRect(x+3,y+h-3,w-6,1);
-    if(on) {ctx.fillStyle='rgba(255,255,220,.13)';ctx.fillRect(x+3+(engine.frame*.6)%(w-24),y+3,20,h-6);}
-    text(ctx,item.label,x+w/2,y+15,9,on?'#17262a':'#b7c5b6','center',true,false);
-    if(on) {text(ctx,'›',x-9,y+15,14,'#e7c87f');text(ctx,'‹',x+w+9,y+15,14,'#e7c87f');}
-    ctx.restore();
+  drawPremiumBackdrop(ctx, engine.frame, .46);
+  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 56, engine.frame);
+  text(ctx, 'OPERACIÓN · BANCO DEL PAN', 30, 101, 6.5, '#86aaa4', 'left', true, false);
+  text(ctx, 'ELIGE TU SIGUIENTE MOVIMIENTO', 30, 114, 8, '#ead7a0', 'left', true, false);
+
+  MENU_ITEMS.forEach((item, i) => {
+    const x = MAIN_MENU.x, y = MAIN_MENU.y + i * (MAIN_MENU.h + MAIN_MENU.gap);
+    drawPremiumButton(ctx, item.label, x, y, MAIN_MENU.w, MAIN_MENU.h, i === engine.menuIndex, engine.frame, i + 1);
   });
-  text(ctx,T.tagline,240,326,9,'#dbbd77','center',true);
-  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR':'W / S · ELEGIR     ENTER · CONFIRMAR',30,348,6,'#738b89','left');
-  drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} DORADAS`,389,348,6,'#ac9f75','left');
+
+  drawPremiumPanel(ctx, 219, 123, 230, 157, false, '#d8b55b', 'rgba(7,23,29,.91)', 12);
+  text(ctx, 'EXPEDIENTE DEL ATRACO', 237, 145, 8.4, '#ead7a0', 'left', true, false);
+  text(ctx, 'ROGUELITE · 6 PISOS · UNA SALIDA', 237, 160, 6.2, '#7fa29d', 'left', true, false);
+  ctx.fillStyle = 'rgba(216,181,91,.25)'; ctx.fillRect(237, 170, 194, 1);
+
+  const stats: [string, string][] = [
+    ['MIGAS DORADAS', `${engine.totalGoldenCrumbs}`],
+    ['ASPECTOS', `${engine.unlockedSkins.length} / ${SKINS.length}`],
+    ['PROGRESIÓN', `${TOTAL_FLOORS} PISOS`],
+    ['SEGURIDAD', 'AUMENTA POR PISO'],
+  ];
+  stats.forEach(([k, v], i) => {
+    const y = 190 + i * 20;
+    text(ctx, k, 237, y, 6.2, '#75938f', 'left', true, false);
+    text(ctx, v, 431, y, 7.2, i === 0 ? '#e7c86d' : '#d3e1dc', 'right', true, false);
+  });
+  text(ctx, 'La dificultad es progresiva: no hay un selector separado.', 237, 269, 5.7, '#6f8986', 'left', false, false);
+
+  text(ctx, T.tagline, 240, 316, 8.2, '#dcc27d', 'center', true, false);
+  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA  NAVEGAR     A  CONFIRMAR' : 'W / S  NAVEGAR     ENTER  CONFIRMAR', 30, 343, 6, '#789590', 'left', true, false);
+  drawItemIcon(ctx, 376, 332, 'golden_crumb', 13);
+  text(ctx, `${engine.totalGoldenCrumbs} DORADAS`, 397, 343, 6, '#baa66f', 'left', true, false);
 }
 
 function renderHowToPlayUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 20, 14, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 34);
-  titleText(ctx, T.howToTitle, CANVAS_WIDTH / 2, 40, 18, '#f4d03f');
+  drawPremiumBackdrop(ctx, engine.frame, .8);
+  drawPremiumPanel(ctx, 22, 16, CANVAS_WIDTH - 44, CANVAS_HEIGHT - 34, false, '#d8b55b', 'rgba(7,22,28,.96)', 13);
+  titleText(ctx, T.howToTitle, 42, 47, 17, '#f0d27a', 'left');
+  text(ctx, 'MANUAL RÁPIDO DEL ATRACO', 43, 63, 6.3, '#799995', 'left', true, false);
 
-  const gamepad=engine.lastInput==='gamepad';
-  const rows:[string,string][] = gamepad?[
-    ['PALANCA IZQUIERDA','Moverse'],['PALANCA DERECHA + RT','Apuntar y disparar'],['B','Esquivar'],['A','Interactuar / recoger'],['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Abrir mapa'],['START','Pausa'],
-  ]:[
-    ['WASD','Moverse'],['FLECHAS / CLIC IZQUIERDO','Disparar'],['SHIFT / CLIC DERECHO','Esquivar'],['E','Interactuar / recoger'],['ESPACIO','Objeto activo'],['RUEDA DEL MOUSE','Cambiar arma'],['M','Abrir mapa'],['R · MANTENER','Reiniciar partida'],['ESC','Pausa'],
+  const gamepad = engine.lastInput === 'gamepad';
+  const rows: [string, string][] = gamepad ? [
+    ['PALANCA IZQ.','Moverse'],['PALANCA DER. + RT','Apuntar y disparar'],['B','Esquivar'],['A','Interactuar / recoger'],['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Abrir mapa'],['START','Pausa'],
+  ] : [
+    ['WASD','Moverse'],['FLECHAS / CLIC IZQ.','Disparar'],['SHIFT / CLIC DER.','Esquivar'],['E','Interactuar / recoger'],['ESPACIO','Objeto activo'],['RUEDA','Cambiar arma'],['M','Abrir mapa'],['R · MANTENER','Reiniciar'],['ESC','Pausa'],
   ];
-  rows.forEach(([k,v],i)=>{const y=60+i*17;ctx.fillStyle='#1c343d';ctx.fillRect(37,y-9,158,14);text(ctx,k,44,y,7.5,'#d9cb92','left',true);text(ctx,v,207,y,8,'#d1ded4','left');});
-  const instructions=['Explora salas y derrota enemigos para abrir las puertas.','El pan recupera vida. Las monedas doradas se guardan.','Elige dos armas, encuentra objetos y crea sinergias.','Derrota al jefe, recoge el botín y baja al siguiente piso.','El mapa pausa el combate. No permite transportarte.'];
-  instructions.forEach((line,i)=>text(ctx,line,240,228+i*14,7.8,'#a4bcb9'));
-  text(ctx,gamepad?'B · VOLVER':'ESC · VOLVER',240,322,9,'#dfc582','center',true);
+  rows.forEach(([k, v], i) => {
+    const y = 80 + i * 18;
+    ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.018)' : 'rgba(102,155,146,.045)';
+    ctx.beginPath(); ctx.roundRect(40, y - 11, 183, 15, 5); ctx.fill();
+    text(ctx, k, 50, y, 6.6, '#dfc77d', 'left', true, false);
+    text(ctx, v, 215, y, 6.8, '#b8cbc6', 'right', false, false);
+  });
+
+  drawPremiumPanel(ctx, 244, 77, 190, 176, false, '#6c9c94', 'rgba(10,31,35,.72)', 9);
+  text(ctx, 'REGLAS DEL GOLPE', 259, 99, 8, '#dce8e4', 'left', true, false);
+  const instructions = [
+    'Despeja salas para abrir las puertas.',
+    'El pan recupera vida; las doradas se guardan.',
+    'Lleva dos armas y combina objetos.',
+    'Derrota al jefe para bajar de piso.',
+    'La seguridad aumenta automáticamente por piso.',
+  ];
+  instructions.forEach((line, i) => {
+    ctx.fillStyle = '#d8b55b'; ctx.beginPath(); ctx.arc(260, 122 + i * 25, 2.2, 0, Math.PI * 2); ctx.fill();
+    wrappedText(ctx, line, 270, 125 + i * 25, 150, 6.7, 8.5, 2, '#9fb6b1');
+  });
+
+  text(ctx, gamepad ? 'B · VOLVER' : 'ESC · VOLVER', 240, 323, 8.3, '#e5cb7d', 'center', true, false);
 }
 
 function renderSettingsUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 50, 26, CANVAS_WIDTH - 100, CANVAS_HEIGHT - 56);
-  titleText(ctx, T.settingsTitle, CANVAS_WIDTH / 2, 54, 18, '#f4d03f');
+  drawPremiumBackdrop(ctx, engine.frame, .82);
+  drawPremiumPanel(ctx, 34, 17, CANVAS_WIDTH - 68, CANVAS_HEIGHT - 34, false, '#d8b55b', 'rgba(7,22,28,.97)', 13);
+  titleText(ctx, T.settingsTitle, 54, 47, 17, '#f0d27a', 'left');
+  text(ctx, 'AUDIO · VIDEO · ACCESIBILIDAD', 55, 62, 6.1, '#789995', 'left', true, false);
 
   SETTING_ROWS.forEach((row, i) => {
-    const y = SETTINGS.y + i * (SETTINGS.h+SETTINGS.gap);
+    const y = SETTINGS.y + i * (SETTINGS.h + SETTINGS.gap);
     const on = i === engine.settingsIndex;
-    ctx.fillStyle = on ? 'rgba(244,208,63,0.14)' : 'rgba(255,255,255,0.03)';
-    ctx.fillRect(SETTINGS.x,y,SETTINGS.w,SETTINGS.h);
-    text(ctx,row.label,SETTINGS.x+10,y+13,8,on?'#fff6c9':'#a9b3c4','left',on);
+    ctx.save();
+    ctx.fillStyle = on ? 'rgba(44,72,68,.82)' : 'rgba(255,255,255,.025)';
+    ctx.beginPath(); ctx.roundRect(SETTINGS.x, y, SETTINGS.w, SETTINGS.h, 6); ctx.fill();
+    ctx.strokeStyle = on ? '#d8b55b' : 'rgba(119,165,158,.12)';
+    ctx.lineWidth = on ? 1.2 : 1;
+    ctx.beginPath(); ctx.roundRect(SETTINGS.x + .5, y + .5, SETTINGS.w - 1, SETTINGS.h - 1, 5.5); ctx.stroke();
+    if (on) { ctx.fillStyle = '#d8b55b'; ctx.beginPath(); ctx.roundRect(SETTINGS.x + 4, y + 4, 3, SETTINGS.h - 8, 2); ctx.fill(); }
+    ctx.restore();
+
+    text(ctx, row.label, SETTINGS.x + 14, y + 13, 7.3, on ? '#fff2c1' : '#adbfba', 'left', on, false);
     const v = settingValue(engine, i);
-    if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind==='brightness') {
-      const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind==='brightness'?1.4:3;
-      drawBar(ctx,320,y+6,60,v/max,on?'#f4d03f':'#5c6472');
-      text(ctx,row.kind==='vol'?`${Math.round(v*100)}%`:`${v}`,405,y+13,8,on?'#fff6c9':'#8792a5','right');
+    if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind === 'brightness') {
+      const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind === 'brightness' ? 1.4 : 3;
+      drawPremiumMeter(ctx, 315, y + 6.5, 64, v / max, on);
+      const display = row.kind === 'vol' ? `${Math.round(v * 100)}%` : `${v}`;
+      text(ctx, display, 407, y + 13, 7.4, on ? '#f0d27a' : '#829e99', 'right', true, false);
     } else {
-      text(ctx,row.kind==='action'?'REPRODUCIR':v>.5?T.on:T.off,405,y+13,8,v>.5?'#39d353':'#b5c2b7','right',true);
+      const label = row.kind === 'action' ? 'PROBAR' : v > .5 ? T.on : T.off;
+      text(ctx, label, 407, y + 13, 7.2, v > .5 || row.kind === 'action' ? '#7fd3a2' : '#8fa19d', 'right', true, false);
     }
   });
 
-  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · AJUSTAR     A · PROBAR     B · VOLVER':'FLECHAS · AJUSTAR     ENTER · PROBAR     ESC · VOLVER',240,321,7,'#91aaa6');
+  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA  AJUSTAR     A  CAMBIAR     B  VOLVER' : 'FLECHAS  AJUSTAR     ENTER  CAMBIAR     ESC  VOLVER', 240, 321, 6.3, '#87a39e', 'center', true, false);
 }
 
 function renderWardrobeUI(engine: GameEngine) {
@@ -1263,70 +1310,67 @@ function renderWardrobeUI(engine: GameEngine) {
 
 function renderUpgradesUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 26, 16, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
-  titleText(ctx, T.upgradesTitle, CANVAS_WIDTH / 2, 40, 17, '#f4d03f');
-  drawChibiCoinV3(ctx, CANVAS_WIDTH / 2 - 52, 58, engine.frame, true);
-  text(ctx, `${T.upgradesCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2 + 4, 62, 12, '#f4d03f', 'center', true);
+  drawPremiumBackdrop(ctx, engine.frame, .82);
+  drawPremiumPanel(ctx, 24, 16, CANVAS_WIDTH - 48, CANVAS_HEIGHT - 32, false, '#d8b55b', 'rgba(7,22,28,.97)', 13);
+  titleText(ctx, T.upgradesTitle, 44, 44, 16, '#f0d27a', 'left');
+  text(ctx, 'MEJORAS PERMANENTES DEL CÓMPLICE', 45, 59, 6.1, '#799995', 'left', true, false);
+  drawChibiCoinV3(ctx, 358, 32, engine.frame, true);
+  text(ctx, `${engine.totalGoldenCrumbs} DORADAS`, 382, 47, 8.5, '#e9ca70', 'left', true, false);
 
   META_UPGRADES.forEach((up, i) => {
-    const y = 82 + i * 44;
+    const y = 78 + i * 52;
     const lvl = engine.metaLevels[up.id] ?? 0;
     const maxed = lvl >= up.maxLevel;
     const cost = up.cost * (lvl + 1);
     const sel = i === engine.upgradeIndex;
-    ctx.fillStyle = sel ? 'rgba(244,208,63,0.14)' : 'rgba(255,255,255,0.03)';
-    ctx.fillRect(40, y - 12, CANVAS_WIDTH - 80, 40);
-    titleText(ctx, up.name, 50, y + 4, 13, maxed ? '#39d353' : sel ? '#fff6c9' : '#c3cbd9', 'left');
-    text(ctx, up.description, 50, y + 20, 10, '#8792a5', 'left', false);
+    drawPremiumPanel(ctx, 42, y, 396, 44, sel, sel ? '#d8b55b' : '#628d87', sel ? 'rgba(27,52,50,.95)' : 'rgba(11,31,35,.78)', 7);
+    text(ctx, up.name, 58, y + 16, 8.5, maxed ? '#75d79d' : sel ? '#fff1bc' : '#c0d0cb', 'left', true, false);
+    text(ctx, up.description, 58, y + 31, 6.4, '#839f9a', 'left', false, false);
     for (let l = 0; l < up.maxLevel; l++) {
-      ctx.fillStyle = l < lvl ? '#f4d03f' : '#2f3644';
-      ctx.fillRect(CANVAS_WIDTH - 150 + l * 12, y - 4, 9, 9);
+      const cx = 326 + l * 13;
+      ctx.fillStyle = l < lvl ? '#d8b55b' : 'rgba(120,160,153,.18)';
+      ctx.beginPath(); ctx.arc(cx, y + 14, 4, 0, Math.PI * 2); ctx.fill();
     }
-    text(ctx, maxed ? T.upgradeBought : `${cost}`, CANVAS_WIDTH - 48, y + 16,
-      9, maxed ? '#39d353' : engine.totalGoldenCrumbs >= cost ? '#f4d03f' : '#ff5b4f', 'right', true);
+    text(ctx, maxed ? 'COMPLETA' : `${cost}`, 422, y + 29, 7.3, maxed ? '#75d79d' : engine.totalGoldenCrumbs >= cost ? '#e9ca70' : '#df766f', 'right', true, false);
   });
 
-  text(ctx,engine.lastInput==='gamepad'?'A · COMPRAR':'ENTER · COMPRAR',240,308,9,'#a9b3c4');
-  text(ctx,engine.lastInput==='gamepad'?'B · VOLVER':'ESC · VOLVER',240,324,9,'#f4d03f','center',true);
+  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA  ELEGIR     A  COMPRAR     B  VOLVER' : 'W / S  ELEGIR     ENTER  COMPRAR     ESC  VOLVER', 240, 319, 6.3, '#87a39e', 'center', true, false);
 }
 
 function renderFloorIntroUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const t = engine.floorIntroTimer;
   const a = t > 80 ? (110 - t) / 30 : Math.min(1, t / 30);
-  ctx.fillStyle = `rgba(4,6,14,${0.9 * clamp(a, 0, 1)})`;
+  const alpha = clamp(a, 0, 1);
+  ctx.fillStyle = `rgba(3,10,16,${.88 * alpha})`;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.globalAlpha = clamp(a, 0, 1);
-  const slide = (1 - clamp(a, 0, 1)) * 26;
-  ctx.fillStyle = '#f4d03f';
-  ctx.fillRect(CANVAS_WIDTH / 2 - 130, CANVAS_HEIGHT / 2 - 34 + slide, 260, 2);
-  ctx.fillRect(CANVAS_WIDTH / 2 - 130, CANVAS_HEIGHT / 2 + 30 + slide, 260, 2);
-  titleText(ctx, `${T.floor} ${engine.map.floorIndex + 1}/6`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 4 + slide, 26, '#f4d03f');
-  drawItemIcon(ctx,228,110+slide,['crumb','stolen_helmet','baguette','toaster','golden_crumb','pan_dorado'][engine.map.floorIndex],24);
-  text(ctx, FLOOR_NAMES_ES[engine.map.floorIndex], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20 + slide, 14, '#e8c99b', 'center', true);
-  if (engine.map.floorIndex > 0) {
-    text(ctx, 'LA SEGURIDAD ES MÁS DURA AQUÍ', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40 + slide, 10, '#8792a5');
+  ctx.globalAlpha = alpha;
+  const slide = (1 - alpha) * 24;
+  drawPremiumPanel(ctx, 104, 105 + slide, 272, 132, true, '#d8b55b', 'rgba(8,25,30,.95)', 12);
+  text(ctx, 'NIVEL DE SEGURIDAD', 240, 132 + slide, 6.3, '#76958f', 'center', true, false);
+  titleText(ctx, `${T.floor} ${engine.map.floorIndex + 1}/6`, 240, 160 + slide, 23, '#f0d27a');
+  text(ctx, FLOOR_NAMES_ES[engine.map.floorIndex], 240, 184 + slide, 11, '#d7e3df', 'center', true, false);
+  const level = engine.map.floorIndex + 1;
+  for (let i = 0; i < TOTAL_FLOORS; i++) {
+    ctx.fillStyle = i < level ? (level >= 5 ? '#df766f' : '#d8b55b') : 'rgba(113,152,145,.16)';
+    ctx.beginPath(); ctx.roundRect(190 + i * 18, 202 + slide, 12, 4, 2); ctx.fill();
   }
+  text(ctx, level === 1 ? 'SEGURIDAD BASE' : 'LA SEGURIDAD SE INTENSIFICA', 240, 222 + slide, 6.4, level >= 5 ? '#e58a82' : '#8ba7a2', 'center', true, false);
   ctx.globalAlpha = 1;
 }
 
 function renderBossIntroUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const t = engine.bossIntroTimer;
-  ctx.fillStyle = 'rgba(4,6,14,0.82)';
+  ctx.fillStyle = 'rgba(5,8,13,.88)';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   const a = Math.min(1, (115 - t) / 18);
   ctx.globalAlpha = clamp(a, 0, 1);
-  ctx.fillStyle = '#8a2c2c';
-  ctx.fillRect(0, CANVAS_HEIGHT / 2 - 42, CANVAS_WIDTH, 3);
-  ctx.fillRect(0, CANVAS_HEIGHT / 2 + 39, CANVAS_WIDTH, 3);
-  ctx.fillStyle = 'rgba(140,30,30,0.22)';
-  ctx.fillRect(0, CANVAS_HEIGHT / 2 - 39, CANVAS_WIDTH, 78);
-  const blink = (engine.frame % 40) < 22;
-  text(ctx, `\u26A0 ${T.warning} \u26A0`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 26, 12, blink ? '#ff5b4f' : '#8a2c2c', 'center', true);
-  titleText(ctx, engine.bossIntroName, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 4, 22, '#f4d03f');
-  text(ctx, engine.bossIntroSubtitle, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 24, 12, '#e8c99b', 'center', true);
-  if (t < 60) text(ctx, 'ENTER para saltar', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 44, 9, '#5c6472');
+  drawPremiumPanel(ctx, 74, 112, 332, 126, true, '#d86a60', 'rgba(31,18,22,.96)', 12);
+  text(ctx, '⚠  ALERTA DE SEGURIDAD  ⚠', 240, 140, 7.2, '#e17b72', 'center', true, false);
+  titleText(ctx, engine.bossIntroName, 240, 174, 20, '#f0d27a');
+  text(ctx, engine.bossIntroSubtitle, 240, 197, 8.4, '#c7d3cf', 'center', true, false);
+  if (t < 60) text(ctx, 'ENTER · SALTAR', 240, 221, 6.2, '#7f9995', 'center', true, false);
   ctx.globalAlpha = 1;
 }
 
@@ -1369,37 +1413,30 @@ function renderFloorClearUI(engine: GameEngine) {
 
 function renderPausedUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  ctx.fillStyle = 'rgba(4,6,14,0.8)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  drawPanel(ctx, 42, 18, CANVAS_WIDTH - 84, CANVAS_HEIGHT - 36);
-  titleText(ctx, T.paused, CANVAS_WIDTH / 2, 48, 24, '#f4d03f');
-  ctx.fillStyle = '#8a2c2c';
-  ctx.fillRect(CANVAS_WIDTH / 2 - 60, 55, 120, 2);
+  drawPremiumBackdrop(ctx, engine.frame, .88);
+  drawPremiumPanel(ctx, 26, 16, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 32, false, '#d8b55b', 'rgba(6,21,27,.97)', 13);
+  titleText(ctx, T.paused, 46, 47, 17, '#f0d27a', 'left');
+  text(ctx, `PISO ${engine.map.floorIndex + 1}/6 · ATRACO EN PAUSA`, 47, 62, 6.2, '#789995', 'left', true, false);
 
   const items = [
-    { label: T.resume }, {label:'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
+    { label: T.resume }, { label: 'MAPA' }, { label: T.restartRun }, { label: T.menuHowTo },
     { label: T.menuSettings }, { label: T.backToMenu },
   ];
-  drawButtons(ctx,items,engine.pauseIndex,240,PAUSE_MENU.y,engine.frame,PAUSE_MENU.w,PAUSE_MENU.h,PAUSE_MENU.gap);
-
-  text(ctx, T.controls, CANVAS_WIDTH / 2, 220, 11, '#8792a5', 'center', true);
-  const rows: [string, string][] = engine.lastInput==='gamepad'?[
-    ['PALANCA','Moverse'],['RT','Disparar'],['B','Esquivar'],['Y','Objeto activo'],['A','Interactuar'],['VIEW','Mapa'],
-  ]:[
-    [T.keyMove, T.ctrlMove], [T.keyShoot, T.ctrlShoot], [T.keyDash, T.ctrlDash],
-    [T.keyItem, T.ctrlItem], [T.keyInteract, T.ctrlInteract], [T.keyRestart, T.ctrlRestart],
-  ];
-  rows.forEach(([k, v], i) => {
-    const col = i % 2, row = Math.floor(i / 2);
-    const x = CANVAS_WIDTH / 2 - 128 + col * 132;
-    const y = 236 + row * 16;
-    ctx.fillStyle = 'rgba(244,208,63,0.10)';
-    ctx.fillRect(x, y - 10, 48, 13);
-    text(ctx, k, x + 24, y, 8, '#f4d03f', 'center', true);
-    wrappedText(ctx,v,x+54,y,76,7,9,2,'#a9b3c4');
+  items.forEach((item, i) => {
+    const y = PAUSE_MENU.y + i * (PAUSE_MENU.h + PAUSE_MENU.gap);
+    drawPremiumButton(ctx, item.label, CANVAS_WIDTH / 2 - PAUSE_MENU.w / 2, y, PAUSE_MENU.w, PAUSE_MENU.h, i === engine.pauseIndex, engine.frame, i + 1);
   });
-  text(ctx,`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
-  text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA    ${engine.lastInput==='gamepad'?'B':'CLIC DERECHO'} · ESQUIVAR`,240,315,6.5,'#768f8f');
+
+  drawPremiumPanel(ctx, 54, 219, 372, 72, false, '#608d86', 'rgba(9,30,34,.66)', 8);
+  text(ctx, T.controls, 72, 239, 7.4, '#c7d8d3', 'left', true, false);
+  const gamepad = engine.lastInput === 'gamepad';
+  const quick = gamepad ? ['PALANCA · MOVER', 'RT · DISPARAR', 'B · ESQUIVAR', 'A · INTERACTUAR'] : ['WASD · MOVER', 'FLECHAS · DISPARAR', 'SHIFT · ESQUIVAR', 'E · INTERACTUAR'];
+  quick.forEach((label, i) => {
+    const x = 72 + (i % 2) * 176, y = 257 + Math.floor(i / 2) * 16;
+    text(ctx, label, x, y, 6.3, '#8ea9a4', 'left', true, false);
+  });
+  text(ctx, `SEMILLA · ${engine.run.seed}`, 240, 307, 6.1, '#baa86f', 'center', true, false);
+  text(ctx, gamepad ? 'START / B · VOLVER AL ATRACO' : 'ESC · VOLVER AL ATRACO', 240, 324, 6.3, '#829f99', 'center', true, false);
 }
 
 function renderSwapUI(engine: GameEngine) {

@@ -174,6 +174,98 @@ export function drawBar(ctx: Ctx, x: number, y: number, w: number, value: number
 }
 
 // ---------------------------------------------------------------------------
+// FRONT-END PREMIUM · Menús y pantallas de navegación
+// Mantiene separados los componentes del HUD para no alterar gameplay.
+// ---------------------------------------------------------------------------
+export function drawPremiumBackdrop(ctx: Ctx, frame: number, strength = .78) {
+  ctx.save();
+  const g = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  g.addColorStop(0, `rgba(4,16,22,${strength})`);
+  g.addColorStop(.52, `rgba(6,20,26,${strength * .96})`);
+  g.addColorStop(1, `rgba(3,10,16,${Math.min(.96, strength + .12)})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  const glow = ctx.createRadialGradient(365, 82, 8, 365, 82, 210);
+  glow.addColorStop(0, `rgba(222,184,92,${.14 + Math.sin(frame * .025) * .025})`);
+  glow.addColorStop(.5, 'rgba(44,121,117,.07)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(150, 0, 330, 280);
+
+  ctx.globalAlpha = .09;
+  ctx.fillStyle = '#d8b55b';
+  for (let x = -40 + (frame * .12) % 48; x < CANVAS_WIDTH + 40; x += 48) ctx.fillRect(x, 0, 1, CANVAS_HEIGHT);
+  ctx.globalAlpha = .045;
+  ctx.fillStyle = '#9ed3ca';
+  for (let y = 18; y < CANVAS_HEIGHT; y += 32) ctx.fillRect(0, y, CANVAS_WIDTH, 1);
+  ctx.restore();
+}
+
+export function drawPremiumPanel(
+  ctx: Ctx, x: number, y: number, w: number, h: number,
+  active = false, accent = '#d8b55b', fill = 'rgba(9,28,33,.94)', radius = 10,
+) {
+  ctx.save();
+  ctx.shadowColor = active ? 'rgba(216,181,91,.28)' : 'rgba(0,0,0,.42)';
+  ctx.shadowBlur = active ? 16 : 10;
+  ctx.shadowOffsetY = active ? 2 : 5;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fillStyle = fill; ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  const g = ctx.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, active ? 'rgba(255,244,194,.105)' : 'rgba(255,255,255,.045)');
+  g.addColorStop(.55, 'rgba(65,130,125,.025)');
+  g.addColorStop(1, 'rgba(0,0,0,.18)');
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = active ? accent : 'rgba(133,177,170,.24)';
+  ctx.lineWidth = active ? 1.35 : 1;
+  ctx.beginPath(); ctx.roundRect(x + .5, y + .5, w - 1, h - 1, radius - .5); ctx.stroke();
+  ctx.strokeStyle = active ? 'rgba(255,242,190,.36)' : 'rgba(255,255,255,.055)';
+  ctx.beginPath(); ctx.moveTo(x + radius, y + 2); ctx.lineTo(x + w - radius, y + 2); ctx.stroke();
+  ctx.fillStyle = active ? accent : 'rgba(126,177,169,.38)';
+  ctx.beginPath(); ctx.roundRect(x + 4, y + 5, 3, h - 10, 2); ctx.fill();
+  ctx.restore();
+}
+
+export function drawPremiumButton(
+  ctx: Ctx, label: string, x: number, y: number, w: number, h: number,
+  selected: boolean, frame: number, index?: number, hint?: string,
+) {
+  drawPremiumPanel(ctx, x, y, w, h, selected, selected ? '#e1bd63' : '#5a827e', selected ? 'rgba(28,52,50,.97)' : 'rgba(8,26,32,.91)', 7);
+  if (index !== undefined) {
+    const bx = x + 12, by = y + h / 2;
+    ctx.save();
+    ctx.fillStyle = selected ? '#e1bd63' : 'rgba(126,168,161,.17)';
+    ctx.beginPath(); ctx.arc(bx, by, 7, 0, Math.PI * 2); ctx.fill();
+    text(ctx, String(index).padStart(2, '0'), bx, by + 2.6, 5.4, selected ? '#102225' : '#87a7a1', 'center', true, false);
+    ctx.restore();
+  }
+  const tx = index !== undefined ? x + 25 : x + 12;
+  text(ctx, label, tx, y + h / 2 + 3.2, selected ? 8.6 : 8.1, selected ? '#fff4c9' : '#c2d3ce', 'left', true, false);
+  if (hint) text(ctx, hint, x + w - 10, y + h / 2 + 3, 6, selected ? '#e7ca7a' : '#668681', 'right', true, false);
+  if (selected) {
+    const sweep = ((frame * .55) % Math.max(30, w - 28));
+    ctx.save(); ctx.globalAlpha = .12; ctx.fillStyle = '#fff2bf';
+    ctx.beginPath(); ctx.roundRect(x + 8 + sweep, y + 4, 18, h - 8, 5); ctx.fill(); ctx.restore();
+  }
+}
+
+export function drawPremiumMeter(ctx: Ctx, x: number, y: number, w: number, value: number, active = false) {
+  const v = Math.max(0, Math.min(1, value));
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.34)'; ctx.beginPath(); ctx.roundRect(x, y, w, 7, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(130,171,165,.15)'; ctx.beginPath(); ctx.roundRect(x + 1, y + 1, w - 2, 5, 3); ctx.fill();
+  const fw = Math.max(0, (w - 2) * v);
+  if (fw > 0) {
+    const g = ctx.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0, active ? '#a47d36' : '#47766f');
+    g.addColorStop(1, active ? '#f0d27a' : '#83b5aa');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x + 1, y + 1, fw, 5, 3); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
 // ESCENA DEL MENÚ PRINCIPAL (se dibuja en la capa de mundo pixelada)
 // ---------------------------------------------------------------------------
 
