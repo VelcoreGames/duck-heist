@@ -1,0 +1,87 @@
+name: Publish Duck Heist v0.7.54 Menu Difficulty Audio
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0754-menu-difficulty-audio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply approved v0.7.54 menu difficulty audio pass
+        run: |
+          python scripts/patch-v0754-menu-difficulty-audio.py
+          sed -i 's/0.7.54-menu-difficulty-audio-candidate/0.7.54-menu-difficulty-audio/g' index.html
+          npm version 0.7.54 --no-git-tag-version
+          printf '0.7.54\n' > VERSION
+
+      - name: Validate release source
+        run: |
+          grep -q '0.7.54-menu-difficulty-audio' index.html
+          ! grep -q 'menu-difficulty-audio-candidate' index.html
+          grep -q '"version": "0.7.54"' package.json
+          grep -q "difficulty: DifficultyMode = 'normal'" src/game/engine.ts
+          grep -q "key: 'difficulty'" src/game/engine.ts
+          grep -q "key: 'muted'" src/game/engine.ts
+          grep -q "settings.muted ? 0 : settings.master" src/game/engine.ts
+          grep -q "settings.muted ? 0 : engine.settings.master" src/game/engine.ts
+          grep -q "difficulty:'normal'" src/game/progress.ts
+          grep -q 'EL BANCO ESTÁ ABIERTO' src/game/render.ts
+          grep -q 'export function settingsRect' src/game/layout.ts
+          ! grep -q 'La dificultad es progresiva: no hay un selector separado' src/game/render.ts
+          ! grep -q 'floorScale(engine.map.floorIndex,' src/game/engine.ts
+          grep -q 'canvas2d-chibi-atlas-v16' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '464-raster-chibi-v16' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'no hair' scripts/generate-player-chibi-v16.py
+          grep -q 'no glasses' scripts/generate-player-chibi-v16.py
+          npx tsc --noEmit
+          git diff --check
+
+      - name: Build v0.7.54 web release
+        run: |
+          rm -rf /tmp/duck-heist-v0754 web-release dist
+          npx vite build --outDir /tmp/duck-heist-v0754 --emptyOutDir
+          test -s /tmp/duck-heist-v0754/index.html
+          grep -q '0.7.54-menu-difficulty-audio' /tmp/duck-heist-v0754/index.html
+          grep -q '464-raster-chibi-v16' /tmp/duck-heist-v0754/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/duck-heist-v0754/index.html
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0754/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate publish artifacts
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '^0.7.54$' VERSION
+          grep -q '0.7.54-menu-difficulty-audio' web-release/index.html
+          grep -q '0.7.54-menu-difficulty-audio' dist/index.html
+          cmp web-release/index.html dist/index.html
+          git diff --check
+
+      - name: Commit v0.7.54 to main
+        run: |
+          git config user.name 'VelcoreGames'
+          git config user.email 'contacto@velcore.com.mx'
+          git add src/App.tsx src/game/engine.ts src/game/layout.ts src/game/progress.ts src/game/render.ts src/game/types.ts index.html package.json package-lock.json VERSION web-release dist
+          git diff --cached --stat
+          git diff --cached --quiet && { echo 'No release changes to commit'; exit 1; }
+          git commit -m 'Release Duck Heist v0.7.54 menu difficulty and audio'
+          git pull --rebase origin main
+          git push origin HEAD:main
