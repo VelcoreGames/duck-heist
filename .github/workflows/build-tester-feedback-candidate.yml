@@ -38,8 +38,55 @@ jobs:
           trap 'kill $server' EXIT
           for i in {1..20}; do curl -fsS http://127.0.0.1:4173/ >/tmp/duck-heist.html && break; sleep 0.25; done
           grep -q '<div id="root"></div>' /tmp/duck-heist.html
+      - name: Install Chromium for visual QA
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Compare restored release and candidate
+        run: |
+          mkdir -p qa-shots
+          python3 -m http.server 4173 --directory web-release >/tmp/base-http.log 2>&1 &
+          base=$!
+          python3 -m http.server 4174 --directory candidate-dist >/tmp/candidate-http.log 2>&1 &
+          candidate=$!
+          trap 'kill $base $candidate' EXIT
+          sleep 1
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+            const errors=[];
+            async function shot(url,file){
+              const page=await context.newPage();
+              page.on('console',m=>{if(m.type()==='error')errors.push(`${file}: ${m.text()}`)});
+              page.on('pageerror',e=>errors.push(`${file}: ${e.message}`));
+              await page.goto(url,{waitUntil:'networkidle'});
+              await page.waitForTimeout(700);
+              await page.screenshot({path:`qa-shots/${file}`,fullPage:true});
+              return page;
+            }
+            const base=await shot('http://127.0.0.1:4173/','01-base-menu.png');
+            await base.close();
+            const candidate=await shot('http://127.0.0.1:4174/','02-candidate-menu.png');
+            await candidate.keyboard.press('Enter');
+            await candidate.waitForTimeout(2200);
+            await candidate.keyboard.down('Tab');
+            await candidate.waitForTimeout(250);
+            await candidate.screenshot({path:'qa-shots/03-candidate-tab-stats.png',fullPage:true});
+            await candidate.keyboard.up('Tab');
+            await candidate.close();
+            await browser.close();
+            if(errors.length){console.error(errors.join('\n'));process.exit(1);}
+          })();
+          NODE
       - uses: actions/upload-artifact@v4
         with:
           name: tester-feedback-real-vite-build
           path: candidate-dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tester-feedback-visual-qa
+          path: qa-shots/
           if-no-files-found: error
