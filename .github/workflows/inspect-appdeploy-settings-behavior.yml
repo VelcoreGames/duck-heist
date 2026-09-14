@@ -1,0 +1,104 @@
+name: Inspect archived AppDeploy settings behavior
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-appdeploy-settings-behavior.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact archived AppDeploy snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: fc214761adaedf60e8fe6a4dc3cedd3ea1b0d9e7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Probe deployed settings behavior
+        run: |
+          mkdir -p /tmp/appdeploy-settings-behavior
+          cd appdeploy-live
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/appdeploy-settings-http.log 2>&1 &
+          echo $! >/tmp/appdeploy-settings-http.pid
+          cd "$GITHUB_WORKSPACE"
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const out='/tmp/appdeploy-settings-behavior',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+            const p=await context.newPage();
+            const errors=[];
+            p.on('console',m=>{if(m.type()==='error') errors.push(m.text())});
+            p.on('pageerror',e=>errors.push(e.message));
+            await p.addInitScript(()=>{
+              window.__storageWrites=[];
+              const orig=Storage.prototype.setItem;
+              Storage.prototype.setItem=function(k,v){window.__storageWrites.push({k,v});return orig.call(this,k,v)};
+            });
+            await p.goto(`http://127.0.0.1:4173/?settingsProbe=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});
+            await sleep(1100);
+            // Historical main menu: Configuración is sixth item.
+            for(let i=0;i<5;i++){await p.keyboard.press('KeyS');await sleep(60)}
+            await p.keyboard.press('Enter');await sleep(450);
+            await p.screenshot({path:`${out}/00-settings-start.png`,fullPage:true});
+
+            async function snap(label){
+              const data=await p.evaluate(()=>({
+                ls:Object.fromEntries(Object.keys(localStorage).map(k=>[k,localStorage.getItem(k)])),
+                writes:window.__storageWrites||[],
+                activeCursor:getComputedStyle(document.activeElement||document.body).cursor,
+                bodyCursor:getComputedStyle(document.body).cursor,
+                canvas:[...document.querySelectorAll('canvas')].map(c=>getComputedStyle(c).cursor),
+                htmlLang:document.documentElement.lang,
+                title:document.title,
+              }));
+              fs.writeFileSync(`${out}/${label}.json`,JSON.stringify(data,null,2));
+              await p.screenshot({path:`${out}/${label}.png`,fullPage:true});
+              return data;
+            }
+
+            // Row 0 = IDIOMA in deployed build. Test both right and Enter from fresh load.
+            await snap('01-language-before');
+            await p.keyboard.press('ArrowRight');await sleep(250);await snap('02-language-after-right');
+            await p.keyboard.press('Enter');await sleep(250);await snap('03-language-after-enter');
+
+            // Return to row 0 then move to row 8 = CURSOR.
+            for(let i=0;i<8;i++){await p.keyboard.press('ArrowDown');await sleep(45)}
+            await snap('04-cursor-before');
+            await p.keyboard.press('ArrowRight');await sleep(250);await snap('05-cursor-after-right');
+            await p.keyboard.press('Enter');await sleep(250);await snap('06-cursor-after-enter');
+
+            // Keyboard navigation through all 11 rows: capture each selection for exact order/geometry.
+            await p.keyboard.press('Escape');await sleep(250);
+            for(let i=0;i<5;i++){await p.keyboard.press('KeyS');await sleep(40)}
+            await p.keyboard.press('Enter');await sleep(300);
+            for(let i=0;i<11;i++){
+              await p.screenshot({path:`${out}/row-${String(i).padStart(2,'0')}.png`,fullPage:true});
+              await p.keyboard.press('ArrowDown');await sleep(70);
+            }
+            const summary=await p.evaluate(()=>({writes:window.__storageWrites||[],localStorage:Object.fromEntries(Object.keys(localStorage).map(k=>[k,localStorage.getItem(k)]))}));
+            fs.writeFileSync(`${out}/summary.json`,JSON.stringify({summary,errors},null,2));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          kill "$(cat /tmp/appdeploy-settings-http.pid)" || true
+      - name: Upload behavior probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-appdeploy-settings-behavior
+          path: /tmp/appdeploy-settings-behavior
+          if-no-files-found: error
+          retention-days: 7
