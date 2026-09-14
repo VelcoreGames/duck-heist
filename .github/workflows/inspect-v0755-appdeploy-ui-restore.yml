@@ -1,0 +1,126 @@
+name: Inspect Duck Heist v0.7.55 AppDeploy UI Restore
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-v0755-appdeploy-ui-restore.yml'
+      - 'scripts/patch-v0755-appdeploy-ui-restore.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply v0.7.55 AppDeploy UI restoration candidate
+        run: python scripts/patch-v0755-appdeploy-ui-restore.py
+
+      - name: Validate restoration scope
+        run: |
+          grep -q '0.7.55-appdeploy-ui-restore-candidate' index.html
+          grep -q 'SE BUSCA UN CÓMPLICE' src/game/render.ts
+          grep -q 'PATITO CRIMINAL' src/game/render.ts
+          grep -q 'SIGUIENTE GOLPE' src/game/render.ts
+          grep -q 'BANCO DEL BARRIO' src/game/render.ts
+          grep -q 'SONIDO · ACCESIBILIDAD · CALIDAD' src/game/render.ts
+          grep -q "key: 'difficulty'" src/game/engine.ts
+          grep -q "key: 'muted'" src/game/engine.ts
+          grep -q "difficulty:'normal'" src/game/progress.ts
+          grep -q 'export function settingsRect' src/game/layout.ts
+          grep -q 'drawChibiPlayerAtlasV16' src/game/render.ts
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' index.html src/game/render.ts | sort)"
+          test "$changed" = "$expected"
+          git diff --check
+
+      - name: Add local-only QA engine hook
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/App.tsx');s=p.read_text()
+          old='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n'''
+          new='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n    (window as Window & { __duckQaEngine?: GameEngine }).__duckQaEngine = engine;\n'''
+          if s.count(old)!=1: raise SystemExit('QA hook anchor mismatch')
+          p.write_text(s.replace(old,new,1))
+          PY
+
+      - name: Validate TypeScript and build
+        run: |
+          npx tsc --noEmit
+          rm -rf /tmp/v0755-build
+          npx vite build --outDir /tmp/v0755-build --emptyOutDir
+          grep -q '0.7.55-appdeploy-ui-restore-candidate' /tmp/v0755-build/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/v0755-build/index.html
+          grep -q '464-raster-chibi-v16' /tmp/v0755-build/index.html
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify menu identity, settings behavior and capture screens
+        run: |
+          mkdir -p /tmp/v0755-review
+          cd /tmp/v0755-build
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v0755-http.log 2>&1 &
+          echo $! >/tmp/v0755-http.pid
+          cd "$GITHUB_WORKSPACE"
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs'),assert=require('assert');
+          const out='/tmp/v0755-review',expected='0.7.55-appdeploy-ui-restore-candidate',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const errors=[],failed=[],bad=[],samples={};
+          async function engine(p){return p.evaluate(()=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');return {state:e.state,settings:e.settings,menuIndex:e.menuIndex,settingsIndex:e.settingsIndex,renderer:document.documentElement.dataset.duckHeistRenderer||'',frames:document.documentElement.dataset.duckHeistPlayerFrames||''};});}
+          async function show(p,state,extra={}){await p.evaluate(({state,extra})=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');Object.assign(e,extra);e.state=state;}, {state,extra});await sleep(220);}
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+            const p=await context.newPage();
+            p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} ${r.failure()?.errorText||''}`));p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()} ${r.url()}`)});
+            await p.goto(`http://127.0.0.1:4173/?qa=v0755&t=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});await sleep(1100);
+            const build=await p.evaluate(()=>document.querySelector('meta[name="duck-heist-build"]')?.content||'');assert.strictEqual(build,expected);
+            assert.strictEqual(await p.locator('canvas[role="application"]').count(),1);
+
+            await show(p,'MENU',{menuIndex:0});samples.menu=await engine(p);
+            assert.strictEqual(samples.menu.settings.difficulty,'normal');assert.strictEqual(samples.menu.settings.muted,false);
+            await p.screenshot({path:`${out}/01-menu.png`,fullPage:true});
+
+            await show(p,'SETTINGS',{settingsIndex:0});samples.settingsNormal=await engine(p);
+            await p.screenshot({path:`${out}/02-settings-normal.png`,fullPage:true});
+            await p.keyboard.press('ArrowRight');await sleep(120);
+            let s=await engine(p);assert.strictEqual(s.settings.difficulty,'hard');
+            await p.keyboard.press('ArrowDown');await p.keyboard.press('Enter');await sleep(120);
+            s=await engine(p);assert.strictEqual(s.settings.muted,true);samples.settingsHardMuted=s;
+            await p.screenshot({path:`${out}/03-settings-hard-muted.png`,fullPage:true});
+
+            await show(p,'WARDROBE',{wardrobeIndex:0});await p.screenshot({path:`${out}/04-wardrobe.png`,fullPage:true});
+            await show(p,'HOW_TO_PLAY',{});await p.screenshot({path:`${out}/05-howto.png`,fullPage:true});
+            await show(p,'MENU',{menuIndex:5});await p.screenshot({path:`${out}/06-menu-settings-selected.png`,fullPage:true});
+
+            const final=await engine(p);samples.final=final;
+            assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));
+            fs.writeFileSync(`${out}/qa.json`,JSON.stringify({scope:'v0.7.55 restore AppDeploy crime-file menu/settings identity without gameplay regression',samples,errors,failed,bad},null,2));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          kill "$(cat /tmp/v0755-http.pid)" || true
+
+      - name: Upload candidate review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0755-appdeploy-ui-restore-candidate
+          path: /tmp/v0755-review
+          if-no-files-found: warn
+          retention-days: 7
