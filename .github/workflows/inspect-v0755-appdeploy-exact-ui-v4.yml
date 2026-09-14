@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/inspect-v0755-appdeploy-exact-ui-v4.yml'
       - 'scripts/patch-v0755-appdeploy-exact-ui-v4.py'
+      - 'scripts/appdeploy-cursors.json'
   workflow_dispatch:
 
 permissions:
@@ -18,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -25,7 +27,12 @@ jobs:
       - run: npm ci
 
       - name: Apply v4 candidate
-        run: python scripts/patch-v0755-appdeploy-exact-ui-v4.py
+        run: |
+          mkdir -p appdeploy-live/assets
+          git fetch origin fc214761adaedf60e8fe6a4dc3cedd3ea1b0d9e7 --depth=1
+          git show fc214761adaedf60e8fe6a4dc3cedd3ea1b0d9e7:appdeploy-live/assets/index-BgUNQzP_.js > appdeploy-live/assets/index-BgUNQzP_.js
+          python scripts/patch-v0755-appdeploy-exact-ui-v4.py
+          rm -rf appdeploy-live
 
       - name: Validate restoration scope
         run: |
@@ -87,33 +94,26 @@ jobs:
             let s=await E(p);assert.strictEqual(s.renderer,'canvas2d-chibi-atlas-v16');assert.strictEqual(s.frames,'464-raster-chibi-v16');
             await p.screenshot({path:`${out}/01-menu-es.png`,fullPage:true});
 
-            // Open settings through the real six-item menu.
             for(let i=0;i<5;i++){await p.keyboard.press('KeyS');await sleep(45)}await p.keyboard.press('Enter');await sleep(250);
             s=await E(p);assert.strictEqual(s.state,'SETTINGS');assert.strictEqual(s.settingsIndex,0);samples.settingsStart=s;
             await p.screenshot({path:`${out}/02-settings-es.png`,fullPage:true});
 
-            // New difficulty remains real.
             await p.keyboard.press('ArrowRight');await sleep(100);s=await E(p);assert.strictEqual(s.settings.difficulty,'hard');samples.hard=s;
             await p.screenshot({path:`${out}/03-settings-hard.png`,fullPage:true});
 
-            // Historical language row returns and visibly/persistently switches.
             await p.keyboard.press('ArrowDown');await p.keyboard.press('ArrowRight');await sleep(180);s=await E(p);assert.strictEqual(s.locale,'en-US');assert.strictEqual(s.lang,'en');samples.english=s;
             await p.screenshot({path:`${out}/04-settings-en.png`,fullPage:true});
 
-            // Mute is the separate speaker action, not a row.
             await p.keyboard.press('KeyM');await sleep(120);s=await E(p);assert.strictEqual(s.settings.muted,true);samples.muted=s;
             await p.screenshot({path:`${out}/05-settings-en-muted.png`,fullPage:true});
 
-            // Cursor row: from index 1 move to index 9 and cycle. Verify actual CSS and persistence.
             for(let i=0;i<8;i++){await p.keyboard.press('ArrowDown');await sleep(25)}
             s=await E(p);assert.strictEqual(s.settingsIndex,9);const c0=s.settings.cursorStyle;
             await p.keyboard.press('ArrowRight');await sleep(120);s=await E(p);assert.strictEqual(s.settings.cursorStyle,(c0+1)%12);assert.ok(s.cursor.includes('data:image/png;base64'));samples.cursor=s;
             await p.screenshot({path:`${out}/06-settings-cursor.png`,fullPage:true});
 
-            // Reload persistence for all newly restored controls.
             await p.reload({waitUntil:'domcontentloaded'});await sleep(700);s=await E(p);assert.strictEqual(s.settings.difficulty,'hard');assert.strictEqual(s.settings.muted,true);assert.strictEqual(s.locale,'en-US');assert.strictEqual(s.settings.cursorStyle,(c0+1)%12);samples.reloaded=s;
 
-            // Main navigation remains usable after locale/settings changes.
             await p.evaluate(()=>{const e=window.__duckQaEngine;e.state='MENU';e.menuIndex=0;});await sleep(180);await p.screenshot({path:`${out}/07-menu-en.png`,fullPage:true});
             assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));
             fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples,errors,failed,bad},null,2));await browser.close();
