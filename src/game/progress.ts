@@ -2,7 +2,7 @@ import { SKINS } from './data';
 import { CATALOG, type CollectionCategory } from './catalog';
 import type { GameEngine, Settings } from './types';
 
-export const DEFAULT_SETTINGS:Settings = {master:.8,music:.35,sfx:.85,shake:.7,damageNumbers:true,uiScale:2,fullscreen:false,brightness:1};
+export const DEFAULT_SETTINGS:Settings = {master:.8,music:.35,sfx:.85,muted:false,difficulty:'normal',shake:.7,damageNumbers:true,uiScale:2,fullscreen:false,brightness:1};
 export const emptyDiscoveries = ():Record<CollectionCategory,string[]> => ({items:[],weapons:['quack_blaster'],bosses:[],enemies:[],skins:['robber']});
 const finite=(v:unknown,fallback:number,min=0,max=1e9)=>typeof v==='number' && Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 export function normalizeProgress(raw:Record<string,unknown>={}) {
@@ -16,7 +16,8 @@ export function normalizeProgress(raw:Record<string,unknown>={}) {
   settings.shake=finite(typeof values.shake==='boolean'?(values.shake?1:0):values.shake,.7,0,2);
   settings.uiScale=finite(values.uiScale,2,1,3);settings.brightness=finite(values.brightness,1,.6,1.4);
   settings.damageNumbers=values.damageNumbers!==false;
-  if(values.sound===false) settings.master=0;
+  settings.muted=values.muted===true || values.sound===false;
+  settings.difficulty=values.difficulty==='relaxed'||values.difficulty==='hard'||values.difficulty==='normal'?values.difficulty:'normal';
   const discovered=emptyDiscoveries(), d=raw.discovered as Record<string,unknown>|undefined;
   for(const category of Object.keys(discovered) as CollectionCategory[]) {
     const known=new Set(CATALOG.filter(c=>c.category===category).map(c=>c.id));

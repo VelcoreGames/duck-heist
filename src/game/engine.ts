@@ -25,7 +25,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -58,19 +58,29 @@ export interface DiffScale {
   count: number; eliteChance: number; pattern: number;
 }
 
-/** Multiplicadores de dificultad según piso y profundidad dentro del mapa */
-export function floorScale(floorIndex: number, roomDistance = 0): DiffScale {
+/** Multiplicadores por piso + dificultad elegida. NORMAL preserva el balance previo. */
+export function floorScale(floorIndex: number, roomDistance = 0, difficulty: DifficultyMode = 'normal'): DiffScale {
   const f = floorIndex;                       // 0 = primer piso
   const depth = Math.min(roomDistance, 8) * 0.06;
+  const mode = difficulty === 'relaxed'
+    ? { hp:.85, dmg:.80, speed:.96, fire:1.10, count:.92, elite:-.07 }
+    : difficulty === 'hard'
+      ? { hp:1.16, dmg:1.20, speed:1.06, fire:.90, count:1.10, elite:.07 }
+      : { hp:1, dmg:1, speed:1, fire:1, count:1, elite:0 };
+  const eliteBase = f <= 1 ? (f === 1 ? 0.10 : 0) : Math.min(0.42, 0.14 + f * 0.09 + depth * 0.5);
   return {
-    hp: 1 + f * 0.11 + depth * 0.5,
-    dmg: 1 + f * 0.09,
-    speed: 1 + f * 0.05,
-    fire: Math.max(0.55, 1 - f * 0.07),      // menos espera entre disparos
-    count: 1 + f * 0.22 + depth,
-    eliteChance: f <= 1 ? (f === 1 ? 0.10 : 0) : Math.min(0.42, 0.14 + f * 0.09 + depth * 0.5),
+    hp: (1 + f * 0.11 + depth * 0.5) * mode.hp,
+    dmg: (1 + f * 0.09) * mode.dmg,
+    speed: (1 + f * 0.05) * mode.speed,
+    fire: Math.max(0.48, (1 - f * 0.07) * mode.fire), // menor valor = dispara con más frecuencia
+    count: Math.max(.82, (1 + f * 0.22 + depth) * mode.count),
+    eliteChance: Math.max(0, Math.min(.55, eliteBase + mode.elite)),
     pattern: f,
   };
+}
+
+function engineFloorScale(engine: GameEngine, roomDistance = 0): DiffScale {
+  return floorScale(engine.map.floorIndex, roomDistance, engine.settings.difficulty);
 }
 
 export function activeWeapon(p: GameEngine['player']): WeaponDef {
@@ -139,7 +149,7 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
   };
   for (const d of room.doors) content.doorAnim[d] = 1;
 
-  const sc = floorScale(engine.map.floorIndex, room.distance);
+  const sc = engineFloorScale(engine, room.distance);
   const b=getBuild(engine.player);
   sc.eliteChance=Math.min(.48,sc.eliteChance+b.eliteChance+(engine.map.floorIndex>0?engine.alert*.001:0));
   if(room.modifier==='openVault') sc.eliteChance=Math.min(.55,sc.eliteChance+.15);
@@ -340,7 +350,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     if (b) best = { ...best, ...JSON.parse(b) };
   } catch { /* sin almacenamiento */ }
 
-  setVolumes(settings.master, settings.music, settings.sfx);
+  setVolumes(settings.muted ? 0 : settings.master, settings.music, settings.sfx);
 
   return {
     canvas, ctx, ui, uiScale: 1,
@@ -687,14 +697,14 @@ export function updateEngine(engine: GameEngine) {
     else if(content.securityTimer>0 && --content.securityTimer===0){
       content.modifierResolved=true;changeAlert(engine,5);playDanger('camera');
       const spots=freeTiles(room.layout,2);
-      for(let i=0;i<2;i++)if(spots[i])content.enemies.push(makeEnemy('policia_pato',floorScale(engine.map.floorIndex,room.distance),spots[i].x,spots[i].y,false));
+      for(let i=0;i<2;i++)if(spots[i])content.enemies.push(makeEnemy('policia_pato',engineFloorScale(engine,room.distance),spots[i].x,spots[i].y,false));
       engine.toast='¡REFUERZOS EN CAMINO!';engine.toastTimer=100;
     }
   }
   if(content.alarmTimer!==undefined && content.alarmTimer>0) {
     content.alarmTimer--;
     if(content.alarmTimer%360===0 && content.enemies.length<8) {
-      const spot=freeTiles(room.layout,2)[0];if(spot) content.enemies.push(makeEnemy('policia_pato',floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
+      const spot=freeTiles(room.layout,2)[0];if(spot) content.enemies.push(makeEnemy('policia_pato',engineFloorScale(engine,room.distance),spot.x,spot.y,false));
     }
   }
   for(const key of ['trayTimer','honeyTimer','healFlash','quackWave','comboTimer','chocolateTimer','dashHasteTimer','perfectBuff'] as const) if(player[key]>0) player[key]--;
@@ -1910,7 +1920,7 @@ function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: Roo
       if ((e.healTimer ?? 0) > 90) {
         e.healTimer = 0; playDanger('camera');
         const spot = freeTiles(room.layout, 2)[0];
-        if (spot && content.enemies.length < 8) content.enemies.push(makeEnemy('policia_pato', floorScale(engine.map.floorIndex, room.distance), spot.x, spot.y, false));
+        if (spot && content.enemies.length < 8) content.enemies.push(makeEnemy('policia_pato', engineFloorScale(engine, room.distance), spot.x, spot.y, false));
       }
       break;
     }
@@ -2060,7 +2070,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
     if(boss.attackTimer>0 && boss.attackTimer<35) {boss.telegraph=1-boss.attackTimer/35;boss.moveAngle=a;}
     if(boss.attackTimer<=0) {
       const type=boss.bossType;
-      if(type==='tax_collector' || type==='sargento_migajas') {boss.moveTimer=22;enemyShoot(engine,boss,boss.moveAngle,2.8,type==='sargento_migajas'?'buckshot':'briefcase');if(type==='sargento_migajas'){for(const da of [-.2,.2]) enemyShoot(engine,boss,a+da,2.4,'buckshot');if(content.enemies.length<5){const s=freeTiles(room.layout,2)[0];if(s)content.enemies.push(makeEnemy('policia_pato',floorScale(engine.map.floorIndex,room.distance),s.x,s.y,false));}}}
+      if(type==='tax_collector' || type==='sargento_migajas') {boss.moveTimer=22;enemyShoot(engine,boss,boss.moveAngle,2.8,type==='sargento_migajas'?'buckshot':'briefcase');if(type==='sargento_migajas'){for(const da of [-.2,.2]) enemyShoot(engine,boss,a+da,2.4,'buckshot');if(content.enemies.length<5){const s=freeTiles(room.layout,2)[0];if(s)content.enemies.push(makeEnemy('policia_pato',engineFloorScale(engine,room.distance),s.x,s.y,false));}}}
       else if(type==='el_auditor' || type==='cajero_3000') {
         for(let i=-2;i<=2;i++) enemyShoot(engine,boss,a+i*.16,2.3,'coin_proj');
         content.puddles.push({x:bx+Math.cos(a)*40,y:by+Math.sin(a)*40,life:140,kind:'fire',radius:18});
@@ -2069,7 +2079,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       else if(type==='ganso_antidisturbios') {boss.shieldAngle=a;boss.moveTimer=18;playDanger('charge');}
       else if(type==='dron_centinela') {
         for(let i=0;i<10;i++) enemyShoot(engine,boss,(i/10)*Math.PI*2+engine.frame*.02,2.1,'drone_shot');
-        if(content.enemies.filter(en=>en.type==='dron_policial').length<2){const s=freeTiles(room.layout,2)[0];if(s)content.enemies.push(makeEnemy('dron_policial',floorScale(engine.map.floorIndex,room.distance),s.x,s.y,false));}
+        if(content.enemies.filter(en=>en.type==='dron_policial').length<2){const s=freeTiles(room.layout,2)[0];if(s)content.enemies.push(makeEnemy('dron_policial',engineFloorScale(engine,room.distance),s.x,s.y,false));}
       }
       else {for(let i=-1;i<=1;i++) enemyShoot(engine,boss,a+i*.25,2.5,'dough_ball');content.puddles.push({x:bx,y:by,life:140,kind:'fire',radius:22});}
       boss.attackTimer=type==='dron_centinela'?120:155;boss.telegraph=0;
@@ -2119,7 +2129,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       spawn(engine, bx, by + boss.size / 2, 'smoke', 10, '#6c7684');
       if (boss.bossPhase >= 1 && content.enemies.length < 6 + pattern) {
         const s = freeTiles(room.layout, 2)[0];
-        if (s) content.enemies.push(makeEnemy(pick(['policia_pato', 'policia_rapido', 'dron_policial']), floorScale(engine.map.floorIndex, room.distance), s.x, s.y, false));
+        if (s) content.enemies.push(makeEnemy(pick(['policia_pato', 'policia_rapido', 'dron_policial']), engineFloorScale(engine, room.distance), s.x, s.y, false));
       }
     }
   }
@@ -2346,7 +2356,7 @@ export function handleActiveItem(engine: GameEngine) {
       if(outcome===4) {
         changeAlert(engine,4);
         const spots=freeTiles(room.layout,2);
-        for(let i=0;i<3;i++) if(spots[i]) content.enemies.push(makeEnemy('policia_pato',floorScale(engine.map.floorIndex,room.distance),spots[i].x,spots[i].y,false));
+        for(let i=0;i<3;i++) if(spots[i]) content.enemies.push(makeEnemy('policia_pato',engineFloorScale(engine,room.distance),spots[i].x,spots[i].y,false));
         room.cleared=false;content.clearAge=undefined;playDoorLock();
       }
       engine.toast=['¡PANDEMONIO!','¡DIVIDENDOS!','¡SALUD!','¡PREMIO GORDO!','¡ERA LA ALARMA!'][outcome];engine.toastTimer=90;
@@ -2386,27 +2396,30 @@ function saveProgress(engine: GameEngine) {
 }
 
 export function saveSettings(engine: GameEngine) {
-  setVolumes(engine.settings.master, engine.settings.music, engine.settings.sfx);
+  setVolumes(engine.settings.muted ? 0 : engine.settings.master, engine.settings.music, engine.settings.sfx);
   saveProgress(engine);
 }
 
 export const SETTING_ROWS = [
+  { key: 'difficulty', label: 'DIFICULTAD', kind: 'choice' as const },
+  { key: 'muted', label: 'SILENCIAR TODO', kind: 'bool' as const },
   { key: 'master', label: T.settingMaster, kind: 'vol' as const },
   { key: 'music', label: T.settingMusic, kind: 'vol' as const },
   { key: 'sfx', label: T.settingSfx, kind: 'vol' as const },
+  { key: 'testQuack', label: 'PROBAR CUAC', kind: 'action' as const },
   { key: 'shake', label: T.settingShake, kind: 'shake' as const },
   { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const },
   { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const },
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const },
   { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const },
-  { key: 'testQuack', label: 'PROBAR CUAC', kind: 'action' as const },
   { key: 'testDash', label: 'PROBAR ESQUIVE', kind: 'action' as const },
 ];
 
 export function settingValue(engine: GameEngine, i: number) {
   const row = SETTING_ROWS[i];
   if (!row || row.kind === 'action') return 0;
-  const v = (engine.settings as unknown as Record<string, number | boolean>)[row.key];
+  const v = (engine.settings as unknown as Record<string, number | boolean | string>)[row.key];
+  if (typeof v === 'string') return 0;
   return typeof v === 'boolean' ? (v ? 1 : 0) : v;
 }
 
@@ -2421,8 +2434,12 @@ export function adjustSetting(engine: GameEngine, i: number, dir: number) {
     playDash();
     return;
   }
-  const s = engine.settings as unknown as Record<string, number | boolean>;
-  if (row.kind === 'bool') {
+  const s = engine.settings as unknown as Record<string, number | boolean | string>;
+  if (row.kind === 'choice') {
+    const levels:DifficultyMode[]=['relaxed','normal','hard'];
+    const current=levels.indexOf(engine.settings.difficulty);
+    engine.settings.difficulty=levels[(current+(dir>=0?1:-1)+levels.length)%levels.length];
+  } else if (row.kind === 'bool') {
     s[row.key] = !s[row.key];
   } else if (row.kind === 'scale') {
     s[row.key] = clamp((s[row.key] as number) + dir, 1, 3);
@@ -2434,7 +2451,7 @@ export function adjustSetting(engine: GameEngine, i: number, dir: number) {
   } else {
     s[row.key] = clamp((s[row.key] as number) + dir * 0.1, 0, 1);
   }
-  if (row.key === 'music' || row.key === 'master') {
+  if (row.key === 'music' || row.key === 'master' || row.key === 'muted') {
     if (engine.state === GameState.MENU) setMusic('menu');
   }
   saveSettings(engine);
@@ -2504,7 +2521,7 @@ function activateEvent(engine:GameEngine) {
     changeAlert(engine,3);
     event.used=true;currentRoom(engine).cleared=false;content.clearAge=undefined;
     const spots=freeTiles(currentRoom(engine).layout,2);
-    for(let i=0;i<3;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'policia_rapido':'policia_escopeta',floorScale(engine.map.floorIndex,4),spots[i].x,spots[i].y,i===0));
+    for(let i=0;i<3;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'policia_rapido':'policia_escopeta',engineFloorScale(engine,4),spots[i].x,spots[i].y,i===0));
     playDoorLock();event.message='El interrogatorio se complicó.';return;
   }
   if(p.crumbs<cost) {event.message='Te faltan migajas.';playDeny();return;}

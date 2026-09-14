@@ -18,7 +18,7 @@ import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, 
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice } from './engine';
 import { drawVaultScene } from './titleScene';
-import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS } from './layout';
+import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, settingsRect } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
 import { getBuild, FOODS } from './itemRules';
@@ -1048,38 +1048,58 @@ export const MENU_ITEMS = [
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPremiumBackdrop(ctx, engine.frame, .46);
-  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 56, engine.frame);
-  text(ctx, 'OPERACIÓN · BANCO DEL PAN', 30, 101, 6.5, '#86aaa4', 'left', true, false);
-  text(ctx, 'ELIGE TU SIGUIENTE MOVIMIENTO', 30, 114, 8, '#ead7a0', 'left', true, false);
+  // Hades / modern roguelite principle: let the title art breathe; keep navigation simple,
+  // high-contrast, left anchored, and make the selected action unmistakable.
+  const shade = ctx.createLinearGradient(0, 0, 275, 0);
+  shade.addColorStop(0, 'rgba(3,11,16,.88)');
+  shade.addColorStop(.72, 'rgba(4,13,18,.56)');
+  shade.addColorStop(1, 'rgba(4,13,18,0)');
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 92, 282, 260);
 
-  MENU_ITEMS.forEach((item, i) => {
-    const x = MAIN_MENU.x, y = MAIN_MENU.y + i * (MAIN_MENU.h + MAIN_MENU.gap);
-    drawPremiumButton(ctx, item.label, x, y, MAIN_MENU.w, MAIN_MENU.h, i === engine.menuIndex, engine.frame, i + 1);
-  });
+  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 54, engine.frame);
+  text(ctx, 'EL BANCO ESTÁ ABIERTO', 34, 117, 6.2, '#809c97', 'left', true, false);
 
-  drawPremiumPanel(ctx, 219, 123, 230, 157, false, '#d8b55b', 'rgba(7,23,29,.91)', 12);
-  text(ctx, 'EXPEDIENTE DEL ATRACO', 237, 145, 8.4, '#ead7a0', 'left', true, false);
-  text(ctx, 'ROGUELITE · 6 PISOS · UNA SALIDA', 237, 160, 6.2, '#7fa29d', 'left', true, false);
-  ctx.fillStyle = 'rgba(216,181,91,.25)'; ctx.fillRect(237, 170, 194, 1);
-
-  const stats: [string, string][] = [
-    ['MIGAS DORADAS', `${engine.totalGoldenCrumbs}`],
-    ['ASPECTOS', `${engine.unlockedSkins.length} / ${SKINS.length}`],
-    ['PROGRESIÓN', `${TOTAL_FLOORS} PISOS`],
-    ['SEGURIDAD', 'AUMENTA POR PISO'],
+  const descriptions = [
+    'Entra al banco y empieza una nueva run.',
+    'Invierte migas doradas en mejoras permanentes.',
+    'Cambia el aspecto del ladrón.',
+    'Revisa armas, objetos, enemigos y jefes descubiertos.',
+    'Consulta controles y reglas del atraco.',
+    'Dificultad, audio, pantalla y accesibilidad.',
   ];
-  stats.forEach(([k, v], i) => {
-    const y = 190 + i * 20;
-    text(ctx, k, 237, y, 6.2, '#75938f', 'left', true, false);
-    text(ctx, v, 431, y, 7.2, i === 0 ? '#e7c86d' : '#d3e1dc', 'right', true, false);
+  MENU_ITEMS.forEach((item, i) => {
+    const selected = i === engine.menuIndex;
+    const x = MAIN_MENU.x, y = MAIN_MENU.y + i * (MAIN_MENU.h + MAIN_MENU.gap);
+    if (selected) {
+      const g = ctx.createLinearGradient(x, 0, x + MAIN_MENU.w, 0);
+      g.addColorStop(0, 'rgba(216,181,91,.20)');
+      g.addColorStop(1, 'rgba(216,181,91,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - 5, y - 2, MAIN_MENU.w + 28, MAIN_MENU.h + 4);
+      ctx.fillStyle = '#e4c66e';
+      ctx.fillRect(x - 5, y + 2, 3, MAIN_MENU.h - 4);
+      text(ctx, '›', x + 5, y + 16, 11, '#f3d77f', 'left', true, false);
+    }
+    text(ctx, item.label, x + (selected ? 22 : 13), y + 16, selected ? 9.2 : 8.5, selected ? '#fff0b8' : '#b7c9c4', 'left', true, false);
   });
-  text(ctx, 'La dificultad es progresiva: no hay un selector separado.', 237, 269, 5.7, '#6f8986', 'left', false, false);
 
-  text(ctx, T.tagline, 240, 316, 8.2, '#dcc27d', 'center', true, false);
-  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA  NAVEGAR     A  CONFIRMAR' : 'W / S  NAVEGAR     ENTER  CONFIRMAR', 30, 343, 6, '#789590', 'left', true, false);
-  drawItemIcon(ctx, 376, 332, 'golden_crumb', 13);
-  text(ctx, `${engine.totalGoldenCrumbs} DORADAS`, 397, 343, 6, '#baa66f', 'left', true, false);
+  const descY = MAIN_MENU.y + MENU_ITEMS.length * (MAIN_MENU.h + MAIN_MENU.gap) + 9;
+  ctx.fillStyle = 'rgba(111,151,145,.18)'; ctx.fillRect(34, descY - 10, 176, 1);
+  wrappedText(ctx, descriptions[engine.menuIndex] ?? '', 34, descY + 5, 190, 6.2, 8, 2, '#829e99');
+
+  const difficulty = engine.settings.difficulty === 'relaxed' ? 'RELAJADO' : engine.settings.difficulty === 'hard' ? 'IMPLACABLE' : 'NORMAL';
+  const statusX = 314, statusY = 303;
+  ctx.fillStyle = 'rgba(4,15,20,.68)'; ctx.beginPath(); ctx.roundRect(statusX, statusY, 136, 34, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(129,166,159,.20)'; ctx.beginPath(); ctx.roundRect(statusX+.5,statusY+.5,135,33,6.5); ctx.stroke();
+  text(ctx, 'DIFICULTAD', statusX + 10, statusY + 13, 5.6, '#718d88', 'left', true, false);
+  text(ctx, difficulty, statusX + 126, statusY + 13, 6.4, engine.settings.difficulty === 'hard' ? '#e58a82' : '#e6c875', 'right', true, false);
+  text(ctx, 'AUDIO', statusX + 10, statusY + 27, 5.6, '#718d88', 'left', true, false);
+  text(ctx, engine.settings.muted ? 'SILENCIADO' : 'ACTIVO', statusX + 126, statusY + 27, 6.2, engine.settings.muted ? '#df766f' : '#7fd3a2', 'right', true, false);
+
+  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA · ELEGIR     A · CONFIRMAR' : 'W / S · ELEGIR     ENTER · CONFIRMAR', 34, 343, 5.9, '#728e89', 'left', true, false);
+  drawItemIcon(ctx, 402, 340, 'golden_crumb', 12);
+  text(ctx, `${engine.totalGoldenCrumbs}`, 421, 344, 6.2, '#d2bd7b', 'left', true, false);
 }
 
 function renderHowToPlayUI(engine: GameEngine) {
@@ -1122,37 +1142,68 @@ function renderHowToPlayUI(engine: GameEngine) {
 
 function renderSettingsUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPremiumBackdrop(ctx, engine.frame, .82);
-  drawPremiumPanel(ctx, 34, 17, CANVAS_WIDTH - 68, CANVAS_HEIGHT - 34, false, '#d8b55b', 'rgba(7,22,28,.97)', 13);
-  titleText(ctx, T.settingsTitle, 54, 47, 17, '#f0d27a', 'left');
-  text(ctx, 'AUDIO · VIDEO · ACCESIBILIDAD', 55, 62, 6.1, '#789995', 'left', true, false);
+  drawPremiumBackdrop(ctx, engine.frame, .78);
+  drawPremiumPanel(ctx, 30, 14, CANVAS_WIDTH - 60, CANVAS_HEIGHT - 28, false, '#d8b55b', 'rgba(7,22,28,.97)', 13);
+  titleText(ctx, T.settingsTitle, 50, 43, 16, '#f0d27a', 'left');
+  text(ctx, 'JUGABILIDAD · AUDIO · VIDEO', 51, 58, 5.9, '#789995', 'left', true, false);
+
+  text(ctx, 'AUDIO', 58, 119, 5.8, '#76958f', 'left', true, false);
+  text(ctx, 'PRESENTACIÓN', 253, 119, 5.8, '#76958f', 'left', true, false);
 
   SETTING_ROWS.forEach((row, i) => {
-    const y = SETTINGS.y + i * (SETTINGS.h + SETTINGS.gap);
+    const r = settingsRect(i);
     const on = i === engine.settingsIndex;
-    ctx.save();
-    ctx.fillStyle = on ? 'rgba(44,72,68,.82)' : 'rgba(255,255,255,.025)';
-    ctx.beginPath(); ctx.roundRect(SETTINGS.x, y, SETTINGS.w, SETTINGS.h, 6); ctx.fill();
-    ctx.strokeStyle = on ? '#d8b55b' : 'rgba(119,165,158,.12)';
-    ctx.lineWidth = on ? 1.2 : 1;
-    ctx.beginPath(); ctx.roundRect(SETTINGS.x + .5, y + .5, SETTINGS.w - 1, SETTINGS.h - 1, 5.5); ctx.stroke();
-    if (on) { ctx.fillStyle = '#d8b55b'; ctx.beginPath(); ctx.roundRect(SETTINGS.x + 4, y + 4, 3, SETTINGS.h - 8, 2); ctx.fill(); }
-    ctx.restore();
 
-    text(ctx, row.label, SETTINGS.x + 14, y + 13, 7.3, on ? '#fff2c1' : '#adbfba', 'left', on, false);
+    if (i === 0) {
+      drawPremiumPanel(ctx, r.x, r.y, r.w, r.h, on, '#d8b55b', on ? 'rgba(31,52,48,.96)' : 'rgba(9,29,34,.78)', 7);
+      text(ctx, row.label, r.x + 14, r.y + 19, 7.1, on ? '#fff0b8' : '#b5c8c2', 'left', true, false);
+      const modes:[string,string][] = [['relaxed','RELAJADO'],['normal','NORMAL'],['hard','IMPLACABLE']];
+      modes.forEach(([key,label], idx) => {
+        const active = engine.settings.difficulty === key;
+        const bx = 198 + idx * 73, bw = 67;
+        ctx.fillStyle = active ? (key === 'hard' ? 'rgba(193,78,70,.34)' : 'rgba(216,181,91,.28)') : 'rgba(255,255,255,.035)';
+        ctx.beginPath(); ctx.roundRect(bx, r.y + 6, bw, 18, 5); ctx.fill();
+        ctx.strokeStyle = active ? (key === 'hard' ? '#df766f' : '#d8b55b') : 'rgba(128,164,158,.12)';
+        ctx.beginPath(); ctx.roundRect(bx+.5, r.y + 6.5, bw-1, 17, 4.5); ctx.stroke();
+        text(ctx, label, bx + bw/2, r.y + 18.5, 5.4, active ? '#fff0bd' : '#78948f', 'center', true, false);
+      });
+      return;
+    }
+
+    ctx.fillStyle = on ? 'rgba(43,70,66,.82)' : 'rgba(255,255,255,.025)';
+    ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 6); ctx.fill();
+    ctx.strokeStyle = on ? '#d8b55b' : 'rgba(119,165,158,.12)';
+    ctx.lineWidth = on ? 1.15 : 1;
+    ctx.beginPath(); ctx.roundRect(r.x+.5,r.y+.5,r.w-1,r.h-1,5.5); ctx.stroke();
+    if (on) { ctx.fillStyle='#d8b55b'; ctx.beginPath(); ctx.roundRect(r.x+4,r.y+4,3,r.h-8,2); ctx.fill(); }
+
+    const mutedAudio = engine.settings.muted && ['master','music','sfx'].includes(row.key);
+    text(ctx, row.label, r.x + 13, r.y + 14.5, 6.5, mutedAudio ? '#687d79' : on ? '#fff0bd' : '#a8bbb6', 'left', on, false);
     const v = settingValue(engine, i);
     if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind === 'brightness') {
       const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind === 'brightness' ? 1.4 : 3;
-      drawPremiumMeter(ctx, 315, y + 6.5, 64, v / max, on);
+      drawPremiumMeter(ctx, r.x + r.w - 78, r.y + 8, 44, v / max, on && !mutedAudio);
       const display = row.kind === 'vol' ? `${Math.round(v * 100)}%` : `${v}`;
-      text(ctx, display, 407, y + 13, 7.4, on ? '#f0d27a' : '#829e99', 'right', true, false);
+      text(ctx, display, r.x + r.w - 9, r.y + 15, 6.1, mutedAudio ? '#61736f' : on ? '#f0d27a' : '#819b96', 'right', true, false);
     } else {
-      const label = row.kind === 'action' ? 'PROBAR' : v > .5 ? T.on : T.off;
-      text(ctx, label, 407, y + 13, 7.2, v > .5 || row.kind === 'action' ? '#7fd3a2' : '#8fa19d', 'right', true, false);
+      let label = row.kind === 'action' ? 'PROBAR' : v > .5 ? T.on : T.off;
+      let col = v > .5 || row.kind === 'action' ? '#7fd3a2' : '#8fa19d';
+      if (row.key === 'muted') { label = engine.settings.muted ? 'SILENCIADO' : 'AUDIO ACTIVO'; col = engine.settings.muted ? '#df766f' : '#7fd3a2'; }
+      text(ctx, label, r.x + r.w - 9, r.y + 15, 5.8, col, 'right', true, false);
     }
   });
 
-  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA  AJUSTAR     A  CAMBIAR     B  VOLVER' : 'FLECHAS  AJUSTAR     ENTER  CAMBIAR     ESC  VOLVER', 240, 321, 6.3, '#87a39e', 'center', true, false);
+  const diffHelp = engine.settings.difficulty === 'relaxed'
+    ? 'RELAJADO · -15% vida enemiga · -20% daño · ataques más espaciados.'
+    : engine.settings.difficulty === 'hard'
+      ? 'IMPLACABLE · +16% vida · +20% daño · enemigos más rápidos y más élites.'
+      : 'NORMAL · balance original de Duck Heist; la seguridad sigue aumentando por piso.';
+  const help = engine.settingsIndex === 0 ? diffHelp
+    : engine.settingsIndex === 1 ? 'SILENCIAR TODO conserva tus niveles de volumen para recuperarlos al reactivar el audio.'
+    : engine.settings.muted && [2,3,4].includes(engine.settingsIndex) ? 'El audio está silenciado; puedes ajustar estos niveles y se conservarán.'
+    : 'Los cambios se guardan automáticamente. La dificultad afecta nuevas salas del atraco actual y futuras runs.';
+  text(ctx, help, 240, 305, 5.8, '#829e99', 'center', false, false);
+  text(ctx, engine.lastInput === 'gamepad' ? '↑ ↓  ELEGIR     ← →  CAMBIAR     B  VOLVER' : '↑ ↓  ELEGIR     ← → / ENTER  CAMBIAR     ESC  VOLVER', 240, 326, 6.0, '#9ab1ac', 'center', true, false);
 }
 
 function renderWardrobeUI(engine: GameEngine) {

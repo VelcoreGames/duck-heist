@@ -8,7 +8,7 @@ import {
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
-import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit } from './game/layout';
+import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, settingsRect, inside, COLLECTION, activeSwapHit } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
@@ -319,7 +319,7 @@ export default function App() {
       } else if (st === GameState.SETTINGS) {
         let hit = -1;
         SETTING_ROWS.forEach((_, i) => {
-          if(inside(p.x,p.y,{...SETTINGS,y:SETTINGS.y+i*(SETTINGS.h+SETTINGS.gap)})) hit=i;
+          if(inside(p.x,p.y,settingsRect(i))) hit=i;
         });
         if (hit >= 0 && engine.settingsIndex !== hit) { engine.settingsIndex = hit; softMove(); }
       } else if (st === GameState.UPGRADES) {
@@ -398,7 +398,7 @@ export default function App() {
         case GameState.SETTINGS: {
           let hit = -1;
           SETTING_ROWS.forEach((_, i) => {
-            if(inside(x,y,{...SETTINGS,y:SETTINGS.y+i*(SETTINGS.h+SETTINGS.gap)})) hit=i;
+            if(inside(x,y,settingsRect(i))) hit=i;
           });
           if (hit >= 0) {
             engine.settingsIndex = hit;
