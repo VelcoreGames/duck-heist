@@ -155,7 +155,7 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
       const extra = Math.floor((sc.count - 1) * 2.2);
       for (let i = 0; i < extra && list.length < 9; i++) list.push(pick(list));
       if((b.extraEnemy || room.modifier==='alarm')&&list.length<10) list.push('policia_pato');
-      if(engine.map.floorIndex>=2&&engine.alert>30&&Math.random()<.4) list.push(pick(['policia_francotirador','policia_medico','policia_capitan','ganso_k9']));
+      if(engine.map.floorIndex>=2&&engine.alert>30&&Math.random()<.4) list.push(pick(['policia_francotirador','policia_medico','policia_pato','ganso_k9']));
       if(room.modifier==='cameras') {list.push('security_camera');content.securityTimer=540;}
       for (const t of list) {
         const spot = spots.pop();
@@ -2095,7 +2095,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       } else if(atk===1) {
         if(content.enemies.length<6) {
           const spots=freeTiles(room.layout,2);
-          for(let i=0;i<2;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'policia_escopeta':'policia_pato',floorScale(engine.map.floorIndex,room.distance),spots[i].x,spots[i].y,false));
+          for(let i=0;i<2;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'policia_rapido':'policia_pato',floorScale(engine.map.floorIndex,room.distance),spots[i].x,spots[i].y,false));
         }
         spawn(engine,bx,by,'smoke',8,'#6c7684');
       } else {
@@ -2161,7 +2161,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         boss.moveAngle=ang;boss.moveTimer=24+boss.bossPhase*5;
       } else if(content.enemies.length<6) {
         const spots=freeTiles(room.layout,2);
-        for(let i=0;i<2;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'dron_policial':'policia_capitan',floorScale(engine.map.floorIndex,room.distance),spots[i].x,spots[i].y,false));
+        for(let i=0;i<2;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'dron_policial':'policia_pato',floorScale(engine.map.floorIndex,room.distance),spots[i].x,spots[i].y,false));
       }
     }
     engine.shakeIntensity=Math.max(engine.shakeIntensity,3+boss.bossPhase);
@@ -2570,7 +2570,7 @@ function activateEvent(engine:GameEngine) {
     changeAlert(engine,3);
     event.used=true;currentRoom(engine).cleared=false;content.clearAge=undefined;
     const spots=freeTiles(currentRoom(engine).layout,2);
-    for(let i=0;i<3;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'policia_rapido':'policia_escopeta',floorScale(engine.map.floorIndex,4),spots[i].x,spots[i].y,i===0));
+    for(let i=0;i<3;i++) if(spots[i]) content.enemies.push(makeEnemy(i?'policia_rapido':'policia_rapido',floorScale(engine.map.floorIndex,4),spots[i].x,spots[i].y,i===0));
     playDoorLock();event.message='El interrogatorio se complicó.';return;
   }
   if(p.crumbs<cost) {event.message='Te faltan migajas.';playDeny();return;}
