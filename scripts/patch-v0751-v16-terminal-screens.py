@@ -35,7 +35,7 @@ replace_once(
 )
 
 # GAME OVER uses the same V16 down presentation that led into the terminal
-# screen. A smaller scale preserves the existing title/stats spacing.
+# screen. The .75 scale fills the portrait band without touching title/stats.
 replace_once(
     RENDER,
     """  ctx.save();
@@ -45,8 +45,8 @@ replace_once(
   ctx.restore();
 """,
     """  ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2, 112);
-  ctx.scale(.65, .65);
+  ctx.translate(CANVAS_WIDTH / 2, 114);
+  ctx.scale(.75, .75);
   drawChibiPlayerAtlasV16({
     ctx, x: -8, y: -18, frame: f, dir: 'down', moving: false,
     hurt: false, dashing: false, shooting: false, dead: true,
