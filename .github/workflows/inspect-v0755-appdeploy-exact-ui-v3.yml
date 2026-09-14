@@ -1,0 +1,123 @@
+name: Inspect Duck Heist v0.7.55 AppDeploy Exact UI v3
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-v0755-appdeploy-exact-ui-v3.yml'
+      - 'scripts/patch-v0755-appdeploy-exact-ui-v3.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply exact AppDeploy UI + typography candidate
+        run: python scripts/patch-v0755-appdeploy-exact-ui-v3.py
+
+      - name: Validate intended scope
+        run: |
+          grep -q '0.7.55-appdeploy-exact-ui-candidate' index.html
+          grep -q 'SE BUSCA UN CÓMPLICE' src/game/render.ts
+          grep -q 'legacyTitleText' src/game/ui.ts
+          grep -q 'legacyTitleText(ctx, T.upgradesTitle' src/game/render.ts
+          grep -q 'legacyTitleText(ctx, up.name' src/game/render.ts
+          grep -q "legacyTitleText(c,'COLECCIÓN'" src/game/collectionUI.ts
+          grep -q "export const SETTINGS = { x:78,y:65,w:324,h:18,gap:2 }" src/game/layout.ts
+          grep -q "key: 'difficulty'" src/game/engine.ts
+          grep -q "key: 'muted'" src/game/engine.ts
+          grep -q 'drawChibiPlayerAtlasV16' src/game/render.ts
+          ! grep -q 'Hades / modern roguelite principle' src/game/render.ts
+          ! grep -q 'drawPremiumBackdrop' src/game/render.ts
+          ! grep -q 'drawPremiumButton' src/game/render.ts
+          ! grep -q 'drawPremiumMeter' src/game/render.ts
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' index.html src/game/collectionUI.ts src/game/layout.ts src/game/render.ts src/game/ui.ts | sort)"
+          test "$changed" = "$expected"
+          git diff --check
+
+      - name: Add local-only QA engine hook
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/App.tsx');s=p.read_text()
+          old='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n'''
+          new='''    const engine = createEngine(wc, wctx, uctx);\n    engineRef.current = engine;\n    (window as Window & { __duckQaEngine?: GameEngine }).__duckQaEngine = engine;\n'''
+          if s.count(old)!=1: raise SystemExit('QA hook anchor mismatch')
+          p.write_text(s.replace(old,new,1))
+          PY
+
+      - name: Validate TypeScript and build
+        run: |
+          npx tsc --noEmit
+          rm -rf /tmp/v0755-v3-build
+          npx vite build --outDir /tmp/v0755-v3-build --emptyOutDir
+          grep -q '0.7.55-appdeploy-exact-ui-candidate' /tmp/v0755-v3-build/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/v0755-v3-build/index.html
+          grep -q '464-raster-chibi-v16' /tmp/v0755-v3-build/index.html
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture candidate and verify controls
+        run: |
+          mkdir -p /tmp/v0755-v3-review
+          cd /tmp/v0755-v3-build
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v0755-v3-http.log 2>&1 &
+          echo $! >/tmp/v0755-v3-http.pid
+          cd "$GITHUB_WORKSPACE"
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs'),assert=require('assert');
+          const out='/tmp/v0755-v3-review',expected='0.7.55-appdeploy-exact-ui-candidate',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const errors=[],failed=[],bad=[],samples={};
+          async function snap(p,name){await sleep(180);await p.screenshot({path:`${out}/${name}.png`,fullPage:true});}
+          async function state(p){return p.evaluate(()=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');return {state:e.state,settings:e.settings,menuIndex:e.menuIndex,settingsIndex:e.settingsIndex,pauseIndex:e.pauseIndex,renderer:document.documentElement.dataset.duckHeistRenderer||'',frames:document.documentElement.dataset.duckHeistPlayerFrames||''};});}
+          async function show(p,s,extra={}){await p.evaluate(({s,extra})=>{const e=window.__duckQaEngine;if(!e)throw new Error('engine missing');Object.assign(e,extra);e.state=s;},{s,extra});await sleep(180);}
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+            const p=await context.newPage();
+            p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} ${r.failure()?.errorText||''}`));p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()} ${r.url()}`)});
+            await p.goto(`http://127.0.0.1:4173/?qa=v0755v3&t=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});await sleep(1000);
+            assert.strictEqual(await p.evaluate(()=>document.querySelector('meta[name="duck-heist-build"]')?.content||''),expected);
+            assert.strictEqual(await p.locator('canvas[role="application"]').count(),1);
+            await show(p,'MENU',{menuIndex:0});samples.menu=await state(p);await snap(p,'01-menu');
+            await show(p,'UPGRADES',{upgradeIndex:0});await snap(p,'02-upgrades');
+            await show(p,'WARDROBE',{wardrobeIndex:0,wardrobeScroll:0});await snap(p,'03-wardrobe');
+            await show(p,'COLLECTION',{collectionIndex:0,collectionScroll:0});await snap(p,'04-collection');
+            await show(p,'HOW_TO_PLAY',{});await snap(p,'05-howto');
+            await show(p,'SETTINGS',{settingsIndex:0});samples.settingsBefore=await state(p);await snap(p,'06-settings-normal');
+            await p.keyboard.press('ArrowRight');await sleep(100);let s=await state(p);assert.strictEqual(s.settings.difficulty,'hard');
+            await p.keyboard.press('ArrowDown');await p.keyboard.press('Enter');await sleep(100);s=await state(p);assert.strictEqual(s.settings.muted,true);samples.settingsAfter=s;await snap(p,'07-settings-hard-muted');
+            await show(p,'PAUSED',{pauseIndex:0});await snap(p,'08-pause');
+            await show(p,'MENU',{menuIndex:5});await snap(p,'09-menu-settings-selected');
+            samples.final=await state(p);
+            assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));
+            fs.writeFileSync(`${out}/qa.json`,JSON.stringify({scope:'v0.7.55 exact AppDeploy UI with archived narrow typography; current V16/gameplay/difficulty/mute retained',samples,errors,failed,bad},null,2));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          kill "$(cat /tmp/v0755-v3-http.pid)" || true
+
+      - name: Upload candidate review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0755-appdeploy-exact-ui-candidate-v3
+          path: /tmp/v0755-v3-review
+          if-no-files-found: warn
+          retention-days: 7
