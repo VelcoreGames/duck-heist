@@ -4,12 +4,7 @@ export const PAUSE_MENU={y:66,h:20,gap:4,w:202,count:6};
 export const SWAP_LAYOUT = { x:35, y:51, w:410, h:250, cardsY:171, cardW:185, cardH:84, gap:8 };
 export const WARDROBE = { x:203,y:70,w:252,h:228,cols:3,cellW:76,cellH:94,gap:6 };
 export const WARDROBE_ACTION = { x:43,y:276,w:135,h:23 };
-export const SETTINGS = { x:54,y:72,w:372,h:22,gap:5 };
-export function settingsRect(index:number) {
-  if(index===0) return {x:54,y:72,w:372,h:30};
-  if(index>=1 && index<=5) return {x:54,y:125+(index-1)*27,w:177,h:22};
-  return {x:249,y:125+(index-6)*27,w:177,h:22};
-}
+export const SETTINGS = { x:62,y:63,w:356,h:20,gap:5 };
 export const COLLECTION = { x:200,y:89,w:251,h:217,cols:4,cellW:53,cellH:56,gap:8 };
 export const inside = (x:number,y:number,r:{x:number;y:number;w:number;h:number}) => x>=r.x && y>=r.y && x<=r.x+r.w && y<=r.y+r.h;
 export function mainMenuHit(x:number,y:number) {

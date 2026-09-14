@@ -8,7 +8,7 @@ import {
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
-import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, settingsRect, inside, COLLECTION, activeSwapHit } from './game/layout';
+import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
@@ -238,7 +238,6 @@ export default function App() {
           else if (k === 'escape') { playUiBack(); goTo(subReturn); }
           break;
         case GameState.PLAYING:
-          if (engine.player.hp <= 0 || engine.player.deathTimer > 0) break;
           if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
           else if (k === 'shift') handleDash(engine);
           else if (k === ' ') handleActiveItem(engine);
@@ -319,7 +318,7 @@ export default function App() {
       } else if (st === GameState.SETTINGS) {
         let hit = -1;
         SETTING_ROWS.forEach((_, i) => {
-          if(inside(p.x,p.y,settingsRect(i))) hit=i;
+          if(inside(p.x,p.y,{...SETTINGS,y:SETTINGS.y+i*(SETTINGS.h+SETTINGS.gap)})) hit=i;
         });
         if (hit >= 0 && engine.settingsIndex !== hit) { engine.settingsIndex = hit; softMove(); }
       } else if (st === GameState.UPGRADES) {
@@ -398,7 +397,7 @@ export default function App() {
         case GameState.SETTINGS: {
           let hit = -1;
           SETTING_ROWS.forEach((_, i) => {
-            if(inside(x,y,settingsRect(i))) hit=i;
+            if(inside(x,y,{...SETTINGS,y:SETTINGS.y+i*(SETTINGS.h+SETTINGS.gap)})) hit=i;
           });
           if (hit >= 0) {
             engine.settingsIndex = hit;
@@ -438,7 +437,7 @@ export default function App() {
       if (ev.button === 0) engine.mouseDown = false;
     };
     const padInput=new GamepadInput();
-    const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING&&engine.player.hp>0&&engine.player.deathTimer===0)goTo(GameState.PAUSED);};
+    const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING)goTo(GameState.PAUSED);};
     const onCtx = (ev: Event) => ev.preventDefault();
 
     const playUiMoveSafe = () => { try { playUiBack(); } catch { /* silencioso */ } };
@@ -465,7 +464,6 @@ export default function App() {
     let lastBrightness=-1;
     let lastDevice=engine.lastInput;
     const padAction=(action:PadAction)=>{
-      if(engine.player.hp<=0 || engine.player.deathTimer>0) return;
       if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
       const key:Record<Exclude<PadAction,'previousWeapon'|'nextWeapon'>,string>={
         map:'m',pause:'Escape',dash:'Shift',active:' ',interact:'e',back:'Escape',confirm:'Enter',up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',

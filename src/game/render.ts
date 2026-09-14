@@ -6,19 +6,23 @@ import {
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
 } from './constants';
 import {
-  drawHeart,
-  drawItem, drawWeaponIcon,
+  drawDuck, drawHeart, drawSecurityPigeon, drawGuardGoose, drawToasterTurret,
+  drawRollingBagel, drawProjectile, drawCoin, drawChest, drawBoss, drawDoor,
+  drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
+  drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
+  drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
+  drawDuckSkin,
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, MINIBOSSES, META_UPGRADES,
   RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS,
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
-import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar, drawPremiumBackdrop, drawPremiumPanel, drawPremiumButton, drawPremiumMeter } from './ui';
+import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar } from './ui';
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice } from './engine';
 import { drawVaultScene } from './titleScene';
-import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, settingsRect } from './layout';
+import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
 import { getBuild, FOODS } from './itemRules';
@@ -31,24 +35,6 @@ import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { drawChibiPlayerAtlasV16 } from './graphics/playerChibiAtlasV16';
-import { drawPlayerVisualLab, isPlayerVisualLab } from './graphics/playerVisualLab';
-import { drawChibiPoliceDuckV3 } from './graphics/enemyChibiV3';
-import { drawChibiPoliceVariantV3 } from './graphics/policeVariantsV3';
-import { drawChibiPoliceDroneV3 } from './graphics/policeDroneV3';
-import { drawChibiBirdEnemyV3 } from './graphics/chibiBirdEnemiesV3';
-import { drawChibiFoodEnemyV3 } from './graphics/chibiFoodEnemiesV3';
-import { drawChibiBossV3 as drawBoss } from './graphics/chibiBossesV3';
-import { drawChibiCompanionDuckV3, drawChibiMerchantPigeonV3, drawChibiInjuredDuckV3 } from './graphics/chibiSupportV3';
-import { drawChibiLobbyObstacleV3 } from './graphics/chibiPropsV3';
-import { drawChibiLobbyDoorV3 } from './graphics/lobbyDoorV3';
-import { drawChibiThemedDoorV3, drawChibiThemedObstacleV3 } from './graphics/chibiWorldPropsV3';
-import { drawChibiChestV3, drawChibiPedestalV3, drawChibiCandleV3, drawChibiStairsV3 } from './graphics/chibiInteractablesV3';
-import { drawChibiItemRoomDecorV3, drawChibiShopRoomDecorV3, drawChibiBossRoomDecorV3, drawChibiTreasureRoomDecorV3, drawChibiHiddenDoorV3 } from './graphics/chibiRoomDecorV3';
-import { drawChibiFloorTileV3 } from './graphics/chibiFloorArtV3';
-import { drawChibiFloorAtmosphereV3 } from './graphics/chibiAtmosphereV3';
-import { drawChibiCoinV3, drawChibiProjectileV3, drawChibiParticleV3, drawChibiPickupGlowV3, drawChibiEnemyFxV3 } from './graphics/chibiEffectsV3';
-import { drawChibiEnemyHealthV3, drawChibiEnemyTelegraphV3 } from './graphics/chibiCombatReadabilityV3';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -59,10 +45,6 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 // ===========================================================================
 export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
-  if (isPlayerVisualLab()) {
-    drawPlayerVisualLab(ctx, engine.frame);
-    return;
-  }
   const s = engine.state;
   if(s===GameState.MENU || s===GameState.HEIST_INTRO) {
     const opening=s===GameState.HEIST_INTRO?Math.max(0,(90-engine.heistIntroTimer-15)/75):0;
@@ -110,7 +92,7 @@ export function renderWorld(engine: GameEngine) {
   }
 
   // luces doradas de la escalera
-  if (content.stairs) drawChibiStairsV3(ctx, content.stairs.x, content.stairs.y, f, content.stairs.glow, engine.map.floorIndex);
+  if (content.stairs) drawStairs(ctx, content.stairs, f);
 
   // puertas
   for (const d of room.doors) {
@@ -118,49 +100,44 @@ export function renderWorld(engine: GameEngine) {
     const target = engine.map.rooms.get(`${room.gx + v.x},${room.gy + v.y}`);
     if(target?.type===RoomType.SECRET && !target.revealed) {
       const t=DOOR_TILE[d],x=t.x*32,y=t.y*32;
-      drawChibiHiddenDoorV3(ctx,x,y,d,f,engine.map.floorIndex);continue;
+      ctx.fillStyle='#233843';ctx.fillRect(x,y,32,32);
+      ctx.strokeStyle='#0b1c25';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+15,y+2);ctx.lineTo(x+11,y+13);ctx.lineTo(x+18,y+21);ctx.lineTo(x+14,y+29);ctx.stroke();
+      ctx.fillStyle='#a68d57';ctx.fillRect(x+22,y+27,2,2);continue;
     }
     const style = target?.type === RoomType.ITEM ? 'gold'
       : target?.type === RoomType.BOSS ? 'boss' : target?.type===RoomType.SHOP?'green'
       :target?.type===RoomType.MINIBOSS?'orange':target?.type===RoomType.CHOICE||target?.type===RoomType.TREASURE||target?.type===RoomType.SECRET?'purple':'silver';
     const t = DOOR_TILE[d];
-    if (engine.map.floorIndex === 0) {
-      drawChibiLobbyDoorV3(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
-    } else {
-      drawChibiThemedDoorV3(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f, engine.map.floorIndex);
-    }
+    drawDoor(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
   }
 
   // obstáculos
   for (let y = 0; y < ROOM_HEIGHT; y++) {
     for (let x = 0; x < ROOM_WIDTH; x++) {
       const t = room.layout[y][x];
-      if (t >= OBSTACLE_BASE) {
-        if (engine.map.floorIndex === 0) drawChibiLobbyObstacleV3(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
-        else drawChibiThemedObstacleV3(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f, engine.map.floorIndex);
-      }
+      if (t >= OBSTACLE_BASE) drawObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
     }
   }
 
   if (room.type === RoomType.ITEM) {
-    drawChibiCandleV3(ctx, TILE_SIZE * 3, CANVAS_HEIGHT / 2 - 30, f, engine.map.floorIndex);
-    drawChibiCandleV3(ctx, CANVAS_WIDTH - TILE_SIZE * 3 - 8, CANVAS_HEIGHT / 2 - 30, f, engine.map.floorIndex);
-    drawChibiCandleV3(ctx, TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40, engine.map.floorIndex);
-    drawChibiCandleV3(ctx, CANVAS_WIDTH - TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40, engine.map.floorIndex);
+    drawCandle(ctx, TILE_SIZE * 3, CANVAS_HEIGHT / 2 - 30, f);
+    drawCandle(ctx, CANVAS_WIDTH - TILE_SIZE * 3 - 8, CANVAS_HEIGHT / 2 - 30, f);
+    drawCandle(ctx, TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40);
+    drawCandle(ctx, CANVAS_WIDTH - TILE_SIZE * 4.5, CANVAS_HEIGHT / 2 + 50, f + 40);
   }
 
-  if (content.chest) drawChibiChestV3(ctx, content.chest.x, content.chest.y, content.chest.opened, f, engine.map.floorIndex);
+  if (content.chest) drawChest(ctx, content.chest.x, content.chest.y, content.chest.opened, f);
   if (content.pedestal) drawPedestalFull(ctx, content.pedestal, f, engine);
   for(const ped of content.choices ?? []) if(!ped.taken) drawPedestalFull(ctx,ped,f,engine);
   if(content.event) {
     const event=content.event;
-    drawChibiPedestalV3(ctx,event.x-4,event.y+9,f,event.used,engine.map.floorIndex);
-    if(event.kind==='injured') drawChibiInjuredDuckV3(ctx,event.x,event.y,f,event.used);
+    drawPedestal(ctx,event.x-4,event.y+9,f,event.used);
+    if(event.kind==='injured') drawDuckSkin(ctx,event.x,event.y,f,'robber','down',false,false,false,false,!event.used);
     else drawItemIcon(ctx,event.x-8,event.y-11,EVENTS[event.kind].icon,32);
   }
 
   if (room.type === RoomType.SHOP && content.shopItems) {
-    drawChibiMerchantPigeonV3(ctx, CANVAS_WIDTH / 2 - 11, CANVAS_HEIGHT * 0.22 - 5, f);
+    drawShopPigeon(ctx, CANVAS_WIDTH / 2 - 8, CANVAS_HEIGHT * 0.22, f);
     for (const it of content.shopItems) {
       if (it.sold) continue;
       if (it.isWeapon) drawWeaponIcon(ctx, it.x - 8, it.y - 8, it.itemId);
@@ -172,14 +149,20 @@ export function renderWorld(engine: GameEngine) {
     if (p.type === 'hp' || p.type === 'sandwich' || p.type === 'baguette' ||
         p.type === 'croissant' || p.type === 'torta' || p.type === 'pan_dorado') {
       drawItemIcon(ctx,p.x-12,p.y-12+Math.round(Math.sin(f*.08)),p.type,24);
-      drawChibiPickupGlowV3(ctx, p.x, p.y, f, '#ff9fa9', false);
-    } else drawChibiCoinV3(ctx, p.x, p.y, f, p.type === 'golden_crumb');
+      // halo curativo
+      ctx.globalAlpha = 0.16;
+      ctx.fillStyle = '#ff8f9f';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else drawCoin(ctx, p.x, p.y, f, p.type === 'golden_crumb');
   }
 
   for (const it of content.items) {
     const fy = it.y + Math.sin(f * 0.07) * 2;
     const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
-    drawChibiPickupGlowV3(ctx,it.x+8,fy+8,f,ITEMS[it.itemId]?.cursed?'#8c5a9d':RARITY_COLORS[def?.rarity ?? 3],true);
+    ctx.globalAlpha=ITEMS[it.itemId]?.cursed?.3:.14;ctx.fillStyle=ITEMS[it.itemId]?.cursed?'#663174':RARITY_COLORS[def?.rarity ?? 3];ctx.beginPath();ctx.arc(it.x+8,fy+8,17,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     drawItemIcon(ctx,it.x-4,fy-4,it.itemId,24,RARITY_COLORS[def?.rarity ?? 3]);
   }
 
@@ -189,44 +172,28 @@ export function renderWorld(engine: GameEngine) {
     ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);ctx.rotate((20-d.life)*.035);
     ctx.scale(Math.max(.3,d.life/20),Math.max(.2,d.life/24));
     if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false);
-    else if(SPECIAL_ENEMIES.has(d.enemy.type)) drawTacticalEnemy(ctx,d.enemy.type,-d.enemy.size/2,-d.enemy.size/2,f,false,d.enemy.moveAngle,0);
     else {
       switch(d.enemy.type) {
-        case 'toaster_turret':
-          drawChibiFoodEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'toaster'});break;
-        case 'rolling_bagel':
-          drawChibiFoodEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'bagel'});break;
-        case 'evil_croissant':
-          drawChibiFoodEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'croissant'});break;
-        case 'banker_chicken':
-          drawChibiFoodEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'banker_chicken'});break;
-        case 'guard_goose':
-          drawChibiBirdEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'goose'});
-          break;
-        case 'security_pigeon':
-          drawChibiBirdEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'pigeon'});
-          break;
-        case 'dron_policial':
-          drawChibiPoliceDroneV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,hurt:false,elite:d.enemy.elite});
-          break;
-        case 'policia_rapido':
-          drawChibiPoliceVariantV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,variant:'rapid'});
-          break;
-        case 'policia_escopeta':
-          drawChibiPoliceVariantV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,variant:'shotgun'});
-          break;
-        case 'policia_antidisturbios':
-          drawChibiPoliceVariantV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:0,dirY:1,moving:false,hurt:false,elite:d.enemy.elite,variant:'riot',shieldAngle:Math.PI/2,recovering:true});
-          break;
-        case 'policia_pato':
-          drawChibiPoliceDuckV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite});
-          break;
-        default:drawChibiBirdEnemyV3({ctx,x:-d.enemy.size/2,y:-d.enemy.size/2,size:d.enemy.size,frame:f,dirX:1,dirY:0,moving:false,hurt:false,elite:d.enemy.elite,kind:'pigeon'});
+        case 'toaster_turret':drawToasterTurret(ctx,-10,-10,f,false);break;
+        case 'rolling_bagel':drawRollingBagel(ctx,-8,-8,f,false);break;
+        case 'evil_croissant':drawEvilCroissant(ctx,-8,-8,f,false);break;
+        case 'banker_chicken':drawBankerChicken(ctx,-8,-8,f,false);break;
+        case 'guard_goose':drawGuardGoose(ctx,-10,-10,f,false);break;
+        case 'dron_policial':drawDronPolicial(ctx,-8,-8,f,false);break;
+        case 'policia_rapido':drawPoliciaRapido(ctx,-8,-8,f,false,1);break;
+        case 'policia_escopeta':drawPoliciaEscopeta(ctx,-9,-9,f,false,1,0);break;
+        case 'policia_antidisturbios':drawPoliciaAntidisturbios(ctx,-11,-11,f,false,{x:0,y:1},false,true);break;
+        case 'policia_pato':drawPoliciaPato(ctx,-8,-8,f,false,1);break;
+        default:drawSecurityPigeon(ctx,-8,-8,f,false);
       }
     }
     ctx.restore();
   }
-  for (const p of engine.projectiles) drawChibiProjectileV3(ctx,p,f);
+  for (const p of engine.projectiles) {
+    ctx.save();ctx.translate(p.x,p.y);ctx.scale(p.nuclear?1.65:1,p.nuclear?1.65:1);
+    if(p.nuclear) {ctx.fillStyle='rgba(150,224,94,.2)';ctx.fillRect(-7,-7,14,14);}
+    drawProjectile(ctx,0,0,p.type,f);ctx.restore();
+  }
   for (const g of engine.grenades) {
     ctx.fillStyle = 'rgba(0,0,0,.28)';
     ctx.beginPath(); ctx.ellipse(g.x, g.y + 4, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
@@ -243,8 +210,8 @@ export function renderWorld(engine: GameEngine) {
   const b=getBuild(p);
   for(const child of p.companions) {
     ctx.save();ctx.translate(child.x+8,child.y+8);ctx.scale(.72,.72);
-    if(child.kind==='chicken')drawChibiFoodEnemyV3({ctx,x:-8,y:-8,size:16,frame:f,dirX:1,dirY:0,moving:p.moving,hurt:false,kind:'banker_chicken'});
-    else drawChibiCompanionDuckV3(ctx,-8,-8,f,p.moving,child.kind==='guard',p.guardianCooldown);
+    if(child.kind==='chicken')drawBankerChicken(ctx,-8,-8,f,false);
+    else {drawDuck(ctx,-8,-8,f*.7,'down',p.moving);if(child.kind==='guard'){ctx.fillStyle=p.guardianCooldown>0?'#4a5f6b':'#b3dce0';ctx.fillRect(3,0,7,9);}}
     ctx.restore();
   }
   if(b.aura>0) {
@@ -269,24 +236,23 @@ export function renderWorld(engine: GameEngine) {
     ctx.beginPath(); ctx.ellipse(land.x, land.y, 14, 8, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1; ctx.restore();
   }
-  {
-    drawChibiPlayerAtlasV16({
-      ctx, x: p.x, y: p.y, frame: f, dir: p.dir, moving: p.moving,
-      hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
-      dead: p.hp <= 0,
-      skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
-      interacting: (p.switchAnim > 0 || (p.interactVisualTimer > 0 && !p.moving)) && p.shootFlash <= 0 && p.dashTimer <= 0,
-      celebrating: engine.state === GameState.FLOOR_CLEAR,
-      alpha: p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0 ? 0.42 : 1,
-    });
+  if (p.hp > 0) {
+    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,
+      p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);
+    if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(p.x + 2, p.y + 2, 12, 14);
+      ctx.globalAlpha = 1;
+    }
   }
 
-  for (const pt of engine.particles) drawChibiParticleV3(ctx,pt,f);
+  for (const pt of engine.particles) drawParticle(ctx, pt.x, pt.y, pt.type, pt.life, pt.color);
 
   ctx.restore();
 
   // flash rojo al recibir daño
-  if (p.flash > 0 && p.hp > 0) {
+  if (p.flash > 0) {
     ctx.fillStyle = `rgba(220,40,40,${(p.flash / 10) * 0.3})`;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
@@ -298,7 +264,7 @@ export function renderWorld(engine: GameEngine) {
   vg.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  if(p.hp>0 && p.hp<=1) {
+  if(p.hp<=1) {
     const danger=ctx.createRadialGradient(240,176,130,240,176,275);
     danger.addColorStop(0,'rgba(145,25,32,0)');danger.addColorStop(1,`rgba(145,25,32,${.16+Math.sin(f*.05)*.035})`);
     ctx.fillStyle=danger;ctx.fillRect(0,0,480,352);
@@ -338,28 +304,85 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
       if (t === TILE_DOOR) {
         ctx.fillStyle = '#07070f';
         ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      } else if (!special && floorIndex > 0) {
-        drawChibiFloorTileV3(ctx, x, y, t === 1, room.gx, room.gy, f, floorIndex);
       } else {
         drawRichTile(ctx, x, y, t === 1, special ? { floor: floorPal, wall: wallPal, trim: '#c58ae8', glow: '#c58ae8', deco: 'vault' } : th, room.gx, room.gy, f);
       }
     }
   }
   drawInnerWallShadow(ctx);
-  if (!special && floorIndex > 0) drawChibiFloorAtmosphereV3(ctx, f, floorIndex);
-  else drawRoomAtmosphere(ctx, special ? 'vault' : th.deco, f, special);
+  drawRoomAtmosphere(ctx, special ? 'vault' : th.deco, f, special);
 
-  // composición chibi por tipo de sala; solo arte, sin alterar colisiones.
+  // brillos por tipo de sala
+  const cx = CANVAS_WIDTH / 2, cy = CANVAS_HEIGHT / 2;
   if (special) {
-    drawChibiItemRoomDecorV3(ctx, f, floorIndex);
+    const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 190);
+    g.addColorStop(0, 'rgba(180,80,220,0.14)');
+    g.addColorStop(0.6, 'rgba(120,40,80,0.10)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillStyle = 'rgba(96,20,42,0.5)';
+    ctx.fillRect(cx - 62, cy - 52, 124, 104);
+    ctx.fillStyle = 'rgba(150,40,70,0.5)';
+    ctx.fillRect(cx - 56, cy - 46, 112, 92);
+    ctx.fillStyle = 'rgba(244,208,63,0.22)';
+    ctx.fillRect(cx - 52, cy - 42, 104, 2);
+    ctx.fillRect(cx - 52, cy + 40, 104, 2);
+    for (let i = 0; i < 12; i++) {
+      const t = (f * 0.012 + i * 0.083) % 1;
+      const px = cx + Math.sin(i * 2.3 + f * 0.01) * 70;
+      const py = CANVAS_HEIGHT - 40 - t * 200;
+      ctx.globalAlpha = (1 - t) * 0.6;
+      ctx.fillStyle = i % 3 === 0 ? '#f4d03f' : '#c58ae8';
+      ctx.fillRect(px, py, 2, 2);
+    }
+    ctx.globalAlpha = 1;
   } else if (room.type === RoomType.SHOP) {
-    drawChibiShopRoomDecorV3(ctx, f, floorIndex);
+    ctx.fillStyle = 'rgba(120,72,30,0.28)';
+    ctx.fillRect(TILE_SIZE + 20, TILE_SIZE + 40, CANVAS_WIDTH - TILE_SIZE * 2 - 40, CANVAS_HEIGHT - TILE_SIZE * 2 - 60);
   } else if (room.type === RoomType.BOSS) {
-    drawChibiBossRoomDecorV3(ctx, f, floorIndex, Boolean(content.stairs));
-  } else if (room.type === RoomType.TREASURE) {
-    drawChibiTreasureRoomDecorV3(ctx, f, floorIndex, false);
-  } else if (room.type === RoomType.SECRET) {
-    drawChibiTreasureRoomDecorV3(ctx, f, floorIndex, true);
+    ctx.fillStyle = 'rgba(200,40,40,0.05)';
+    ctx.fillRect(TILE_SIZE, TILE_SIZE, CANVAS_WIDTH - TILE_SIZE * 2, CANVAS_HEIGHT - TILE_SIZE * 2);
+    if (content.stairs) {
+      ctx.fillStyle = `rgba(244,208,63,${0.05 + Math.sin(f * 0.04) * 0.03})`;
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+  } else if (room.type === RoomType.TREASURE || room.type === RoomType.SECRET) {
+    const g = ctx.createRadialGradient(cx, cy, 8, cx, cy, 150);
+    g.addColorStop(0, 'rgba(244,208,63,0.14)');
+    g.addColorStop(1, 'rgba(244,208,63,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
+}
+
+function drawStairs(ctx: CanvasRenderingContext2D, st: NonNullable<RoomContent['stairs']>, f: number) {
+  const px = st.x, py = st.y;
+  const glow = 0.35 + Math.sin(f * 0.06) * 0.18;
+  // luz subiendo desde abajo
+  const g = ctx.createLinearGradient(px, py - 40, px, py + 36);
+  g.addColorStop(0, `rgba(244,208,63,${0.28 * glow * st.glow})`);
+  g.addColorStop(1, 'rgba(244,208,63,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(px - 22, py - 44, 76, 80);
+
+  ctx.fillStyle = '#0a0d16';
+  ctx.fillRect(px - 2, py - 2, 36, 34);
+  // peldaños
+  for (let i = 0; i < 5; i++) {
+    const d = 1 - i * 0.15;
+    ctx.fillStyle = `rgb(${Math.round(40 * d)},${Math.round(46 * d)},${Math.round(62 * d)})`;
+    ctx.fillRect(px + i * 2, py + 26 - i * 6, 32 - i * 4, 6);
+    ctx.fillStyle = `rgba(255,214,102,${0.12 + i * 0.06})`;
+    ctx.fillRect(px + i * 2, py + 26 - i * 6, 32 - i * 4, 1);
+  }
+  // barandillas
+  ctx.fillStyle = '#f4d03f';
+  ctx.fillRect(px - 4, py - 4, 3, 32);
+  ctx.fillRect(px + 33, py - 4, 3, 32);
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = (f >> 4) % 2 === 0 ? '#39d353' : '#1c5c33';
+    ctx.fillRect(px - 3 + i * 18, py - 8, 3, 3);
   }
 }
 
@@ -367,7 +390,7 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
   const def=WEAPONS[ped.itemId]??ITEMS[ped.itemId]??ACTIVE_ITEMS[ped.itemId]??FOODS[ped.itemId];
   const color=ITEMS[ped.itemId]?.cursed?'#8b54a6':RARITY_COLORS[def?.rarity ?? 3];
   ctx.save();ctx.translate(0,Math.round(18*(1-(ped.rise ?? 1))));ctx.globalAlpha=ped.rise ?? 1;
-  drawChibiPedestalV3(ctx,ped.x,ped.y+6,f,ped.taken,engine.map.floorIndex,color);
+  drawPedestal(ctx,ped.x,ped.y+6,f,ped.taken,color);
   if(ped.taken) {ctx.restore();return;}
 
   // foco de luz para el botín del jefe
@@ -408,31 +431,65 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
   void engine;
 }
 
-function usesChibiEnemyRenderer(type: string) {
-  return type === 'policia_pato' || type === 'policia_rapido' || type === 'policia_escopeta' ||
-    type === 'policia_antidisturbios' || type === 'dron_policial' ||
-    type === 'security_pigeon' || type === 'guard_goose' ||
-    type === 'toaster_turret' || type === 'rolling_bagel' || type === 'evil_croissant' || type === 'banker_chicken' ||
-    SPECIAL_ENEMIES.has(type);
-}
-
 function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: GameEngine) {
   const hurt = e.hurtTimer > 0;
   const player = engine.player;
-  const toPlayerX = (player.x + 7) - (e.x + e.size / 2);
-  const toPlayerY = (player.y + 8) - (e.y + e.size / 2);
-  const dirX = toPlayerX >= 0 ? 1 : -1;
-  const dirY = toPlayerY >= 0 ? 1 : -1;
+  const dirX = (player.x + 7) > (e.x + e.size / 2) ? 1 : -1;
 
-  const spawnAlpha = e.spawnAnim > 0 ? Math.max(0, 1 - e.spawnAnim / 18) : 1;
-  drawChibiEnemyFxV3(ctx,e,f,'under');
-  ctx.globalAlpha = spawnAlpha;
-
-  // sombra legacy sólo para entidades que aún no usan renderer chibi propio
-  if (!e.isBoss && !usesChibiEnemyRenderer(e.type)) {
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
+  if (e.spawnAnim > 0) {
+    ctx.globalAlpha = 1 - e.spawnAnim / 18;
+    ctx.fillStyle = '#ff3b30';
+    ctx.fillRect(e.x + e.size / 2 - 1, e.y - 10, 2, 10);
   }
+
+  // aura de élite
+  if (e.elite) {
+    const pulse = 0.22 + Math.sin(f * 0.09 + e.id) * 0.1;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#f4d03f';
+    ctx.beginPath();
+    ctx.ellipse(e.x + e.size / 2, e.y + e.size / 2 + 4, e.size * 0.85, e.size * 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    for (let i = 0; i < 2; i++) {
+      const t = (f * 0.025 + i * 0.5) % 1;
+      ctx.globalAlpha = (1 - t) * 0.8;
+      ctx.fillStyle = '#fff3b0';
+      ctx.fillRect(e.x + e.size / 2 + Math.sin(f * 0.06 + i * 3) * e.size * 0.5, e.y + e.size - t * e.size * 1.4, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+    // corona de élite
+    const cy2 = e.y - 12;
+    ctx.fillStyle = '#f4d03f';
+    ctx.fillRect(e.x + e.size / 2 - 4, cy2 + 3, 8, 3);
+    ctx.fillRect(e.x + e.size / 2 - 4, cy2, 2, 3);
+    ctx.fillRect(e.x + e.size / 2 - 1, cy2 + 1, 2, 2);
+    ctx.fillRect(e.x + e.size / 2 + 2, cy2, 2, 3);
+  }
+
+  // ardiendo por salsa picante / tostadas
+  if (e.burn > 0) {
+    for (let i = 0; i < 2; i++) {
+      const t = ((f + i * 13) % 22) / 22;
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.fillStyle = i % 2 ? '#ff9f43' : '#ff5b4f';
+      ctx.fillRect(e.x + e.size / 2 - 3 + Math.round(Math.sin((f + i * 7) * 0.3) * 4),
+        e.y + e.size - 2 - t * 12, 2, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // ralentizado por charcos
+  if (e.slowTimer > 0) {
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#7fb3d5';
+    ctx.fillRect(e.x, e.y + e.size - 1, e.size, 2);
+    ctx.globalAlpha = 1;
+  }
+
+  // sombra más marcada
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
 
   if (e.isBoss) {
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt);
@@ -440,93 +497,65 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
   } else {
     switch (e.type) {
-      case 'policia_pato':
-        drawChibiPoliceDuckV3({
-          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 7,
-          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
-          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
-          moving: Math.abs(e.vx) + Math.abs(e.vy) > 0.08, hurt, elite: e.elite,
-        });
-        break;
-      case 'policia_rapido':
-        drawChibiPoliceVariantV3({
-          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 9,
-          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
-          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
-          moving: Math.abs(e.vx) + Math.abs(e.vy) > .08, hurt, elite: e.elite, variant: 'rapid',
-        });
-        break;
-      case 'policia_escopeta':
-        drawChibiPoliceVariantV3({
-          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 11,
-          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
-          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
-          moving: Math.abs(e.vx) + Math.abs(e.vy) > .08, hurt, elite: e.elite,
-          variant: 'shotgun', telegraph: e.telegraph,
-        });
-        break;
-      case 'dron_policial':
-        drawChibiPoliceDroneV3({
-          ctx, x:e.x, y:e.y, size:e.size, frame:f + e.id * 5,
-          hurt, elite:e.elite, telegraph:e.telegraph,
-        });
-        break;
+      case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;
+      case 'policia_rapido': drawPoliciaRapido(ctx, e.x, e.y, f, hurt, dirX); break;
+      case 'policia_escopeta': drawPoliciaEscopeta(ctx, e.x, e.y, f, hurt, dirX, e.telegraph); break;
+      case 'dron_policial': drawDronPolicial(ctx, e.x, e.y, f, hurt); break;
       case 'policia_antidisturbios':
-        drawChibiPoliceVariantV3({
-          ctx, x: e.x, y: e.y, size: e.size, frame: f + e.id * 13,
-          dirX: Math.abs(toPlayerX) >= Math.abs(toPlayerY) ? dirX : 0,
-          dirY: Math.abs(toPlayerY) > Math.abs(toPlayerX) ? dirY : 0,
-          moving: Math.abs(e.vx) + Math.abs(e.vy) > .08, hurt, elite: e.elite,
-          variant: 'riot', shieldAngle: e.shieldAngle,
-          charging: e.chargeTimer > 0, recovering: e.recover > 0,
-        });
+        drawPoliciaAntidisturbios(ctx, e.x, e.y, f, hurt,
+          { x: Math.cos(e.shieldAngle), y: Math.sin(e.shieldAngle) },
+          e.chargeTimer > 0, e.recover > 0);
         break;
-      case 'security_pigeon':
-        drawChibiBirdEnemyV3({
-          ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*5,
-          dirX:Math.abs(toPlayerX)>=Math.abs(toPlayerY)?dirX:0,
-          dirY:Math.abs(toPlayerY)>Math.abs(toPlayerX)?dirY:0,
-          moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'pigeon',
-        });
-        break;
-      case 'guard_goose':
-        drawChibiBirdEnemyV3({
-          ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*7,
-          dirX:Math.abs(toPlayerX)>=Math.abs(toPlayerY)?dirX:0,
-          dirY:Math.abs(toPlayerY)>Math.abs(toPlayerX)?dirY:0,
-          moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'goose',
-        });
-        break;
-      case 'toaster_turret':
-        drawChibiFoodEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*3,dirX,dirY,moving:false,hurt,elite:e.elite,telegraph:e.telegraph,kind:'toaster'});break;
-      case 'rolling_bagel':
-        drawChibiFoodEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*5,dirX,dirY,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'bagel'});break;
-      case 'evil_croissant':
-        drawChibiFoodEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*7,dirX,dirY,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'croissant'});break;
-      case 'banker_chicken':
-        drawChibiFoodEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f+e.id*11,dirX:Math.abs(toPlayerX)>=Math.abs(toPlayerY)?dirX:0,dirY:Math.abs(toPlayerY)>Math.abs(toPlayerX)?dirY:0,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'banker_chicken'});break;
-      default: drawChibiBirdEnemyV3({ctx,x:e.x,y:e.y,size:e.size,frame:f,dirX,dirY,moving:Math.abs(e.vx)+Math.abs(e.vy)>.08,hurt,elite:e.elite,kind:'pigeon'});
+      case 'security_pigeon': drawSecurityPigeon(ctx, e.x, e.y, f, hurt); break;
+      case 'guard_goose': drawGuardGoose(ctx, e.x, e.y, f, hurt); break;
+      case 'toaster_turret': drawToasterTurret(ctx, e.x, e.y, f, hurt); break;
+      case 'rolling_bagel': drawRollingBagel(ctx, e.x, e.y, f, hurt); break;
+      case 'evil_croissant': drawEvilCroissant(ctx, e.x, e.y, f, hurt); break;
+      case 'banker_chicken': drawBankerChicken(ctx, e.x, e.y, f, hurt); break;
+      default: drawSecurityPigeon(ctx, e.x, e.y, f, hurt);
     }
   }
 
-  if (hurt && !e.isBoss && !usesChibiEnemyRenderer(e.type)) {
+  if (hurt) {
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
     ctx.globalAlpha = 1;
   }
 
-  ctx.globalAlpha = 1;
-  drawChibiEnemyFxV3(ctx,e,f,'over');
+  if (!e.isBoss && e.hp < e.maxHp) {
+    const w = e.size;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.fillRect(e.x - 1, e.y - 7, w + 2, 4);
+    ctx.fillStyle = e.elite ? '#f4d03f' : '#c0392b';
+    ctx.fillRect(e.x, e.y - 6, Math.round(w * (e.hp / e.maxHp)), 2);
+  }
 
-  drawChibiEnemyHealthV3(ctx,e);
-
-  // --- AVISO DE ATAQUE (telegrafía chibi legible) ---
+  // --- AVISO DE ATAQUE (telegrafía legible) ---
   if (e.telegraph > 0.05) {
+    const t = e.telegraph;
     const cx = e.x + e.size / 2, cy = e.y + e.size / 2;
     const ang=e.behavior==='shielded'?e.shieldAngle:e.behavior==='sniper'||e.behavior==='k9'?e.moveAngle:Math.atan2(engine.player.y + 8 - cy, engine.player.x + 7 - cx);
+    ctx.save();
+    // línea de puntería
+    ctx.globalAlpha = 0.18 + t * 0.42;
+    ctx.strokeStyle = e.behavior === 'shotgunner' ? '#ff9f43' : '#ff5b4f';
+    ctx.lineWidth = e.behavior === 'shotgunner' ? 5 : 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang) * (e.size * 0.5), cy + Math.sin(ang) * (e.size * 0.5));
     const reach=e.behavior==='sniper'?440:e.behavior==='k9'?135:e.behavior==='shielded'?90:e.behavior==='shotgunner'?150:110;
-    drawChibiEnemyTelegraphV3(ctx,e,f,ang,reach);
+    ctx.lineTo(cx+Math.cos(ang)*reach*(e.behavior==='sniper'?1:t),cy+Math.sin(ang)*reach*(e.behavior==='sniper'?1:t));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // marca de peligro encima
+    ctx.globalAlpha = 0.55 + t * 0.45;
+    ctx.fillStyle = '#ff3b30';
+    const my = e.y - 14 - Math.round(t * 3);
+    ctx.fillRect(cx - 1, my, 2, 6);
+    ctx.fillRect(cx - 1, my + 7, 2, 2);
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   ctx.globalAlpha = 1;
@@ -538,10 +567,6 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
 export function renderUI(engine: GameEngine) {
   const ctx = engine.ui;
   if (!ctx) return;
-  if (isPlayerVisualLab()) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    return;
-  }
   const s = engine.state;
   ctx.save();
   ctx.scale(engine.uiScale, engine.uiScale);
@@ -796,15 +821,8 @@ function drawHUD(engine: GameEngine) {
   const ctx = engine.ui!;
   const p = engine.player;
 
-  const hpPanelW = Math.min(p.maxHp, 10) * 14 + 12;
-  ctx.save();
-  ctx.fillStyle = 'rgba(15,38,40,.88)';
-  ctx.beginPath(); ctx.roundRect(3, 3, hpPanelW, 23, 6); ctx.fill();
-  ctx.strokeStyle = 'rgba(211,178,105,.36)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.roundRect(3.5, 3.5, hpPanelW - 1, 22, 5.5); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,244,218,.055)';
-  ctx.beginPath(); ctx.roundRect(6, 5, Math.max(8, hpPanelW - 12), 4, 2); ctx.fill();
-  ctx.restore();
+  ctx.fillStyle='rgba(8,20,26,.78)';ctx.fillRect(3,3,Math.min(p.maxHp,10)*14+10,22);
+  ctx.strokeStyle='rgba(244,208,63,.25)';ctx.strokeRect(3.5,3.5,Math.min(p.maxHp,10)*14+9,21);
   for (let i = 0; i < p.maxHp; i++) {
     ctx.save();
     ctx.imageSmoothingEnabled=false;
@@ -820,32 +838,21 @@ function drawHUD(engine: GameEngine) {
 
   // --- Monedas ---
   const cw=100;
-  ctx.save();
-  ctx.fillStyle='rgba(15,38,40,.88)';ctx.beginPath();ctx.roundRect(376,4,cw,39,6);ctx.fill();
-  ctx.strokeStyle='rgba(211,178,105,.26)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(376.5,4.5,cw-1,38,5.5);ctx.stroke();
-  ctx.fillStyle='rgba(211,178,105,.28)';ctx.fillRect(383,22,86,1);
-  ctx.restore();
-  drawItemIcon(ctx,380,4,'crumb',16);text(ctx,'MIGAJAS',399,14,6,'#9bb0aa','left');
-  text(ctx,`${p.crumbs}`,468,17,10,'#ead5a8','right',true);
-  drawItemIcon(ctx,380,22,'golden_crumb',16);text(ctx,'DORADAS',399,32,6,'#b6a371','left');
-  text(ctx,`${engine.totalGoldenCrumbs}`,468,36,10,'#e8c86d','right',true);
+  ctx.fillStyle='rgba(8,20,26,.78)';ctx.fillRect(376,4,cw,38);
+  drawItemIcon(ctx,380,4,'crumb',16);text(ctx,'MIGAJAS',399,14,6,'#899f98','left');
+  text(ctx,`${p.crumbs}`,468,17,10,'#e8c99b','right',true);
+  drawItemIcon(ctx,380,22,'golden_crumb',16);text(ctx,'DORADAS',399,32,6,'#ac9a65','left');
+  text(ctx,`${engine.totalGoldenCrumbs}`,468,36,10,'#f4d03f','right',true);
 
   // --- Piso ---
-  ctx.save();
-  ctx.fillStyle='rgba(15,38,40,.76)';ctx.beginPath();ctx.roundRect(196,4,88,25,7);ctx.fill();
-  ctx.strokeStyle='rgba(211,178,105,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(196.5,4.5,87,24,6.5);ctx.stroke();
-  ctx.restore();
-  text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,12,7,'#e5d1a1','center',true);
-  text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,23,6.5,'#93aaa4');
+  text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,12,7,'#d3c999','center',true);
+  text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,23,6.5,'#829c98');
 
   drawMinimap(engine);
   drawBossBar(engine);
-  ctx.save();
-  ctx.fillStyle='rgba(15,38,40,.72)';ctx.beginPath();ctx.roundRect(6,40,76,18,5);ctx.fill();
-  ctx.strokeStyle='rgba(211,178,105,.15)';ctx.beginPath();ctx.roundRect(6.5,40.5,75,17,4.5);ctx.stroke();
-  ctx.restore();
-  text(ctx,`ALERTA ${Math.round(engine.alert)}`,11,48,6.5,'#d5bb86','left',true);
-  ctx.fillStyle='#223b3e';ctx.fillRect(11,52,66,3);ctx.fillStyle=engine.alert>70?'#c96e5f':'#b88b59';ctx.fillRect(11,52,66*engine.alert/100,3);
+  ctx.fillStyle='rgba(8,20,26,.7)';ctx.fillRect(6,40,74,16);
+  text(ctx,`ALERTA ${Math.round(engine.alert)}`,10,48,6.5,'#d4b47c','left',true);
+  ctx.fillStyle='#1a2c32';ctx.fillRect(10,51,66,4);ctx.fillStyle='#c78868';ctx.fillRect(10,51,66*engine.alert/100,4);
 
   // --- Armas (dos huecos) ---
   const slotW = 118, slotH = 32;
@@ -858,11 +865,11 @@ function drawHUD(engine: GameEngine) {
     const y = baseY - (on ? 4 : 0);
     ctx.save();
     if (on) {
-      ctx.shadowColor = 'rgba(214,182,106,0.38)';
+      ctx.shadowColor = 'rgba(244,208,63,0.55)';
       ctx.shadowBlur = 10;
     }
-    drawPanel(ctx, x, y, slotW, slotH, on ? 'rgba(20,50,52,0.95)' : 'rgba(12,30,33,0.84)',
-      on ? '#d6b66a' : '#365356');
+    drawPanel(ctx, x, y, slotW, slotH, on ? 'rgba(22,26,40,0.95)' : 'rgba(8,10,18,0.8)',
+      on ? '#f4d03f' : '#2f3644');
     ctx.restore();
     // pequeño deslice al cambiar
     const slide = on && p.switchAnim > 0 ? (1 - p.switchAnim / 12) * 6 - 6 : 0;
@@ -882,7 +889,7 @@ function drawHUD(engine: GameEngine) {
     }
     ctx.restore();
     const name = w ? w.name : T.empty;
-    wrappedText(ctx,`[${i+1}] ${name}`,x+29,y+10,slotW-34,6.7,8,2,w?(on?'#f1dfb2':'#94a7a5'):'#4f586a',on);
+    wrappedText(ctx,`[${i+1}] ${name}`,x+29,y+10,slotW-34,6.7,8,2,w?(on?'#efe1ac':'#8f99aa'):'#4f586a',on);
     if (w) {
       const rl = 1 - p.fireCooldown / Math.max(1, activeWeapon(p).fireRate);
       if (on) {
@@ -894,7 +901,7 @@ function drawHUD(engine: GameEngine) {
         text(ctx, 'RUEDA', x + slotW - 8, y + 26, 7, '#5c6472', 'right');
       }
       if (on) {
-        ctx.fillStyle = '#d6b66a';
+        ctx.fillStyle = '#f4d03f';
         ctx.beginPath();
         ctx.moveTo(x - 4, y + slotH / 2);
         ctx.lineTo(x + 1, y + slotH / 2 - 5);
@@ -917,7 +924,7 @@ function drawHUD(engine: GameEngine) {
       ctx.shadowColor = '#f4d03f';
       ctx.shadowBlur = 12;
     }
-    drawPanel(ctx, ax, ay, aw, ah, 'rgba(12,30,33,.88)', flash ? '#fff0bd' : ready ? '#d6b66a' : '#365356');
+    drawPanel(ctx, ax, ay, aw, ah, 'rgba(8,10,18,0.85)', flash ? '#fff3b0' : ready ? '#f4d03f' : '#2f3644');
     ctx.restore();
     ctx.save();
     ctx.translate(ax + 6, ay + 6);
@@ -926,7 +933,7 @@ function drawHUD(engine: GameEngine) {
     drawItem(ctx, 0, 0, p.activeItem, engine.frame);
     ctx.restore();
     const def = ACTIVE_ITEMS[p.activeItem];
-    wrappedText(ctx,def?.name ?? '',ax+29,ay+10,aw-35,6.7,8,2,ready?'#f1dfb2':'#829592',true);
+    wrappedText(ctx,def?.name ?? '',ax+29,ay+10,aw-35,6.7,8,2,ready?'#eee1b2':'#7c8494',true);
     if (flash) {
       text(ctx, 'LISTO', ax + aw - 8, ay + 26, 9, '#39d353', 'right', true);
     } else if (ready) {
@@ -952,10 +959,10 @@ function drawHUD(engine: GameEngine) {
     ctx.shadowBlur = 10;
   }
   text(ctx, engine.lastInput==='gamepad'?'B · ESQUIVE':'ESQUIVE', 302, CANVAS_HEIGHT - 9, 6,
-    dashFlash ? '#fff6d7' : dashReady ? '#69b8a5' : '#536764', 'right', true);
+    dashFlash ? '#fff' : dashReady ? '#1abc9c' : '#4f586a', 'right', true);
   ctx.fillStyle = 'rgba(255,255,255,0.10)';
   ctx.fillRect(265, CANVAS_HEIGHT - 25, 62, 4);
-  ctx.fillStyle = dashFlash ? '#b9e3cf' : dashReady ? '#69b8a5' : '#536764';
+  ctx.fillStyle = dashFlash ? '#a3f0c2' : dashReady ? '#1abc9c' : '#4f586a';
   ctx.fillRect(265,CANVAS_HEIGHT-25,62*clamp(1-p.dashCooldown/(45*getBuild(p).dashCooldown),0,1),4);
   if (dashFlash) {
     text(ctx, 'ESQUIVE LISTO', 296, CANVAS_HEIGHT - 29, 6.5, '#39d353', 'center', true);
@@ -965,7 +972,7 @@ function drawHUD(engine: GameEngine) {
   // --- Objetos pasivos ---
   if (p.items.length) {
     const n = Math.min(p.items.length, 10);
-    ctx.fillStyle='rgba(15,38,40,.68)';ctx.beginPath();ctx.roundRect(4,294,n*18+8,19,5);ctx.fill();ctx.strokeStyle='rgba(211,178,105,.12)';ctx.beginPath();ctx.roundRect(4.5,294.5,n*18+7,18,4.5);ctx.stroke();
+    ctx.fillStyle='rgba(8,19,25,.66)';ctx.fillRect(4,294,n*18+8,19);
     for(let i=0;i<n;i++) drawItemIcon(ctx,8+i*18,295,p.items[i],16);
     if (p.items.length > 10) text(ctx, `+${p.items.length - 10}`, 16 + n * 17, CANVAS_HEIGHT - 44, 9, '#f4d03f', 'left');
   }
@@ -1048,162 +1055,64 @@ export const MENU_ITEMS = [
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  // Hades / modern roguelite principle: let the title art breathe; keep navigation simple,
-  // high-contrast, left anchored, and make the selected action unmistakable.
-  const shade = ctx.createLinearGradient(0, 0, 275, 0);
-  shade.addColorStop(0, 'rgba(3,11,16,.88)');
-  shade.addColorStop(.72, 'rgba(4,13,18,.56)');
-  shade.addColorStop(1, 'rgba(4,13,18,0)');
-  ctx.fillStyle = shade;
-  ctx.fillRect(0, 92, 282, 260);
-
-  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 54, engine.frame);
-  text(ctx, 'EL BANCO ESTÁ ABIERTO', 34, 117, 6.2, '#809c97', 'left', true, false);
-
-  const descriptions = [
-    'Entra al banco y empieza una nueva run.',
-    'Invierte migas doradas en mejoras permanentes.',
-    'Cambia el aspecto del ladrón.',
-    'Revisa armas, objetos, enemigos y jefes descubiertos.',
-    'Consulta controles y reglas del atraco.',
-    'Dificultad, audio, pantalla y accesibilidad.',
-  ];
-  MENU_ITEMS.forEach((item, i) => {
-    const selected = i === engine.menuIndex;
-    const x = MAIN_MENU.x, y = MAIN_MENU.y + i * (MAIN_MENU.h + MAIN_MENU.gap);
-    if (selected) {
-      const g = ctx.createLinearGradient(x, 0, x + MAIN_MENU.w, 0);
-      g.addColorStop(0, 'rgba(216,181,91,.20)');
-      g.addColorStop(1, 'rgba(216,181,91,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(x - 5, y - 2, MAIN_MENU.w + 28, MAIN_MENU.h + 4);
-      ctx.fillStyle = '#e4c66e';
-      ctx.fillRect(x - 5, y + 2, 3, MAIN_MENU.h - 4);
-      text(ctx, '›', x + 5, y + 16, 11, '#f3d77f', 'left', true, false);
-    }
-    text(ctx, item.label, x + (selected ? 22 : 13), y + 16, selected ? 9.2 : 8.5, selected ? '#fff0b8' : '#b7c9c4', 'left', true, false);
+  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
+  text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
+  MENU_ITEMS.forEach((item,i)=>{
+    const on=i===engine.menuIndex,x=MAIN_MENU.x,y=MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap),w=MAIN_MENU.w,h=MAIN_MENU.h;
+    ctx.save();if(on) {ctx.shadowColor='#e8b95066';ctx.shadowBlur=15;ctx.translate(x+w/2,y+h/2);ctx.scale(1.025,1.025);ctx.translate(-x-w/2,-y-h/2);}
+    ctx.fillStyle=on?'#d9bc70':'rgba(18,36,42,.95)';ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle=on?'#fff0b0':'#3b5355';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+    ctx.fillStyle=on?'#f5dc92':'#203a42';ctx.fillRect(x+3,y+2,w-6,1);
+    ctx.fillStyle=on?'#8c6b39':'#0a1b22';ctx.fillRect(x+3,y+h-3,w-6,1);
+    if(on) {ctx.fillStyle='rgba(255,255,220,.13)';ctx.fillRect(x+3+(engine.frame*.6)%(w-24),y+3,20,h-6);}
+    text(ctx,item.label,x+w/2,y+15,9,on?'#17262a':'#b7c5b6','center',true,false);
+    if(on) {text(ctx,'›',x-9,y+15,14,'#e7c87f');text(ctx,'‹',x+w+9,y+15,14,'#e7c87f');}
+    ctx.restore();
   });
-
-  const descY = MAIN_MENU.y + MENU_ITEMS.length * (MAIN_MENU.h + MAIN_MENU.gap) + 9;
-  ctx.fillStyle = 'rgba(111,151,145,.18)'; ctx.fillRect(34, descY - 10, 176, 1);
-  wrappedText(ctx, descriptions[engine.menuIndex] ?? '', 34, descY + 5, 190, 6.2, 8, 2, '#829e99');
-
-  const difficulty = engine.settings.difficulty === 'relaxed' ? 'RELAJADO' : engine.settings.difficulty === 'hard' ? 'IMPLACABLE' : 'NORMAL';
-  const statusX = 314, statusY = 303;
-  ctx.fillStyle = 'rgba(4,15,20,.68)'; ctx.beginPath(); ctx.roundRect(statusX, statusY, 136, 34, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(129,166,159,.20)'; ctx.beginPath(); ctx.roundRect(statusX+.5,statusY+.5,135,33,6.5); ctx.stroke();
-  text(ctx, 'DIFICULTAD', statusX + 10, statusY + 13, 5.6, '#718d88', 'left', true, false);
-  text(ctx, difficulty, statusX + 126, statusY + 13, 6.4, engine.settings.difficulty === 'hard' ? '#e58a82' : '#e6c875', 'right', true, false);
-  text(ctx, 'AUDIO', statusX + 10, statusY + 27, 5.6, '#718d88', 'left', true, false);
-  text(ctx, engine.settings.muted ? 'SILENCIADO' : 'ACTIVO', statusX + 126, statusY + 27, 6.2, engine.settings.muted ? '#df766f' : '#7fd3a2', 'right', true, false);
-
-  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA · ELEGIR     A · CONFIRMAR' : 'W / S · ELEGIR     ENTER · CONFIRMAR', 34, 343, 5.9, '#728e89', 'left', true, false);
-  drawItemIcon(ctx, 402, 340, 'golden_crumb', 12);
-  text(ctx, `${engine.totalGoldenCrumbs}`, 421, 344, 6.2, '#d2bd7b', 'left', true, false);
+  text(ctx,T.tagline,240,326,9,'#dbbd77','center',true);
+  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR':'W / S · ELEGIR     ENTER · CONFIRMAR',30,348,6,'#738b89','left');
+  drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} DORADAS`,389,348,6,'#ac9f75','left');
 }
 
 function renderHowToPlayUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPremiumBackdrop(ctx, engine.frame, .8);
-  drawPremiumPanel(ctx, 22, 16, CANVAS_WIDTH - 44, CANVAS_HEIGHT - 34, false, '#d8b55b', 'rgba(7,22,28,.96)', 13);
-  titleText(ctx, T.howToTitle, 42, 47, 17, '#f0d27a', 'left');
-  text(ctx, 'MANUAL RÁPIDO DEL ATRACO', 43, 63, 6.3, '#799995', 'left', true, false);
+  drawPanel(ctx, 20, 14, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 34);
+  titleText(ctx, T.howToTitle, CANVAS_WIDTH / 2, 40, 18, '#f4d03f');
 
-  const gamepad = engine.lastInput === 'gamepad';
-  const rows: [string, string][] = gamepad ? [
-    ['PALANCA IZQ.','Moverse'],['PALANCA DER. + RT','Apuntar y disparar'],['B','Esquivar'],['A','Interactuar / recoger'],['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Abrir mapa'],['START','Pausa'],
-  ] : [
-    ['WASD','Moverse'],['FLECHAS / CLIC IZQ.','Disparar'],['SHIFT / CLIC DER.','Esquivar'],['E','Interactuar / recoger'],['ESPACIO','Objeto activo'],['RUEDA','Cambiar arma'],['M','Abrir mapa'],['R · MANTENER','Reiniciar'],['ESC','Pausa'],
+  const gamepad=engine.lastInput==='gamepad';
+  const rows:[string,string][] = gamepad?[
+    ['PALANCA IZQUIERDA','Moverse'],['PALANCA DERECHA + RT','Apuntar y disparar'],['B','Esquivar'],['A','Interactuar / recoger'],['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Abrir mapa'],['START','Pausa'],
+  ]:[
+    ['WASD','Moverse'],['FLECHAS / CLIC IZQUIERDO','Disparar'],['SHIFT / CLIC DERECHO','Esquivar'],['E','Interactuar / recoger'],['ESPACIO','Objeto activo'],['RUEDA DEL MOUSE','Cambiar arma'],['M','Abrir mapa'],['R · MANTENER','Reiniciar partida'],['ESC','Pausa'],
   ];
-  rows.forEach(([k, v], i) => {
-    const y = 80 + i * 18;
-    ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.018)' : 'rgba(102,155,146,.045)';
-    ctx.beginPath(); ctx.roundRect(40, y - 11, 183, 15, 5); ctx.fill();
-    text(ctx, k, 50, y, 6.6, '#dfc77d', 'left', true, false);
-    text(ctx, v, 215, y, 6.8, '#b8cbc6', 'right', false, false);
-  });
-
-  drawPremiumPanel(ctx, 244, 77, 190, 176, false, '#6c9c94', 'rgba(10,31,35,.72)', 9);
-  text(ctx, 'REGLAS DEL GOLPE', 259, 99, 8, '#dce8e4', 'left', true, false);
-  const instructions = [
-    'Despeja salas para abrir las puertas.',
-    'El pan recupera vida; las doradas se guardan.',
-    'Lleva dos armas y combina objetos.',
-    'Derrota al jefe para bajar de piso.',
-    'La seguridad aumenta automáticamente por piso.',
-  ];
-  instructions.forEach((line, i) => {
-    ctx.fillStyle = '#d8b55b'; ctx.beginPath(); ctx.arc(260, 122 + i * 25, 2.2, 0, Math.PI * 2); ctx.fill();
-    wrappedText(ctx, line, 270, 125 + i * 25, 150, 6.7, 8.5, 2, '#9fb6b1');
-  });
-
-  text(ctx, gamepad ? 'B · VOLVER' : 'ESC · VOLVER', 240, 323, 8.3, '#e5cb7d', 'center', true, false);
+  rows.forEach(([k,v],i)=>{const y=60+i*17;ctx.fillStyle='#1c343d';ctx.fillRect(37,y-9,158,14);text(ctx,k,44,y,7.5,'#d9cb92','left',true);text(ctx,v,207,y,8,'#d1ded4','left');});
+  const instructions=['Explora salas y derrota enemigos para abrir las puertas.','El pan recupera vida. Las monedas doradas se guardan.','Elige dos armas, encuentra objetos y crea sinergias.','Derrota al jefe, recoge el botín y baja al siguiente piso.','El mapa pausa el combate. No permite transportarte.'];
+  instructions.forEach((line,i)=>text(ctx,line,240,228+i*14,7.8,'#a4bcb9'));
+  text(ctx,gamepad?'B · VOLVER':'ESC · VOLVER',240,322,9,'#dfc582','center',true);
 }
 
 function renderSettingsUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPremiumBackdrop(ctx, engine.frame, .78);
-  drawPremiumPanel(ctx, 30, 14, CANVAS_WIDTH - 60, CANVAS_HEIGHT - 28, false, '#d8b55b', 'rgba(7,22,28,.97)', 13);
-  titleText(ctx, T.settingsTitle, 50, 43, 16, '#f0d27a', 'left');
-  text(ctx, 'JUGABILIDAD · AUDIO · VIDEO', 51, 58, 5.9, '#789995', 'left', true, false);
-
-  text(ctx, 'AUDIO', 58, 119, 5.8, '#76958f', 'left', true, false);
-  text(ctx, 'PRESENTACIÓN', 253, 119, 5.8, '#76958f', 'left', true, false);
+  drawPanel(ctx, 50, 26, CANVAS_WIDTH - 100, CANVAS_HEIGHT - 56);
+  titleText(ctx, T.settingsTitle, CANVAS_WIDTH / 2, 54, 18, '#f4d03f');
 
   SETTING_ROWS.forEach((row, i) => {
-    const r = settingsRect(i);
+    const y = SETTINGS.y + i * (SETTINGS.h+SETTINGS.gap);
     const on = i === engine.settingsIndex;
-
-    if (i === 0) {
-      drawPremiumPanel(ctx, r.x, r.y, r.w, r.h, on, '#d8b55b', on ? 'rgba(31,52,48,.96)' : 'rgba(9,29,34,.78)', 7);
-      text(ctx, row.label, r.x + 14, r.y + 19, 7.1, on ? '#fff0b8' : '#b5c8c2', 'left', true, false);
-      const modes:[string,string][] = [['relaxed','RELAJADO'],['normal','NORMAL'],['hard','IMPLACABLE']];
-      modes.forEach(([key,label], idx) => {
-        const active = engine.settings.difficulty === key;
-        const bx = 198 + idx * 73, bw = 67;
-        ctx.fillStyle = active ? (key === 'hard' ? 'rgba(193,78,70,.34)' : 'rgba(216,181,91,.28)') : 'rgba(255,255,255,.035)';
-        ctx.beginPath(); ctx.roundRect(bx, r.y + 6, bw, 18, 5); ctx.fill();
-        ctx.strokeStyle = active ? (key === 'hard' ? '#df766f' : '#d8b55b') : 'rgba(128,164,158,.12)';
-        ctx.beginPath(); ctx.roundRect(bx+.5, r.y + 6.5, bw-1, 17, 4.5); ctx.stroke();
-        text(ctx, label, bx + bw/2, r.y + 18.5, 5.4, active ? '#fff0bd' : '#78948f', 'center', true, false);
-      });
-      return;
-    }
-
-    ctx.fillStyle = on ? 'rgba(43,70,66,.82)' : 'rgba(255,255,255,.025)';
-    ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 6); ctx.fill();
-    ctx.strokeStyle = on ? '#d8b55b' : 'rgba(119,165,158,.12)';
-    ctx.lineWidth = on ? 1.15 : 1;
-    ctx.beginPath(); ctx.roundRect(r.x+.5,r.y+.5,r.w-1,r.h-1,5.5); ctx.stroke();
-    if (on) { ctx.fillStyle='#d8b55b'; ctx.beginPath(); ctx.roundRect(r.x+4,r.y+4,3,r.h-8,2); ctx.fill(); }
-
-    const mutedAudio = engine.settings.muted && ['master','music','sfx'].includes(row.key);
-    text(ctx, row.label, r.x + 13, r.y + 14.5, 6.5, mutedAudio ? '#687d79' : on ? '#fff0bd' : '#a8bbb6', 'left', on, false);
+    ctx.fillStyle = on ? 'rgba(244,208,63,0.14)' : 'rgba(255,255,255,0.03)';
+    ctx.fillRect(SETTINGS.x,y,SETTINGS.w,SETTINGS.h);
+    text(ctx,row.label,SETTINGS.x+10,y+13,8,on?'#fff6c9':'#a9b3c4','left',on);
     const v = settingValue(engine, i);
-    if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind === 'brightness') {
-      const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind === 'brightness' ? 1.4 : 3;
-      drawPremiumMeter(ctx, r.x + r.w - 78, r.y + 8, 44, v / max, on && !mutedAudio);
-      const display = row.kind === 'vol' ? `${Math.round(v * 100)}%` : `${v}`;
-      text(ctx, display, r.x + r.w - 9, r.y + 15, 6.1, mutedAudio ? '#61736f' : on ? '#f0d27a' : '#819b96', 'right', true, false);
+    if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind==='brightness') {
+      const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind==='brightness'?1.4:3;
+      drawBar(ctx,320,y+6,60,v/max,on?'#f4d03f':'#5c6472');
+      text(ctx,row.kind==='vol'?`${Math.round(v*100)}%`:`${v}`,405,y+13,8,on?'#fff6c9':'#8792a5','right');
     } else {
-      let label = row.kind === 'action' ? 'PROBAR' : v > .5 ? T.on : T.off;
-      let col = v > .5 || row.kind === 'action' ? '#7fd3a2' : '#8fa19d';
-      if (row.key === 'muted') { label = engine.settings.muted ? 'SILENCIADO' : 'AUDIO ACTIVO'; col = engine.settings.muted ? '#df766f' : '#7fd3a2'; }
-      text(ctx, label, r.x + r.w - 9, r.y + 15, 5.8, col, 'right', true, false);
+      text(ctx,row.kind==='action'?'REPRODUCIR':v>.5?T.on:T.off,405,y+13,8,v>.5?'#39d353':'#b5c2b7','right',true);
     }
   });
 
-  const diffHelp = engine.settings.difficulty === 'relaxed'
-    ? 'RELAJADO · -15% vida enemiga · -20% daño · ataques más espaciados.'
-    : engine.settings.difficulty === 'hard'
-      ? 'IMPLACABLE · +16% vida · +20% daño · enemigos más rápidos y más élites.'
-      : 'NORMAL · balance original de Duck Heist; la seguridad sigue aumentando por piso.';
-  const help = engine.settingsIndex === 0 ? diffHelp
-    : engine.settingsIndex === 1 ? 'SILENCIAR TODO conserva tus niveles de volumen para recuperarlos al reactivar el audio.'
-    : engine.settings.muted && [2,3,4].includes(engine.settingsIndex) ? 'El audio está silenciado; puedes ajustar estos niveles y se conservarán.'
-    : 'Los cambios se guardan automáticamente. La dificultad afecta nuevas salas del atraco actual y futuras runs.';
-  text(ctx, help, 240, 305, 5.8, '#829e99', 'center', false, false);
-  text(ctx, engine.lastInput === 'gamepad' ? '↑ ↓  ELEGIR     ← →  CAMBIAR     B  VOLVER' : '↑ ↓  ELEGIR     ← → / ENTER  CAMBIAR     ESC  VOLVER', 240, 326, 6.0, '#9ab1ac', 'center', true, false);
+  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · AJUSTAR     A · PROBAR     B · VOLVER':'FLECHAS · AJUSTAR     ENTER · PROBAR     ESC · VOLVER',240,321,7,'#91aaa6');
 }
 
 function renderWardrobeUI(engine: GameEngine) {
@@ -1213,7 +1122,7 @@ function renderWardrobeUI(engine: GameEngine) {
   text(ctx,`ASPECTOS ${engine.unlockedSkins.length} / ${SKINS.length}`,450,33,6,'#96b1aa','right');
 
   // Monedas doradas permanentes
-  drawChibiCoinV3(ctx, CANVAS_WIDTH / 2 - 80, 48, engine.frame, true);
+  drawCoin(ctx, CANVAS_WIDTH / 2 - 80, 48, engine.frame, true);
   text(ctx, `${T.permCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2, 52, 11, '#f4d03f', 'center', true);
 
   // --- PANEL IZQUIERDO (PREVIEW GRANDE FIJO) ---
@@ -1237,14 +1146,9 @@ function renderWardrobeUI(engine: GameEngine) {
   ctx.fillRect(pvx + 8, pvy + 8, pw - 16, 120);
 
   ctx.save();
-  ctx.translate(pvx + pw / 2, pvy + 122 + Math.round(Math.sin(engine.frame * .04)));
-  ctx.scale(1.55, 1.55);
-  drawChibiPlayerAtlasV16({
-    ctx, x: -8, y: -18, frame: engine.frame,
-    dir: engine.frame % 900 > 750 ? 'left' : 'down', moving: false,
-    hurt: false, dashing: false, shooting: false,
-    skinId: skin.id, runtimeKey: skin, shotSequence: 0,
-  });
+  ctx.translate(pvx + pw / 2, pvy + 77+Math.round(Math.sin(engine.frame*.04)));
+  ctx.scale(4,4);
+  drawDuckSkin(ctx,-8,-8,engine.frame,skin.id,engine.frame%900>750?'left':'down',false,false,false);
   ctx.restore();
 
   // Nombre y descripción cómica
@@ -1328,17 +1232,12 @@ function renderWardrobeUI(engine: GameEngine) {
     ctx.fillRect(cx + cellW - 1, cy, 1, cellH);
     ctx.restore();
 
-    // Preview moderno: V16 para el ladrón base y V3 overlay-aware para
-    // el resto de aspectos, con la misma huella visual en la cuadrícula.
+    // Pato pequeño animado
     ctx.save();
-    ctx.globalAlpha = isUnlocked ? 1 : .63;
-    ctx.translate(cx + cellW / 2, cy + 52);
-    ctx.scale(.82, .82);
-    drawChibiPlayerAtlasV16({
-      ctx, x: -8, y: -18, frame: engine.frame + i * 7, dir: 'down', moving: false,
-      hurt: false, dashing: false, shooting: false,
-      skinId: s.id, runtimeKey: s, shotSequence: 0,
-    });
+    ctx.translate(cx+cellW/2,cy+30);
+    ctx.scale(2,2);
+    ctx.globalAlpha=isUnlocked?1:.63;
+    drawDuckSkin(ctx, -8, -8, engine.frame + i * 7, s.id, 'down', false, false, false);
     ctx.restore();
 
     // Nombre de skin
@@ -1361,67 +1260,70 @@ function renderWardrobeUI(engine: GameEngine) {
 
 function renderUpgradesUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPremiumBackdrop(ctx, engine.frame, .82);
-  drawPremiumPanel(ctx, 24, 16, CANVAS_WIDTH - 48, CANVAS_HEIGHT - 32, false, '#d8b55b', 'rgba(7,22,28,.97)', 13);
-  titleText(ctx, T.upgradesTitle, 44, 44, 16, '#f0d27a', 'left');
-  text(ctx, 'MEJORAS PERMANENTES DEL CÓMPLICE', 45, 59, 6.1, '#799995', 'left', true, false);
-  drawChibiCoinV3(ctx, 358, 32, engine.frame, true);
-  text(ctx, `${engine.totalGoldenCrumbs} DORADAS`, 382, 47, 8.5, '#e9ca70', 'left', true, false);
+  drawPanel(ctx, 26, 16, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
+  titleText(ctx, T.upgradesTitle, CANVAS_WIDTH / 2, 40, 17, '#f4d03f');
+  drawCoin(ctx, CANVAS_WIDTH / 2 - 52, 58, engine.frame, true);
+  text(ctx, `${T.upgradesCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2 + 4, 62, 12, '#f4d03f', 'center', true);
 
   META_UPGRADES.forEach((up, i) => {
-    const y = 78 + i * 52;
+    const y = 82 + i * 44;
     const lvl = engine.metaLevels[up.id] ?? 0;
     const maxed = lvl >= up.maxLevel;
     const cost = up.cost * (lvl + 1);
     const sel = i === engine.upgradeIndex;
-    drawPremiumPanel(ctx, 42, y, 396, 44, sel, sel ? '#d8b55b' : '#628d87', sel ? 'rgba(27,52,50,.95)' : 'rgba(11,31,35,.78)', 7);
-    text(ctx, up.name, 58, y + 16, 8.5, maxed ? '#75d79d' : sel ? '#fff1bc' : '#c0d0cb', 'left', true, false);
-    text(ctx, up.description, 58, y + 31, 6.4, '#839f9a', 'left', false, false);
+    ctx.fillStyle = sel ? 'rgba(244,208,63,0.14)' : 'rgba(255,255,255,0.03)';
+    ctx.fillRect(40, y - 12, CANVAS_WIDTH - 80, 40);
+    titleText(ctx, up.name, 50, y + 4, 13, maxed ? '#39d353' : sel ? '#fff6c9' : '#c3cbd9', 'left');
+    text(ctx, up.description, 50, y + 20, 10, '#8792a5', 'left', false);
     for (let l = 0; l < up.maxLevel; l++) {
-      const cx = 326 + l * 13;
-      ctx.fillStyle = l < lvl ? '#d8b55b' : 'rgba(120,160,153,.18)';
-      ctx.beginPath(); ctx.arc(cx, y + 14, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = l < lvl ? '#f4d03f' : '#2f3644';
+      ctx.fillRect(CANVAS_WIDTH - 150 + l * 12, y - 4, 9, 9);
     }
-    text(ctx, maxed ? 'COMPLETA' : `${cost}`, 422, y + 29, 7.3, maxed ? '#75d79d' : engine.totalGoldenCrumbs >= cost ? '#e9ca70' : '#df766f', 'right', true, false);
+    text(ctx, maxed ? T.upgradeBought : `${cost}`, CANVAS_WIDTH - 48, y + 16,
+      9, maxed ? '#39d353' : engine.totalGoldenCrumbs >= cost ? '#f4d03f' : '#ff5b4f', 'right', true);
   });
 
-  text(ctx, engine.lastInput === 'gamepad' ? 'CRUCETA  ELEGIR     A  COMPRAR     B  VOLVER' : 'W / S  ELEGIR     ENTER  COMPRAR     ESC  VOLVER', 240, 319, 6.3, '#87a39e', 'center', true, false);
+  text(ctx,engine.lastInput==='gamepad'?'A · COMPRAR':'ENTER · COMPRAR',240,308,9,'#a9b3c4');
+  text(ctx,engine.lastInput==='gamepad'?'B · VOLVER':'ESC · VOLVER',240,324,9,'#f4d03f','center',true);
 }
 
 function renderFloorIntroUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const t = engine.floorIntroTimer;
   const a = t > 80 ? (110 - t) / 30 : Math.min(1, t / 30);
-  const alpha = clamp(a, 0, 1);
-  ctx.fillStyle = `rgba(3,10,16,${.88 * alpha})`;
+  ctx.fillStyle = `rgba(4,6,14,${0.9 * clamp(a, 0, 1)})`;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.globalAlpha = alpha;
-  const slide = (1 - alpha) * 24;
-  drawPremiumPanel(ctx, 104, 105 + slide, 272, 132, true, '#d8b55b', 'rgba(8,25,30,.95)', 12);
-  text(ctx, 'NIVEL DE SEGURIDAD', 240, 132 + slide, 6.3, '#76958f', 'center', true, false);
-  titleText(ctx, `${T.floor} ${engine.map.floorIndex + 1}/6`, 240, 160 + slide, 23, '#f0d27a');
-  text(ctx, FLOOR_NAMES_ES[engine.map.floorIndex], 240, 184 + slide, 11, '#d7e3df', 'center', true, false);
-  const level = engine.map.floorIndex + 1;
-  for (let i = 0; i < TOTAL_FLOORS; i++) {
-    ctx.fillStyle = i < level ? (level >= 5 ? '#df766f' : '#d8b55b') : 'rgba(113,152,145,.16)';
-    ctx.beginPath(); ctx.roundRect(190 + i * 18, 202 + slide, 12, 4, 2); ctx.fill();
+  ctx.globalAlpha = clamp(a, 0, 1);
+  const slide = (1 - clamp(a, 0, 1)) * 26;
+  ctx.fillStyle = '#f4d03f';
+  ctx.fillRect(CANVAS_WIDTH / 2 - 130, CANVAS_HEIGHT / 2 - 34 + slide, 260, 2);
+  ctx.fillRect(CANVAS_WIDTH / 2 - 130, CANVAS_HEIGHT / 2 + 30 + slide, 260, 2);
+  titleText(ctx, `${T.floor} ${engine.map.floorIndex + 1}/6`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 4 + slide, 26, '#f4d03f');
+  drawItemIcon(ctx,228,110+slide,['crumb','stolen_helmet','baguette','toaster','golden_crumb','pan_dorado'][engine.map.floorIndex],24);
+  text(ctx, FLOOR_NAMES_ES[engine.map.floorIndex], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20 + slide, 14, '#e8c99b', 'center', true);
+  if (engine.map.floorIndex > 0) {
+    text(ctx, 'LA SEGURIDAD ES MÁS DURA AQUÍ', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40 + slide, 10, '#8792a5');
   }
-  text(ctx, level === 1 ? 'SEGURIDAD BASE' : 'LA SEGURIDAD SE INTENSIFICA', 240, 222 + slide, 6.4, level >= 5 ? '#e58a82' : '#8ba7a2', 'center', true, false);
   ctx.globalAlpha = 1;
 }
 
 function renderBossIntroUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const t = engine.bossIntroTimer;
-  ctx.fillStyle = 'rgba(5,8,13,.88)';
+  ctx.fillStyle = 'rgba(4,6,14,0.82)';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   const a = Math.min(1, (115 - t) / 18);
   ctx.globalAlpha = clamp(a, 0, 1);
-  drawPremiumPanel(ctx, 74, 112, 332, 126, true, '#d86a60', 'rgba(31,18,22,.96)', 12);
-  text(ctx, '⚠  ALERTA DE SEGURIDAD  ⚠', 240, 140, 7.2, '#e17b72', 'center', true, false);
-  titleText(ctx, engine.bossIntroName, 240, 174, 20, '#f0d27a');
-  text(ctx, engine.bossIntroSubtitle, 240, 197, 8.4, '#c7d3cf', 'center', true, false);
-  if (t < 60) text(ctx, 'ENTER · SALTAR', 240, 221, 6.2, '#7f9995', 'center', true, false);
+  ctx.fillStyle = '#8a2c2c';
+  ctx.fillRect(0, CANVAS_HEIGHT / 2 - 42, CANVAS_WIDTH, 3);
+  ctx.fillRect(0, CANVAS_HEIGHT / 2 + 39, CANVAS_WIDTH, 3);
+  ctx.fillStyle = 'rgba(140,30,30,0.22)';
+  ctx.fillRect(0, CANVAS_HEIGHT / 2 - 39, CANVAS_WIDTH, 78);
+  const blink = (engine.frame % 40) < 22;
+  text(ctx, `\u26A0 ${T.warning} \u26A0`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 26, 12, blink ? '#ff5b4f' : '#8a2c2c', 'center', true);
+  titleText(ctx, engine.bossIntroName, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 4, 22, '#f4d03f');
+  text(ctx, engine.bossIntroSubtitle, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 24, 12, '#e8c99b', 'center', true);
+  if (t < 60) text(ctx, 'ENTER para saltar', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 44, 9, '#5c6472');
   ctx.globalAlpha = 1;
 }
 
@@ -1429,65 +1331,49 @@ function renderFloorClearUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const t = engine.floorClearTimer;
   const a = clamp(t / 30, 0, 1) * clamp((120 - t) / 20, 0, 1);
-  const eased = clamp(a, 0, 1);
-  ctx.fillStyle = `rgba(4,5,12,${0.72 * clamp(a + 0.18, 0, 1)})`;
+  ctx.fillStyle = `rgba(4,5,12,${0.92 * clamp(a + 0.2, 0, 1)})`;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-  // Reveal the player through the UI dimmer so the celebration is readable
-  // wherever the stairs left the character. This only affects presentation.
-  if (eased > .01) {
-    const px = engine.player.x + 7;
-    const py = engine.player.y + 8;
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    const spot = ctx.createRadialGradient(px, py, 12, px, py, 64);
-    spot.addColorStop(0, `rgba(0,0,0,${0.94 * eased})`);
-    spot.addColorStop(.48, `rgba(0,0,0,${0.62 * eased})`);
-    spot.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = spot;
-    ctx.fillRect(px - 70, py - 70, 140, 140);
-    ctx.restore();
-  }
-
-  ctx.globalAlpha = eased;
-  ctx.fillStyle = 'rgba(8,12,18,.84)';
-  ctx.fillRect(104, 30, 272, 94);
-  ctx.strokeStyle = 'rgba(244,208,63,.28)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(104.5, 30.5, 271, 93);
-  titleText(ctx, T.floorComplete, CANVAS_WIDTH / 2, 58, 20, '#39d353');
-  text(ctx, T.descending, CANVAS_WIDTH / 2, 84, 11, '#a9b3c4', 'center', true);
+  ctx.globalAlpha = clamp(a, 0, 1);
+  titleText(ctx, T.floorComplete, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 14, 22, '#39d353');
+  text(ctx, T.descending, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 8, 12, '#a9b3c4', 'center', true);
   const dots = '.'.repeat(1 + Math.floor(engine.frame / 14) % 3);
-  text(ctx,engine.map.floorIndex+1>=TOTAL_FLOORS?'SALIDA DEL BANCO':`${T.floor} ${engine.map.floorIndex+2}/6${dots}`,240,108,11,'#f4d03f','center',true);
+  text(ctx,engine.map.floorIndex+1>=TOTAL_FLOORS?'SALIDA DEL BANCO':`${T.floor} ${engine.map.floorIndex+2}/6${dots}`,240,206,12,'#f4d03f','center',true);
   ctx.globalAlpha = 1;
 }
 
 function renderPausedUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPremiumBackdrop(ctx, engine.frame, .88);
-  drawPremiumPanel(ctx, 26, 16, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 32, false, '#d8b55b', 'rgba(6,21,27,.97)', 13);
-  titleText(ctx, T.paused, 46, 47, 17, '#f0d27a', 'left');
-  text(ctx, `PISO ${engine.map.floorIndex + 1}/6 · ATRACO EN PAUSA`, 47, 62, 6.2, '#789995', 'left', true, false);
+  ctx.fillStyle = 'rgba(4,6,14,0.8)';
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  drawPanel(ctx, 42, 18, CANVAS_WIDTH - 84, CANVAS_HEIGHT - 36);
+  titleText(ctx, T.paused, CANVAS_WIDTH / 2, 48, 24, '#f4d03f');
+  ctx.fillStyle = '#8a2c2c';
+  ctx.fillRect(CANVAS_WIDTH / 2 - 60, 55, 120, 2);
 
   const items = [
-    { label: T.resume }, { label: 'MAPA' }, { label: T.restartRun }, { label: T.menuHowTo },
+    { label: T.resume }, {label:'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
     { label: T.menuSettings }, { label: T.backToMenu },
   ];
-  items.forEach((item, i) => {
-    const y = PAUSE_MENU.y + i * (PAUSE_MENU.h + PAUSE_MENU.gap);
-    drawPremiumButton(ctx, item.label, CANVAS_WIDTH / 2 - PAUSE_MENU.w / 2, y, PAUSE_MENU.w, PAUSE_MENU.h, i === engine.pauseIndex, engine.frame, i + 1);
-  });
+  drawButtons(ctx,items,engine.pauseIndex,240,PAUSE_MENU.y,engine.frame,PAUSE_MENU.w,PAUSE_MENU.h,PAUSE_MENU.gap);
 
-  drawPremiumPanel(ctx, 54, 219, 372, 72, false, '#608d86', 'rgba(9,30,34,.66)', 8);
-  text(ctx, T.controls, 72, 239, 7.4, '#c7d8d3', 'left', true, false);
-  const gamepad = engine.lastInput === 'gamepad';
-  const quick = gamepad ? ['PALANCA · MOVER', 'RT · DISPARAR', 'B · ESQUIVAR', 'A · INTERACTUAR'] : ['WASD · MOVER', 'FLECHAS · DISPARAR', 'SHIFT · ESQUIVAR', 'E · INTERACTUAR'];
-  quick.forEach((label, i) => {
-    const x = 72 + (i % 2) * 176, y = 257 + Math.floor(i / 2) * 16;
-    text(ctx, label, x, y, 6.3, '#8ea9a4', 'left', true, false);
+  text(ctx, T.controls, CANVAS_WIDTH / 2, 220, 11, '#8792a5', 'center', true);
+  const rows: [string, string][] = engine.lastInput==='gamepad'?[
+    ['PALANCA','Moverse'],['RT','Disparar'],['B','Esquivar'],['Y','Objeto activo'],['A','Interactuar'],['VIEW','Mapa'],
+  ]:[
+    [T.keyMove, T.ctrlMove], [T.keyShoot, T.ctrlShoot], [T.keyDash, T.ctrlDash],
+    [T.keyItem, T.ctrlItem], [T.keyInteract, T.ctrlInteract], [T.keyRestart, T.ctrlRestart],
+  ];
+  rows.forEach(([k, v], i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const x = CANVAS_WIDTH / 2 - 128 + col * 132;
+    const y = 236 + row * 16;
+    ctx.fillStyle = 'rgba(244,208,63,0.10)';
+    ctx.fillRect(x, y - 10, 48, 13);
+    text(ctx, k, x + 24, y, 8, '#f4d03f', 'center', true);
+    wrappedText(ctx,v,x+54,y,76,7,9,2,'#a9b3c4');
   });
-  text(ctx, `SEMILLA · ${engine.run.seed}`, 240, 307, 6.1, '#baa86f', 'center', true, false);
-  text(ctx, gamepad ? 'START / B · VOLVER AL ATRACO' : 'ESC · VOLVER AL ATRACO', 240, 324, 6.3, '#829f99', 'center', true, false);
+  text(ctx,`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
+  text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA    ${engine.lastInput==='gamepad'?'B':'CLIC DERECHO'} · ESQUIVAR`,240,315,6.5,'#768f8f');
 }
 
 function renderSwapUI(engine: GameEngine) {
@@ -1600,13 +1486,9 @@ function renderGameOverUI(engine: GameEngine) {
   titleText(ctx, T.gameOver, CANVAS_WIDTH / 2, 74, 24, '#ff5b4f');
 
   ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2, 114);
-  ctx.scale(.75, .75);
-  drawChibiPlayerAtlasV16({
-    ctx, x: -8, y: -18, frame: f, dir: 'down', moving: false,
-    hurt: false, dashing: false, shooting: false, dead: true,
-    skinId: engine.equippedSkin, runtimeKey: engine.player, shotSequence: engine.player.shotCounter,
-  });
+  ctx.translate(CANVAS_WIDTH / 2 - 24, 84);
+  ctx.scale(1.5, 1.5);
+  drawDuckSkin(ctx,0,Math.sin(f*.05)*1.5,f,engine.equippedSkin,'down',false,false,false,false,true);
   ctx.restore();
 
   const r = engine.run, s = engine.stats;
@@ -1651,13 +1533,9 @@ function renderVictoryUI(engine: GameEngine) {
   titleText(ctx, T.victory, CANVAS_WIDTH / 2, 58, 24, '#f4d03f');
   text(ctx, T.victorySub, CANVAS_WIDTH / 2, 78, 12, '#e8c99b', 'center', true);
   ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2, 126);
-  ctx.scale(.78, .78);
-  drawChibiPlayerAtlasV16({
-    ctx, x: -8, y: -18, frame: f, dir: 'down', moving: false,
-    hurt: false, dashing: false, shooting: false, celebrating: true,
-    skinId: engine.equippedSkin, runtimeKey: engine.player, shotSequence: engine.player.shotCounter,
-  });
+  ctx.translate(CANVAS_WIDTH / 2 - 20, 88 + Math.sin(f * 0.09) * 2);
+  ctx.scale(1.4, 1.4);
+  drawDuck(ctx, 0, 0, f, 'down', false, false, false);
   ctx.restore();
   const r = engine.run, s = engine.stats;
   const lines: [string, string][] = [

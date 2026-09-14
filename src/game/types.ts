@@ -5,7 +5,6 @@ import type { GameMap, MapRoom } from './mapgen';
 import type { CollectionCategory } from './catalog';
 
 export type DuckDir = 'up' | 'down' | 'left' | 'right';
-export type DifficultyMode = 'relaxed' | 'normal' | 'hard';
 
 export interface Vec2 { x: number; y: number; }
 
@@ -152,8 +151,6 @@ export interface RunStats {
 
 export interface Settings {
   master: number; music: number; sfx: number;
-  muted: boolean;
-  difficulty: DifficultyMode;
   shake: number;            // 0..2
   damageNumbers: boolean;
   uiScale: number;          // 1..3
@@ -212,8 +209,6 @@ export interface GameEngine {
     weapons: (WeaponDef | null)[];
     activeWeapon: number;
     switchAnim: number;
-    /** presentation-only E interaction gesture; never gates gameplay */
-    interactVisualTimer: number;
     fireCooldown: number;
     dir: DuckDir; moving: boolean; shootFlash: number;
     hurtTimer: number; iFrames: number; flash: number;
