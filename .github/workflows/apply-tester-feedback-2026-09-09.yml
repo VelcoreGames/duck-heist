@@ -1,0 +1,49 @@
+name: Apply tester feedback 2026-09-09
+
+on:
+  push:
+    branches: [tester-feedback-2026-09-09]
+    paths:
+      - scripts/apply-tester-feedback-2026-09-09.py
+      - .github/workflows/apply-tester-feedback-2026-09-09.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tester-feedback-2026-09-09
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply tester feedback patch
+        run: python3 scripts/apply-tester-feedback-2026-09-09.py
+      - name: Static regression checks
+        run: |
+          grep -q "remote_bomb:{action:'remoteBomb'" src/game/itemRules.ts
+          grep -q "content.alarmTimer>0 && content.alarmTimer%360===0" src/game/engine.ts
+          grep -q "const floorMarkup=3+engine.map.floorIndex\*.5" src/game/engine.ts
+          grep -q "Math.random()<.05" src/game/engine.ts
+          grep -q "itemRooms.slice(2)" src/game/mapgen.ts
+          grep -q "renderRunStatsOverlay" src/game/render.ts
+          grep -q "boss.bossType==='toaster_9000'" src/game/engine.ts
+          grep -q "boss.bossType==='director_seguridad'" src/game/engine.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Commit tested source changes
+        run: |
+          git add src/App.tsx src/game/engine.ts src/game/itemRules.ts src/game/mapgen.ts src/game/render.ts
+          git config user.name "VelcoreGames"
+          git config user.email "contacto@velcore.com.mx"
+          git commit -m "Apply Saúl tester feedback fixes"
+          git push origin HEAD:tester-feedback-2026-09-09
