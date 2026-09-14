@@ -209,6 +209,8 @@ export interface GameEngine {
     weapons: (WeaponDef | null)[];
     activeWeapon: number;
     switchAnim: number;
+    /** presentation-only E interaction gesture; never gates gameplay */
+    interactVisualTimer: number;
     fireCooldown: number;
     dir: DuckDir; moving: boolean; shootFlash: number;
     hurtTimer: number; iFrames: number; flash: number;

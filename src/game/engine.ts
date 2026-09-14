@@ -384,7 +384,7 @@ function createPlayer(meta: Record<string, number>) {
     x: CANVAS_WIDTH / 2 - 8, y: CANVAS_HEIGHT / 2 - 8, vx: 0, vy: 0,
     hp: 5 + hpBonus, maxHp: 5 + hpBonus, speed: PLAYER_SPEED,
     weapons: [{ ...WEAPONS.quack_blaster }, null] as (WeaponDef | null)[],
-    activeWeapon: 0, switchAnim: 0,
+    activeWeapon: 0, switchAnim: 0, interactVisualTimer: 0,
     fireCooldown: 0,
     dir: 'down' as DuckDir, moving: false, shootFlash: 0,
     hurtTimer: 0, iFrames: 0, flash: 0,
@@ -734,6 +734,7 @@ export function updateEngine(engine: GameEngine) {
   }
 
   if (player.switchAnim > 0) player.switchAnim--;
+  if (player.interactVisualTimer > 0) player.interactVisualTimer--;
 
   // el foco del láser se relaja cuando dejas de mantarlo sobre un objetivo
   if (player.focusTime > 0 && engine.frame % 6 === 0) {
@@ -1013,6 +1014,7 @@ export function updateEngine(engine: GameEngine) {
       } else {
         grantItem(engine, it.itemId, false, !!ACTIVE_ITEMS[it.itemId]);
       }
+      player.interactVisualTimer = Math.max(player.interactVisualTimer, 12);
       spawn(engine, it.x + 8, it.y + 8, 'spark', 10, '#f4d03f');
       content.items.splice(i, 1);
       engine.keys['e'] = false;
@@ -1029,6 +1031,7 @@ export function updateEngine(engine: GameEngine) {
       else grantItem(engine, ped.itemId, false, !!ACTIVE_ITEMS[ped.itemId]);
       if (ok) {
         ped.taken = true;
+        player.interactVisualTimer = Math.max(player.interactVisualTimer, 12);
         spawn(engine, ped.x + 12, ped.y, 'spark', 20, '#f4d03f');
         engine.shakeIntensity = Math.max(engine.shakeIntensity, 2);
       }
@@ -1044,12 +1047,13 @@ export function updateEngine(engine: GameEngine) {
         if(ped.isFood) {healPlayer(engine,foodHeal(ped.itemId));playHeal();}
         else if(ped.isWeapon) ok=tryGiveWeapon(engine,ped.itemId,'choice',i,ped.x,ped.y);
         else grantItem(engine,ped.itemId,false,!!ACTIVE_ITEMS[ped.itemId]);
-        if(ok) {finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');}
+        if(ok) {player.interactVisualTimer=Math.max(player.interactVisualTimer,12);finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');}
         engine.keys.e=false;break;
       }
     }
   }
   if(content.event && !content.event.used && engine.keys.e && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
+    player.interactVisualTimer=Math.max(player.interactVisualTimer,12);
     engine.keys.e=false;activateEvent(engine);
   }
 
@@ -1058,6 +1062,7 @@ export function updateEngine(engine: GameEngine) {
     const c = content.chest;
     if (dist(player.x + 7, player.y + 8, c.x + 10, c.y + 8) < 28 && engine.keys['e']) {
       c.opened = true;
+      player.interactVisualTimer = Math.max(player.interactVisualTimer, 12);
       engine.keys['e'] = false;
       content.items.push({ x: c.x - 6, y: c.y - 22, itemId: rollItem(engine), isWeapon: false, isActive: false });
       for (let i = 0; i < 6; i++) {
@@ -1082,6 +1087,7 @@ export function updateEngine(engine: GameEngine) {
           if (s.isWeapon) ok = tryGiveWeapon(engine, s.itemId, 'shop', si, s.x, s.y - 20);
           else if (ACTIVE_ITEMS[s.itemId] && player.activeItem && player.activeItem !== s.itemId) ok = offerActiveSwap(engine, s.itemId, 'shop', si, s.x, s.y);
           if (ok) {
+            player.interactVisualTimer = Math.max(player.interactVisualTimer, 12);
             player.crumbs -= price;
             player.couponUsed=true;s.soldAt=engine.frame;s.sold = true;
             if (!s.isWeapon && !ACTIVE_ITEMS[s.itemId]) grantItem(engine, s.itemId, false, false);
@@ -1378,6 +1384,7 @@ export function confirmActiveSwap(engine: GameEngine) {
     p.couponUsed = true;
     s.sold = true;
   }
+  p.interactVisualTimer = Math.max(p.interactVisualTimer, 12);
   engine.activeSwap = null;
   engine.keys.e = false;
   engine.mouseDown = false;

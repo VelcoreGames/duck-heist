@@ -276,7 +276,7 @@ export function renderWorld(engine: GameEngine) {
       hurt: p.hurtTimer > 0, dashing: p.dashTimer > 0, shooting: p.shootFlash > 0,
       dead: p.hp <= 0,
       skinId: engine.equippedSkin, runtimeKey: p, shotSequence: p.shotCounter,
-      interacting: p.switchAnim > 0 && p.shootFlash <= 0 && p.dashTimer <= 0,
+      interacting: (p.switchAnim > 0 || (p.interactVisualTimer > 0 && !p.moving)) && p.shootFlash <= 0 && p.dashTimer <= 0,
       celebrating: engine.state === GameState.FLOOR_CLEAR,
       alpha: p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0 ? 0.42 : 1,
     });
