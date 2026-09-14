@@ -4,13 +4,13 @@ Last updated: 2026-09-13
 
 ## Stable production
 
-- Version: **0.7.50**
-- Build: **`0.7.50-chibi-v16-world-interact`**
-- Release commit: **`4e2cd9721f3544bc50e65c783b23c6f3716ec08a`**
+- Version: **0.7.51**
+- Build: **`0.7.51-chibi-v16-terminal-screens`**
+- Release commit: **`35226bc71d5752ebfc72c3bf41f325425dc57ca6`**
 - Production: **https://velcoregames.com**
-- Hostinger production QA: passed on workflow run **`34795114769`**.
+- Hostinger production QA: passed on workflow run **`34795543327`**.
 
-Production QA confirmed Hostinger serves the exact released inline v0.7.50 app byte-for-byte after trailing newline normalization. Playwright confirmed V16, 464 raster frames, idle, vertical/horizontal walk, dash and multi-direction shooting with no browser/network errors. Candidate QA run `34791186832` verified a real E interaction on a chest triggers the authored `interact` gesture, its presentation-only timer does not alter `switchAnim` or gameplay rules, movement prevents sliding, and shoot/dash retain priority. Death/down/GAME OVER/restart remain covered by successful v0.7.49 production QA run `34790946498`; v0.7.50 does not modify damage or death logic.
+Production QA confirmed Hostinger serves the exact released inline v0.7.51 app byte-for-byte after trailing newline normalization. Playwright confirmed the V16/464-frame gameplay baseline, vertical/horizontal movement, dash and multi-direction shooting with no browser/network errors. Candidate visual QA run `34795392326` independently verified GAME OVER uses the V16 `down` presentation and Victory uses animated V16 `celebrate`, while preserving terminal stats/buttons/timers.
 
 ## Protagonist baseline
 
@@ -24,6 +24,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.50 app b
 - v0.7.48 connects the authored 16-frame directional `celebrate` state to `FLOOR_CLEAR` and keeps the player visible under a restrained spotlight during the floor-complete transition.
 - v0.7.49 plays the authored 12-frame `interact` weapon/equip gesture completely without extending gameplay switch timing; short stationary equips get only a visual recovery, while movement/shoot/dash/hurt still interrupt correctly.
 - v0.7.50 adds `interactVisualTimer` as presentation-only state and connects successful real E interactions such as pickups, pedestals, choices, events, chest opening and shop/equipment actions to the existing authored `interact` gesture without gating gameplay.
+- v0.7.51 removes the legacy protagonist from Victory/GAME OVER: Victory uses V16 `celebrate`, and GAME OVER carries the V16 `down` presentation into the terminal UI.
 
 ## Recent stable progression
 
@@ -36,6 +37,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.50 app b
 - 0.7.48: authored floor-clear celebration connected to real presentation flow, with a visible spotlight transition.
 - 0.7.49: full authored interact recovery for weapon/equip presentation without changing gameplay timing.
 - 0.7.50: real E world interactions now receive the authored player interaction cue through a presentation-only timer.
+- 0.7.51: Victory and GAME OVER now use the current V16 protagonist presentation instead of legacy duck rendering.
 
 ## Hard constraints
 
@@ -48,7 +50,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.50 app b
 
 ## Next priority
 
-The in-world V16 protagonist presentation is now production-verified across idle, walk, shoot, dash, hurt, down, weapon/equip interact, real E interactions and floor-clear celebrate. Stop iterating scale/death/interact by inertia. The next concrete coherence gap is outside normal gameplay: Victory still renders the legacy `drawDuck`, and GAME OVER still renders legacy `drawDuckSkin` instead of the current V16 presentation path. Build the next candidate around terminal-screen V16 coherence only, preserve all terminal stats/buttons/timers and gameplay, compare screenshots at real UI scale, and promote only if clearly cleaner. Wardrobe legacy previews are a separate later audit.
+The normal-gameplay and terminal-screen protagonist presentation is now V16-coherent. Stop iterating the same player states by inertia. Audit the remaining legacy protagonist appearances outside gameplay, starting with Wardrobe/skin previews. The base robber preview should not fall back to old `drawDuckSkin`; use the current player presentation path where it improves coherence while preserving skin selection, unlock/equip logic, scrolling and UI layout. Treat non-default skin rendering carefully because V16 currently delegates them to the remastered skin path. If the wardrobe gain is small or causes layout regressions, keep v0.7.51 and move to the next highest-impact world/enemy chibi inconsistency.
 
 ## Session startup
 
