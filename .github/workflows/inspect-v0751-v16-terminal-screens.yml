@@ -33,7 +33,8 @@ jobs:
           grep -q 'celebrating: true' src/game/render.ts
           grep -q 'dead: true' src/game/render.ts
           grep -q 'ctx.scale(.78, .78)' src/game/render.ts
-          grep -q 'ctx.scale(.65, .65)' src/game/render.ts
+          grep -q 'ctx.scale(.75, .75)' src/game/render.ts
+          grep -q 'ctx.translate(CANVAS_WIDTH / 2, 114)' src/game/render.ts
           ! grep -q 'drawDuck(ctx, 0, 0, f' src/game/render.ts
           ! grep -q "drawDuckSkin(ctx,0,Math.sin(f\*.05)\*1.5" src/game/render.ts
           grep -q 'drawDuckSkin' src/game/render.ts
