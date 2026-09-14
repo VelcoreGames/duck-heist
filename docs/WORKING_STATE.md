@@ -4,13 +4,13 @@ Last updated: 2026-09-13
 
 ## Stable production
 
-- Version: **0.7.49**
-- Build: **`0.7.49-chibi-v16-interact-recovery`**
-- Release commit: **`d012b0ca9a50cd77a4379559a3377198f7c49fc0`**
+- Version: **0.7.50**
+- Build: **`0.7.50-chibi-v16-world-interact`**
+- Release commit: **`4e2cd9721f3544bc50e65c783b23c6f3716ec08a`**
 - Production: **https://velcoregames.com**
-- Hostinger production QA: passed on workflow run **`34790946498`**.
+- Hostinger production QA: passed on workflow run **`34795114769`**.
 
-Production QA confirmed Hostinger serves the exact released inline v0.7.49 app after newline normalization. Playwright confirmed V16, 464 raster frames, idle, horizontal/vertical movement, dash, multi-direction shooting, natural death/down, GAME OVER and restart, with no browser/network errors. Candidate QA run `34790736203` confirmed normal and short equip paths expose all 12 authored `interact` frames; movement takes over immediately when the gameplay switch timer ends, and hurt/dash/shoot retain higher presentation priority.
+Production QA confirmed Hostinger serves the exact released inline v0.7.50 app byte-for-byte after trailing newline normalization. Playwright confirmed V16, 464 raster frames, idle, vertical/horizontal walk, dash and multi-direction shooting with no browser/network errors. Candidate QA run `34791186832` verified a real E interaction on a chest triggers the authored `interact` gesture, its presentation-only timer does not alter `switchAnim` or gameplay rules, movement prevents sliding, and shoot/dash retain priority. Death/down/GAME OVER/restart remain covered by successful v0.7.49 production QA run `34790946498`; v0.7.50 does not modify damage or death logic.
 
 ## Protagonist baseline
 
@@ -23,6 +23,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.49 app a
 - v0.7.47 removes the generic red low-HP/damage wash once the player is dead and adds a restrained local death focus so the down silhouette remains readable near enemies.
 - v0.7.48 connects the authored 16-frame directional `celebrate` state to `FLOOR_CLEAR` and keeps the player visible under a restrained spotlight during the floor-complete transition.
 - v0.7.49 plays the authored 12-frame `interact` weapon/equip gesture completely without extending gameplay switch timing; short stationary equips get only a visual recovery, while movement/shoot/dash/hurt still interrupt correctly.
+- v0.7.50 adds `interactVisualTimer` as presentation-only state and connects successful real E interactions such as pickups, pedestals, choices, events, chest opening and shop/equipment actions to the existing authored `interact` gesture without gating gameplay.
 
 ## Recent stable progression
 
@@ -34,6 +35,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.49 app a
 - 0.7.47: death silhouette focus and cleaner death scene.
 - 0.7.48: authored floor-clear celebration connected to real presentation flow, with a visible spotlight transition.
 - 0.7.49: full authored interact recovery for weapon/equip presentation without changing gameplay timing.
+- 0.7.50: real E world interactions now receive the authored player interaction cue through a presentation-only timer.
 
 ## Hard constraints
 
@@ -46,7 +48,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.49 app a
 
 ## Next priority
 
-The core V16 protagonist presentation is now production-verified across idle, walk, shoot, dash, hurt, down, weapon/equip interact and floor-clear celebrate. Before modifying the protagonist again, audit whether real `E` interactions with chests, pedestals, events/NPCs and stairs provide an authored player interaction cue. If those actions currently occur with no player gesture, connect the existing V16 `interact` presentation without changing interaction timing or gameplay. If they are already covered or the gain is negligible, move to the next highest-impact chibi coherence issue outside the protagonist.
+The in-world V16 protagonist presentation is now production-verified across idle, walk, shoot, dash, hurt, down, weapon/equip interact, real E interactions and floor-clear celebrate. Stop iterating scale/death/interact by inertia. The next concrete coherence gap is outside normal gameplay: Victory still renders the legacy `drawDuck`, and GAME OVER still renders legacy `drawDuckSkin` instead of the current V16 presentation path. Build the next candidate around terminal-screen V16 coherence only, preserve all terminal stats/buttons/timers and gameplay, compare screenshots at real UI scale, and promote only if clearly cleaner. Wardrobe legacy previews are a separate later audit.
 
 ## Session startup
 
