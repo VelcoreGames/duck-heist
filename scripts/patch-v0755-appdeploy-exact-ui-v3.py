@@ -43,17 +43,16 @@ p.write_text(s)
 # -----------------------------------------------------------------------------
 # Use legacy typography on the screens proven by the archived screenshots.
 # Main-menu logo stays untouched because drawTitleLogo already matches closely.
+# The base restoration has already removed drawPremiumButton/drawPremiumMeter.
 # -----------------------------------------------------------------------------
 p = Path('src/game/render.ts')
 s = p.read_text()
 s = replace_once(
     s,
-    "import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar, drawPremiumBackdrop, drawPremiumPanel, drawPremiumButton, drawPremiumMeter } from './ui';",
-    "import { text, titleText, legacyTitleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar, drawPremiumBackdrop, drawPremiumPanel, drawPremiumButton, drawPremiumMeter } from './ui';",
+    "import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar, drawPremiumBackdrop, drawPremiumPanel } from './ui';",
+    "import { text, titleText, legacyTitleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar, drawPremiumPanel } from './ui';",
     'render ui import',
 )
-# exact-layout base later removes premium imports. Normalize the resulting import.
-s = s.replace('drawBar, drawPremiumPanel', 'drawBar, drawPremiumPanel')
 
 repls = [
     ("titleText(ctx, T.howToTitle, CANVAS_WIDTH / 2, 40, 18, '#f4d03f');", "legacyTitleText(ctx, T.howToTitle, CANVAS_WIDTH / 2, 40, 18, '#f4d03f');", 'how-to heading'),
