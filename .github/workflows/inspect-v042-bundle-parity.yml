@@ -1,0 +1,42 @@
+name: Inspect v0.4.2 bundle parity
+
+on:
+  push:
+    branches: [tester-feedback-2026-09-09]
+    paths:
+      - .github/workflows/inspect-v042-bundle-parity.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tester-feedback-2026-09-09
+      - name: Extract relevant bundle snippets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('web-release/assets/index-BgUNQzP_.js')
+          s=p.read_text(encoding='utf-8')
+          needles=['innerWidth','innerHeight','v0.4.2','MONEDAS','DORADAS','DH_V0_4_2_MENU_BADGE']
+          out=[]
+          for needle in needles:
+              out.append(f'===== {needle} =====')
+              matches=list(re.finditer(re.escape(needle),s))
+              out.append(f'count={len(matches)}')
+              for i,m in enumerate(matches[:12]):
+                  a=max(0,m.start()-500); b=min(len(s),m.end()+800)
+                  out.append(f'--- {i} @ {m.start()} ---')
+                  out.append(s[a:b])
+          Path('v042-bundle-snippets.txt').write_text('\n'.join(out),encoding='utf-8')
+          print(Path('v042-bundle-snippets.txt').read_text(encoding='utf-8'))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v042-bundle-parity-snippets
+          path: v042-bundle-snippets.txt
