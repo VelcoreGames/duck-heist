@@ -141,7 +141,7 @@ export default function App() {
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'escape', 'enter', '1', '2'].includes(k)) {
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k)) {
         e.preventDefault();
       }
       if (e.repeat && k !== 'r') return;

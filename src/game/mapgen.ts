@@ -186,8 +186,8 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   assignMiddle(remaining(), RoomType.SHOP);
   // Tesoro: preferentemente callejón sin salida
   assignDeadEndOrRandom(remaining(), RoomType.TREASURE,random);
-  // Segunda sala de objeto opcional
-  if (random() < 0.75) assignDeadEndOrRandom(remaining(), RoomType.ITEM,random);
+  // Segunda sala de objeto opcional. La primera sigue garantizada; nunca habrá más de dos.
+  if (random() < 0.5) assignDeadEndOrRandom(remaining(), RoomType.ITEM,random);
   // Desafío
   assignRandom(remaining(), RoomType.CHALLENGE,random);
   // Bóveda secreta opcional
@@ -200,6 +200,11 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
     // convertir alguna especial sobrante de vuelta a combate no es necesario:
     // el generador ya crea 11-16 salas, pero validamos por seguridad
   }
+
+  // Garantía dura: como máximo 2 salas de objetos por piso, incluso si cambia el generador.
+  const itemRooms = [...rooms.values()].filter(r => r.type === RoomType.ITEM)
+    .sort((a, b) => a.distance - b.distance);
+  for (const extra of itemRooms.slice(2)) extra.type = RoomType.COMBAT;
 
   // 7) Garantía dura: EXACTAMENTE un jefe por piso
   const bosses = [...rooms.values()].filter(r => r.type === RoomType.BOSS);

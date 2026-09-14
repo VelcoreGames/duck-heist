@@ -93,7 +93,7 @@ export const NEW_PASSIVE_ITEMS: PassiveRow[] = [
 NEW_PASSIVE_ITEMS.forEach(([id,,,,, rule]) => { PASSIVE_RULES[id] = rule; });
 EXPANSION_ITEMS.forEach(item=>{PASSIVE_RULES[item.id]=item.rule;});
 
-export type ActiveAction = 'quack'|'bomb'|'decoy'|'stun'|'coffee'|'heal'|'mega'|'grenade'|'lure'|'siren'|'doubleCoffee'|'tray'|'food'|'chaos';
+export type ActiveAction = 'quack'|'bomb'|'remoteBomb'|'decoy'|'stun'|'coffee'|'heal'|'mega'|'grenade'|'lure'|'siren'|'doubleCoffee'|'tray'|'food'|'chaos';
 export const ACTIVE_RULES: Record<string, { action:ActiveAction; cooldown:number; duration?:number }> = {
   emergency_quack:{action:'quack',cooldown:180}, bread_bomb:{action:'bomb',cooldown:480},
   duck_decoy:{action:'decoy',cooldown:600,duration:360}, false_alarm:{action:'stun',cooldown:720,duration:150},
@@ -102,6 +102,7 @@ export const ACTIVE_RULES: Record<string, { action:ActiveAction; cooldown:number
   rubber_lure:{action:'lure',cooldown:720,duration:480}, stolen_siren:{action:'siren',cooldown:660,duration:240},
   double_coffee:{action:'doubleCoffee',cooldown:600,duration:360}, tray_shield:{action:'tray',cooldown:720,duration:240},
   bread_box:{action:'food',cooldown:3600}, red_button:{action:'chaos',cooldown:1500},
+  remote_bomb:{action:'remoteBomb',cooldown:600},
 };
 export const NEW_ACTIVE_ITEMS: [string,string,string,number,string][] = [
   ['bread_grenade','GRANADA DE PAN','Lanza una granada hacia la mira. Explota 0.8 s después de caer.',2,'Pan con consecuencias.'],

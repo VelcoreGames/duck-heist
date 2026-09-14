@@ -599,9 +599,32 @@ export function renderUI(engine: GameEngine) {
     default:
       drawHUD(engine);
       renderPrompts(engine);
+      if(engine.keys['tab']) renderRunStatsOverlay(engine);
       break;
   }
 
+  ctx.restore();
+}
+
+function renderRunStatsOverlay(engine: GameEngine) {
+  const ctx=engine.ui!;
+  const x=104,y=50,w=272,h=244;
+  const r=engine.run,s=engine.stats,p=engine.player;
+  ctx.save();
+  ctx.fillStyle='rgba(2,6,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  drawPanel(ctx,x,y,w,h,'rgba(8,16,25,.98)','#d6b45f');
+  text(ctx,'ESTADÍSTICAS DE LA RUN',240,y+25,12,'#f4d03f','center',true);
+  text(ctx,`PISO  ${r.floorReached}/${TOTAL_FLOORS}`,x+24,y+54,8,'#e9dfbd','left',true);
+  text(ctx,`SALAS  ${s.roomsCleared}`,x+24,y+77,8,'#cbd5d9','left');
+  text(ctx,`ENEMIGOS  ${s.enemiesDefeated}`,x+24,y+100,8,'#cbd5d9','left');
+  text(ctx,`JEFES  ${r.bosses}`,x+24,y+123,8,'#cbd5d9','left');
+  text(ctx,`MIGAJAS  ${Math.floor(p.crumbs)}`,x+148,y+54,8,'#e9dfbd','left',true);
+  text(ctx,`ROBADO  ${s.breadStolen}`,x+148,y+77,8,'#cbd5d9','left');
+  text(ctx,`OBJETOS  ${r.items}`,x+148,y+100,8,'#cbd5d9','left');
+  text(ctx,`ARMAS  ${r.weaponsFound}`,x+148,y+123,8,'#cbd5d9','left');
+  text(ctx,`DAÑO HECHO  ${Math.round(r.dmgDealt)}`,x+24,y+158,8,'#9ec6b8','left');
+  text(ctx,`DAÑO RECIBIDO  ${Math.round(r.dmgTaken)}`,x+24,y+181,8,'#d7a39c','left');
+  text(ctx,'SUELTA TAB PARA CERRAR',240,y+h-22,7,'#8fa1a8','center');
   ctx.restore();
 }
 
