@@ -1,0 +1,97 @@
+name: Publish Duck Heist v0.7.52 Chibi Skin Coherence
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-v0752-chibi-skin-coherence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Apply approved modern skin coherence pass
+        run: |
+          python scripts/patch-v0752-chibi-skin-coherence.py
+          sed -i 's/0.7.52-chibi-skin-coherence-candidate/0.7.52-chibi-skin-coherence/g' index.html
+          npm version 0.7.52 --no-git-tag-version
+          printf '0.7.52\n' > VERSION
+
+      - name: Validate release source
+        run: |
+          grep -q '0.7.52-chibi-skin-coherence' index.html
+          ! grep -q 'skin-coherence-candidate' index.html
+          grep -q '"version": "0.7.52"' package.json
+          grep -q 'const DRAW_SCALE = .66' src/game/graphics/playerChibiV3.ts
+          grep -q 'type SkinOverlay' src/game/graphics/playerChibiV3.ts
+          grep -q "case 'fedora'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'prison'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'chef'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'executive'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'ninja'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'undercover'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'pirate'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'gold'" src/game/graphics/playerChibiV3.ts
+          grep -q "case 'king'" src/game/graphics/playerChibiV3.ts
+          grep -q "if (input.celebrating) return 'celebrate'" src/game/graphics/playerChibiV3.ts
+          grep -q "if (input.interacting) return 'interact'" src/game/graphics/playerChibiV3.ts
+          grep -q 'skinId: skin.id' src/game/render.ts
+          grep -q 'skinId: s.id' src/game/render.ts
+          ! grep -q 'drawDuckSkin' src/game/render.ts
+          grep -q 'celebrating: true' src/game/render.ts
+          grep -q 'dead: true' src/game/render.ts
+          grep -q 'const DRAW = 46' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q '464-raster-chibi-v16' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'v16.8-death-focus' src/game/graphics/playerChibiAtlasV16.ts
+          grep -q 'no hair' scripts/generate-player-chibi-v16.py
+          grep -q 'no glasses' scripts/generate-player-chibi-v16.py
+          npx tsc --noEmit
+          git diff --check
+
+      - name: Build v0.7.52 web release
+        run: |
+          rm -rf /tmp/duck-heist-v0752 web-release dist
+          npx vite build --outDir /tmp/duck-heist-v0752 --emptyOutDir
+          test -s /tmp/duck-heist-v0752/index.html
+          grep -q '0.7.52-chibi-skin-coherence' /tmp/duck-heist-v0752/index.html
+          grep -q '464-raster-chibi-v16' /tmp/duck-heist-v0752/index.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/duck-heist-v0752/index.html
+          grep -q 'v16.8-death-focus' /tmp/duck-heist-v0752/index.html
+          mkdir -p web-release
+          cp -a /tmp/duck-heist-v0752/. web-release/
+          node scripts/publish-release.mjs
+
+      - name: Validate publish artifacts
+        run: |
+          test -s web-release/index.html
+          test -s dist/index.html
+          grep -q '^0.7.52$' VERSION
+          grep -q '0.7.52-chibi-skin-coherence' web-release/index.html
+          grep -q '0.7.52-chibi-skin-coherence' dist/index.html
+          cmp web-release/index.html dist/index.html
+          git diff --check
+
+      - name: Commit v0.7.52 to main
+        run: |
+          git config user.name 'VelcoreGames'
+          git config user.email 'contacto@velcore.com.mx'
+          git add src/game/graphics/playerChibiV3.ts src/game/render.ts index.html package.json package-lock.json VERSION web-release dist
+          git diff --cached --stat
+          git diff --cached --quiet && { echo 'No release changes to commit'; exit 1; }
+          git commit -m 'Release Duck Heist v0.7.52 chibi skin coherence'
+          git pull --rebase origin main
+          git push origin HEAD:main
