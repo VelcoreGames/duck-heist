@@ -6,7 +6,7 @@ import {
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
 } from './constants';
 import {
-  drawDuck, drawHeart,
+  drawHeart,
   drawItem, drawWeaponIcon,
   drawDuckSkin,
 } from './sprites';
@@ -1503,9 +1503,13 @@ function renderGameOverUI(engine: GameEngine) {
   titleText(ctx, T.gameOver, CANVAS_WIDTH / 2, 74, 24, '#ff5b4f');
 
   ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2 - 24, 84);
-  ctx.scale(1.5, 1.5);
-  drawDuckSkin(ctx,0,Math.sin(f*.05)*1.5,f,engine.equippedSkin,'down',false,false,false,false,true);
+  ctx.translate(CANVAS_WIDTH / 2, 114);
+  ctx.scale(.75, .75);
+  drawChibiPlayerAtlasV16({
+    ctx, x: -8, y: -18, frame: f, dir: 'down', moving: false,
+    hurt: false, dashing: false, shooting: false, dead: true,
+    skinId: engine.equippedSkin, runtimeKey: engine.player, shotSequence: engine.player.shotCounter,
+  });
   ctx.restore();
 
   const r = engine.run, s = engine.stats;
@@ -1550,9 +1554,13 @@ function renderVictoryUI(engine: GameEngine) {
   titleText(ctx, T.victory, CANVAS_WIDTH / 2, 58, 24, '#f4d03f');
   text(ctx, T.victorySub, CANVAS_WIDTH / 2, 78, 12, '#e8c99b', 'center', true);
   ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2 - 20, 88 + Math.sin(f * 0.09) * 2);
-  ctx.scale(1.4, 1.4);
-  drawDuck(ctx, 0, 0, f, 'down', false, false, false);
+  ctx.translate(CANVAS_WIDTH / 2, 126);
+  ctx.scale(.78, .78);
+  drawChibiPlayerAtlasV16({
+    ctx, x: -8, y: -18, frame: f, dir: 'down', moving: false,
+    hurt: false, dashing: false, shooting: false, celebrating: true,
+    skinId: engine.equippedSkin, runtimeKey: engine.player, shotSequence: engine.player.shotCounter,
+  });
   ctx.restore();
   const r = engine.run, s = engine.stats;
   const lines: [string, string][] = [
