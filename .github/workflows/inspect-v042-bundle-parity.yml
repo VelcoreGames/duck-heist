@@ -23,14 +23,20 @@ jobs:
           import re
           p=Path('web-release/assets/index-BgUNQzP_.js')
           s=p.read_text(encoding='utf-8')
-          needles=['innerWidth','innerHeight','v0.4.2','MONEDAS','DORADAS','DH_V0_4_2_MENU_BADGE']
+          needles=[
+            'remote_bomb','PAN BOMBA REMOTO','alarmTimer','SALA PERFECTA','roomStreak',
+            'couponUsed','rewardChance','captain_honk','comisario_pico_duro','toaster_9000',
+            'general_ganso','don_levadura','director_seguridad','bread_banker',
+            'Math.random()<.75','Math.random()<.12','RoomType.ITEM','clearCounted',
+            'DORADAS','MONEDAS','DH_V0_4_2_MENU_BADGE','innerWidth'
+          ]
           out=[]
           for needle in needles:
               out.append(f'===== {needle} =====')
               matches=list(re.finditer(re.escape(needle),s))
               out.append(f'count={len(matches)}')
               for i,m in enumerate(matches[:12]):
-                  a=max(0,m.start()-500); b=min(len(s),m.end()+800)
+                  a=max(0,m.start()-900); b=min(len(s),m.end()+1600)
                   out.append(f'--- {i} @ {m.start()} ---')
                   out.append(s[a:b])
           Path('v042-bundle-snippets.txt').write_text('\n'.join(out),encoding='utf-8')
