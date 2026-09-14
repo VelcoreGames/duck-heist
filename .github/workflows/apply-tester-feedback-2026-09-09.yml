@@ -25,7 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Apply tester feedback patch
-        run: python3 scripts/apply-tester-feedback-2026-09-09.py
+        run: |
+          python3 scripts/apply-tester-feedback-2026-09-09.py
+          sed -i '/  const pattern = engine.map.floorIndex;/d' src/game/engine.ts
       - name: Static regression checks
         run: |
           grep -q "remote_bomb:{action:'remoteBomb'" src/game/itemRules.ts
@@ -36,6 +38,7 @@ jobs:
           grep -q "renderRunStatsOverlay" src/game/render.ts
           grep -q "boss.bossType==='toaster_9000'" src/game/engine.ts
           grep -q "boss.bossType==='director_seguridad'" src/game/engine.ts
+          test "$(grep -c 'const pattern = engine.map.floorIndex' src/game/engine.ts)" -eq 0
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Production build
