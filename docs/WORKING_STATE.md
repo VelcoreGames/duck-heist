@@ -4,25 +4,25 @@ Last updated: 2026-09-13
 
 ## Stable production
 
-- Version: **0.7.53**
-- Build: **`0.7.53-premium-menu-ui`**
-- Release commit: **`cf97aa2bd9187e409c79e923bc9dff7aadf58a20`**
+- Version: **0.7.54**
+- Build: **`0.7.54-menu-difficulty-audio`**
+- Release commit: **`03aae86d7f54952855e1bd3fbf1479d97a53264f`**
 - Production: **https://velcoregames.com**
-- Hostinger production QA: passed on workflow run **`34798852791`**.
+- Hostinger production QA: passed on workflow run **`34802743151`**.
 
-Production QA confirmed Hostinger serves the exact released inline v0.7.53 app byte-for-byte after trailing newline normalization. Real browser navigation confirmed the redesigned main menu, Settings and How To screens are reachable through the existing controls, and the V16 gameplay baseline still passes horizontal/vertical movement, dash, multi-direction shooting and pause with no browser/network errors. Candidate visual QA run `34798592783` captured and verified the redesigned Main Menu, Settings, How To, Permanent Upgrades, Pause, floor security progression and boss security alert before promotion.
+Production QA confirmed Hostinger serves the exact released inline v0.7.54 app byte-for-byte after trailing newline normalization. Real-browser checks confirmed the difficulty selector persists, global mute can be toggled without destroying the saved Master/Music/SFX levels, settings survive a reload, and the V16 gameplay baseline still passes horizontal/vertical movement, dash and multi-direction shooting with no browser/network errors. Candidate visual/behavior QA run `34802348309` independently verified the simplified menu and the redesigned Settings screen before promotion.
 
 ## Front-end / UI baseline
 
-- v0.7.53 introduces a dedicated premium front-end design system instead of changing shared HUD primitives globally.
-- Main Menu: numbered heist-navigation cards plus an `EXPEDIENTE DEL ATRACO` summary panel.
-- Settings: modern rounded rows, selected-state treatment and premium meters while preserving all existing settings behavior.
-- How To: two-column quick manual with controls and heist rules.
-- Permanent Upgrades: modern cards, level indicators and currency presentation; purchase logic is unchanged.
-- Pause: premium navigation and a compact controls card; existing pause actions and hitboxes remain unchanged.
-- Floor Intro: `NIVEL DE SEGURIDAD` presentation with six visual progression segments. There is **no separate gameplay difficulty selector** in the current engine; security/difficulty scales automatically by floor and the UI now communicates that accurately instead of inventing a new mode.
-- Boss Intro: `ALERTA DE SEGURIDAD` presentation aligned to the new front-end style.
-- The redesign is presentation-only: no gameplay rules, state machine, controls or hitboxes were changed for v0.7.53.
+- v0.7.54 replaces the dashboard-like v0.7.53 main menu with a simpler roguelite front end: title/vault art remains dominant, navigation is a clean left-aligned vertical list, selection uses one strong gold accent, and only compact difficulty/audio status remains on the opposite side.
+- Settings is organized around one prominent gameplay row plus Audio and Presentation groups instead of one long undifferentiated list.
+- Difficulty is now a **real saved gameplay setting** with three modes: `RELAJADO`, `NORMAL`, and `IMPLACABLE`.
+- `NORMAL` preserves the pre-v0.7.54 balance. `RELAJADO` reduces enemy health/damage/count pressure and spaces attacks slightly more. `IMPLACABLE` raises enemy health/damage/speed/count pressure and elite chance while shortening attack intervals.
+- Difficulty still stacks with the existing six-floor security progression; choosing a mode does not remove per-floor scaling.
+- `SILENCIAR TODO` is a persistent global mute. It sets effective master output to zero while retaining the user's Master/Music/SFX slider values, so unmuting restores the previous mix.
+- Master, Music and SFX controls remain independently adjustable.
+- Mouse and keyboard Settings hit-testing were updated to match the new two-column layout.
+- v0.7.53's How To, Permanent Upgrades, Pause, floor-security and boss-alert redesigns remain in place.
 
 ## Protagonist / skins baseline
 
@@ -37,7 +37,7 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.53 app b
 - v0.7.49 exposes all authored `interact` frames without extending gameplay switch timing.
 - v0.7.50 connects successful real E interactions to presentation-only `interactVisualTimer`.
 - v0.7.51 makes Victory and GAME OVER use the current V16 protagonist presentation.
-- v0.7.52 is the verified skin-coherence baseline immediately preceding the UI pass; non-default skins retain their identity/accessories through the modern skin path rather than being flattened into the base robber art.
+- v0.7.52 is the verified skin-coherence baseline; non-default skins retain their identity/accessories through the modern skin path rather than being flattened into the base robber art.
 
 ## Recent stable progression
 
@@ -52,21 +52,22 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.53 app b
 - 0.7.50: real E world interactions receive the authored player interaction cue.
 - 0.7.51: Victory and GAME OVER use the current V16 protagonist presentation.
 - 0.7.52: skin-coherence pass for the wardrobe/gameplay skin family.
-- 0.7.53: premium front-end redesign for menu, Settings, How To, Upgrades, Pause, floor-security progression and boss alert.
+- 0.7.53: first premium front-end pass for menu, Settings, How To, Upgrades, Pause, floor-security progression and boss alert.
+- 0.7.54: simplified main menu plus real difficulty modes and persistent global mute/audio controls.
 
 ## Hard constraints
 
 - Work on `main`.
 - Deploy through the existing Hostinger flow; do not use Vercel or AppDeploy.
-- Do not change gameplay/hitboxes for visual convenience.
+- Do not change hitboxes for visual convenience.
 - Do not add hair or glasses to the base duck.
-- Do not invent a difficulty selector unless gameplay design explicitly adds difficulty modes later.
+- `NORMAL` difficulty must remain the reference balance unless an intentional rebalance is separately approved.
 - Do not declare an intermediate pass final.
 - Keep production on the last verified build when a candidate is not clearly better.
 
 ## Next priority
 
-The core menu/configuration/progression presentation is now modernized and production-verified. Continue the front-end coherence audit rather than returning immediately to protagonist micro-polish. Inspect remaining non-gameplay surfaces such as Wardrobe, Collection, map/overlays and any confirmation/modal screens against the v0.7.53 premium language. Preserve their navigation geometry and logic unless a separate gameplay/UI behavior change is explicitly justified. Promote only changes that are visibly cleaner and still pass production smoke.
+The main menu and Settings now have the required functional baseline. Continue the front-end coherence audit on remaining non-gameplay surfaces such as Wardrobe, Collection, map/overlays and confirmation/modal screens. Preserve working navigation and gameplay while bringing those surfaces into the cleaner v0.7.54 language. Any future difficulty tuning should be measured separately from visual/UI work.
 
 ## Session startup
 
