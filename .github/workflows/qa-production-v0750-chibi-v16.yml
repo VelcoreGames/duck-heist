@@ -1,0 +1,84 @@
+name: QA Production v0.7.50 Chibi V16
+
+on:
+  push:
+    paths:
+      - '.github/workflows/qa-production-v0750-chibi-v16.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Wait for Hostinger production build
+        run: |
+          expected='0.7.50-chibi-v16-world-interact'
+          mkdir -p /tmp/v0750-production-qa
+          for i in $(seq 1 30); do
+            curl -fsSL --retry 2 --retry-delay 2 "https://velcoregames.com/?qa=v0750&t=$(date +%s%N)" -o /tmp/v0750-production.html || true
+            if grep -Fq "$expected" /tmp/v0750-production.html 2>/dev/null; then
+              cp /tmp/v0750-production.html /tmp/v0750-production-qa/index.html
+              echo "Hostinger production is on $expected"
+              exit 0
+            fi
+            echo "Attempt $i/30: production has not switched yet"
+            sleep 10
+          done
+          echo 'Hostinger did not expose v0.7.50 in time'
+          exit 1
+
+      - name: Verify exact released inline app is deployed
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          prod=Path('/tmp/v0750-production.html').read_bytes().rstrip(b'\r\n')
+          rel=Path('web-release/index.html').read_bytes().rstrip(b'\r\n')
+          if prod != rel:
+              raise SystemExit('Hostinger HTML does not byte-match web-release after trailing newline normalization')
+          PY
+          grep -q '0.7.50-chibi-v16-world-interact' /tmp/v0750-production.html
+          grep -q '464-raster-chibi-v16' /tmp/v0750-production.html
+          grep -q 'canvas2d-chibi-atlas-v16' /tmp/v0750-production.html
+          grep -q 'v16.8-death-focus' /tmp/v0750-production.html
+          grep -q 'interactVisualTimer: number' src/game/types.ts
+          grep -q 'p.interactVisualTimer > 0 && !p.moving' src/game/render.ts
+          echo 'Hostinger is serving the exact released v0.7.50 inline app'
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify production smoke and death flow
+        run: |
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs'),assert=require('assert');
+          const out='/tmp/v0750-production-qa',expected='0.7.50-chibi-v16-world-interact',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const errors=[],failed=[],bad=[],samples={};
+          async function ds(p){return p.evaluate(()=>({build:document.querySelector('meta[name="duck-heist-build"]')?.content||'',renderer:document.documentElement.dataset.duckHeistPlayerRenderer||'',frames:document.documentElement.dataset.duckHeistPlayerFrames||'',fx:document.documentElement.dataset.duckHeistPlayerFx||'',state:document.documentElement.dataset.duckHeistPlayerState||'',visualFrame:document.documentElement.dataset.duckHeistPlayerVisualFrame||''}));}
+          async function start(p,label){await p.goto(`https://velcoregames.com/?qa=v0750-${label}&t=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:60000});await sleep(1800);assert.strictEqual((await ds(p)).build,expected);const c=p.locator('canvas[role="application"]');assert.strictEqual(await c.count(),1);await c.focus();await p.keyboard.press('Enter');for(let i=0;i<7;i++){await sleep(800);const d=await ds(p);if(d.renderer==='canvas2d-chibi-atlas-v16'&&d.state==='idle')return d;await p.keyboard.press('Enter');}throw new Error('did not reach V16 idle');}
+          async function naturalDeath(p){for(const [key,label] of [['d','right'],['w','up'],['a','left'],['s','down']]){await start(p,`death-${label}`);let hurt=false;await p.keyboard.down(key);const t0=Date.now();while(Date.now()-t0<4500){const d=await ds(p);if(d.state==='hurt')hurt=true;if(d.state==='down'){await p.keyboard.up(key);return {label,hurt,down:d};}await sleep(35);}await p.keyboard.up(key);if(hurt){const t=Date.now();while(Date.now()-t<50000){const d=await ds(p);if(d.state==='down')return {label,hurt,down:d};await sleep(40);}}}throw new Error('natural death not reached');}
+          (async()=>{const browser=await chromium.launch({headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});const p=await context.newPage();p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} ${r.failure()?.errorText||''}`));p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()} ${r.url()}`)});
+          samples.idle=await start(p,'smoke');assert.strictEqual(samples.idle.frames,'464-raster-chibi-v16');assert.strictEqual(samples.idle.fx,'v16.8-death-focus');await p.keyboard.down('d');await sleep(180);samples.walk=await ds(p);assert.strictEqual(samples.walk.state,'walk');await p.keyboard.press('Shift');await sleep(45);samples.dash=await ds(p);assert.strictEqual(samples.dash.state,'dash');await p.keyboard.up('d');await sleep(800);await p.keyboard.down('ArrowRight');for(let i=0;i<35;i++){await sleep(12);const d=await ds(p);if(d.state==='shoot'){samples.shoot=d;break;}}await p.keyboard.up('ArrowRight');assert(samples.shoot,'shoot not observed');await p.screenshot({path:`${out}/01-smoke.png`,fullPage:true});
+          samples.death=await naturalDeath(p);assert.strictEqual(samples.death.down.state,'down');await p.screenshot({path:`${out}/02-down.png`,fullPage:true});await sleep(800);await p.keyboard.press('Enter');let restarted=null;for(let i=0;i<20;i++){await sleep(350);const d=await ds(p);if(d.state==='idle'||d.state==='walk'){restarted=d;break;}}assert(restarted,'restart failed');samples.restarted=restarted;assert.strictEqual(errors.length,0,errors.join(' | '));assert.strictEqual(failed.length,0,failed.join(' | '));assert.strictEqual(bad.length,0,bad.join(' | '));fs.writeFileSync(`${out}/qa.json`,JSON.stringify({samples,errors,failed,bad},null,2));await browser.close();})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Upload production QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v0750-production-qa
+          path: /tmp/v0750-production-qa
+          if-no-files-found: warn
+          retention-days: 7
