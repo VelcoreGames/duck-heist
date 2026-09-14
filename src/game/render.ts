@@ -8,7 +8,6 @@ import {
 import {
   drawHeart,
   drawItem, drawWeaponIcon,
-  drawDuckSkin,
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, MINIBOSSES, META_UPGRADES,
@@ -1140,9 +1139,14 @@ function renderWardrobeUI(engine: GameEngine) {
   ctx.fillRect(pvx + 8, pvy + 8, pw - 16, 120);
 
   ctx.save();
-  ctx.translate(pvx + pw / 2, pvy + 77+Math.round(Math.sin(engine.frame*.04)));
-  ctx.scale(4,4);
-  drawDuckSkin(ctx,-8,-8,engine.frame,skin.id,engine.frame%900>750?'left':'down',false,false,false);
+  ctx.translate(pvx + pw / 2, pvy + 122 + Math.round(Math.sin(engine.frame * .04)));
+  ctx.scale(1.55, 1.55);
+  drawChibiPlayerAtlasV16({
+    ctx, x: -8, y: -18, frame: engine.frame,
+    dir: engine.frame % 900 > 750 ? 'left' : 'down', moving: false,
+    hurt: false, dashing: false, shooting: false,
+    skinId: skin.id, runtimeKey: skin, shotSequence: 0,
+  });
   ctx.restore();
 
   // Nombre y descripción cómica
@@ -1226,12 +1230,17 @@ function renderWardrobeUI(engine: GameEngine) {
     ctx.fillRect(cx + cellW - 1, cy, 1, cellH);
     ctx.restore();
 
-    // Pato pequeño animado
+    // Preview moderno: V16 para el ladrón base y V3 overlay-aware para
+    // el resto de aspectos, con la misma huella visual en la cuadrícula.
     ctx.save();
-    ctx.translate(cx+cellW/2,cy+30);
-    ctx.scale(2,2);
-    ctx.globalAlpha=isUnlocked?1:.63;
-    drawDuckSkin(ctx, -8, -8, engine.frame + i * 7, s.id, 'down', false, false, false);
+    ctx.globalAlpha = isUnlocked ? 1 : .63;
+    ctx.translate(cx + cellW / 2, cy + 52);
+    ctx.scale(.82, .82);
+    drawChibiPlayerAtlasV16({
+      ctx, x: -8, y: -18, frame: engine.frame + i * 7, dir: 'down', moving: false,
+      hurt: false, dashing: false, shooting: false,
+      skinId: s.id, runtimeKey: s, shotSequence: 0,
+    });
     ctx.restore();
 
     // Nombre de skin
