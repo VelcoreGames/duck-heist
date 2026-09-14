@@ -4,27 +4,40 @@ Last updated: 2026-09-13
 
 ## Stable production
 
-- Version: **0.7.51**
-- Build: **`0.7.51-chibi-v16-terminal-screens`**
-- Release commit: **`35226bc71d5752ebfc72c3bf41f325425dc57ca6`**
+- Version: **0.7.53**
+- Build: **`0.7.53-premium-menu-ui`**
+- Release commit: **`cf97aa2bd9187e409c79e923bc9dff7aadf58a20`**
 - Production: **https://velcoregames.com**
-- Hostinger production QA: passed on workflow run **`34795543327`**.
+- Hostinger production QA: passed on workflow run **`34798852791`**.
 
-Production QA confirmed Hostinger serves the exact released inline v0.7.51 app byte-for-byte after trailing newline normalization. Playwright confirmed the V16/464-frame gameplay baseline, vertical/horizontal movement, dash and multi-direction shooting with no browser/network errors. Candidate visual QA run `34795392326` independently verified GAME OVER uses the V16 `down` presentation and Victory uses animated V16 `celebrate`, while preserving terminal stats/buttons/timers.
+Production QA confirmed Hostinger serves the exact released inline v0.7.53 app byte-for-byte after trailing newline normalization. Real browser navigation confirmed the redesigned main menu, Settings and How To screens are reachable through the existing controls, and the V16 gameplay baseline still passes horizontal/vertical movement, dash, multi-direction shooting and pause with no browser/network errors. Candidate visual QA run `34798592783` captured and verified the redesigned Main Menu, Settings, How To, Permanent Upgrades, Pause, floor security progression and boss security alert before promotion.
 
-## Protagonist baseline
+## Front-end / UI baseline
+
+- v0.7.53 introduces a dedicated premium front-end design system instead of changing shared HUD primitives globally.
+- Main Menu: numbered heist-navigation cards plus an `EXPEDIENTE DEL ATRACO` summary panel.
+- Settings: modern rounded rows, selected-state treatment and premium meters while preserving all existing settings behavior.
+- How To: two-column quick manual with controls and heist rules.
+- Permanent Upgrades: modern cards, level indicators and currency presentation; purchase logic is unchanged.
+- Pause: premium navigation and a compact controls card; existing pause actions and hitboxes remain unchanged.
+- Floor Intro: `NIVEL DE SEGURIDAD` presentation with six visual progression segments. There is **no separate gameplay difficulty selector** in the current engine; security/difficulty scales automatically by floor and the UI now communicates that accurately instead of inventing a new mode.
+- Boss Intro: `ALERTA DE SEGURIDAD` presentation aligned to the new front-end style.
+- The redesign is presentation-only: no gameplay rules, state machine, controls or hitboxes were changed for v0.7.53.
+
+## Protagonist / skins baseline
 
 - Base duck has **no hair and no glasses**. This rule overrides older design notes that described hair/glasses.
-- Renderer: `canvas2d-chibi-atlas-v16`.
-- Atlas: 464 raster frames, 116 columns x 4 directions.
+- Base renderer: `canvas2d-chibi-atlas-v16`.
+- Base atlas: 464 raster frames, 116 columns x 4 directions.
 - Draw size: 46 px. Do not keep increasing scale without a clear A/B improvement.
 - Current FX marker: `v16.8-death-focus`.
 - Death presentation: short frozen visual down sequence before GAME OVER; gameplay/input is blocked during it, hitboxes remain unchanged.
-- v0.7.47 removes the generic red low-HP/damage wash once the player is dead and adds a restrained local death focus so the down silhouette remains readable near enemies.
-- v0.7.48 connects the authored 16-frame directional `celebrate` state to `FLOOR_CLEAR` and keeps the player visible under a restrained spotlight during the floor-complete transition.
-- v0.7.49 plays the authored 12-frame `interact` weapon/equip gesture completely without extending gameplay switch timing; short stationary equips get only a visual recovery, while movement/shoot/dash/hurt still interrupt correctly.
-- v0.7.50 adds `interactVisualTimer` as presentation-only state and connects successful real E interactions such as pickups, pedestals, choices, events, chest opening and shop/equipment actions to the existing authored `interact` gesture without gating gameplay.
-- v0.7.51 removes the legacy protagonist from Victory/GAME OVER: Victory uses V16 `celebrate`, and GAME OVER carries the V16 `down` presentation into the terminal UI.
+- v0.7.47 improves death silhouette focus.
+- v0.7.48 connects authored directional `celebrate` to `FLOOR_CLEAR`.
+- v0.7.49 exposes all authored `interact` frames without extending gameplay switch timing.
+- v0.7.50 connects successful real E interactions to presentation-only `interactVisualTimer`.
+- v0.7.51 makes Victory and GAME OVER use the current V16 protagonist presentation.
+- v0.7.52 is the verified skin-coherence baseline immediately preceding the UI pass; non-default skins retain their identity/accessories through the modern skin path rather than being flattened into the base robber art.
 
 ## Recent stable progression
 
@@ -34,10 +47,12 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.51 app b
 - 0.7.45: impact FX, recoil/muzzle polish.
 - 0.7.46: real down-to-GAME_OVER presentation and death input lock.
 - 0.7.47: death silhouette focus and cleaner death scene.
-- 0.7.48: authored floor-clear celebration connected to real presentation flow, with a visible spotlight transition.
-- 0.7.49: full authored interact recovery for weapon/equip presentation without changing gameplay timing.
-- 0.7.50: real E world interactions now receive the authored player interaction cue through a presentation-only timer.
-- 0.7.51: Victory and GAME OVER now use the current V16 protagonist presentation instead of legacy duck rendering.
+- 0.7.48: floor-clear celebration and visible spotlight transition.
+- 0.7.49: complete authored interact recovery.
+- 0.7.50: real E world interactions receive the authored player interaction cue.
+- 0.7.51: Victory and GAME OVER use the current V16 protagonist presentation.
+- 0.7.52: skin-coherence pass for the wardrobe/gameplay skin family.
+- 0.7.53: premium front-end redesign for menu, Settings, How To, Upgrades, Pause, floor-security progression and boss alert.
 
 ## Hard constraints
 
@@ -45,12 +60,13 @@ Production QA confirmed Hostinger serves the exact released inline v0.7.51 app b
 - Deploy through the existing Hostinger flow; do not use Vercel or AppDeploy.
 - Do not change gameplay/hitboxes for visual convenience.
 - Do not add hair or glasses to the base duck.
+- Do not invent a difficulty selector unless gameplay design explicitly adds difficulty modes later.
 - Do not declare an intermediate pass final.
 - Keep production on the last verified build when a candidate is not clearly better.
 
 ## Next priority
 
-The normal-gameplay and terminal-screen protagonist presentation is now V16-coherent. Stop iterating the same player states by inertia. Audit the remaining legacy protagonist appearances outside gameplay, starting with Wardrobe/skin previews. The base robber preview should not fall back to old `drawDuckSkin`; use the current player presentation path where it improves coherence while preserving skin selection, unlock/equip logic, scrolling and UI layout. Treat non-default skin rendering carefully because V16 currently delegates them to the remastered skin path. If the wardrobe gain is small or causes layout regressions, keep v0.7.51 and move to the next highest-impact world/enemy chibi inconsistency.
+The core menu/configuration/progression presentation is now modernized and production-verified. Continue the front-end coherence audit rather than returning immediately to protagonist micro-polish. Inspect remaining non-gameplay surfaces such as Wardrobe, Collection, map/overlays and any confirmation/modal screens against the v0.7.53 premium language. Preserve their navigation geometry and logic unless a separate gameplay/UI behavior change is explicitly justified. Promote only changes that are visibly cleaner and still pass production smoke.
 
 ## Session startup
 
