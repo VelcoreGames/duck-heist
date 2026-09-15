@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/step1-inspect-source.yml'
       - 'dist/resources/duck-heist-source.zip'
+      - 'src/**'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'index.html'
 
 permissions:
   contents: read
@@ -15,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
       - name: Inspect bundled source archive
         shell: bash
         run: |
@@ -22,24 +30,64 @@ jobs:
           rm -rf /tmp/bundled-src
           mkdir -p /tmp/bundled-src
           unzip -q dist/resources/duck-heist-source.zip -d /tmp/bundled-src
-          echo '=== TOP LEVEL ==='
-          find /tmp/bundled-src -maxdepth 2 -type f | sort | head -120
-          echo '=== PACKAGE FILES ==='
-          find /tmp/bundled-src -name package.json -print
-          echo '=== SOURCE FILES ==='
-          find /tmp/bundled-src -path '*/src/App.tsx' -o -path '*/src/game/render.ts' -o -path '*/src/game/engine.ts' -o -path '*/src/game/itemRules.ts' -o -path '*/src/game/mapgen.ts'
-          echo '=== PACKAGE CONTENT ==='
-          while IFS= read -r p; do echo "--- $p"; cat "$p"; done < <(find /tmp/bundled-src -name package.json -print)
-          echo '=== HASHES bundled/current ==='
           ROOT=$(dirname "$(find /tmp/bundled-src -path '*/src/App.tsx' -print -quit)")
           ROOT=$(dirname "$ROOT")
+          echo '=== HASHES bundled/current ==='
           for f in src/App.tsx src/game/render.ts src/game/engine.ts src/game/itemRules.ts src/game/mapgen.ts package.json index.html; do
             if [ -f "$ROOT/$f" ]; then printf '%s bundled ' "$f"; sha256sum "$ROOT/$f" | cut -d' ' -f1; fi
             if [ -f "$f" ]; then printf '%s current  ' "$f"; sha256sum "$f" | cut -d' ' -f1; fi
           done
+      - name: Inspect approved bundle contexts
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('web-release/assets/index-BgUNQzP_.js')
+          s=p.read_text(encoding='utf-8')
+          terms=['dangerEventActive','SOBREVIVE','visualViewport','MIGAJAS','MONEDAS','ESTADÍSTICAS DE LA RUN','remoteBomb','remote_bomb','shop','alarmTimer']
+          for term in terms:
+              print(f'\n=== {term} ===')
+              start=0
+              found=0
+              while found<6:
+                  i=s.find(term,start)
+                  if i<0: break
+                  print(s[max(0,i-500):min(len(s),i+900)])
+                  print('\n---')
+                  found+=1
+                  start=i+len(term)
+              print('occurrences shown:',found,'total:',s.count(term))
+      - name: Inspect source contexts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for term in dangerEventActive SOBREVIVE visualViewport MIGAJAS MONEDAS 'ESTADÍSTICAS DE LA RUN' remoteBomb remote_bomb activeItemCooldown alarmTimer rewardChance; do
+            echo "=== SOURCE $term ==="
+            grep -RFn --exclude='*.map' -- "$term" src index.html package.json vite.config.ts 2>/dev/null || true
+          done
+      - name: Install and typecheck current source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npx tsc --noEmit
+      - name: Real Vite source build smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/source-build
+          npx vite build --outDir /tmp/source-build
+          test -f /tmp/source-build/index.html
+          echo '=== SOURCE BUILD FILES ==='
+          find /tmp/source-build -maxdepth 2 -type f | sort | head -100
       - name: Upload extracted source
         uses: actions/upload-artifact@v4
         with:
           name: bundled-source-inspection
           path: /tmp/bundled-src
+          retention-days: 1
+      - name: Upload source build
+        uses: actions/upload-artifact@v4
+        with:
+          name: step1-current-source-build
+          path: /tmp/source-build
           retention-days: 1
