@@ -1,0 +1,108 @@
+name: QA v0.4.3 approved bundle
+
+on:
+  push:
+    branches: [tester-feedback-2026-09-09]
+    paths:
+      - scripts/patch-v043-approved-bundle.py
+      - .github/workflows/qa-v043-approved-bundle.yml
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tester-feedback-2026-09-09
+      - name: Preserve approved baseline and patch candidate
+        run: |
+          cp -a web-release approved-base
+          python3 scripts/patch-v043-approved-bundle.py
+          node --check web-release/assets/index-BgUNQzP_.js
+          cmp approved-base/index.html web-release/index.html
+          cmp approved-base/assets/index-DK-Zlqzo.css web-release/assets/index-DK-Zlqzo.css
+          cmp approved-base/assets/preview.png web-release/assets/preview.png
+          grep -a -q 'remote_bomb:{action:"remoteBomb",cooldown:720}' web-release/assets/index-BgUNQzP_.js
+          grep -a -q 'ESTADÍSTICAS DE LA RUN' web-release/assets/index-BgUNQzP_.js
+          grep -a -q '!r.dangerEventActive&&r.enemies.length===0' web-release/assets/index-BgUNQzP_.js
+          grep -a -q 'v0.4.3' web-release/assets/index-BgUNQzP_.js
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser audit and visual QA
+        run: |
+          mkdir -p qa-shots
+          python3 -m http.server 4173 --directory approved-base >/tmp/base.log 2>&1 &
+          base=$!
+          python3 -m http.server 4174 --directory web-release >/tmp/candidate.log 2>&1 &
+          candidate=$!
+          trap 'kill $base $candidate' EXIT
+          sleep 1
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const assert = require('assert');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+            const errors=[];
+            async function open(url, strict=true){
+              const p=await context.newPage();
+              if(strict){
+                p.on('pageerror',e=>errors.push(e.message));
+                p.on('console',m=>{ if(m.type()==='error' && !m.text().includes('Failed to load resource')) errors.push(m.text()); });
+              }
+              await p.goto(url,{waitUntil:'networkidle'});
+              await p.waitForTimeout(800);
+              return p;
+            }
+            const base=await open('http://127.0.0.1:4173/',false);
+            await base.screenshot({path:'qa-shots/01-approved-menu.png',fullPage:true});
+            const baseCanvas=await base.locator('canvas').last().boundingBox();
+            await base.close();
+
+            const candidate=await open('http://127.0.0.1:4174/');
+            await candidate.screenshot({path:'qa-shots/02-v043-menu.png',fullPage:true});
+            const candidateCanvas=await candidate.locator('canvas').last().boundingBox();
+            assert.deepStrictEqual(candidateCanvas,baseCanvas,'candidate canvas geometry changed');
+            await candidate.close();
+
+            const audit=await open('http://127.0.0.1:4174/?auditoria=1');
+            await audit.waitForFunction(()=>window.duckHeistAudit && Array.isArray(window.duckHeistAudit.failures));
+            const report=await audit.evaluate(()=>window.duckHeistAudit);
+            require('fs').writeFileSync('qa-shots/audit.json',JSON.stringify(report,null,2));
+            assert.strictEqual(report.failures.length,0,JSON.stringify(report.failures));
+            await audit.close();
+
+            const game=await open('http://127.0.0.1:4174/');
+            await game.keyboard.press('Enter'); // difficulty screen
+            await game.waitForTimeout(150);
+            await game.keyboard.press('Enter'); // normal
+            await game.waitForTimeout(4300);
+            await game.keyboard.down('Tab');
+            await game.waitForTimeout(250);
+            await game.screenshot({path:'qa-shots/03-tab-stats.png',fullPage:true});
+            await game.keyboard.up('Tab');
+            await game.waitForTimeout(120);
+            await game.screenshot({path:'qa-shots/04-tab-released.png',fullPage:true});
+            await game.close();
+
+            await browser.close();
+            if(errors.length) throw new Error(errors.join('\n'));
+          })();
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v043-approved-bundle-qa
+          path: qa-shots/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: v043-approved-web-release
+          path: web-release/
+          if-no-files-found: error
