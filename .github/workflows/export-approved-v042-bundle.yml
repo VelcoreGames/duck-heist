@@ -1,0 +1,23 @@
+name: Export approved v0.4.2 bundle
+
+on:
+  push:
+    branches: [tester-feedback-2026-09-09]
+    paths:
+      - .github/workflows/export-approved-v042-bundle.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tester-feedback-2026-09-09
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-v042-web-release
+          path: web-release/
+          if-no-files-found: error
