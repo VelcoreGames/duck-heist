@@ -28,15 +28,31 @@ jobs:
         run: |
           from pathlib import Path
           s=Path('web-release/assets/index-BgUNQzP_.js').read_text(encoding='utf-8')
-          terms=['dangerEventStarted','dangerEventActive','dangerEventTotal','dangerEventPressure','cafe','EVENTO DE ALTO RIESGO','Primero sobrevive al operativo.','security_terminal','field_medic','weapon_forge','SOBREVIVE','visualViewport','duck-responsive-shell','ESTADÍSTICAS DE LA RUN','remoteBomb','remote_bomb']
+          terms=['DH_SPAWN_EVENT_SECURITY','dangerEventStarted','dangerEventActive','dangerEventTotal','dangerEventPressure','cafe','EVENTO DE ALTO RIESGO','Primero sobrevive al operativo.','security_terminal','field_medic','weapon_forge','SOBREVIVE','visualViewport','duck-responsive-shell','ESTADÍSTICAS DE LA RUN','remoteBomb','remote_bomb']
           for term in terms:
               print(f'\n===== {term} total={s.count(term)} =====')
               start=0
-              for n in range(8):
+              for n in range(12):
                   i=s.find(term,start)
                   if i<0: break
                   print(f'\n--- hit {n+1} at {i} ---')
-                  print(s[max(0,i-2600):min(len(s),i+4200)])
+                  print(s[max(0,i-6500):min(len(s),i+8500)])
+                  start=i+len(term)
+      - name: Inspect event-room construction around cafe flags
+        shell: python
+        run: |
+          from pathlib import Path
+          s=Path('web-release/assets/index-BgUNQzP_.js').read_text(encoding='utf-8')
+          for term in ['cafe=', '.cafe', 'cafe:', 'EVENT', 'event={', 'kind:']:
+              print(f'\n===== ROOM TERM {term} total={s.count(term)} =====')
+              start=0
+              for n in range(20):
+                  i=s.find(term,start)
+                  if i<0: break
+                  ctx=s[max(0,i-3200):min(len(s),i+5200)]
+                  if 'cafe' in ctx or 'dangerEvent' in ctx or 'EVENT' in ctx:
+                      print(f'\n--- relevant hit {n+1} at {i} ---')
+                      print(ctx)
                   start=i+len(term)
       - name: Inspect source contexts
         shell: bash
