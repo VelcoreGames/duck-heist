@@ -228,8 +228,19 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
       break;
     }
     case RoomType.EVENT: {
-      const kind=pick(Object.keys(EVENTS)) as EventKind;
-      content.event={kind,x:232,y:170,used:false,selected:0,message:''};break;
+      if (Math.random() < .38) {
+        content.cafe = true;
+        const foods = ['hp','croissant','sandwich','baguette','torta'];
+        const selected = [...foods].sort(() => Math.random() - .5).slice(0, 3);
+        const foodCost = (id:string) => id === 'hp' ? 5 : id === 'croissant' ? 7 : (id === 'sandwich' || id === 'baguette') ? 9 : 14;
+        content.shopItems = selected.map((id, i) => ({
+          itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:145+i*95,y:232,
+        }));
+      } else {
+        const kind=pick(Object.keys(EVENTS)) as EventKind;
+        content.event={kind,x:232,y:170,used:false,selected:0,message:''};
+      }
+      break;
     }
     case RoomType.CHOICE:
       content.choices=diverseRewards(engine).map((id,i)=>({x:142+i*84,y:165,itemId:id,isWeapon:false,taken:false}));
@@ -618,9 +629,94 @@ function roomLabelFor(room: MapRoom): string {
 }
 
 // ---------------------------------------------------------------------------
+// EVENTO DE ALTO RIESGO
+// ---------------------------------------------------------------------------
+function dangerEventEnemyPool(floor:number): string[] {
+  return [
+    ['policia_pato','policia_rapido'],
+    ['policia_pato','policia_rapido','policia_escopeta'],
+    ['policia_rapido','policia_escopeta','dron_policial'],
+    ['policia_escopeta','dron_policial','policia_francotirador'],
+    ['policia_escopeta','dron_policial','policia_francotirador','policia_rapido'],
+    ['policia_escopeta','dron_policial','policia_francotirador','policia_rapido'],
+  ][clamp(floor,0,5)];
+}
+
+function spawnDangerEventSecurity(engine:GameEngine, room:MapRoom, content:RoomContent, count:number) {
+  const floor=clamp(engine.map.floorIndex,0,5);
+  const pool=dangerEventEnemyPool(floor);
+  const spots=freeTiles(room.layout,2).filter(spot=>{
+    const x=spot.x*TILE_SIZE+TILE_SIZE/2,y=spot.y*TILE_SIZE+TILE_SIZE/2;
+    if(dist(x,y,engine.player.x+7,engine.player.y+8)<105) return false;
+    if((room.doors ?? []).some(dir=>{const door=DOOR_TILE[dir];return Math.hypot(spot.x-door.x,spot.y-door.y)<2.7;})) return false;
+    if(content.event && !content.event.used && dist(x,y,content.event.x,content.event.y)<56) return false;
+    return true;
+  });
+  for(let i=0;i<count && spots.length;i++) {
+    const index=Math.floor(Math.random()*spots.length);
+    const spot=spots.splice(index,1)[0];
+    const type=pool[Math.floor(Math.random()*pool.length)];
+    content.enemies.push(makeEnemy(type,floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
+  }
+}
+
+function updateDangerEvent(engine:GameEngine) {
+  if(engine.state!==GameState.PLAYING) return;
+  const room=currentRoom(engine),content=getContent(engine);
+  if(!(room.type===RoomType.EVENT && !content.cafe)) {
+    if(engine.dangerEventMusic) {
+      engine.dangerEventMusic=false;
+      setMusic(room.type===RoomType.BOSS?'boss':'run',engine.map.floorIndex);
+    }
+    return;
+  }
+  if(content.dangerEventDone) {
+    if(engine.dangerEventMusic) {engine.dangerEventMusic=false;setMusic('run',engine.map.floorIndex);}
+    return;
+  }
+  const floor=clamp(engine.map.floorIndex,0,5);
+  if(!content.dangerEventStarted) {
+    content.dangerEventStarted=true;
+    content.dangerEventActive=true;
+    content.dangerEventTotal=(20+floor*2)*60;
+    content.dangerEventTimer=content.dangerEventTotal;
+    content.dangerEventWave=false;
+    content.dangerEventPressure=0;
+    spawnDangerEventSecurity(engine,room,content,4+(floor>=2?1:0)+(floor>=4?1:0));
+    room.cleared=false;
+    engine.roomLabel='EVENTO DE ALTO RIESGO';
+    engine.roomLabelTimer=90;
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,2.5);
+  }
+  if(!content.dangerEventActive) return;
+  engine.dangerEventMusic=true;
+  setMusic('event',floor);
+  room.cleared=false;
+  if((content.dangerEventTimer ?? 0)>0) content.dangerEventTimer!--;
+  const total=content.dangerEventTotal ?? 1,timer=content.dangerEventTimer ?? 0;
+  const elapsed=total-timer;
+  if(!content.dangerEventWave && elapsed>=total*.5) {
+    content.dangerEventWave=true;
+    spawnDangerEventSecurity(engine,room,content,2+(floor>=3?1:0));
+    engine.roomLabel='¡REFUERZOS EN CAMINO!';engine.roomLabelTimer=72;
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,3);
+  }
+  if(timer>0 && content.enemies.length===0 && engine.frame>(content.dangerEventPressure ?? 0)) {
+    content.dangerEventPressure=engine.frame+210;
+    spawnDangerEventSecurity(engine,room,content,2+(floor>=4?1:0));
+  }
+  if(timer<=0 && content.enemies.length===0) {
+    content.dangerEventActive=false;content.dangerEventDone=true;
+    engine.dangerEventMusic=false;setMusic('run',floor);
+    engine.toast='EVENTO SUPERADO';engine.toastTimer=90;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // BUCLE DE ACTUALIZACIÓN
 // ---------------------------------------------------------------------------
 export function updateEngine(engine: GameEngine) {
+  updateDangerEvent(engine);
   if(engine.state===GameState.MAP) return;
   engine.frame++;
   if(engine.state===GameState.HEIST_INTRO) {
@@ -1058,13 +1154,15 @@ export function updateEngine(engine: GameEngine) {
         const price=shopPrice(engine,s);
         if (player.crumbs >= price) {
           let ok = true;
-          if (s.isWeapon) ok = tryGiveWeapon(engine, s.itemId, 'shop', si, s.x, s.y - 20);
+          if (s.isFood && player.hp >= player.maxHp) {ok=false;engine.toast='VIDA COMPLETA';engine.toastTimer=60;playDeny();}
+          else if (s.isWeapon) ok = tryGiveWeapon(engine, s.itemId, 'shop', si, s.x, s.y - 20);
           else if (ACTIVE_ITEMS[s.itemId] && player.activeItem && player.activeItem !== s.itemId) ok = offerActiveSwap(engine, s.itemId, 'shop', si, s.x, s.y);
           if (ok) {
             player.crumbs -= price;
             player.couponUsed=true;s.soldAt=engine.frame;s.sold = true;
-            if (!s.isWeapon && !ACTIVE_ITEMS[s.itemId]) grantItem(engine, s.itemId, false, false);
-            if (!s.isWeapon && ACTIVE_ITEMS[s.itemId] && !engine.activeSwap) grantItem(engine, s.itemId, false, true);
+            if (s.isFood) {healPlayer(engine,foodHeal(s.itemId));playHeal();}
+            else if (!s.isWeapon && !ACTIVE_ITEMS[s.itemId]) grantItem(engine, s.itemId, false, false);
+            if (!s.isFood && !s.isWeapon && ACTIVE_ITEMS[s.itemId] && !engine.activeSwap) grantItem(engine, s.itemId, false, true);
             spawn(engine, s.x, s.y, 'spark', 10, '#f4d03f');
             playEquip();merchantSpeak(engine,pick(['No hago devoluciones.','Buena elección. Creo.','No tengo factura.']));
           }
@@ -1102,7 +1200,7 @@ export function updateEngine(engine: GameEngine) {
   }
 
   // --- Sala despejada ---
-  if (!room.cleared && content.enemies.length === 0 && (content.alarmTimer ?? 0)<=0) {
+  if (!room.cleared && !content.dangerEventActive && content.enemies.length === 0 && (content.alarmTimer ?? 0)<=0) {
     room.cleared = true;
     content.clearAge=0;engine.hitStop=Math.max(engine.hitStop,2);
     const firstClear=!content.clearCounted;content.clearCounted=true;
@@ -1121,7 +1219,7 @@ export function updateEngine(engine: GameEngine) {
     }
     applyMapItemEffects(engine,false);
     spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 16, '#39d353');
-    if ((room.type === RoomType.COMBAT || room.type === RoomType.CHALLENGE) && Math.random() < .16+getBuild(player).rewardChance+engine.alert*.0006+(room.modifier==='alarm'?.1:0)) {
+    if (room.type === RoomType.COMBAT && Math.random() < .07+getBuild(player).rewardChance*.5+engine.alert*.0003+(room.modifier==='alarm'?.03:0)) {
       content.items.push({ x: CANVAS_WIDTH / 2 - 8, y: CANVAS_HEIGHT / 2 - 8, itemId: rollItem(engine), isWeapon: false, isActive: false });
     }
     if (room.type === RoomType.CHALLENGE) {
@@ -2187,7 +2285,7 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
       type: rollFood(), value: 1, lifetime: 99999,
     });
   }
-  if(e.elite && Math.random()<.12) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+  if(e.elite && Math.random()<.04) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
 }
 
 export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact'|'projectile'='contact',police=false) {
@@ -2258,7 +2356,7 @@ export function handleDash(engine: GameEngine) {
 export function handleActiveItem(engine: GameEngine) {
   const p = engine.player;
   if(engine.state!==GameState.PLAYING || engine.swap || engine.transition.active) return;
-  if (!p.activeItem || p.activeItemCooldown > 0) return;
+  if (!p.activeItem || (p.activeItemCooldown > 0 && !(p.activeItem==='remote_bomb' && engine.remoteBomb))) return;
   const content = getContent(engine);
   const rule=ACTIVE_RULES[p.activeItem], b=getBuild(p);
   if(!rule) return;
@@ -2310,6 +2408,19 @@ export function handleActiveItem(engine: GameEngine) {
         const spot=safeDrop(room,p.x-24+i*24,p.y+26);
         content.pickups.push({x:spot.x+8,y:spot.y+8,type:rollFood(),value:1,lifetime:99999});
       }playRarityPickup(3);break;
+    case 'remoteBomb': {
+      if(engine.remoteBomb) {
+        const bomb=engine.remoteBomb;
+        explode(engine,makeProjectile(bomb.x,bomb.y,0,0,'baguette',55,true,1,{explode:120}),content,false);
+        spawn(engine,bomb.x,bomb.y,'spark',18,'#f4d03f');
+        engine.shakeIntensity=Math.max(engine.shakeIntensity,4);
+        engine.remoteBomb=null;
+      } else {
+        engine.remoteBomb={x:cx,y:cy,life:1800};
+        playBounce();
+      }
+      break;
+    }
     case 'chaos': {
       const outcome=rngInt(0,4);
       if(outcome===0) explode(engine,makeProjectile(cx,cy,0,0,'baguette',80,true,1,{explode:150}),content);
@@ -2453,7 +2564,7 @@ export function shopPrice(engine:GameEngine,product:{cost:number}) {
   const b=getBuild(engine.player);
   const discount=Math.max(b.coupon>0?.25:0,b.firstDiscount);
   const coupon=!engine.player.couponUsed?1-discount:1;
-  return Math.max(1,Math.ceil(product.cost*b.shop*coupon));
+  return Math.max(1,Math.ceil(product.cost*b.shop*coupon*(1.25+engine.map.floorIndex*.2)));
 }
 function merchantSpeak(engine:GameEngine,line:string) {
   const room=getContent(engine);room.merchantLine=line;room.merchantUntil=engine.frame+150;
@@ -2471,6 +2582,9 @@ export function selectEventOption(engine:GameEngine,index:number) {
 function activateEvent(engine:GameEngine) {
   const content=getContent(engine),event=content.event!,p=engine.player;
   if(event.used) return;
+  if(currentRoom(engine).type===RoomType.EVENT && !content.cafe && content.dangerEventActive) {
+    event.message='Primero sobrevive al operativo.';playDeny();return;
+  }
   const cost=event.kind==='safe'?18:event.kind==='vending'?8:event.kind==='atm'?12:event.kind==='interrogation'?15:0;
   if(event.selected===1 && event.kind!=='interrogation') {event.message='Una decisión prudente. Quizá.';event.used=true;return;}
   if(event.kind==='interrogation' && event.selected===1) {

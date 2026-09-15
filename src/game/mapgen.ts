@@ -187,7 +187,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   // Tesoro: preferentemente callejón sin salida
   assignDeadEndOrRandom(remaining(), RoomType.TREASURE,random);
   // Segunda sala de objeto opcional
-  if (random() < 0.75) assignDeadEndOrRandom(remaining(), RoomType.ITEM,random);
+  if (random() < 0.35) assignDeadEndOrRandom(remaining(), RoomType.ITEM,random);
   // Desafío
   assignRandom(remaining(), RoomType.CHALLENGE,random);
   // Bóveda secreta opcional
