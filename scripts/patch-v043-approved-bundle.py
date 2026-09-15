@@ -52,3 +52,10 @@ for needle in (
         raise SystemExit(f'missing invariant: {needle}')
 
 p.write_text(s, encoding='utf-8')
+
+# La etiqueta DOM externa también debe reflejar la nueva versión; no se cambia ningún otro HTML.
+html_path = Path('web-release/index.html')
+html = html_path.read_text(encoding='utf-8')
+if html.count("const VERSION = 'v0.4.2';") != 1:
+    raise SystemExit('outer version label: expected one v0.4.2 marker')
+html_path.write_text(html.replace("const VERSION = 'v0.4.2';", "const VERSION = 'v0.4.3';", 1), encoding='utf-8')
