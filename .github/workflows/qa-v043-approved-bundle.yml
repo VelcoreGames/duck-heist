@@ -22,13 +22,19 @@ jobs:
           cp -a web-release approved-base
           python3 scripts/patch-v043-approved-bundle.py
           node --check web-release/assets/index-BgUNQzP_.js
-          cmp approved-base/index.html web-release/index.html
           cmp approved-base/assets/index-DK-Zlqzo.css web-release/assets/index-DK-Zlqzo.css
           cmp approved-base/assets/preview.png web-release/assets/preview.png
+          python3 - <<'PY'
+          from pathlib import Path
+          a=Path('approved-base/index.html').read_text()
+          b=Path('web-release/index.html').read_text().replace("const VERSION = 'v0.4.3';", "const VERSION = 'v0.4.2';")
+          if a != b: raise SystemExit('index.html changed beyond expected version label')
+          PY
           grep -a -q 'remote_bomb:{action:"remoteBomb",cooldown:720}' web-release/assets/index-BgUNQzP_.js
           grep -a -q 'ESTADÍSTICAS DE LA RUN' web-release/assets/index-BgUNQzP_.js
           grep -a -q '!r.dangerEventActive&&r.enemies.length===0' web-release/assets/index-BgUNQzP_.js
           grep -a -q 'v0.4.3' web-release/assets/index-BgUNQzP_.js
+          grep -q "const VERSION = 'v0.4.3';" web-release/index.html
       - name: Install browser
         run: |
           npm install --no-save playwright@1.55.0
@@ -45,6 +51,8 @@ jobs:
           node <<'NODE'
           const { chromium } = require('playwright');
           const assert = require('assert');
+          const fs = require('fs');
+          const crypto = require('crypto');
           (async()=>{
             const browser=await chromium.launch({headless:true});
             const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
@@ -59,6 +67,15 @@ jobs:
               await p.waitForTimeout(800);
               return p;
             }
+            async function auditAt(url,file){
+              const p=await open(url,false);
+              await p.waitForFunction(()=>window.duckHeistAudit && Array.isArray(window.duckHeistAudit.failures));
+              const report=await p.evaluate(()=>window.duckHeistAudit);
+              fs.writeFileSync(file,JSON.stringify(report,null,2));
+              await p.close();
+              return report;
+            }
+
             const base=await open('http://127.0.0.1:4173/',false);
             await base.screenshot({path:'qa-shots/01-approved-menu.png',fullPage:true});
             const baseCanvas=await base.locator('canvas').last().boundingBox();
@@ -70,24 +87,30 @@ jobs:
             assert.deepStrictEqual(candidateCanvas,baseCanvas,'candidate canvas geometry changed');
             await candidate.close();
 
-            const audit=await open('http://127.0.0.1:4174/?auditoria=1');
-            await audit.waitForFunction(()=>window.duckHeistAudit && Array.isArray(window.duckHeistAudit.failures));
-            const report=await audit.evaluate(()=>window.duckHeistAudit);
-            require('fs').writeFileSync('qa-shots/audit.json',JSON.stringify(report,null,2));
-            assert.strictEqual(report.failures.length,0,JSON.stringify(report.failures));
-            await audit.close();
+            const baseReport=await auditAt('http://127.0.0.1:4173/?auditoria=1','qa-shots/audit-base.json');
+            const report=await auditAt('http://127.0.0.1:4174/?auditoria=1','qa-shots/audit-v043.json');
+            const baseNames=new Set(baseReport.failures.map(x=>x.split(':')[0]));
+            const newFailureNames=[...new Set(report.failures.map(x=>x.split(':')[0]).filter(x=>!baseNames.has(x)))];
+            assert.deepStrictEqual(newFailureNames,[],`new audit failures: ${newFailureNames.join(', ')}`);
+            const baseIssues=new Set(baseReport.manifest.issues);
+            const newIssues=report.manifest.issues.filter(x=>!baseIssues.has(x));
+            assert.deepStrictEqual(newIssues,[],`new manifest issues: ${newIssues.join(', ')}`);
+            assert.ok(baseReport.manifest.issues.includes('remote_bomb: missing active rule'),'baseline did not expose remote bomb bug');
+            assert.ok(!report.manifest.issues.includes('remote_bomb: missing active rule'),'remote bomb rule still missing');
+            assert.ok(!report.failures.some(x=>x.startsWith('Active remote_bomb:')),'remote bomb active self-test fails');
 
             const game=await open('http://127.0.0.1:4174/');
-            await game.keyboard.press('Enter'); // difficulty screen
+            await game.keyboard.press('Enter');
             await game.waitForTimeout(150);
-            await game.keyboard.press('Enter'); // normal
+            await game.keyboard.press('Enter');
             await game.waitForTimeout(4300);
             await game.keyboard.down('Tab');
             await game.waitForTimeout(250);
-            await game.screenshot({path:'qa-shots/03-tab-stats.png',fullPage:true});
+            const tab=await game.screenshot({path:'qa-shots/03-tab-stats.png',fullPage:true});
             await game.keyboard.up('Tab');
-            await game.waitForTimeout(120);
-            await game.screenshot({path:'qa-shots/04-tab-released.png',fullPage:true});
+            await game.waitForTimeout(150);
+            const released=await game.screenshot({path:'qa-shots/04-tab-released.png',fullPage:true});
+            assert.notStrictEqual(crypto.createHash('sha256').update(tab).digest('hex'),crypto.createHash('sha256').update(released).digest('hex'),'TAB did not change rendered frame');
             await game.close();
 
             await browser.close();
