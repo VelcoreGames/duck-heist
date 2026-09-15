@@ -93,7 +93,7 @@ export const NEW_PASSIVE_ITEMS: PassiveRow[] = [
 NEW_PASSIVE_ITEMS.forEach(([id,,,,, rule]) => { PASSIVE_RULES[id] = rule; });
 EXPANSION_ITEMS.forEach(item=>{PASSIVE_RULES[item.id]=item.rule;});
 
-export type ActiveAction = 'quack'|'bomb'|'decoy'|'stun'|'coffee'|'heal'|'mega'|'grenade'|'lure'|'siren'|'doubleCoffee'|'tray'|'food'|'chaos';
+export type ActiveAction = 'quack'|'bomb'|'decoy'|'stun'|'coffee'|'heal'|'mega'|'grenade'|'lure'|'siren'|'doubleCoffee'|'tray'|'food'|'chaos'|'remoteBomb';
 export const ACTIVE_RULES: Record<string, { action:ActiveAction; cooldown:number; duration?:number }> = {
   emergency_quack:{action:'quack',cooldown:180}, bread_bomb:{action:'bomb',cooldown:480},
   duck_decoy:{action:'decoy',cooldown:600,duration:360}, false_alarm:{action:'stun',cooldown:720,duration:150},
@@ -102,6 +102,7 @@ export const ACTIVE_RULES: Record<string, { action:ActiveAction; cooldown:number
   rubber_lure:{action:'lure',cooldown:720,duration:480}, stolen_siren:{action:'siren',cooldown:660,duration:240},
   double_coffee:{action:'doubleCoffee',cooldown:600,duration:360}, tray_shield:{action:'tray',cooldown:720,duration:240},
   bread_box:{action:'food',cooldown:3600}, red_button:{action:'chaos',cooldown:1500},
+  remote_bomb:{action:'remoteBomb',cooldown:720},
 };
 export const NEW_ACTIVE_ITEMS: [string,string,string,number,string][] = [
   ['bread_grenade','GRANADA DE PAN','Lanza una granada hacia la mira. Explota 0.8 s después de caer.',2,'Pan con consecuencias.'],
@@ -131,16 +132,18 @@ export function getBuild(player: { items:string[] }): BuildEffects {
   value.activeCooldown = Math.max(.3, value.activeCooldown); value.shop = Math.max(.5, value.shop);
   value.crit = Math.min(.7, value.crit); value.block = Math.min(.45, value.block);
   value.slow = Math.min(.6, value.slow); value.dashCooldown = Math.max(.35, value.dashCooldown);
-  value.healing=Math.max(.25,value.healing);value.cooldownRate=Math.min(2,value.cooldownRate);
-  value.firstDiscount=Math.min(.5,value.firstDiscount);value.alertGrowth=Math.max(.4,value.alertGrowth);
-  cache.set(player,{ key, value }); return value;
+  value.healing=Math.max(.25,value.healing);value.contactReduction=Math.min(.5,value.contactReduction);
+  value.accuracy=Math.max(.55,value.accuracy);value.enemySpeed=Math.max(.65,value.enemySpeed);
+  value.currencyScale=Math.max(.4,value.currencyScale);value.cooldownRate=Math.max(.6,value.cooldownRate);value.alertGrowth=Math.max(.4,value.alertGrowth);
+  value.explosionScale=Math.max(.7,value.explosionScale);value.explosiveRate=Math.max(.6,value.explosiveRate);
+  cache.set(player,{key,value});return value;
 }
 
-export const FOODS: Record<string,{name:string;description:string;heal:number;rarity:number;flavor:string}> = {
-  hp:{name:'REBANADA DE PAN',description:'Recupera 1 corazón.',heal:1,rarity:0,flavor:'Botiquín con corteza.'},
-  sandwich:{name:'SÁNDWICH',description:'Recupera 2 corazones.',heal:2,rarity:1,flavor:'Doble capa de esperanza.'},
-  baguette:{name:'BAGUETTE',description:'Recupera 2 corazones.',heal:2,rarity:1,flavor:'Esta no explota.'},
-  croissant:{name:'CUERNITO',description:'Recupera 1 vida; +25% velocidad durante 6 s.',heal:1,rarity:1,flavor:'Hojaldre a la fuga.'},
-  torta:{name:'PASTEL GIGANTE',description:'Recupera 3 de vida.',heal:3,rarity:2,flavor:'Feliz cumpleaños, prófugo.'},
-  pan_dorado:{name:'PAN DORADO',description:'Recupera todos los corazones.',heal:99,rarity:4,flavor:'La salud no tiene precio.'},
+export const FOODS: Record<string,{name:string;heal:number;description:string;flavor:string}> = {
+  hp:{name:'CORAZÓN DE PAN',heal:1,description:'Cura 1 corazón.',flavor:'Caliente y sospechosamente terapéutico.'},
+  croissant:{name:'CUERNITO',heal:1,description:'Cura 1 corazón.',flavor:'Media luna, cero preguntas.'},
+  sandwich:{name:'SÁNDWICH',heal:1.5,description:'Cura 1.5 corazones.',flavor:'Dos panes. Doble medicina.'},
+  baguette:{name:'BAGUETTE',heal:2,description:'Cura 2 corazones.',flavor:'Contundente y nutritiva.'},
+  torta:{name:'TORTA',heal:2.5,description:'Cura 2.5 corazones.',flavor:'El botiquín definitivo.'},
+  pan_dorado:{name:'PAN DORADO',heal:99,description:'Cura toda la vida.',flavor:'Dorado, crujiente, milagroso.'},
 };
