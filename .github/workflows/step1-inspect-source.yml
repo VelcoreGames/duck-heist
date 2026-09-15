@@ -23,68 +23,40 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Inspect bundled source archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf /tmp/bundled-src
-          mkdir -p /tmp/bundled-src
-          unzip -q dist/resources/duck-heist-source.zip -d /tmp/bundled-src
-          ROOT=$(dirname "$(find /tmp/bundled-src -path '*/src/App.tsx' -print -quit)")
-          ROOT=$(dirname "$ROOT")
-          echo '=== HASHES bundled/current ==='
-          for f in src/App.tsx src/game/render.ts src/game/engine.ts src/game/itemRules.ts src/game/mapgen.ts package.json index.html; do
-            if [ -f "$ROOT/$f" ]; then printf '%s bundled ' "$f"; sha256sum "$ROOT/$f" | cut -d' ' -f1; fi
-            if [ -f "$f" ]; then printf '%s current  ' "$f"; sha256sum "$f" | cut -d' ' -f1; fi
-          done
-      - name: Inspect approved bundle contexts
+      - name: Inspect approved bundle event and parity contexts
         shell: python
         run: |
           from pathlib import Path
-          p=Path('web-release/assets/index-BgUNQzP_.js')
-          s=p.read_text(encoding='utf-8')
-          terms=['dangerEventActive','SOBREVIVE','visualViewport','MIGAJAS','MONEDAS','ESTADÍSTICAS DE LA RUN','remoteBomb','remote_bomb','shop','alarmTimer']
+          s=Path('web-release/assets/index-BgUNQzP_.js').read_text(encoding='utf-8')
+          terms=['dangerEventStarted','dangerEventActive','dangerEventTotal','dangerEventPressure','cafe','EVENTO DE ALTO RIESGO','Primero sobrevive al operativo.','security_terminal','field_medic','weapon_forge','SOBREVIVE','visualViewport','duck-responsive-shell','ESTADÍSTICAS DE LA RUN','remoteBomb','remote_bomb']
           for term in terms:
-              print(f'\n=== {term} ===')
+              print(f'\n===== {term} total={s.count(term)} =====')
               start=0
-              found=0
-              while found<6:
+              for n in range(8):
                   i=s.find(term,start)
                   if i<0: break
-                  print(s[max(0,i-500):min(len(s),i+900)])
-                  print('\n---')
-                  found+=1
+                  print(f'\n--- hit {n+1} at {i} ---')
+                  print(s[max(0,i-2600):min(len(s),i+4200)])
                   start=i+len(term)
-              print('occurrences shown:',found,'total:',s.count(term))
       - name: Inspect source contexts
         shell: bash
         run: |
           set -euo pipefail
-          for term in dangerEventActive SOBREVIVE visualViewport MIGAJAS MONEDAS 'ESTADÍSTICAS DE LA RUN' remoteBomb remote_bomb activeItemCooldown alarmTimer rewardChance; do
+          for term in dangerEventActive dangerEventStarted cafe 'EVENTO DE ALTO RIESGO' visualViewport 'ESTADÍSTICAS DE LA RUN' remoteBomb remote_bomb activeItemCooldown alarmTimer rewardChance; do
             echo "=== SOURCE $term ==="
             grep -RFn --exclude='*.map' -- "$term" src index.html package.json vite.config.ts 2>/dev/null || true
           done
-      - name: Install and typecheck current source
+      - name: Install, typecheck and source-build smoke test
         shell: bash
         run: |
           set -euo pipefail
           npm ci
           npx tsc --noEmit
-      - name: Real Vite source build smoke test
-        shell: bash
-        run: |
-          set -euo pipefail
           rm -rf /tmp/source-build
           npx vite build --outDir /tmp/source-build
           test -f /tmp/source-build/index.html
           echo '=== SOURCE BUILD FILES ==='
           find /tmp/source-build -maxdepth 2 -type f | sort | head -100
-      - name: Upload extracted source
-        uses: actions/upload-artifact@v4
-        with:
-          name: bundled-source-inspection
-          path: /tmp/bundled-src
-          retention-days: 1
       - name: Upload source build
         uses: actions/upload-artifact@v4
         with:
