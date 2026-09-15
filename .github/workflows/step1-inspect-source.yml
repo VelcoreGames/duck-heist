@@ -76,12 +76,27 @@ jobs:
             echo "=== SOURCE $term ==="
             grep -RFn --exclude='*.map' -- "$term" src index.html package.json vite.config.ts 2>/dev/null || true
           done
-      - name: Install, typecheck and source-build smoke test
+      - name: Install and capture typecheck diagnostics
         shell: bash
         run: |
           set -euo pipefail
           npm ci
-          npx tsc --noEmit
+          set +e
+          npx tsc --noEmit 2>&1 | tee step1-typecheck.log
+          status=${PIPESTATUS[0]}
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add step1-typecheck.log
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: record Step 1 typecheck diagnostics'
+            git push origin HEAD:step1-source-sync
+          fi
+          exit "$status"
+      - name: Source-build smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
           rm -rf /tmp/source-build
           npx vite build --outDir /tmp/source-build
           test -f /tmp/source-build/index.html
