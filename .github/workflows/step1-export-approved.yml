@@ -1,0 +1,27 @@
+name: Step 1 export approved bundle
+
+on:
+  push:
+    branches: [step1-source-sync]
+    paths:
+      - '.github/workflows/step1-export-approved.yml'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify approved bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f web-release/index.html
+          test -f web-release/assets/index-BgUNQzP_.js
+          test -f web-release/assets/index-DK-Zlqzo.css
+          grep -q "v0.4.3" web-release/index.html
+      - name: Upload approved v0.4.3 bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: step1-approved-v043-web-release
+          path: web-release
+          retention-days: 1
