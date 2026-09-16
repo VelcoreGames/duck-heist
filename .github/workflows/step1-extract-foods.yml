@@ -1,0 +1,65 @@
+name: Step 1 extract food parity
+
+on:
+  push:
+    branches: [step1-source-sync]
+    paths:
+      - '.github/workflows/step1-extract-foods.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract approved v0.4.3 food contexts
+        shell: python
+        run: |
+          from pathlib import Path
+
+          candidates = [
+              Path('web-release/assets/index-BgUNQzP_.js'),
+              Path('dist/assets/index-BgUNQzP_.js'),
+          ]
+          bundle = next((p for p in candidates if p.exists()), None)
+          if bundle is None:
+              raise SystemExit('approved bundle not found')
+
+          s = bundle.read_text(encoding='utf-8')
+          terms = [
+              'CORAZÓN DE PAN',
+              'CUERNITO',
+              'SÁNDWICH',
+              'BAGUETTE',
+              'TORTA',
+              'Caliente y sospechosamente terapéutico.',
+              'Media luna, cero preguntas.',
+              'Dos panes. Doble medicina.',
+              'Contundente y nutritiva.',
+              'El botiquín definitivo.',
+          ]
+          out = [f'BUNDLE={bundle}']
+          for term in terms:
+              out.append(f'\n===== {term} total={s.count(term)} =====')
+              start = 0
+              for n in range(5):
+                  i = s.find(term, start)
+                  if i < 0:
+                      break
+                  out.append(f'--- hit {n+1} at {i} ---')
+                  out.append(s[max(0, i-1800):min(len(s), i+2600)])
+                  start = i + len(term)
+          Path('step1-bundle-foods.log').write_text('\n'.join(out), encoding='utf-8')
+      - name: Commit diagnostic output
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add step1-bundle-foods.log
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: record v0.4.3 food parity context'
+            git push origin HEAD:step1-source-sync
+          fi
