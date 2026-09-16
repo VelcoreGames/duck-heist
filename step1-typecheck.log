@@ -1,2 +1,0 @@
-src/game/catalog.ts(34,110): error TS2339: Property 'rarity' does not exist on type '{ name: string; heal: number; description: string; flavor: string; }'.
-src/game/catalog.ts(49,96): error TS2339: Property 'rarity' does not exist on type '{ name: string; heal: number; description: string; flavor: string; }'.
