@@ -108,3 +108,5 @@ jobs:
           name: step1-current-source-build
           path: /tmp/source-build
           retention-days: 1
+
+# retrigger Step 1 validation after food sync
