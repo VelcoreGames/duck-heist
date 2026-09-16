@@ -139,11 +139,11 @@ export function getBuild(player: { items:string[] }): BuildEffects {
   cache.set(player,{key,value});return value;
 }
 
-export const FOODS: Record<string,{name:string;heal:number;description:string;flavor:string}> = {
-  hp:{name:'CORAZÓN DE PAN',heal:1,description:'Cura 1 corazón.',flavor:'Caliente y sospechosamente terapéutico.'},
-  croissant:{name:'CUERNITO',heal:1,description:'Cura 1 corazón.',flavor:'Media luna, cero preguntas.'},
-  sandwich:{name:'SÁNDWICH',heal:1.5,description:'Cura 1.5 corazones.',flavor:'Dos panes. Doble medicina.'},
-  baguette:{name:'BAGUETTE',heal:2,description:'Cura 2 corazones.',flavor:'Contundente y nutritiva.'},
-  torta:{name:'TORTA',heal:2.5,description:'Cura 2.5 corazones.',flavor:'El botiquín definitivo.'},
-  pan_dorado:{name:'PAN DORADO',heal:99,description:'Cura toda la vida.',flavor:'Dorado, crujiente, milagroso.'},
+export const FOODS: Record<string,{name:string;heal:number;rarity:number;description:string;flavor:string}> = {
+  hp:{name:'REBANADA DE PAN',description:'Recupera 1 corazón.',heal:1,rarity:0,flavor:'Botiquín con corteza.'},
+  sandwich:{name:'SÁNDWICH',description:'Recupera 2 corazones.',heal:2,rarity:1,flavor:'Doble capa de esperanza.'},
+  baguette:{name:'BAGUETTE',description:'Recupera 2 corazones.',heal:2,rarity:1,flavor:'Esta no explota.'},
+  croissant:{name:'CUERNITO',description:'Recupera 1 vida; +25% velocidad durante 6 s.',heal:1,rarity:1,flavor:'Hojaldre a la fuga.'},
+  torta:{name:'PASTEL GIGANTE',description:'Recupera 3 de vida.',heal:3,rarity:2,flavor:'Feliz cumpleaños, prófugo.'},
+  pan_dorado:{name:'PAN DORADO',description:'Recupera todos los corazones.',heal:99,rarity:4,flavor:'La salud no tiene precio.'},
 };
