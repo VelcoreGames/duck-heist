@@ -1,0 +1,52 @@
+name: Step 1 apply approved parity
+
+on:
+  push:
+    branches: [step1-source-sync]
+    paths:
+      - '.github/workflows/step1-apply-parity.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: step1-source-sync
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Guard and apply approved v0.4.3 parity patches
+        run: |
+          set -euxo pipefail
+          git apply --check step1-parity/constants.patch step1-parity/types.patch step1-parity/engine.patch step1-parity/render.patch step1-parity/App.patch step1-parity/index-css.patch
+          git apply step1-parity/constants.patch step1-parity/types.patch step1-parity/engine.patch step1-parity/render.patch step1-parity/App.patch step1-parity/index-css.patch
+          grep -q "DIFFICULTY = 'DIFFICULTY'" src/game/constants.ts
+          grep -q "LOCO POR EL PAN" src/game/engine.ts
+          grep -q "ESTADÍSTICAS DE LA RUN" src/game/render.ts
+          grep -q "duck-responsive-shell" src/App.tsx
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+      - name: Vite source build
+        run: npx vite build
+      - name: Upload validated source build
+        uses: actions/upload-artifact@v4
+        with:
+          name: step1-parity-source-build
+          path: dist
+          retention-days: 1
+      - name: Commit synchronized source
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/App.tsx src/index.css src/game/constants.ts src/game/types.ts src/game/engine.ts src/game/render.ts
+          git commit -m 'Restore approved v0.4.3 source parity'
+          git push origin HEAD:step1-source-sync
