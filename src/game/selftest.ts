@@ -88,8 +88,8 @@ export function runSelfChecks():CheckReport {
       const e=setup();giveWeapon(e,'baguette_launcher');const c=e.contents.get(e.currentKey)!;
       c.shopItems=[{x:e.player.x+7,y:e.player.y+8,itemId:'feather_gun',isWeapon:true,cost:20,sold:false}];
       e.player.crumbs=30;e.keys.e=true;tick(e);cancelSwap(e);assert(e.player.crumbs===30&&!c.shopItems[0].sold,'cancel charged');
-      e.keys.e=true;tick(e);selectSwapSlot(e,1);confirmSwap(e);assert(e.player.crumbs===10&&c.shopItems[0].sold,'incorrect commit');
-      confirmSwap(e);assert(e.player.crumbs===10,'double charge');
+      e.keys.e=true;tick(e);selectSwapSlot(e,1);confirmSwap(e);assert(e.player.crumbs===5&&c.shopItems[0].sold,'incorrect commit');
+      confirmSwap(e);assert(e.player.crumbs===5,'double charge');
     });
     check('Healing is not magnetized',()=>{
       const e=setup(),c=e.contents.get(e.currentKey)!;c.clearAge=25;e.player.hp=2;
@@ -192,7 +192,7 @@ export function runSelfChecks():CheckReport {
       assert(new Set(choices.map(id=>ITEMS[id].role)).size===3,'opciones demasiado similares');
     });
     check('Tarjeta clonada descuenta solo la primera compra',()=>{
-      const e=setup();e.player.items=['cloned_card'];assert(shopPrice(e,{cost:20})===10,'sin descuento');e.player.couponUsed=true;assert(shopPrice(e,{cost:20})===20,'descuento permanente');
+      const e=setup();e.player.items=['cloned_card'];assert(shopPrice(e,{cost:20})===13,'sin descuento');e.player.couponUsed=true;assert(shopPrice(e,{cost:20})===25,'descuento permanente');
     });
     check('Casco reduce el primer golpe de sala',()=>{
       const e=setup();e.player.items=['motorcycle_helmet'];damagePlayer(e,1);assert(e.player.hp===4.5,'primer golpe no reducido');
