@@ -1,0 +1,121 @@
+--- a/src/game/render.ts
++++ b/src/game/render.ts
+@@ -20,7 +20,7 @@
+ import { T, FLOOR_NAMES_ES } from './i18n';
+ import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar } from './ui';
+ import { wrappedText } from './ui';
+-import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice } from './engine';
++import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel } from './engine';
+ import { drawVaultScene } from './titleScene';
+ import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS } from './layout';
+ import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
+@@ -46,7 +46,7 @@
+ export function renderWorld(engine: GameEngine) {
+   const ctx = engine.ctx;
+   const s = engine.state;
+-  if(s===GameState.MENU || s===GameState.HEIST_INTRO) {
++  if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.HEIST_INTRO) {
+     const opening=s===GameState.HEIST_INTRO?Math.max(0,(90-engine.heistIntroTimer-15)/75):0;
+     drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176);
+     return;
+@@ -574,6 +574,7 @@
+ 
+   switch (s) {
+     case GameState.MENU: renderMenuUI(engine); break;
++    case GameState.DIFFICULTY: renderDifficultyUI(engine); break;
+     case GameState.MAP:renderFloorMap(engine);break;
+     case GameState.COLLECTION:renderCollection(engine);break;
+     case GameState.HEIST_INTRO: {
+@@ -599,6 +600,7 @@
+     default:
+       drawHUD(engine);
+       renderPrompts(engine);
++      if(engine.keys.tab) renderRunStats(engine);
+       break;
+   }
+ 
+@@ -608,6 +610,25 @@
+ // ---------------------------------------------------------------------------
+ // PROMPTS Y FICHAS (coordenadas de mundo, tipografía nítida)
+ // ---------------------------------------------------------------------------
++function renderRunStats(engine:GameEngine) {
++  const ctx=engine.ui!,r=engine.run,s=engine.stats,p=engine.player;
++  ctx.save();ctx.fillStyle='rgba(2,6,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
++  drawPanel(ctx,104,50,272,244,'rgba(8,16,25,.98)','#d6b45f');
++  text(ctx,'ESTADÍSTICAS DE LA RUN',240,75,12,'#f4d03f','center',true);
++  text(ctx,`PISO  ${r.floorReached}/${TOTAL_FLOORS}`,128,104,8,'#e9dfbd','left',true);
++  text(ctx,`SALAS  ${s.roomsCleared}`,128,127,8,'#cbd5d9','left');
++  text(ctx,`ENEMIGOS  ${s.enemiesDefeated}`,128,150,8,'#cbd5d9','left');
++  text(ctx,`JEFES  ${r.bosses}`,128,173,8,'#cbd5d9','left');
++  text(ctx,`MIGAJAS  ${Math.floor(p.crumbs)}`,252,104,8,'#e9dfbd','left',true);
++  text(ctx,`PAN ROBADO  ${s.breadStolen}`,252,127,8,'#cbd5d9','left');
++  text(ctx,`OBJETOS  ${r.items}`,252,150,8,'#cbd5d9','left');
++  text(ctx,`ARMAS  ${r.weaponsFound}`,252,173,8,'#cbd5d9','left');
++  text(ctx,`DAÑO HECHO  ${Math.round(r.dmgDealt)}`,128,208,8,'#9ec6b8','left');
++  text(ctx,`DAÑO RECIBIDO  ${Math.round(r.dmgTaken)}`,128,231,8,'#d7a39c','left');
++  text(ctx,'SUELTA TAB PARA CERRAR',240,272,7,'#8fa1a8','center');
++  ctx.restore();
++}
++
+ function prompt(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, color = '#f4d03f') {
+   ctx.save();
+   ctx.font = `600 8px ${"'Chakra Petch', sans-serif"}`;
+@@ -1053,8 +1074,40 @@
+   { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
+ ];
+ 
++function drawDifficultyPips(ctx:CanvasRenderingContext2D,x:number,y:number,count:number,color:string) {
++  for(let i=0;i<count;i++) {
++    ctx.save();ctx.fillStyle=color;ctx.fillRect(x+i*11,y,6,2);ctx.fillRect(x+i*11+2,y-2,2,6);ctx.restore();
++  }
++}
++
++function drawDifficultyLock(ctx:CanvasRenderingContext2D,x:number,y:number,color:string) {
++  ctx.save();ctx.fillStyle=color;ctx.fillRect(x+1,y+4,9,7);ctx.fillRect(x+3,y+1,5,1);ctx.fillRect(x+2,y+2,2,3);ctx.fillRect(x+7,y+2,2,3);
++  ctx.fillStyle='#11151c';ctx.fillRect(x+5,y+6,1,3);ctx.restore();
++}
++
++function renderDifficultyUI(engine:GameEngine) {
++  const ctx=engine.ui!;
++  const left=58,width=364,top=72,rowH=51,gap=5;
++  drawPanel(ctx,30,22,420,306,'rgba(7,11,18,.94)','rgba(77,92,106,.72)');
++  titleText(ctx,'ELIGE LA DIFICULTAD DEL ATRACO',240,46,14,'#f4d03f');
++  text(ctx,'Puedes cambiarla al comenzar cada nueva partida.',240,60,5.8,'#7f919a','center');
++  DIFFICULTY_MODES.forEach((mode,i)=>{
++    const def=DIFFICULTIES[mode],y=top+i*(rowH+gap),selected=engine.difficultyIndex===i,locked=mode==='mad'&&!engine.madUnlocked;
++    const color=locked?'#9a6570':mode==='easy'?'#91d49b':mode==='normal'?'#f4d03f':mode==='hard'?'#f29a55':'#ff665e';
++    const fill=mode==='easy'?'rgba(25,61,37,.95)':mode==='normal'?'rgba(62,51,18,.95)':mode==='hard'?'rgba(69,38,19,.95)':'rgba(69,22,28,.95)';
++    ctx.save();if(selected){ctx.shadowColor=color;ctx.shadowBlur=9;}drawPanel(ctx,left,y,width,rowH,selected?fill:'rgba(10,16,23,.82)',selected?color:'rgba(71,84,97,.5)');ctx.restore();
++    const tx=left+18+(locked?16:0);if(locked)drawDifficultyLock(ctx,left+17,y+10,color);
++    titleText(ctx,def.label,tx,y+19,9,color,'left');
++    const pipsX=tx+Math.min(126,def.label.length*5.8+8);drawDifficultyPips(ctx,pipsX,y+11,i+1,color);
++    wrappedText(ctx,locked?'Completa un atraco para desbloquearlo.':def.desc,left+18,y+31,width-36,5.5,6.4,2,locked?'#8a6870':'#8fa0aa');
++    if(selected){text(ctx,'›',left-10,y+29,13,color);text(ctx,'‹',left+width+10,y+29,13,color);}
++  });
++  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR     B · VOLVER':'W / S · ELEGIR     ENTER · CONFIRMAR     ESC · VOLVER',240,316,5.6,'#71858b','center');
++}
++
+ function renderMenuUI(engine: GameEngine) {
+   const ctx = engine.ui!;
++  text(ctx,'v0.4.3',8,10,5.5,'#e8d79a','left',true);
+   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
+   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
+   MENU_ITEMS.forEach((item,i)=>{
+@@ -1372,6 +1425,8 @@
+     text(ctx, k, x + 24, y, 8, '#f4d03f', 'center', true);
+     wrappedText(ctx,v,x+54,y,76,7,9,2,'#a9b3c4');
+   });
++  text(ctx,'DIFICULTAD',240,282,5.2,'#697882','center');
++  text(ctx,difficultyLabel(engine),240,292,6.2,'#d9bd70','center',true);
+   text(ctx,`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
+   text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA    ${engine.lastInput==='gamepad'?'B':'CLIC DERECHO'} · ESQUIVAR`,240,315,6.5,'#768f8f');
+ }
+@@ -1538,6 +1593,8 @@
+   drawDuck(ctx, 0, 0, f, 'down', false, false, false);
+   ctx.restore();
+   const r = engine.run, s = engine.stats;
++  text(ctx,'DIFICULTAD',70,130,5.5,'#8792a5','left');
++  text(ctx,difficultyLabel(engine),CANVAS_WIDTH-70,130,6.5,'#e3bd6b','right',true);
+   const lines: [string, string][] = [
+     [T.statRooms, `${s.roomsCleared}`],
+     [T.statEnemies, `${s.enemiesDefeated}`],
