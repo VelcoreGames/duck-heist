@@ -158,6 +158,8 @@ export interface RunStats {
   weaponIds:string[];
 }
 
+export type DifficultyMode = 'easy' | 'normal' | 'hard' | 'mad';
+
 export interface Settings {
   master: number; music: number; sfx: number;
   shake: number;            // 0..2
@@ -316,6 +318,10 @@ export interface GameEngine {
   wardrobeScroll:number;
   wardrobeScrollTarget:number;
   tooltip:{key:string;since:number};
+
+  difficulty: DifficultyMode;
+  difficultyIndex: number;
+  madUnlocked: boolean;
 
   menuIndex: number;
   pauseIndex: number;

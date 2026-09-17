@@ -25,7 +25,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -53,23 +53,50 @@ function scaledCurrency(value:number,multiplier:number) {
 
 let nextEnemyId = 0;
 
+export type DifficultyDef = {
+  label:string; desc:string; hp:number; dmg:number; speed:number; fire:number;
+  count:number; elite:number; startHearts:number; floorHeal:number;
+};
+
+export const DIFFICULTY_MODES:DifficultyMode[] = ['easy','normal','hard','mad'];
+export const DIFFICULTIES:Record<DifficultyMode,DifficultyDef> = {
+  easy:{label:'FÁCIL',desc:'Más margen para aprender. Enemigos más lentos y menos agresivos.',hp:.82,dmg:.75,speed:.92,fire:1.18,count:.92,elite:.55,startHearts:1,floorHeal:2},
+  normal:{label:'NORMAL',desc:'La experiencia actual de Duck Heist. Equilibrada y recomendada.',hp:1,dmg:1,speed:1,fire:1,count:1,elite:1,startHearts:0,floorHeal:1},
+  hard:{label:'DIFÍCIL',desc:'Más presión, enemigos más resistentes y ataques más frecuentes.',hp:1.15,dmg:1.18,speed:1.06,fire:.88,count:1.1,elite:1.35,startHearts:0,floorHeal:.5},
+  mad:{label:'LOCO POR EL PAN',desc:'El banco va a por ti. Máxima presión, más élites y casi sin respiro.',hp:1.28,dmg:1.38,speed:1.12,fire:.74,count:1.22,elite:1.75,startHearts:0,floorHeal:.5},
+};
+let activeDifficulty:DifficultyMode = 'normal';
+
+export function getDifficulty(engine:GameEngine) { return DIFFICULTIES[engine.difficulty]; }
+export function difficultyLabel(engine:GameEngine) { return getDifficulty(engine).label; }
+export function selectDifficulty(engine:GameEngine,index:number) {
+  const i=Math.max(0,Math.min(DIFFICULTY_MODES.length-1,index));
+  const mode=DIFFICULTY_MODES[i];
+  engine.difficultyIndex=i;
+  if(mode==='mad'&&!engine.madUnlocked) { playDeny(); return false; }
+  engine.difficulty=mode;activeDifficulty=mode;return true;
+}
+
 export interface DiffScale {
   hp: number; dmg: number; speed: number; fire: number;
   count: number; eliteChance: number; pattern: number;
 }
 
-/** Multiplicadores de dificultad según piso y profundidad dentro del mapa */
+/** Multiplicadores según piso, profundidad y dificultad elegida. */
 export function floorScale(floorIndex: number, roomDistance = 0): DiffScale {
-  const f = floorIndex;                       // 0 = primer piso
-  const depth = Math.min(roomDistance, 8) * 0.06;
+  const f=floorIndex;
+  const depth=Math.min(roomDistance,8)*.06;
+  const mode=DIFFICULTIES[activeDifficulty];
+  const hp=1+f*.11+depth*.5;
+  const dmg=1+f*.09;
+  const speed=1+f*.05;
+  const fire=Math.max(.55,1-f*.07);
+  const count=1+f*.22+depth;
+  const elite=f<=1?(f===1?.1:0):Math.min(.42,.14+f*.09+depth*.5);
   return {
-    hp: 1 + f * 0.11 + depth * 0.5,
-    dmg: 1 + f * 0.09,
-    speed: 1 + f * 0.05,
-    fire: Math.max(0.55, 1 - f * 0.07),      // menos espera entre disparos
-    count: 1 + f * 0.22 + depth,
-    eliteChance: f <= 1 ? (f === 1 ? 0.10 : 0) : Math.min(0.42, 0.14 + f * 0.09 + depth * 0.5),
-    pattern: f,
+    hp:hp*mode.hp,dmg:dmg*mode.dmg,speed:speed*mode.speed,
+    fire:Math.max(.42,Math.min(1.28,fire*mode.fire)),count:count*mode.count,
+    eliteChance:elite===0?0:Math.min(.65,elite*mode.elite),pattern:f,
   };
 }
 
@@ -335,6 +362,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let discovered=emptyDiscoveries();
   let bestFloor=0;
   let tutorial={started:false,map:false,mapShown:false,wheel:false,dash:false};
+  let madUnlocked=false;
   try {
     const saved = localStorage.getItem('duckheist_save');
     if (saved) {
@@ -350,6 +378,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     const b = localStorage.getItem('duckheist_best');
     if (b) best = { ...best, ...JSON.parse(b) };
   } catch { /* sin almacenamiento */ }
+  try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
+  catch { madUnlocked=unlockedSkins.includes('golden'); }
 
   setVolumes(settings.master, settings.music, settings.sfx);
 
@@ -379,6 +409,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     grenades:[], remoteBomb:null, drone:null, coffeeCrash:0, activeSwap:null, synergyNotice:null,
     collectionTab:'items',collectionIndex:0,collectionScroll:0,
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
+    difficulty:'normal',difficultyIndex:1,madUnlocked,
     menuIndex: 0, pauseIndex: 0, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
@@ -422,10 +453,13 @@ function createPlayer(meta: Record<string, number>) {
 // RUN / PISOS
 // ---------------------------------------------------------------------------
 export function startGame(engine: GameEngine) {
+  activeDifficulty=engine.difficulty;
   saveProgress(engine);
   nextEnemyId = 0;
   initAudio();
   engine.player = createPlayer(engine.metaLevels);
+  const difficulty=DIFFICULTIES[engine.difficulty];
+  if(difficulty.startHearts>0) {engine.player.maxHp+=difficulty.startHearts;engine.player.hp+=difficulty.startHearts;}
   engine.tutorialRun=!engine.tutorial.started;
   engine.alert=0;engine.roomStreak=0;engine.seenRoomKeys=[];engine.offeredItems=[];engine.stainedFloor=-1;
   engine.tutorialHint=null;engine.pad={...engine.pad,moveX:0,moveY:0,shoot:false};
@@ -493,6 +527,8 @@ function loadNextFloor(engine: GameEngine) {
   const idx = engine.map.floorIndex + 1;
   if (idx >= TOTAL_FLOORS) {
     engine.totalGoldenCrumbs+=100;engine.run.goldenEarned+=100;engine.stats.goldenCrumbs+=100;
+    engine.madUnlocked=true;
+    try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
     if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
     engine.state = GameState.VICTORY;
     engine.endFrame=engine.frame;playQuack();
@@ -517,7 +553,7 @@ function loadNextFloor(engine: GameEngine) {
   engine.run.floorReached = idx + 1;
   setMusic('run',idx);
   // vida restaurada parcialmente entre pisos
-  engine.player.hp = Math.min(engine.player.maxHp, engine.player.hp + 1);
+  engine.player.hp = Math.min(engine.player.maxHp, engine.player.hp + DIFFICULTIES[engine.difficulty].floorHeal);
   enterRoom(engine, engine.map.startKey, null);
   engine.floorIntroTimer = 110;
   engine.state = GameState.FLOOR_INTRO;
