@@ -1,0 +1,10 @@
+--- a/src/game/constants.ts
++++ b/src/game/constants.ts
+@@ -45,6 +45,7 @@
+ 
+ export enum GameState {
+   MENU = 'MENU',
++  DIFFICULTY = 'DIFFICULTY',
+   HEIST_INTRO = 'HEIST_INTRO',
+   COLLECTION = 'COLLECTION',
+   PLAYING = 'PLAYING',
