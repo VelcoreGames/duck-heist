@@ -184,6 +184,8 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   assignFarthest(remaining(), RoomType.MINIBOSS);
   // Tienda: distancia media
   assignMiddle(remaining(), RoomType.SHOP);
+  // Camioneta del mercado negro: aparece solo en mapas suficientemente grandes.
+  if (remaining().length > 7 && random() < 0.42) assignDeadEndOrRandom(remaining(), RoomType.GUN_VAN, random);
   // Tesoro: preferentemente callejón sin salida
   assignDeadEndOrRandom(remaining(), RoomType.TREASURE,random);
   // Segunda sala de objeto opcional
@@ -192,7 +194,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   assignRandom(remaining(), RoomType.CHALLENGE,random);
   // Bóveda secreta opcional
   if (random() < 0.4) assignDeadEndOrRandom(remaining().filter(r=>r.doors.length===1), RoomType.SECRET,random);
-  if(remaining().length>6) assignDeadEndOrRandom(remaining(),RoomType.EVENT,random);
+  if(remaining().length>6 && random()<0.38) assignDeadEndOrRandom(remaining(),RoomType.EVENT,random);
   if(remaining().length>7 && random()<.5) assignDeadEndOrRandom(remaining(),RoomType.CHOICE,random);
 
   // Asegurar un mínimo de salas de combate

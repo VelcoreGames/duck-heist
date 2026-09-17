@@ -16,6 +16,7 @@ export const ROOM_STYLE:Record<RoomType,{label:string;color:string;symbol:string
   [RoomType.ITEM]:{label:'SALA DE OBJETOS',color:'#eac56d',symbol:'item'},
   [RoomType.TREASURE]:{label:'SALA DEL TESORO',color:'#eac56d',symbol:'item'},
   [RoomType.SHOP]:{label:'TIENDA',color:'#71c799',symbol:'shop'},
+  [RoomType.GUN_VAN]:{label:'CAMIONETA',color:'#e79a45',symbol:'van'},
   [RoomType.MINIBOSS]:{label:'MINIJEFE',color:'#efa869',symbol:'mini'},
   [RoomType.BOSS]:{label:'JEFE',color:'#c76c75',symbol:'boss'},
   [RoomType.CHOICE]:{label:'RECOMPENSA',color:'#b39be0',symbol:'reward'},
@@ -113,7 +114,7 @@ export function focusMapDestination(e:GameEngine,type:'shop'|'boss'|'stairs') {
   const visible=visibleRoomKeys(e);
   const destinations=[...visible].filter(id=>{
     const r=e.map.rooms.get(id)!;
-    return type==='shop'?r.type===RoomType.SHOP:type==='boss'?r.type===RoomType.BOSS:!!e.contents.get(id)?.stairs;
+    return type==='shop'?(r.type===RoomType.SHOP||r.type===RoomType.GUN_VAN):type==='boss'?r.type===RoomType.BOSS:!!e.contents.get(id)?.stairs;
   }).map(id=>({id,path:knownPath(e,id)})).filter(v=>v.path.length);
   destinations.sort((a,b)=>a.path.length-b.path.length);
   if(destinations[0]) {e.mapView.selected=destinations[0].id;e.mapView.gpsTarget=type;}
@@ -131,7 +132,7 @@ export function applyMapItemEffects(e:GameEngine,newFloor=false) {
       for(const d of r.doors){const v=DIR_VECTORS[d];reveal(key(r.gx+v.x,r.gy+v.y));}
     }
   }
-  if(b.shopReveal) for(const [id,r]of rooms) if(r.type===RoomType.SHOP) reveal(id);
+  if(b.shopReveal) for(const [id,r]of rooms) if(r.type===RoomType.SHOP||r.type===RoomType.GUN_VAN) reveal(id);
   if(b.guardLenses) {
     const normals=[...rooms.values()].filter(r=>r.type===RoomType.COMBAT);
     if(normals.length && normals.filter(r=>r.cleared).length/normals.length>=.6) reveal(e.map.bossKey);
@@ -169,6 +170,7 @@ export function drawRoomSymbol(c:CanvasRenderingContext2D,room:MapRoom,x:number,
   else switch(style.symbol) {
     case 'item': c.beginPath();c.moveTo(6,1);c.lineTo(11,6);c.lineTo(6,11);c.lineTo(1,6);c.closePath();c.strokeStyle=style.color;c.lineWidth=1.4;c.stroke();rect(5,4,2,4);break;
     case 'shop':rect(2,2,8,2);rect(2,3,2,3);rect(3,5,7,2);rect(8,6,2,3);rect(2,9,8,2);rect(5,0,2,12);break;
+    case 'van':rect(1,4,10,5);rect(3,2,5,3);c.fillStyle='#111820';rect(4,3,3,2);c.fillStyle=style.color;rect(2,9,2,2);rect(8,9,2,2);break;
     case 'boss':rect(2,2,8,6);rect(4,8,5,3);c.fillStyle='#152630';rect(3,4,2,2);rect(7,4,2,2);rect(6,8,1,3);break;
     case 'mini':case 'challenge':rect(5,1,2,7);rect(5,10,2,2);break;
     case 'reward':case 'event':case 'secret':

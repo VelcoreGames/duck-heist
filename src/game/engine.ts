@@ -238,20 +238,27 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
     }
     case RoomType.SHOP: {
       const first=pickPassive(engine) ?? fallbackActive(engine);
-      const second=Math.random()<.5?fallbackActive(engine):(pickPassive(engine,undefined,[first]) ?? fallbackActive(engine));
-      const itemPool=[first,second];
-      const shop = [];
-      for (let i = 0; i < 2; i++) {
-        const id = itemPool[i];
-        if (!id) continue;
-        shop.push({
-          itemId: id, cost: (ITEMS[id] ?? ACTIVE_ITEMS[id]).cost, sold: false, isWeapon: false,
-          x: CANVAS_WIDTH * (0.28 + i * 0.22), y: CANVAS_HEIGHT * 0.58,
-        });
+      const second=pickPassive(engine,undefined,[first]) ?? fallbackActive(engine);
+      const third=pickPassive(engine,undefined,[first,second]) ?? fallbackActive(engine);
+      const itemPool=[first,second,third].filter(Boolean);
+      content.shopItems=itemPool.map((id,i)=>({
+        itemId:id,cost:(ITEMS[id] ?? ACTIVE_ITEMS[id]).cost,sold:false,isWeapon:false,
+        x:CANVAS_WIDTH*(0.28+i*0.22),y:CANVAS_HEIGHT*0.58,
+      }));
+      break;
+    }
+    case RoomType.GUN_VAN: {
+      const owned=new Set(engine.player.weapons.filter(Boolean).map(w=>w!.id));
+      let pool=Object.keys(WEAPONS).filter(id=>id!=='quack_blaster'&&!owned.has(id));
+      if(pool.length<3) pool=Object.keys(WEAPONS).filter(id=>id!=='quack_blaster');
+      const selected:string[]=[];
+      while(selected.length<3 && pool.length) {
+        const index=Math.floor(Math.random()*pool.length);
+        selected.push(pool.splice(index,1)[0]);
       }
-      const w = rollWeapon(engine);
-      shop.push({ itemId: w, cost: WEAPONS[w].cost, sold: false, isWeapon: true, x: CANVAS_WIDTH * 0.72, y: CANVAS_HEIGHT * 0.58 });
-      content.shopItems = shop;
+      content.shopItems=selected.map((id,i)=>({
+        itemId:id,cost:Math.max(8,WEAPONS[id].cost),sold:false,isWeapon:true,x:145+i*95,y:235,
+      }));
       break;
     }
     case RoomType.EVENT: {
@@ -612,7 +619,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
     if (spot) { engine.player.x = spot.x * TILE_SIZE + 8; engine.player.y = spot.y * TILE_SIZE + 8; }
   }
   engine.projectiles = [];
-  if(from) playDoorStyle(room.type===RoomType.BOSS?'boss':room.type===RoomType.ITEM?'gold':room.type===RoomType.SHOP?'green':room.type===RoomType.TREASURE?'purple':'silver');
+  if(from) playDoorStyle(room.type===RoomType.BOSS?'boss':room.type===RoomType.ITEM?'gold':room.type===RoomType.SHOP?'green':room.type===RoomType.GUN_VAN?'orange':room.type===RoomType.TREASURE?'purple':'silver');
 
   if (!room.cleared && content.enemies.length > 0) {
     for (const d of room.doors) content.doorAnim[d] = 0;
@@ -628,7 +635,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
   }
   applyMapItemEffects(engine,false);
   registerRoomDiscoveries(engine,content);
-  if(room.type===RoomType.SHOP && (content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,pick(['Todo legal. Probablemente.','No tengo factura.','Eso cayó de un camión.','El pan está caro.','No hago devoluciones.','Ese objeto no estaba aquí ayer.']));
+  if((room.type===RoomType.SHOP||room.type===RoomType.GUN_VAN) && (content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,room.type===RoomType.GUN_VAN?pick(['Tres fierros. Cero preguntas.','La camioneta no existe.','Mira rápido y paga en migajas.','No preguntes de dónde salieron.']):pick(['Todo legal. Probablemente.','No tengo factura.','Eso cayó de un camión.','El pan está caro.','No hago devoluciones.','Ese objeto no estaba aquí ayer.']));
 
   const boss = content.enemies.find(e => e.isBoss && !!BOSSES[e.bossType]);
   if (boss && !room.cleared) {
@@ -653,6 +660,7 @@ function roomLabelFor(room: MapRoom): string {
     case RoomType.ITEM: return 'SALA DE OBJETOS';
     case RoomType.TREASURE: return 'SALA DEL TESORO';
     case RoomType.SHOP: return 'TIENDA CLANDESTINA';
+    case RoomType.GUN_VAN: return 'CAMIONETA DEL MERCADO NEGRO';
     case RoomType.CHALLENGE: return 'DESAFÍO';
     case RoomType.MINIBOSS: return 'MINIJEFE';
     case RoomType.BOSS: return 'JEFE';

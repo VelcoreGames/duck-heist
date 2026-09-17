@@ -40,6 +40,31 @@ import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
+
+function drawGunVanScene(ctx:CanvasRenderingContext2D,f:number) {
+  ctx.save();ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(240,161,100,14,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#05070a';ctx.fillRect(148,89,158,57);ctx.fillStyle='#0d1217';ctx.fillRect(157,80,105,11);ctx.fillRect(262,86,52,60);
+  ctx.fillStyle='#27343d';ctx.fillRect(269,93,35,20);ctx.fillStyle='#56747f';ctx.globalAlpha=.48;ctx.fillRect(273,96,27,14);ctx.globalAlpha=1;
+  ctx.fillStyle='#020304';ctx.fillRect(167,96,87,44);ctx.fillStyle='#171e23';ctx.fillRect(182,104,57,31);
+  ctx.fillStyle='#d28a3c';ctx.globalAlpha=.13+.04*Math.sin(f*.06);ctx.fillRect(185,107,51,25);ctx.globalAlpha=1;
+  ctx.fillStyle='#4a555d';for(let i=0;i<3;i++){ctx.fillRect(190+i*17,111,13,3);ctx.fillRect(193+i*17,106,7,2);}
+  for(const x of [179,293]){ctx.fillStyle='#020304';ctx.beginPath();ctx.arc(x,148,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#47515a';ctx.beginPath();ctx.arc(x,148,6,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#d99a4b';ctx.fillRect(230,141,24,3);ctx.fillStyle='#d8e2e6';ctx.fillRect(310,106,5,4);ctx.fillStyle='#a52e31';ctx.fillRect(148,109,4,9);
+  drawShopPigeon(ctx,323,118,f);ctx.restore();
+}
+
+function drawCafeScene(ctx:CanvasRenderingContext2D,f:number) {
+  ctx.save();ctx.fillStyle='#4d3124';ctx.fillRect(136,106,208,38);ctx.fillStyle='#8a5b3d';ctx.fillRect(136,106,208,4);ctx.fillStyle='#e1b779';ctx.fillRect(142,112,196,3);
+  ctx.fillStyle='#20262c';ctx.fillRect(296,80,34,27);ctx.fillStyle='#9aa6ab';ctx.fillRect(300,84,26,11);ctx.fillStyle='#dce5e7';ctx.fillRect(303,87,20,6);
+  ctx.fillStyle='#efe0bf';ctx.fillRect(152,80,58,24);ctx.fillStyle='#2d2520';ctx.fillRect(156,84,50,16);ctx.fillStyle='#e4b768';ctx.fillRect(161,88,24,2);ctx.fillRect(161,93,32,2);
+  drawShopPigeon(ctx,230,92,f);ctx.fillStyle='#f0ece2';ctx.fillRect(234,110,8,11);ctx.restore();
+}
+
+function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'|'cafe'|'shop') {
+  ctx.fillStyle=kind==='van'?'#0a0d10':kind==='cafe'?'#6f4934':'#25382f';ctx.fillRect(x-18,y+9,36,10);
+  ctx.fillStyle=kind==='van'?'#d58e42':kind==='cafe'?'#e7c493':'#66ba89';ctx.fillRect(x-14,y+10,28,2);
+}
+
 // ===========================================================================
 // CAPA DE MUNDO
 // ===========================================================================
@@ -106,7 +131,7 @@ export function renderWorld(engine: GameEngine) {
     }
     const style = target?.type === RoomType.ITEM ? 'gold'
       : target?.type === RoomType.BOSS ? 'boss' : target?.type===RoomType.SHOP?'green'
-      :target?.type===RoomType.MINIBOSS?'orange':target?.type===RoomType.CHOICE||target?.type===RoomType.TREASURE||target?.type===RoomType.SECRET?'purple':'silver';
+      :target?.type===RoomType.GUN_VAN||target?.type===RoomType.MINIBOSS?'orange':target?.type===RoomType.CHOICE||target?.type===RoomType.TREASURE||target?.type===RoomType.SECRET?'purple':'silver';
     const t = DOOR_TILE[d];
     drawDoor(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
   }
@@ -136,11 +161,15 @@ export function renderWorld(engine: GameEngine) {
     else drawItemIcon(ctx,event.x-8,event.y-11,EVENTS[event.kind].icon,32);
   }
 
-  if (room.type === RoomType.SHOP && content.shopItems) {
-    drawShopPigeon(ctx, CANVAS_WIDTH / 2 - 8, CANVAS_HEIGHT * 0.22, f);
+  if ((room.type === RoomType.SHOP || room.type === RoomType.GUN_VAN || content.cafe) && content.shopItems) {
+    if(room.type===RoomType.GUN_VAN) drawGunVanScene(ctx,f);
+    else if(content.cafe) drawCafeScene(ctx,f);
+    else drawShopPigeon(ctx, CANVAS_WIDTH / 2 - 8, CANVAS_HEIGHT * 0.22, f);
     for (const it of content.shopItems) {
       if (it.sold) continue;
-      if (it.isWeapon) drawWeaponIcon(ctx, it.x - 8, it.y - 8, it.itemId);
+      drawShopStand(ctx,it.x,it.y,room.type===RoomType.GUN_VAN?'van':content.cafe?'cafe':'shop');
+      if(it.isFood) drawItemIcon(ctx,it.x-12,it.y-12,it.itemId,24);
+      else if (it.isWeapon) drawWeaponIcon(ctx, it.x - 8, it.y - 8, it.itemId);
       else drawItem(ctx, it.x - 8, it.y - 8, it.itemId, f);
     }
   }
@@ -337,6 +366,9 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
       ctx.fillRect(px, py, 2, 2);
     }
     ctx.globalAlpha = 1;
+  } else if (room.type === RoomType.GUN_VAN) {
+    ctx.fillStyle='rgba(3,5,8,.38)';ctx.fillRect(TILE_SIZE,TILE_SIZE,CANVAS_WIDTH-TILE_SIZE*2,CANVAS_HEIGHT-TILE_SIZE*2);
+    ctx.fillStyle='rgba(231,154,69,.12)';for(let x=90;x<410;x+=70)ctx.fillRect(x,286,34,3);
   } else if (room.type === RoomType.SHOP) {
     ctx.fillStyle = 'rgba(120,72,30,0.28)';
     ctx.fillRect(TILE_SIZE + 20, TILE_SIZE + 40, CANVAS_WIDTH - TILE_SIZE * 2 - 40, CANVAS_HEIGHT - TILE_SIZE * 2 - 60);
@@ -671,7 +703,7 @@ function renderPrompts(engine: GameEngine) {
   }
 
   if (content.shopItems) {
-    text(ctx, 'DON MIGAJÓN', CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.16, 11, '#f4d03f', 'center', true);
+    text(ctx, room.type===RoomType.GUN_VAN?'EL PROVEEDOR':content.cafe?'BARISTA MIGAJÓN':'DON MIGAJÓN', CANVAS_WIDTH/2, CANVAS_HEIGHT*.16, 11, room.type===RoomType.GUN_VAN?'#e79a45':content.cafe?'#e7b978':'#f4d03f', 'center', true);
     if((content.merchantUntil ?? 0)>f) text(ctx,`“${content.merchantLine}”`,240,120,8,'#d5c8a2');
     for (const s of content.shopItems) {
       if (s.sold) { text(ctx, T.sold, s.x, s.y + 26, 8, '#5c6472'); continue; }
