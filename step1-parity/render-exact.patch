@@ -1,0 +1,34 @@
+--- a/src/game/render.ts
++++ b/src/game/render.ts
+@@ -1074,10 +1074,9 @@
+   { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
+ ];
+ 
+-function drawDifficultyPips(ctx:CanvasRenderingContext2D,x:number,y:number,count:number,color:string) {
+-  for(let i=0;i<count;i++) {
+-    ctx.save();ctx.fillStyle=color;ctx.fillRect(x+i*11,y,6,2);ctx.fillRect(x+i*11+2,y-2,2,6);ctx.restore();
+-  }
++function drawDifficultySkull(ctx:CanvasRenderingContext2D,x:number,y:number,color:string) {
++  ctx.save();ctx.fillStyle=color;ctx.fillRect(x+1,y,6,1);ctx.fillRect(x,y+1,8,4);ctx.fillRect(x+2,y+5,4,2);
++  ctx.fillStyle='#10151c';ctx.fillRect(x+1,y+2,2,2);ctx.fillRect(x+5,y+2,2,2);ctx.fillRect(x+3,y+4,2,1);ctx.fillRect(x+3,y+6,1,1);ctx.fillRect(x+5,y+6,1,1);ctx.restore();
+ }
+ 
+ function drawDifficultyLock(ctx:CanvasRenderingContext2D,x:number,y:number,color:string) {
+@@ -1098,7 +1097,7 @@
+     ctx.save();if(selected){ctx.shadowColor=color;ctx.shadowBlur=9;}drawPanel(ctx,left,y,width,rowH,selected?fill:'rgba(10,16,23,.82)',selected?color:'rgba(71,84,97,.5)');ctx.restore();
+     const tx=left+18+(locked?16:0);if(locked)drawDifficultyLock(ctx,left+17,y+10,color);
+     titleText(ctx,def.label,tx,y+19,9,color,'left');
+-    const pipsX=tx+Math.min(126,def.label.length*5.8+8);drawDifficultyPips(ctx,pipsX,y+11,i+1,color);
++    const skullX=tx+Math.min(126,def.label.length*5.8+8);for(let n=0;n<i+1;n++)drawDifficultySkull(ctx,skullX+n*11,y+11,color);
+     wrappedText(ctx,locked?'Completa un atraco para desbloquearlo.':def.desc,left+18,y+31,width-36,5.5,6.4,2,locked?'#8a6870':'#8fa0aa');
+     if(selected){text(ctx,'›',left-10,y+29,13,color);text(ctx,'‹',left+width+10,y+29,13,color);}
+   });
+@@ -1124,7 +1123,7 @@
+   });
+   text(ctx,T.tagline,240,326,9,'#dbbd77','center',true);
+   text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR':'W / S · ELEGIR     ENTER · CONFIRMAR',30,348,6,'#738b89','left');
+-  drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} DORADAS`,389,348,6,'#ac9f75','left');
++  drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} MONEDAS`,389,348,6,'#ac9f75','left');
+ }
+ 
+ function renderHowToPlayUI(engine: GameEngine) {
