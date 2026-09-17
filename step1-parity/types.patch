@@ -1,0 +1,22 @@
+--- a/src/game/types.ts
++++ b/src/game/types.ts
+@@ -158,6 +158,8 @@
+   weaponIds:string[];
+ }
+ 
++export type DifficultyMode = 'easy' | 'normal' | 'hard' | 'mad';
++
+ export interface Settings {
+   master: number; music: number; sfx: number;
+   shake: number;            // 0..2
+@@ -317,6 +319,10 @@
+   wardrobeScrollTarget:number;
+   tooltip:{key:string;since:number};
+ 
++  difficulty: DifficultyMode;
++  difficultyIndex: number;
++  madUnlocked: boolean;
++
+   menuIndex: number;
+   pauseIndex: number;
+   settingsIndex: number;
