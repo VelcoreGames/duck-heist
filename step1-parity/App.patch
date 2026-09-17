@@ -1,0 +1,219 @@
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -3,6 +3,7 @@
+   createEngine, startGame, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
+   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
+   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
++  DIFFICULTY_MODES, selectDifficulty,
+   CANVAS_WIDTH, CANVAS_HEIGHT, GameState,
+   type GameEngine,
+ } from './game/engine';
+@@ -20,6 +21,7 @@
+ const MENU_TOP=MAIN_MENU.y,MENU_H=MAIN_MENU.h,MENU_GAP=MAIN_MENU.gap,MENU_W=MAIN_MENU.w;
+ const PAUSE_TOP=PAUSE_MENU.y,PAUSE_H=PAUSE_MENU.h,PAUSE_GAP=PAUSE_MENU.gap,PAUSE_W=PAUSE_MENU.w;
+ const OVER_TOP = CANVAS_HEIGHT - 62, OVER_H = 22, OVER_GAP = 4, OVER_W = 200;
++const DIFF_TOP=72,DIFF_H=51,DIFF_GAP=5,DIFF_W=364;
+ 
+ export default function App() {
+   const worldRef = useRef<HTMLCanvasElement>(null);
+@@ -32,16 +34,28 @@
+   const [cursor, setCursor] = useState<'crosshair' | 'default'>('default');
+   const [audit,setAudit]=useState<CheckReport|null>(null);
+ 
+-  /** Escala entera para el canvas de mundo + supersampling para la UI */
++  /** Escala responsive exacta del release aprobado v0.4.3. */
+   const computeScale = useCallback(() => {
+-    const availW = window.innerWidth - 52;
+-    const availH = window.innerHeight - 88;
+-    const fit=Math.min(availW/CANVAS_WIDTH,availH/CANVAS_HEIGHT);
+-    let css=Math.max(.6,Math.min(fit,3));
+-    const eng = engineRef.current;
+-    if (eng) css = Math.max(.6, Math.min(css, eng.settings.uiScale + 1));
+-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+-    return { css, ui: Math.max(1, Math.min(6,Math.ceil(css * dpr))) };
++    const viewport=window.visualViewport;
++    const vw=Math.max(1,viewport?.width ?? window.innerWidth);
++    const vh=Math.max(1,viewport?.height ?? window.innerHeight);
++    const fullscreen=!!document.fullscreenElement;
++    const rootStyle=getComputedStyle(document.documentElement);
++    const cssVar=(name:string)=>parseFloat(rootStyle.getPropertyValue(name))||0;
++    const safeX=cssVar('--duck-safe-left')+cssVar('--duck-safe-right');
++    const safeY=cssVar('--duck-safe-top')+cssVar('--duck-safe-bottom');
++    const padX=fullscreen?0:Math.max(2,Math.min(8,vw*.006));
++    const padY=fullscreen?0:Math.max(2,Math.min(7,vh*.008));
++    const footer=fullscreen?0:vh<440?18:24;
++    const availW=Math.max(1,vw-safeX-padX*2);
++    const availH=Math.max(1,vh-safeY-padY*2-footer);
++    const eng=engineRef.current;
++    const maxScale=fullscreen?8:eng?Math.max(1.25,Math.min(7,eng.settings.uiScale+3)):7;
++    const css=Math.max(.2,Math.min(availW/CANVAS_WIDTH,availH/CANVAS_HEIGHT,maxScale));
++    const displayW=Math.max(1,Math.floor(CANVAS_WIDTH*css));
++    const displayH=Math.max(1,Math.floor(CANVAS_HEIGHT*css));
++    const dpr=Math.max(1,Math.min(2.25,window.devicePixelRatio||1));
++    return {displayW,displayH,css,ui:Math.max(1,Math.min(6,Math.ceil(css*dpr)))};
+   }, []);
+ 
+   useEffect(() => {
+@@ -67,24 +81,22 @@
+     };
+ 
+     const applySize = () => {
+-      const { css, ui } = computeScale();
+-      const wrap = wrapRef.current;
+-      if (wrap) {
+-        wrap.style.width = `${CANVAS_WIDTH * css}px`;
+-        wrap.style.height = `${CANVAS_HEIGHT * css}px`;
+-      }
+-      for (const c of [wc, uc]) {
+-        (c as HTMLCanvasElement).style.width = `${CANVAS_WIDTH * css}px`;
+-        (c as HTMLCanvasElement).style.height = `${CANVAS_HEIGHT * css}px`;
+-      }
+-      uc.width = CANVAS_WIDTH * ui;
+-      uc.height = CANVAS_HEIGHT * ui;
+-      engine.uiScale = ui;
+-      engine.scale = css;
++      const {displayW,displayH,css,ui}=computeScale();
++      const wrap=wrapRef.current;
++      if(wrap){wrap.style.width=`${displayW}px`;wrap.style.height=`${displayH}px`;}
++      for(const c of [wc,uc]) {c.style.width=`${displayW}px`;c.style.height=`${displayH}px`;c.style.imageRendering='pixelated';}
++      const uiW=CANVAS_WIDTH*ui,uiH=CANVAS_HEIGHT*ui;
++      if(uc.width!==uiW)uc.width=uiW;if(uc.height!==uiH)uc.height=uiH;
++      engine.uiScale=ui;engine.scale=css;
+     };
++    let resizeRaf=0;
++    const scheduleSize=()=>{if(resizeRaf)cancelAnimationFrame(resizeRaf);resizeRaf=requestAnimationFrame(()=>{resizeRaf=0;applySize();});};
+     applySize();
+     setHint(hintFor(engine));
+-    window.addEventListener('resize', applySize);
++    window.addEventListener('resize',scheduleSize,{passive:true});
++    window.addEventListener('orientationchange',scheduleSize,{passive:true});
++    window.visualViewport?.addEventListener('resize',scheduleSize,{passive:true});
++    window.visualViewport?.addEventListener('scroll',scheduleSize,{passive:true});
+ 
+     // fuerza la carga de las tipografías antes del primer texto en canvas
+     if ('fonts' in document) {
+@@ -107,12 +119,14 @@
+     let subReturn: GameState = GameState.MENU;
+ 
+     const inSwap = () => !!engine.swap;
++    const moveDifficulty=(dir:number)=>{engine.difficultyIndex=(engine.difficultyIndex+dir+DIFFICULTY_MODES.length)%DIFFICULTY_MODES.length;playUiMove();force(n=>n+1);};
++    const activateDifficulty=()=>{if(selectDifficulty(engine,engine.difficultyIndex)){playUiSelect();beginHeist(engine);}};
+ 
+     const activateMenu = () => {
+       playUiSelect();
+       initAudio();
+       switch (engine.menuIndex) {
+-        case 0: beginHeist(engine); break;
++        case 0: engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
+         case 1: engine.upgradeIndex = 0; subReturn = GameState.MENU; goTo(GameState.UPGRADES); break;
+         case 2: engine.wardrobeIndex=SKINS.findIndex(s=>s.id===engine.equippedSkin);ensureSkinVisible(engine);subReturn=GameState.MENU;goTo(GameState.WARDROBE);break;
+         case 3: subReturn=GameState.MENU;goTo(GameState.COLLECTION);break;
+@@ -141,7 +155,7 @@
+       engine.lastInput=fromGamepad?'gamepad':'keyboard';
+       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
+       const k = e.key.toLowerCase();
+-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'escape', 'enter', '1', '2'].includes(k)) {
++      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k)) {
+         e.preventDefault();
+       }
+       if (e.repeat && k !== 'r') return;
+@@ -190,6 +204,12 @@
+           else if (down) menuMove(engine, 1, 6, 'menu');
+           else if (yes) activateMenu();
+           break;
++        case GameState.DIFFICULTY:
++          if(up) moveDifficulty(-1);
++          else if(down) moveDifficulty(1);
++          else if(yes) activateDifficulty();
++          else if(k==='escape'){playUiBack();goTo(GameState.MENU);}
++          break;
+         case GameState.HEIST_INTRO:
+           if(yes && engine.heistIntroSeen) engine.heistIntroTimer=1;
+           break;
+@@ -303,15 +323,16 @@
+       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
+       // micro-interacción: el puntero también navega las listas
+       const st = engine.state;
+-      if (st === GameState.MENU || st === GameState.PAUSED || st === GameState.GAME_OVER || st === GameState.VICTORY) {
+-        const top = st === GameState.MENU ? MENU_TOP : st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
+-        const cnt = st === GameState.MENU ? 6 : st === GameState.PAUSED ? PAUSE_MENU.count : 2;
+-        const h = st === GameState.MENU ? MENU_H : st === GameState.PAUSED ? PAUSE_H : OVER_H;
+-        const g = st === GameState.MENU ? MENU_GAP : st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
+-        const w = st === GameState.MENU ? MENU_W : st === GameState.PAUSED ? PAUSE_W : OVER_W;
++      if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.PAUSED || st === GameState.GAME_OVER || st === GameState.VICTORY) {
++        const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
++        const cnt = st === GameState.MENU ? 6 : st===GameState.DIFFICULTY?4:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
++        const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
++        const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
++        const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
+         const i=st===GameState.MENU?mainMenuHit(p.x,p.y):hitList(p.x,p.y,top,cnt,h,g,w);
+         if (i >= 0) {
+           if (st === GameState.MENU) { if (engine.menuIndex !== i) { engine.menuIndex = i; softMove(); } }
++          else if(st===GameState.DIFFICULTY){if(engine.difficultyIndex!==i){engine.difficultyIndex=i;softMove();}}
+           else if (st === GameState.PAUSED) { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
+           else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
+         }
+@@ -382,6 +403,11 @@
+           if (i >= 0) { engine.menuIndex = i; activateMenu(); }
+           break;
+         }
++        case GameState.DIFFICULTY: {
++          const i=hitList(x,y,DIFF_TOP,4,DIFF_H,DIFF_GAP,DIFF_W);
++          if(i>=0){engine.difficultyIndex=i;activateDifficulty();}else{playUiBack();goTo(GameState.MENU);}
++          break;
++        }
+         case GameState.COLLECTION:collectionClick(engine,x,y);break;
+         case GameState.PAUSED: {
+           const i = hitList(x, y, PAUSE_TOP, PAUSE_MENU.count, PAUSE_H, PAUSE_GAP, PAUSE_W);
+@@ -526,7 +552,11 @@
+       window.removeEventListener('keyup', onKeyUp);
+       window.removeEventListener('blur', onBlur);
+       window.removeEventListener('mouseup', onUp);
+-      window.removeEventListener('resize', applySize);
++      window.removeEventListener('resize', scheduleSize);
++      window.removeEventListener('orientationchange', scheduleSize);
++      window.visualViewport?.removeEventListener('resize',scheduleSize);
++      window.visualViewport?.removeEventListener('scroll',scheduleSize);
++      if(resizeRaf)cancelAnimationFrame(resizeRaf);
+       wc.removeEventListener('wheel', onWheel);
+       uc.removeEventListener('wheel', onWheel);
+       wc.removeEventListener('mousemove', onMove);
+@@ -549,23 +579,23 @@
+   };
+ 
+   return (
+-    <div className="relative w-screen h-screen overflow-hidden bg-[#04050b] text-[#c3cbd9] flex flex-col items-center justify-center select-none"
++    <div className="duck-responsive-shell relative w-screen h-screen overflow-hidden bg-[#04050b] text-[#c3cbd9] flex flex-col items-center justify-center select-none"
+       style={{ backgroundImage: 'radial-gradient(120% 90% at 50% -10%, #14203d 0%, #0a0e1c 45%, #05060c 100%)' }}>
+       {/* ambiente: monedas y migas flotando tras la consola */}
+       <Ambient />
+-      <div ref={wrapRef} className="relative z-10"
++      <div ref={wrapRef} className="duck-responsive-stage relative z-10"
+         style={{ width: CANVAS_WIDTH * 2, height: CANVAS_HEIGHT * 2, cursor }}>
+         <canvas ref={worldRef} aria-hidden="true" className="absolute inset-0 h-full w-full"
+           style={{ imageRendering: 'pixelated' }} />
+         <canvas ref={uiRef} role="application" aria-label="Duck Heist. Usa WASD para moverte, flechas o clic izquierdo para disparar, clic derecho o Shift para esquivar, E para interactuar, M para el mapa y Escape para pausar." tabIndex={0} className="absolute inset-0 h-full w-full"
+           style={{ imageRendering: 'auto',outline:'none' }} />
+-        <div className="pointer-events-none absolute -inset-3 rounded-[2px] border border-[#2f3644]" />
+-        <div className="pointer-events-none absolute -inset-6 rounded-[3px] border border-[#161c2a]" />
++        <div className="duck-responsive-frame duck-frame-near pointer-events-none absolute -inset-3 rounded-[2px] border border-[#2f3644]" />
++        <div className="duck-responsive-frame duck-frame-far pointer-events-none absolute -inset-6 rounded-[3px] border border-[#161c2a]" />
+       </div>
+-      <div className="relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
+-        <span className="hidden text-[#6a817f] md:block">{hint}</span>
++      <div className="duck-responsive-footer relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
++        <span className="duck-responsive-hint hidden text-[#6a817f] md:block">{hint}</span>
+         <button onClick={toggleFs}
+-          className="pointer-events-auto text-[#7c8494] hover:text-[#f4d03f] transition-colors border border-transparent hover:border-[#f4d03f]/40 px-2 py-0.5">
++          className="duck-responsive-fullscreen pointer-events-auto text-[#7c8494] hover:text-[#f4d03f] transition-colors border border-transparent hover:border-[#f4d03f]/40 px-2 py-0.5">
+           Pantalla completa · F
+         </button>
+       </div>
+@@ -603,6 +633,7 @@
+   if(engine.lastInput==='gamepad')return 'PALANCA IZQUIERDA · MOVER  RT · DISPARAR  B · ESQUIVAR  A · INTERACTUAR  Y · OBJETO  VIEW · MAPA  START · PAUSA';
+   switch (engine.state) {
+     case GameState.MENU: return 'W / S elegir · ENTER confirmar · rueda también vale';
++    case GameState.DIFFICULTY:return 'W / S dificultad · ENTER confirmar · ESC volver';
+     case GameState.PLAYING: return 'WASD mover · MOUSE / FLECHAS disparar · RUEDA cambiar arma · SHIFT esquivar · E interactuar · M mapa';
+     case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · M / ESC cerrar';
+     case GameState.PAUSED: return 'ESC continuar · flechas navegar';
