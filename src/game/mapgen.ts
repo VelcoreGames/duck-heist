@@ -180,8 +180,10 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
 
   const remaining = () => [...rooms.values()].filter(r => r.type === RoomType.COMBAT);
 
-  // Minijefe: lejano pero no el jefe
-  assignFarthest(remaining(), RoomType.MINIBOSS);
+  // Subjefe: segundo gran pico de dificultad, en una rama lejana.
+  assignFarthest(remaining(), RoomType.SUBBOSS);
+  // Minijefe: encuentro de presión intermedia, separado del subjefe.
+  assignMiddle(remaining(), RoomType.MINIBOSS);
   // Tienda: distancia media
   assignMiddle(remaining(), RoomType.SHOP);
   // Camioneta del mercado negro: aparece solo en mapas suficientemente grandes.
@@ -445,6 +447,8 @@ export function validateMap(map:GameMap):string[] {
   const issues:string[]=[],start=map.rooms.get(map.startKey),item=map.rooms.get(map.itemRoomKey);
   if(!start?.doors.includes('W')||item?.type!==RoomType.ITEM||item.gx!==start.gx-1||item.gy!==start.gy) issues.push('west item room');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.BOSS).length!==1) issues.push('boss count');
+  if([...map.rooms.values()].filter(r=>r.type===RoomType.SUBBOSS).length!==1) issues.push('subboss count');
+  if([...map.rooms.values()].filter(r=>r.type===RoomType.MINIBOSS).length!==1) issues.push('miniboss count');
   if((map.rooms.get(map.bossKey)?.distance ?? 0)<2) issues.push('boss depth');
   if(bfs(map.rooms,map.startKey).size!==map.rooms.size) issues.push('disconnected map');
   if(![...map.rooms.values()].some(r=>r.doors.length>=3)) issues.push('no branching');
