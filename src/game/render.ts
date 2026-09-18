@@ -14,7 +14,7 @@ import {
   drawDuckSkin,
 } from './sprites';
 import {
-  WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, MINIBOSSES, META_UPGRADES,
+  WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, META_UPGRADES,
   RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS,
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
@@ -524,7 +524,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
 
   if (e.isBoss) {
-    drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt);
+    drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
   } else {
@@ -971,36 +971,36 @@ function drawHUD(engine: GameEngine) {
 }
 
 function drawBossBar(engine: GameEngine) {
-  const ctx = engine.ui!;
-  const content = getContentOf(engine);
-  const boss = content.enemies.find((e: Enemy) => e.isBoss);
-  if (!boss) return;
-  const isFloorBoss = !!BOSSES[boss.bossType];
-  const def = BOSSES[boss.bossType] ?? MINIBOSSES[boss.bossType];
-  const w = isFloorBoss ? CANVAS_WIDTH - 120 : 220;
-  const x = (CANVAS_WIDTH - w) / 2, y = isFloorBoss ? 74 : 72;
-  text(ctx, def?.name ?? '', CANVAS_WIDTH / 2, y, isFloorBoss ? 14 : 11,
-    isFloorBoss ? '#ff8f7f' : '#c9a227', 'center', true);
-  ctx.fillStyle = 'rgba(4,6,12,0.85)';
-  ctx.fillRect(x, y + 5, w, 10);
-  const pct = clamp(boss.hp / boss.maxHp, 0, 1)*clamp(1-boss.spawnAnim/30,0,1);
-  const g = ctx.createLinearGradient(x, 0, x + w, 0);
-  g.addColorStop(0, '#c0392b');
-  g.addColorStop(1, '#ff6b5b');
-  ctx.fillStyle = g;
-  ctx.fillRect(x + 1, y + 6, (w - 2) * pct, 8);
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(x + 1, y + 6, (w - 2) * pct, 2);
-  ctx.fillStyle = '#39414f';
-  ctx.fillRect(x, y + 5, w, 1);
-  ctx.fillRect(x, y + 14, w, 1);
-  // segmentos de fase
-  for (let i = 1; i < 3; i++) {
-    ctx.fillStyle = 'rgba(4,6,12,0.9)';
-    ctx.fillRect(x + (w / 3) * i, y + 5, 1, 10);
+  const ctx=engine.ui!;
+  const content=getContentOf(engine);
+  const boss=content.enemies.find((e:Enemy)=>e.isBoss);
+  if(!boss) return;
+  const isFloorBoss=!!BOSSES[boss.bossType];
+  const isSubBoss=!!SUBBOSSES[boss.bossType];
+  const def=BOSSES[boss.bossType]??SUBBOSSES[boss.bossType]??MINIBOSSES[boss.bossType];
+  const phaseCount=isFloorBoss?3:isSubBoss?2:1;
+  const phase=Math.max(0,boss.bossPhase);
+  const w=isFloorBoss?CANVAS_WIDTH-108:isSubBoss?300:220;
+  const x=(CANVAS_WIDTH-w)/2,y=isFloorBoss?74:isSubBoss?73:72;
+  const accent=isFloorBoss?(phase>=2?'#ff4f52':phase===1?'#ff875f':'#ffb078'):isSubBoss?(phase>=1?'#f06f62':'#d99a68'):(phase>=1?'#ffd84f':'#c9a227');
+  const tier=isFloorBoss?'JEFE DE PISO':isSubBoss?'SUBJEFE':'MINIJEFE';
+  const phaseText=isFloorBoss?`FASE ${phase+1}/3`:isSubBoss?`FASE ${phase+1}/2`:(phase>=1?'ENRAGE':'');
+  text(ctx,tier,CANVAS_WIDTH/2,y-12,5.4,'#7f8998','center');
+  text(ctx,def?.name??'',CANVAS_WIDTH/2,y,isFloorBoss?14:isSubBoss?12:11,accent,'center',true);
+  if(phaseText) text(ctx,phaseText,CANVAS_WIDTH/2,y+22,5.2,accent,'center',phase>0);
+  ctx.fillStyle='rgba(4,6,12,.88)';ctx.fillRect(x,y+6,w,10);
+  const pct=clamp(boss.hp/boss.maxHp,0,1)*clamp(1-boss.spawnAnim/30,0,1);
+  const g=ctx.createLinearGradient(x,0,x+w,0);
+  g.addColorStop(0,isFloorBoss?'#a92e35':isSubBoss?'#a94f38':'#8d6f23');
+  g.addColorStop(1,accent);
+  ctx.fillStyle=g;ctx.fillRect(x+1,y+7,(w-2)*pct,8);
+  ctx.fillStyle='rgba(255,255,255,.32)';ctx.fillRect(x+1,y+7,(w-2)*pct,2);
+  ctx.fillStyle='#39414f';ctx.fillRect(x,y+6,w,1);ctx.fillRect(x,y+15,w,1);
+  for(let i=1;i<phaseCount;i++){
+    ctx.fillStyle='rgba(4,6,12,.95)';
+    ctx.fillRect(x+(w/phaseCount)*i,y+6,2,10);
   }
 }
-
 function drawMinimap(engine: GameEngine) {
   const ctx = engine.ui!;
   const visible=visibleRoomKeys(engine);
