@@ -32,7 +32,7 @@ jobs:
           grep -q "'MIGAJAS'" src/game/render.ts
           grep -q 'ESTADÍSTICAS DE LA RUN' src/game/render.ts
           grep -q "DIFFICULTY = 'DIFFICULTY'" src/game/constants.ts
-          grep -q "LOCO POR EL PAN" src/game/render.ts
+          grep -q "LOCO POR EL PAN" src/game/engine.ts
           grep -q "k==='tab'" src/App.tsx
           grep -q "dangerEventActive" src/game/engine.ts
           test -s dist/index.html
