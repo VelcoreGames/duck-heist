@@ -810,9 +810,21 @@ export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame
   }
 }
 
-export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean) {
+export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean, phase = 0) {
   const bx = Math.floor(x);
   const by = Math.floor(y);
+  const floorBoss = ['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','bread_banker'].includes(bossType);
+  const subBoss = ['head_baker','el_auditor','ganso_antidisturbios','cajero_3000'].includes(bossType);
+  if (phase > 0) {
+    const pulse=.18+.08*Math.sin(frame*.16);
+    ctx.save();
+    ctx.globalAlpha=pulse+(floorBoss&&phase>=2?.12:0);
+    ctx.fillStyle=floorBoss?(phase>=2?'#ff3b45':'#ff8a55'):subBoss?'#ed795f':'#f4d03f';
+    ctx.beginPath();
+    ctx.ellipse(bx+18,by+22,24+phase*5,18+phase*4,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
   
   if (hurt && Math.floor(frame) % 2 === 0) {
     ctx.globalAlpha = 0.5;
@@ -1041,6 +1053,31 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
     ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(bx + 16, by + 34, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
     rect(ctx, bx + 4, by + 10, 24, 20, '#4a5c68'); rect(ctx, bx + 8, by + 14, 16, 8, '#8cc9b0');
     rect(ctx, bx + 10, by + 16, 12, 4, '#c5ad6d'); rect(ctx, bx + 20, by + 20, 10, 8, '#5d4037');
+  }
+  
+  // El diseño escala visualmente con la dificultad de fase.
+  if (phase >= 1) {
+    const accent=subBoss?'#f09a69':floorBoss?'#ff875f':'#f4d03f';
+    ctx.globalAlpha=.9;
+    rect(ctx,bx-2,by+4,3,8,accent);
+    rect(ctx,bx+33,by+4,3,8,accent);
+    px(ctx,bx+4,by-6,accent,2);px(ctx,bx+26,by-6,accent,2);
+    for(let i=0;i<3;i++){
+      const t=(frame*.035+i*.33)%1;
+      ctx.globalAlpha=(1-t)*.75;
+      ctx.fillStyle=accent;
+      ctx.fillRect(bx+4+i*11,by+34-t*(18+phase*5),2,2);
+    }
+    ctx.globalAlpha=1;
+  }
+  if (floorBoss && phase >= 2) {
+    const flash=Math.sin(frame*.22)>0?'#ff4545':'#ffd166';
+    // Fase final: silueta rota/agresiva, espinas y núcleo expuesto.
+    rect(ctx,bx-5,by+11,5,3,flash);rect(ctx,bx+35,by+11,5,3,flash);
+    rect(ctx,bx-3,by+21,4,3,'#9f2630');rect(ctx,bx+34,by+21,4,3,'#9f2630');
+    px(ctx,bx+14,by-8,flash,3);px(ctx,bx+20,by-8,flash,3);
+    ctx.globalAlpha=.28+.15*Math.sin(frame*.18);
+    ctx.fillStyle='#ff3038';ctx.fillRect(bx+8,by+12,20,16);ctx.globalAlpha=1;
   }
   
   // La barra de vida del jefe se dibuja en la capa de UI (nítida)
