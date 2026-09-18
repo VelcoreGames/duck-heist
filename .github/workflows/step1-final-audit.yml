@@ -37,7 +37,7 @@ jobs:
           echo CHECK_TAB && grep -Fq "k==='tab'" src/App.tsx
           echo CHECK_DANGER && grep -Fq "dangerEventActive" src/game/engine.ts
           echo CHECK_DIST_HTML && test -s dist/index.html
-          echo CHECK_DIST_JS && test -n "$(find dist/assets -maxdepth 1 -type f -name '*.js' -print -quit)"
+          echo CHECK_DIST_SINGLEFILE && grep -Fq 'ESTADÍSTICAS DE LA RUN' dist/index.html
       - uses: actions/upload-artifact@v4
         with:
           name: step1-final-audit-build
