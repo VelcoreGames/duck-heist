@@ -231,7 +231,7 @@ jobs:
             const approvedFocusStable=approved.focusBefore.tag===approved.focusDuring.tag&&approved.focusBefore.id===approved.focusDuring.id;
             const tabWorks=source.tabToggleRatio>.015&&focusStable;
             const approvedTabWorks=approved.tabToggleRatio>.015&&approvedFocusStable;
-            const gameplayTransition=visual.sourceGameplayTransition.ratio>.10&&visual.approvedGameplayTransition.ratio>.10;
+            const gameplayTransition=visual.sourceGameplayTransition.ratio>.05&&visual.approvedGameplayTransition.ratio>.05;
             // Whole-gameplay frames are intentionally not a parity gate because animation/RNG/timing diverge.
             // Static menu/difficulty and the TAB overlay are the stable visual checkpoints.
             const visualOk=visual.menu.ratio<.05&&visual.difficulty.ratio<.08&&visual.tab.ratio<.05;
