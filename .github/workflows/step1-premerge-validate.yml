@@ -1,0 +1,57 @@
+name: Step 1 pre-merge validation
+
+on:
+  push:
+    branches: [step1-source-sync]
+    paths:
+      - '.github/workflows/step1-premerge-validate.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: step1-source-sync
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Guard repository cleanliness
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "step1-source-sync"
+          test "$(git ls-files 'node_modules/**' | wc -l)" -eq 0
+          grep -Fxq 'node_modules/' .gitignore
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Vite build
+        run: npx vite build --outDir /tmp/duck-step1-premerge --emptyOutDir
+      - name: Verify Step 1 markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'viewport-fit=cover' index.html
+          grep -Fq "const VERSION = 'v0.4.3';" index.html
+          grep -Fq "const cx=CANVAS_WIDTH-80;" src/game/render.ts
+          grep -Fq "if(engine.keys.tab) renderRunStats(engine);" src/game/render.ts
+          grep -Fq "'tab'" src/App.tsx
+          grep -Fq "engine.state = GameState.PLAYING" src/game/engine.ts
+      - name: Finalize validation cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/step1-premerge-validate.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: remove temporary pre-merge validation'
+          git push origin HEAD:step1-source-sync
