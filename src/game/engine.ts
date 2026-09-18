@@ -6,8 +6,8 @@ import {
   TILE_WALL, TILE_DOOR, OBSTACLE_BASE, type Dir,
 } from './constants';
 import {
-  WEAPONS, ITEMS, ACTIVE_ITEMS, ENEMIES, ENCOUNTERS, BOSSES, MINIBOSSES,
-  FLOOR_BOSS_POOL, FLOOR_MINIBOSS_POOL,
+  WEAPONS, ITEMS, ACTIVE_ITEMS, ENEMIES, ENCOUNTERS, BOSSES, SUBBOSSES, MINIBOSSES,
+  FLOOR_BOSS_POOL, FLOOR_SUBBOSS_POOL, FLOOR_MINIBOSS_POOL,
   META_UPGRADES, ELITE_OK, TOTAL_FLOORS, SKINS, SYNERGIES,
   type WeaponDef, type EnemyDef, type BossDef,
 } from './data';
@@ -134,23 +134,28 @@ function makeEnemy(typeKey: string, sc: DiffScale, tx: number, ty: number, elite
 }
 type floorIndexScale = { hp: number; dmg: number; speed: number; fire: number; pattern: number };
 
-function makeBossEnemy(def: BossDef, bossType: string, isMini: boolean, sc: floorIndexScale): Enemy {
-  const hp = Math.round(def.hp * (isMini?1.2:2.4) * (1 + (sc.hp - 1) * 0.7));
+function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss', sc: floorIndexScale): Enemy {
+  const hpMult = tier === 'boss' ? 2.65 : tier === 'sub' ? 1.9 : 1.35;
+  const hp = Math.round(def.hp * hpMult * (1 + (sc.hp - 1) * 0.78));
+  const tierSpeed = tier === 'boss' ? 1.04 : tier === 'sub' ? 1.08 : 1.12;
+  const tierDamage = tier === 'boss' ? 1.2 : tier === 'sub' ? 1.1 : 1;
+  const isMoney = bossType === 'tax_collector' || bossType === 'el_auditor' || bossType === 'cajero_3000' || bossType === 'bread_banker';
+  const isTech = bossType === 'dron_centinela' || bossType === 'director_seguridad' || bossType === 'cajero_3000';
   return {
     id: nextEnemyId++, type: bossType,
     x: CANVAS_WIDTH / 2 - def.size / 2, y: CANVAS_HEIGHT * 0.28,
     vx: 0, vy: 0, hp, maxHp: hp,
-    speed: def.speed * sc.speed, damage: 1, size: def.size, score: isMini ? 50 : 150,
-    behavior: 'chaser', flying: false,
-    fireRate: Math.round(60 * sc.fire), fireCooldown: 60,
-    projectileType: isMini
-      ? (bossType === 'tax_collector' || bossType === 'el_auditor' || bossType === 'cajero_3000' ? 'briefcase' : 'dough_ball')
-      : (bossType === 'bread_banker' || bossType === 'director_seguridad' ? 'coin_proj' : 'enemy_bullet'),
+    speed: def.speed * sc.speed * tierSpeed, damage: tierDamage, size: def.size, score: tier === 'boss' ? 180 : tier === 'sub' ? 100 : 60,
+    behavior: 'chaser', flying: bossType === 'dron_centinela',
+    fireRate: Math.round((tier === 'boss' ? 52 : tier === 'sub' ? 58 : 64) * sc.fire), fireCooldown: 45,
+    projectileType: isMoney ? 'coin_proj' : isTech ? 'drone_shot' : (bossType.includes('panadero') || bossType === 'don_levadura' ? 'dough_ball' : 'enemy_bullet'),
     hurtTimer: 0, moveAngle: 0, moveTimer: 0,
     telegraph: 0, chargeTimer: 0, burst: 0, burstDelay: 0, slowTimer: 0, burn: 0, elite: false,
     isBoss: true, bossType, bossPhase: 0,
-    attackTimer: 70, attackCooldown: (isMini ? 70 : 90) * sc.fire,
-    spawnAnim: 30, dmgMul: sc.dmg,
+    attackTimer: tier === 'boss' ? 72 : tier === 'sub' ? 64 : 54,
+    attackCooldown: (tier === 'boss' ? 82 : tier === 'sub' ? 72 : 64) * sc.fire,
+    spawnAnim: tier === 'boss' ? 42 : tier === 'sub' ? 34 : 26,
+    dmgMul: sc.dmg * tierDamage,
     shieldAngle: 0, recover: 0,
   };
 }
@@ -196,17 +201,24 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
     case RoomType.MINIBOSS: {
       const pool = (FLOOR_MINIBOSS_POOL[engine.map.floorIndex] ?? Object.keys(MINIBOSSES)).filter(id => MINIBOSSES[id]);
       const k = pick(pool.length ? pool : Object.keys(MINIBOSSES));
-      content.enemies.push(makeBossEnemy(MINIBOSSES[k], k, true, sc));
-      for (let i = 0; i < 2 + Math.floor(engine.map.floorIndex / 2); i++) {
+      content.enemies.push(makeBossEnemy(MINIBOSSES[k], k, 'mini', sc));
+      const supportCount = engine.map.floorIndex >= 3 ? 1 : 0;
+      for (let i = 0; i < supportCount; i++) {
         const spot = spots.pop();
         if (spot) content.enemies.push(makeEnemy(pick(['policia_pato', 'policia_rapido']), sc, spot.x, spot.y, false));
       }
       break;
     }
+    case RoomType.SUBBOSS: {
+      const pool = (FLOOR_SUBBOSS_POOL[engine.map.floorIndex] ?? Object.keys(SUBBOSSES)).filter(id => SUBBOSSES[id]);
+      const k = pick(pool.length ? pool : Object.keys(SUBBOSSES));
+      content.enemies.push(makeBossEnemy(SUBBOSSES[k], k, 'sub', sc));
+      break;
+    }
     case RoomType.BOSS: {
       const pool = (FLOOR_BOSS_POOL[engine.map.floorIndex] ?? ['bread_banker']).filter(id => BOSSES[id]);
       const k = pool[Math.floor(((engine.run.seed.charCodeAt(engine.map.floorIndex % engine.run.seed.length) * 17 + engine.map.floorIndex * 31) % 997) / 997 * pool.length)] ?? pool[0];
-      content.enemies.push(makeBossEnemy(BOSSES[k], k, false, sc));
+      content.enemies.push(makeBossEnemy(BOSSES[k], k, 'boss', sc));
       break;
     }
     case RoomType.ITEM: {
@@ -619,7 +631,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
     if (spot) { engine.player.x = spot.x * TILE_SIZE + 8; engine.player.y = spot.y * TILE_SIZE + 8; }
   }
   engine.projectiles = [];
-  if(from) playDoorStyle(room.type===RoomType.BOSS?'boss':room.type===RoomType.ITEM?'gold':room.type===RoomType.SHOP?'green':room.type===RoomType.GUN_VAN?'orange':room.type===RoomType.TREASURE?'purple':'silver');
+  if(from) playDoorStyle((room.type===RoomType.BOSS||room.type===RoomType.SUBBOSS)?'boss':room.type===RoomType.ITEM?'gold':room.type===RoomType.SHOP?'green':room.type===RoomType.GUN_VAN?'orange':room.type===RoomType.TREASURE?'purple':'silver');
 
   if (!room.cleared && content.enemies.length > 0) {
     for (const d of room.doors) content.doorAnim[d] = 0;
@@ -637,18 +649,18 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
   registerRoomDiscoveries(engine,content);
   if((room.type===RoomType.SHOP||room.type===RoomType.GUN_VAN) && (content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,room.type===RoomType.GUN_VAN?pick(['Tres fierros. Cero preguntas.','La camioneta no existe.','Mira rápido y paga en migajas.','No preguntes de dónde salieron.']):pick(['Todo legal. Probablemente.','No tengo factura.','Eso cayó de un camión.','El pan está caro.','No hago devoluciones.','Ese objeto no estaba aquí ayer.']));
 
-  const boss = content.enemies.find(e => e.isBoss && !!BOSSES[e.bossType]);
+  const boss = content.enemies.find(e => e.isBoss && !!(BOSSES[e.bossType] ?? SUBBOSSES[e.bossType] ?? MINIBOSSES[e.bossType]));
   if (boss && !room.cleared) {
-    const def = BOSSES[boss.bossType] ?? MINIBOSSES[boss.bossType];
+    const def = BOSSES[boss.bossType] ?? SUBBOSSES[boss.bossType] ?? MINIBOSSES[boss.bossType];
     if (def) {
       engine.bossIntroName = def.name;
       engine.bossIntroSubtitle = def.subtitle;
       const seen = !!engine.bossIntroSeen[boss.bossType];
-      engine.bossIntroTimer = room.type === RoomType.BOSS ? (seen ? 45 : 115) : (seen ? 30 : 70);
+      engine.bossIntroTimer = room.type === RoomType.BOSS ? (seen ? 48 : 120) : room.type === RoomType.SUBBOSS ? (seen ? 38 : 92) : (seen ? 28 : 62);
       engine.transition.active = false;
       engine.transition.timer = 0;
       engine.bossIntroSeen[boss.bossType] = true;
-      if (room.type === RoomType.BOSS) { playBossRoar(); setMusic('boss'); }
+      if (room.type === RoomType.BOSS || room.type === RoomType.SUBBOSS) { playBossRoar(); setMusic('boss'); }
       engine.state = GameState.BOSS_INTRO;
       engine.onStateChange?.(engine.state);
     }
@@ -663,7 +675,8 @@ function roomLabelFor(room: MapRoom): string {
     case RoomType.GUN_VAN: return 'CAMIONETA DEL MERCADO NEGRO';
     case RoomType.CHALLENGE: return 'DESAFÍO';
     case RoomType.MINIBOSS: return 'MINIJEFE';
-    case RoomType.BOSS: return 'JEFE';
+    case RoomType.SUBBOSS: return 'SUBJEFE';
+    case RoomType.BOSS: return 'JEFE DE PISO';
     case RoomType.SECRET: return 'BÓVEDA SECRETA';
     case RoomType.START: return 'ENTRADA';
     case RoomType.EVENT:return 'UN ASUNTO PENDIENTE';
