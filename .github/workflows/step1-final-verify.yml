@@ -1,0 +1,273 @@
+name: Step 1 final source parity verification
+
+on:
+  push:
+    branches: [step1-source-sync]
+    paths:
+      - '.github/workflows/step1-final-verify.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: step1-source-sync
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Guard branch and approved reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "step1-source-sync"
+          test "$(cat VERSION)" = "0.4.3"
+          test -s web-release/index.html
+          test -s web-release/assets/index-BgUNQzP_.js
+          grep -Fq 'viewport-fit=cover' web-release/index.html
+          grep -Fq "const VERSION = 'v0.4.3';" web-release/index.html
+          test "$(find .github/workflows -maxdepth 1 -type f -name 'step1-*' ! -name 'step1-final-verify.yml' | wc -l)" -eq 0
+          test ! -e step1-parity
+          test ! -e step1-typecheck.log
+          test ! -e step1-bundle-foods.log
+          test ! -e scripts/step1-sync-v043-source.py
+
+      - name: Install exact project dependencies
+        run: npm ci
+
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+
+      - name: Vite source build
+        run: npx vite build --outDir /tmp/duck-step1-source --emptyOutDir
+
+      - name: Verify source parity markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'viewport-fit=cover' index.html
+          grep -Fq "const VERSION = 'v0.4.3';" index.html
+          grep -Fq "const cx=CANVAS_WIDTH-80;" src/game/render.ts
+          grep -Fq "drawPanel(ctx,cx,4,76,28,'rgba(5,12,18,.52)','rgba(115,133,146,.24)','rgba(31,48,57,.38)');" src/game/render.ts
+          grep -Fq "text(ctx,'MIGAJAS',cx+19,12,5.2,'#899f98','left');" src/game/render.ts
+          grep -Fq "text(ctx,'MONEDAS',cx+19,25,5.2,'#ac9a65','left');" src/game/render.ts
+          grep -Fq "DIFFICULTY_MODES:DifficultyMode[] = ['easy','normal','hard','mad']" src/game/engine.ts
+          grep -Fq "label:'FÁCIL'" src/game/engine.ts
+          grep -Fq "label:'NORMAL'" src/game/engine.ts
+          grep -Fq "label:'DIFÍCIL'" src/game/engine.ts
+          grep -Fq "label:'LOCO POR EL PAN'" src/game/engine.ts
+          grep -Fq "if(engine.keys.tab) renderRunStats(engine);" src/game/render.ts
+          grep -Fq "'tab'" src/App.tsx
+          grep -Fq "e.preventDefault();" src/App.tsx
+          grep -Fq "engine.state = GameState.PLAYING" src/game/engine.ts
+          grep -Fq "dangerEventActive" src/game/engine.ts
+          grep -Fq "viewport-fit=cover" /tmp/duck-step1-source/index.html
+          grep -Fq "ESTADÍSTICAS DE LA RUN" /tmp/duck-step1-source/index.html
+
+      - name: Verify approved HUD constants against source
+        shell: python
+        run: |
+          from pathlib import Path
+          source = Path('src/game/render.ts').read_text(encoding='utf-8')
+          bundle = Path('web-release/assets/index-BgUNQzP_.js').read_text(encoding='utf-8')
+          source_needles = [
+              "const cx=CANVAS_WIDTH-80;",
+              "drawPanel(ctx,cx,4,76,28,'rgba(5,12,18,.52)','rgba(115,133,146,.24)','rgba(31,48,57,.38)');",
+              "drawItemIcon(ctx,cx+4,5,'crumb',12);text(ctx,'MIGAJAS',cx+19,12,5.2,'#899f98','left');",
+              "drawItemIcon(ctx,cx+4,18,'golden_crumb',11);text(ctx,'MONEDAS',cx+19,25,5.2,'#ac9a65','left');",
+          ]
+          bundle_needles = [
+              'const c=K-80;',
+              'Ga(t,c,4,76,28,"rgba(5,12,18,.52)","rgba(115,133,146,.24)","rgba(31,48,57,.38)")',
+              'j(t,"MIGAJAS",c+19,12,5.2,"#899f98","left")',
+              'j(t,"MONEDAS",c+19,25,5.2,"#ac9a65","left")',
+          ]
+          missing = [x for x in source_needles if x not in source] + [x for x in bundle_needles if x not in bundle]
+          if missing:
+              raise SystemExit("HUD parity markers missing: " + repr(missing))
+          print("Approved HUD geometry/text constants match source.")
+
+      - name: Install browser audit tooling
+        run: npm install --no-save --package-lock=false playwright@1.55.0 pixelmatch@7.1.0 pngjs@7.0.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser parity audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/step1-audit
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/duck-step1-source >/tmp/source-server.log 2>&1 &
+          SOURCE_PID=$!
+          python3 -m http.server 4174 --bind 127.0.0.1 --directory web-release >/tmp/approved-server.log 2>&1 &
+          APPROVED_PID=$!
+          trap 'kill $SOURCE_PID $APPROVED_PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/ >/dev/null && break
+            sleep .25
+          done
+
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import { PNG } from 'pngjs';
+          import pixelmatch from 'pixelmatch';
+
+          const outDir='/tmp/step1-audit';
+          const cases=[
+            {name:'desktop', viewport:{width:1191,height:900}, target:{w:1175,h:862}},
+            {name:'mobile', viewport:{width:390,height:306}, target:{w:385,h:282}},
+          ];
+          const urls={source:'http://127.0.0.1:4173/',approved:'http://127.0.0.1:4174/'};
+
+          function diffPng(aPath,bPath,diffPath){
+            const a=PNG.sync.read(fs.readFileSync(aPath));
+            const b=PNG.sync.read(fs.readFileSync(bPath));
+            if(a.width!==b.width||a.height!==b.height) return {ratio:1,pixels:a.width*a.height,reason:'size'};
+            const diff=new PNG({width:a.width,height:a.height});
+            const pixels=pixelmatch(a.data,b.data,diff.data,a.width,a.height,{threshold:.22,includeAA:false});
+            fs.writeFileSync(diffPath,PNG.sync.write(diff));
+            return {ratio:pixels/(a.width*a.height),pixels};
+          }
+          async function auditPage(browser,label,url,c){
+            const context=await browser.newContext({viewport:c.viewport,deviceScaleFactor:1});
+            await context.addInitScript(() => {
+              let seed=0x1234abcd;
+              Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+              try{localStorage.clear();sessionStorage.clear();}catch{}
+            });
+            const page=await context.newPage();
+            const errors=[];
+            page.on('pageerror',e=>errors.push(String(e)));
+            page.on('console',m=>{if(m.type()==='error')errors.push('console:'+m.text());});
+            await page.goto(url,{waitUntil:'networkidle'});
+            await page.waitForFunction(()=>document.querySelectorAll('canvas').length>=2);
+            await page.evaluate(()=>document.fonts?.ready);
+            await page.waitForTimeout(300);
+
+            const geometry=await page.evaluate(()=>{
+              const canvases=[...document.querySelectorAll('canvas')].map(c=>{
+                const r=c.getBoundingClientRect();
+                return {left:r.left,top:r.top,width:r.width,height:r.height,right:r.right,bottom:r.bottom,internalWidth:c.width,internalHeight:c.height};
+              });
+              return {
+                innerWidth:innerWidth,innerHeight:innerHeight,
+                scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,
+                canvases,
+              };
+            });
+            const menuPath=`${outDir}/${c.name}-${label}-menu.png`;
+            await page.screenshot({path:menuPath});
+
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(220);
+            const difficultyPath=`${outDir}/${c.name}-${label}-difficulty.png`;
+            await page.screenshot({path:difficultyPath});
+            const beforeMove=await page.screenshot();
+            await page.keyboard.press('ArrowDown');
+            await page.waitForTimeout(100);
+            const afterMove=await page.screenshot();
+            const moveChanged=!beforeMove.equals(afterMove);
+            await page.keyboard.press('ArrowUp');
+            await page.waitForTimeout(60);
+            await page.keyboard.press('Enter');
+            await page.waitForTimeout(3900);
+
+            const gameplayPath=`${outDir}/${c.name}-${label}-gameplay.png`;
+            await page.screenshot({path:gameplayPath});
+            const focusBefore=await page.evaluate(()=>({tag:document.activeElement?.tagName||'',id:document.activeElement?.id||''}));
+            await page.keyboard.down('Tab');
+            await page.waitForTimeout(160);
+            const tabPath=`${outDir}/${c.name}-${label}-tab.png`;
+            await page.screenshot({path:tabPath});
+            const focusDuring=await page.evaluate(()=>({tag:document.activeElement?.tagName||'',id:document.activeElement?.id||''}));
+            await page.keyboard.up('Tab');
+            await page.waitForTimeout(160);
+            const afterTabPath=`${outDir}/${c.name}-${label}-after-tab.png`;
+            await page.screenshot({path:afterTabPath});
+            const tabDiff=diffPng(tabPath,afterTabPath,`${outDir}/${c.name}-${label}-tab-toggle-diff.png`);
+
+            await context.close();
+            return {geometry,menuPath,difficultyPath,gameplayPath,tabPath,afterTabPath,moveChanged,focusBefore,focusDuring,tabToggleRatio:tabDiff.ratio,errors};
+          }
+
+          const browser=await chromium.launch({headless:true});
+          const audit={generatedAt:new Date().toISOString(),cases:{}};
+          let failed=false;
+          for(const c of cases){
+            const source=await auditPage(browser,'source',urls.source,c);
+            const approved=await auditPage(browser,'approved',urls.approved,c);
+            const visual={
+              menu:diffPng(source.menuPath,approved.menuPath,`${outDir}/${c.name}-menu-diff.png`),
+              difficulty:diffPng(source.difficultyPath,approved.difficultyPath,`${outDir}/${c.name}-difficulty-diff.png`),
+              gameplay:diffPng(source.gameplayPath,approved.gameplayPath,`${outDir}/${c.name}-gameplay-diff.png`),
+              tab:diffPng(source.tabPath,approved.tabPath,`${outDir}/${c.name}-tab-diff.png`),
+            };
+            const s=source.geometry.canvases[0], a=approved.geometry.canvases[0];
+            const geomEqual=!!s&&!!a&&s.width===a.width&&s.height===a.height&&s.left===a.left&&s.top===a.top;
+            const targetOk=!!s&&Math.abs(s.width-c.target.w)<=1&&Math.abs(s.height-c.target.h)<=1;
+            const noOverflow=source.geometry.scrollWidth<=source.geometry.innerWidth&&source.geometry.scrollHeight<=source.geometry.innerHeight;
+            const canvasInside=source.geometry.canvases.every(x=>x.left>=-0.5&&x.top>=-0.5&&x.right<=source.geometry.innerWidth+.5&&x.bottom<=source.geometry.innerHeight+.5);
+            const canvasInternals=source.geometry.canvases.length===2&&source.geometry.canvases[0].internalWidth===480&&source.geometry.canvases[0].internalHeight===352;
+            const tabWorks=source.tabToggleRatio>.08&&source.focusBefore.tag===source.focusDuring.tag&&source.focusBefore.id===source.focusDuring.id;
+            const approvedTabWorks=approved.tabToggleRatio>.08&&approved.focusBefore.tag===approved.focusDuring.tag&&approved.focusBefore.id===approved.focusDuring.id;
+            const visualOk=visual.menu.ratio<.35&&visual.difficulty.ratio<.35&&visual.gameplay.ratio<.45&&visual.tab.ratio<.45;
+            const ok=geomEqual&&targetOk&&noOverflow&&canvasInside&&canvasInternals&&source.moveChanged&&approved.moveChanged&&tabWorks&&approvedTabWorks&&source.errors.length===0&&approved.errors.length===0&&visualOk;
+            if(!ok) failed=true;
+            audit.cases[c.name]={target:c.target,source,approved,checks:{geomEqual,targetOk,noOverflow,canvasInside,canvasInternals,tabWorks,approvedTabWorks,visualOk},visual,ok};
+          }
+          await browser.close();
+          fs.writeFileSync(`${outDir}/audit.json`,JSON.stringify(audit,null,2));
+          console.log(JSON.stringify(audit,null,2));
+          if(failed) process.exit(1);
+          JS
+
+      - name: Upload final parity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: step1-final-parity-evidence
+          path: /tmp/step1-audit
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove verification workflow and finalize branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          SUMMARY="$(node - <<'NODE'
+          const a=require('/tmp/step1-audit/audit.json');
+          const d=a.cases.desktop,m=a.cases.mobile;
+          const fmt=x=>(100*x).toFixed(2)+'%';
+          console.log([
+            'TypeScript=PASS',
+            'Vite=PASS',
+            'desktop='+d.source.geometry.canvases[0].width+'x'+d.source.geometry.canvases[0].height,
+            'mobile='+m.source.geometry.canvases[0].width+'x'+m.source.geometry.canvases[0].height,
+            'menuDiffDesktop='+fmt(d.visual.menu.ratio),
+            'menuDiffMobile='+fmt(m.visual.menu.ratio),
+            'difficultyDiffDesktop='+fmt(d.visual.difficulty.ratio),
+            'difficultyDiffMobile='+fmt(m.visual.difficulty.ratio),
+            'gameplayDiffDesktop='+fmt(d.visual.gameplay.ratio),
+            'gameplayDiffMobile='+fmt(m.visual.gameplay.ratio),
+            'tabDiffDesktop='+fmt(d.visual.tab.ratio),
+            'tabDiffMobile='+fmt(m.visual.tab.ratio),
+            'TAB=PASS',
+            'cleanup=PASS'
+          ].join(' | '));
+          NODE
+          )"
+          rm -f .github/workflows/step1-final-verify.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Finalize Step 1 verification' -m "$SUMMARY"
+          git push origin HEAD:step1-source-sync
