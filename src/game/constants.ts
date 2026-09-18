@@ -45,6 +45,7 @@ export const COLORS = {
 
 export enum GameState {
   MENU = 'MENU',
+  DIFFICULTY = 'DIFFICULTY',
   HEIST_INTRO = 'HEIST_INTRO',
   COLLECTION = 'COLLECTION',
   PLAYING = 'PLAYING',
@@ -87,6 +88,7 @@ export enum RoomType {
   ITEM = 'ITEM',
   TREASURE = 'TREASURE',
   SHOP = 'SHOP',
+  GUN_VAN = 'GUN_VAN',
   CHALLENGE = 'CHALLENGE',
   MINIBOSS = 'MINIBOSS',
   BOSS = 'BOSS',

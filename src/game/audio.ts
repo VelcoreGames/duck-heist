@@ -7,7 +7,7 @@ let sfxVol = 0.9;
 
 let musicTimer: number | null = null;
 let musicStep = 0;
-let musicMood: 'menu' | 'run' | 'boss' | 'off' = 'off';
+let musicMood: 'menu' | 'run' | 'boss' | 'event' | 'off' = 'off';
 let musicFloor=0;
 let testMode=false;
 export function setAudioTestMode(value:boolean) { testMode=value; }
@@ -98,9 +98,10 @@ function noise(dur: number, vol: number, delay = 0, decay = 0.25) {
 const MENUS = [220, 0, 277, 0, 330, 0, 277, 0];
 const RUN = [147, 0, 175, 0, 196, 175, 147, 0];
 const BOSS = [131, 156, 131, 110, 131, 175, 156, 110];
+const EVENT = [92, 0, 138, 0, 176, 138, 92, 70];
 const FLOOR_SEQ = [RUN,[147,220,0,175,147,0,233,196],[110,0,147,110,0,165,147,0],[147,175,208,0,196,175,147,233],[98,147,0,131,196,0,147,110],[82,123,164,0,110,147,98,0]];
 
-export function setMusic(mood: 'menu' | 'run' | 'boss' | 'off',floor=musicFloor) {
+export function setMusic(mood: 'menu' | 'run' | 'boss' | 'event' | 'off',floor=musicFloor) {
   if(testMode) return;
   if (musicMood === mood && musicFloor===floor) return;
   musicFloor=floor;
@@ -108,18 +109,18 @@ export function setMusic(mood: 'menu' | 'run' | 'boss' | 'off',floor=musicFloor)
   if (musicTimer !== null) { clearInterval(musicTimer); musicTimer = null; }
   if (mood === 'off') return;
   musicStep = 0;
-  const bpm = mood === 'boss' ? 132 : mood === 'run' ? 108 : 84;
+  const bpm = mood === 'event' ? 148 : mood === 'boss' ? 132 : mood === 'run' ? 108 : 84;
   const beat = 60000 / bpm / 2;
   musicTimer = window.setInterval(() => tickMusic(mood, beat), beat);
 }
 
-function tickMusic(mood: 'menu' | 'run' | 'boss', beat: number) {
+function tickMusic(mood: 'menu' | 'run' | 'boss' | 'event', beat: number) {
   if (musicVol <= 0.001 || masterVol <= 0.001) return;
-  const seq = mood === 'menu' ? MENUS : mood === 'run' ? FLOOR_SEQ[Math.min(5,musicFloor)] : BOSS;
+  const seq = mood === 'menu' ? MENUS : mood === 'run' ? FLOOR_SEQ[Math.min(5,musicFloor)] : mood === 'event' ? EVENT : BOSS;
   const f = seq[musicStep % seq.length];
   const s = musicStep % seq.length;
   if (f > 0) {
-    blip(mood === 'menu' ? 'triangle' : 'square', f, f * 0.99, (beat / 1000) * 0.85,
+    blip(mood === 'menu' ? 'triangle' : mood === 'event' ? 'sawtooth' : 'square', f, f * 0.99, (beat / 1000) * 0.85,
       mood === 'menu' ? 0.030 : 0.026, 0, 'music');
     if (mood !== 'menu' && s % 2 === 0) {
       blip('triangle', f * 3, f * 3, (beat / 1000) * 0.4, 0.016, beat / 2000, 'music');

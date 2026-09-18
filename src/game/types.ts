@@ -85,6 +85,7 @@ export interface ShopItem {
   itemId: string; cost: number; sold: boolean; isWeapon: boolean; x: number; y: number;
   soldAt?:number;
   deniedUntil?:number;
+  isFood?:boolean;
 }
 
 export interface Puddle { x: number; y: number; life: number; kind?:'water'|'fire'|'smoke'|'radiation'; radius?:number; }
@@ -119,6 +120,14 @@ export interface RoomContent {
   choices?:Pedestal[];
   choiceTaken?:boolean;
   event?:RoomEvent;
+  cafe?:boolean;
+  dangerEventStarted?:boolean;
+  dangerEventActive?:boolean;
+  dangerEventDone?:boolean;
+  dangerEventTotal?:number;
+  dangerEventTimer?:number;
+  dangerEventWave?:boolean;
+  dangerEventPressure?:number;
   merchantLine?:string;
   merchantUntil?:number;
   damaged?:boolean;
@@ -148,6 +157,8 @@ export interface RunStats {
   seed:string;
   weaponIds:string[];
 }
+
+export type DifficultyMode = 'easy' | 'normal' | 'hard' | 'mad';
 
 export interface Settings {
   master: number; music: number; sfx: number;
@@ -298,6 +309,7 @@ export interface GameEngine {
   remoteBomb:{x:number;y:number;life:number}|null;
   drone:{x:number;y:number;life:number;cooldown:number}|null;
   coffeeCrash:number;
+  dangerEventMusic?:boolean;
   synergyNotice:{name:string;description:string;timer:number}|null;
   activeSwap:{itemId:string;from:'floor'|'pedestal'|'shop'|'choice';srcIndex:number;worldX:number;worldY:number;roomKey:string}|null;
   collectionTab:CollectionCategory;
@@ -306,6 +318,10 @@ export interface GameEngine {
   wardrobeScroll:number;
   wardrobeScrollTarget:number;
   tooltip:{key:string;since:number};
+
+  difficulty: DifficultyMode;
+  difficultyIndex: number;
+  madUnlocked: boolean;
 
   menuIndex: number;
   pauseIndex: number;

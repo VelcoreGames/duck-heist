@@ -25,7 +25,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -53,23 +53,50 @@ function scaledCurrency(value:number,multiplier:number) {
 
 let nextEnemyId = 0;
 
+export type DifficultyDef = {
+  label:string; desc:string; hp:number; dmg:number; speed:number; fire:number;
+  count:number; elite:number; startHearts:number; floorHeal:number;
+};
+
+export const DIFFICULTY_MODES:DifficultyMode[] = ['easy','normal','hard','mad'];
+export const DIFFICULTIES:Record<DifficultyMode,DifficultyDef> = {
+  easy:{label:'FÁCIL',desc:'Más margen para aprender. Enemigos más lentos y menos agresivos.',hp:.82,dmg:.75,speed:.92,fire:1.18,count:.92,elite:.55,startHearts:1,floorHeal:2},
+  normal:{label:'NORMAL',desc:'La experiencia actual de Duck Heist. Equilibrada y recomendada.',hp:1,dmg:1,speed:1,fire:1,count:1,elite:1,startHearts:0,floorHeal:1},
+  hard:{label:'DIFÍCIL',desc:'Más presión, enemigos más resistentes y ataques más frecuentes.',hp:1.15,dmg:1.18,speed:1.06,fire:.88,count:1.1,elite:1.35,startHearts:0,floorHeal:.5},
+  mad:{label:'LOCO POR EL PAN',desc:'El banco va a por ti. Máxima presión, más élites y casi sin respiro.',hp:1.28,dmg:1.38,speed:1.12,fire:.74,count:1.22,elite:1.75,startHearts:0,floorHeal:.5},
+};
+let activeDifficulty:DifficultyMode = 'normal';
+
+export function getDifficulty(engine:GameEngine) { return DIFFICULTIES[engine.difficulty]; }
+export function difficultyLabel(engine:GameEngine) { return getDifficulty(engine).label; }
+export function selectDifficulty(engine:GameEngine,index:number) {
+  const i=Math.max(0,Math.min(DIFFICULTY_MODES.length-1,index));
+  const mode=DIFFICULTY_MODES[i];
+  engine.difficultyIndex=i;
+  if(mode==='mad'&&!engine.madUnlocked) { playDeny(); return false; }
+  engine.difficulty=mode;activeDifficulty=mode;return true;
+}
+
 export interface DiffScale {
   hp: number; dmg: number; speed: number; fire: number;
   count: number; eliteChance: number; pattern: number;
 }
 
-/** Multiplicadores de dificultad según piso y profundidad dentro del mapa */
+/** Multiplicadores según piso, profundidad y dificultad elegida. */
 export function floorScale(floorIndex: number, roomDistance = 0): DiffScale {
-  const f = floorIndex;                       // 0 = primer piso
-  const depth = Math.min(roomDistance, 8) * 0.06;
+  const f=floorIndex;
+  const depth=Math.min(roomDistance,8)*.06;
+  const mode=DIFFICULTIES[activeDifficulty];
+  const hp=1+f*.11+depth*.5;
+  const dmg=1+f*.09;
+  const speed=1+f*.05;
+  const fire=Math.max(.55,1-f*.07);
+  const count=1+f*.22+depth;
+  const elite=f<=1?(f===1?.1:0):Math.min(.42,.14+f*.09+depth*.5);
   return {
-    hp: 1 + f * 0.11 + depth * 0.5,
-    dmg: 1 + f * 0.09,
-    speed: 1 + f * 0.05,
-    fire: Math.max(0.55, 1 - f * 0.07),      // menos espera entre disparos
-    count: 1 + f * 0.22 + depth,
-    eliteChance: f <= 1 ? (f === 1 ? 0.10 : 0) : Math.min(0.42, 0.14 + f * 0.09 + depth * 0.5),
-    pattern: f,
+    hp:hp*mode.hp,dmg:dmg*mode.dmg,speed:speed*mode.speed,
+    fire:Math.max(.42,Math.min(1.28,fire*mode.fire)),count:count*mode.count,
+    eliteChance:elite===0?0:Math.min(.65,elite*mode.elite),pattern:f,
   };
 }
 
@@ -211,25 +238,43 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
     }
     case RoomType.SHOP: {
       const first=pickPassive(engine) ?? fallbackActive(engine);
-      const second=Math.random()<.5?fallbackActive(engine):(pickPassive(engine,undefined,[first]) ?? fallbackActive(engine));
-      const itemPool=[first,second];
-      const shop = [];
-      for (let i = 0; i < 2; i++) {
-        const id = itemPool[i];
-        if (!id) continue;
-        shop.push({
-          itemId: id, cost: (ITEMS[id] ?? ACTIVE_ITEMS[id]).cost, sold: false, isWeapon: false,
-          x: CANVAS_WIDTH * (0.28 + i * 0.22), y: CANVAS_HEIGHT * 0.58,
-        });
+      const second=pickPassive(engine,undefined,[first]) ?? fallbackActive(engine);
+      const third=pickPassive(engine,undefined,[first,second]) ?? fallbackActive(engine);
+      const itemPool=[first,second,third].filter(Boolean);
+      content.shopItems=itemPool.map((id,i)=>({
+        itemId:id,cost:(ITEMS[id] ?? ACTIVE_ITEMS[id]).cost,sold:false,isWeapon:false,
+        x:CANVAS_WIDTH*(0.28+i*0.22),y:CANVAS_HEIGHT*0.58,
+      }));
+      break;
+    }
+    case RoomType.GUN_VAN: {
+      const owned=new Set(engine.player.weapons.filter(Boolean).map(w=>w!.id));
+      let pool=Object.keys(WEAPONS).filter(id=>id!=='quack_blaster'&&!owned.has(id));
+      if(pool.length<3) pool=Object.keys(WEAPONS).filter(id=>id!=='quack_blaster');
+      const selected:string[]=[];
+      while(selected.length<3 && pool.length) {
+        const index=Math.floor(Math.random()*pool.length);
+        selected.push(pool.splice(index,1)[0]);
       }
-      const w = rollWeapon(engine);
-      shop.push({ itemId: w, cost: WEAPONS[w].cost, sold: false, isWeapon: true, x: CANVAS_WIDTH * 0.72, y: CANVAS_HEIGHT * 0.58 });
-      content.shopItems = shop;
+      content.shopItems=selected.map((id,i)=>({
+        itemId:id,cost:Math.max(8,WEAPONS[id].cost),sold:false,isWeapon:true,x:145+i*95,y:235,
+      }));
       break;
     }
     case RoomType.EVENT: {
-      const kind=pick(Object.keys(EVENTS)) as EventKind;
-      content.event={kind,x:232,y:170,used:false,selected:0,message:''};break;
+      if (Math.random() < .38) {
+        content.cafe = true;
+        const foods = ['hp','croissant','sandwich','baguette','torta'];
+        const selected = [...foods].sort(() => Math.random() - .5).slice(0, 3);
+        const foodCost = (id:string) => id === 'hp' ? 5 : id === 'croissant' ? 7 : (id === 'sandwich' || id === 'baguette') ? 9 : 14;
+        content.shopItems = selected.map((id, i) => ({
+          itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:145+i*95,y:232,
+        }));
+      } else {
+        const kind=pick(Object.keys(EVENTS)) as EventKind;
+        content.event={kind,x:232,y:170,used:false,selected:0,message:''};
+      }
+      break;
     }
     case RoomType.CHOICE:
       content.choices=diverseRewards(engine).map((id,i)=>({x:142+i*84,y:165,itemId:id,isWeapon:false,taken:false}));
@@ -324,6 +369,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let discovered=emptyDiscoveries();
   let bestFloor=0;
   let tutorial={started:false,map:false,mapShown:false,wheel:false,dash:false};
+  let madUnlocked=false;
   try {
     const saved = localStorage.getItem('duckheist_save');
     if (saved) {
@@ -339,6 +385,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     const b = localStorage.getItem('duckheist_best');
     if (b) best = { ...best, ...JSON.parse(b) };
   } catch { /* sin almacenamiento */ }
+  try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
+  catch { madUnlocked=unlockedSkins.includes('golden'); }
 
   setVolumes(settings.master, settings.music, settings.sfx);
 
@@ -368,6 +416,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     grenades:[], remoteBomb:null, drone:null, coffeeCrash:0, activeSwap:null, synergyNotice:null,
     collectionTab:'items',collectionIndex:0,collectionScroll:0,
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
+    difficulty:'normal',difficultyIndex:1,madUnlocked,
     menuIndex: 0, pauseIndex: 0, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
@@ -411,10 +460,13 @@ function createPlayer(meta: Record<string, number>) {
 // RUN / PISOS
 // ---------------------------------------------------------------------------
 export function startGame(engine: GameEngine) {
+  activeDifficulty=engine.difficulty;
   saveProgress(engine);
   nextEnemyId = 0;
   initAudio();
   engine.player = createPlayer(engine.metaLevels);
+  const difficulty=DIFFICULTIES[engine.difficulty];
+  if(difficulty.startHearts>0) {engine.player.maxHp+=difficulty.startHearts;engine.player.hp+=difficulty.startHearts;}
   engine.tutorialRun=!engine.tutorial.started;
   engine.alert=0;engine.roomStreak=0;engine.seenRoomKeys=[];engine.offeredItems=[];engine.stainedFloor=-1;
   engine.tutorialHint=null;engine.pad={...engine.pad,moveX:0,moveY:0,shoot:false};
@@ -482,6 +534,8 @@ function loadNextFloor(engine: GameEngine) {
   const idx = engine.map.floorIndex + 1;
   if (idx >= TOTAL_FLOORS) {
     engine.totalGoldenCrumbs+=100;engine.run.goldenEarned+=100;engine.stats.goldenCrumbs+=100;
+    engine.madUnlocked=true;
+    try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
     if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
     engine.state = GameState.VICTORY;
     engine.endFrame=engine.frame;playQuack();
@@ -506,7 +560,7 @@ function loadNextFloor(engine: GameEngine) {
   engine.run.floorReached = idx + 1;
   setMusic('run',idx);
   // vida restaurada parcialmente entre pisos
-  engine.player.hp = Math.min(engine.player.maxHp, engine.player.hp + 1);
+  engine.player.hp = Math.min(engine.player.maxHp, engine.player.hp + DIFFICULTIES[engine.difficulty].floorHeal);
   enterRoom(engine, engine.map.startKey, null);
   engine.floorIntroTimer = 110;
   engine.state = GameState.FLOOR_INTRO;
@@ -565,7 +619,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
     if (spot) { engine.player.x = spot.x * TILE_SIZE + 8; engine.player.y = spot.y * TILE_SIZE + 8; }
   }
   engine.projectiles = [];
-  if(from) playDoorStyle(room.type===RoomType.BOSS?'boss':room.type===RoomType.ITEM?'gold':room.type===RoomType.SHOP?'green':room.type===RoomType.TREASURE?'purple':'silver');
+  if(from) playDoorStyle(room.type===RoomType.BOSS?'boss':room.type===RoomType.ITEM?'gold':room.type===RoomType.SHOP?'green':room.type===RoomType.GUN_VAN?'orange':room.type===RoomType.TREASURE?'purple':'silver');
 
   if (!room.cleared && content.enemies.length > 0) {
     for (const d of room.doors) content.doorAnim[d] = 0;
@@ -581,7 +635,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
   }
   applyMapItemEffects(engine,false);
   registerRoomDiscoveries(engine,content);
-  if(room.type===RoomType.SHOP && (content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,pick(['Todo legal. Probablemente.','No tengo factura.','Eso cayó de un camión.','El pan está caro.','No hago devoluciones.','Ese objeto no estaba aquí ayer.']));
+  if((room.type===RoomType.SHOP||room.type===RoomType.GUN_VAN) && (content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,room.type===RoomType.GUN_VAN?pick(['Tres fierros. Cero preguntas.','La camioneta no existe.','Mira rápido y paga en migajas.','No preguntes de dónde salieron.']):pick(['Todo legal. Probablemente.','No tengo factura.','Eso cayó de un camión.','El pan está caro.','No hago devoluciones.','Ese objeto no estaba aquí ayer.']));
 
   const boss = content.enemies.find(e => e.isBoss && !!BOSSES[e.bossType]);
   if (boss && !room.cleared) {
@@ -606,6 +660,7 @@ function roomLabelFor(room: MapRoom): string {
     case RoomType.ITEM: return 'SALA DE OBJETOS';
     case RoomType.TREASURE: return 'SALA DEL TESORO';
     case RoomType.SHOP: return 'TIENDA CLANDESTINA';
+    case RoomType.GUN_VAN: return 'CAMIONETA DEL MERCADO NEGRO';
     case RoomType.CHALLENGE: return 'DESAFÍO';
     case RoomType.MINIBOSS: return 'MINIJEFE';
     case RoomType.BOSS: return 'JEFE';
@@ -618,9 +673,94 @@ function roomLabelFor(room: MapRoom): string {
 }
 
 // ---------------------------------------------------------------------------
+// EVENTO DE ALTO RIESGO
+// ---------------------------------------------------------------------------
+function dangerEventEnemyPool(floor:number): string[] {
+  return [
+    ['policia_pato','policia_rapido'],
+    ['policia_pato','policia_rapido','policia_escopeta'],
+    ['policia_rapido','policia_escopeta','dron_policial'],
+    ['policia_escopeta','dron_policial','policia_francotirador'],
+    ['policia_escopeta','dron_policial','policia_francotirador','policia_rapido'],
+    ['policia_escopeta','dron_policial','policia_francotirador','policia_rapido'],
+  ][clamp(floor,0,5)];
+}
+
+function spawnDangerEventSecurity(engine:GameEngine, room:MapRoom, content:RoomContent, count:number) {
+  const floor=clamp(engine.map.floorIndex,0,5);
+  const pool=dangerEventEnemyPool(floor);
+  const spots=freeTiles(room.layout,2).filter(spot=>{
+    const x=spot.x*TILE_SIZE+TILE_SIZE/2,y=spot.y*TILE_SIZE+TILE_SIZE/2;
+    if(dist(x,y,engine.player.x+7,engine.player.y+8)<105) return false;
+    if((room.doors ?? []).some(dir=>{const door=DOOR_TILE[dir];return Math.hypot(spot.x-door.x,spot.y-door.y)<2.7;})) return false;
+    if(content.event && !content.event.used && dist(x,y,content.event.x,content.event.y)<56) return false;
+    return true;
+  });
+  for(let i=0;i<count && spots.length;i++) {
+    const index=Math.floor(Math.random()*spots.length);
+    const spot=spots.splice(index,1)[0];
+    const type=pool[Math.floor(Math.random()*pool.length)];
+    content.enemies.push(makeEnemy(type,floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
+  }
+}
+
+function updateDangerEvent(engine:GameEngine) {
+  if(engine.state!==GameState.PLAYING) return;
+  const room=currentRoom(engine),content=getContent(engine);
+  if(!(room.type===RoomType.EVENT && !content.cafe)) {
+    if(engine.dangerEventMusic) {
+      engine.dangerEventMusic=false;
+      setMusic(room.type===RoomType.BOSS?'boss':'run',engine.map.floorIndex);
+    }
+    return;
+  }
+  if(content.dangerEventDone) {
+    if(engine.dangerEventMusic) {engine.dangerEventMusic=false;setMusic('run',engine.map.floorIndex);}
+    return;
+  }
+  const floor=clamp(engine.map.floorIndex,0,5);
+  if(!content.dangerEventStarted) {
+    content.dangerEventStarted=true;
+    content.dangerEventActive=true;
+    content.dangerEventTotal=(20+floor*2)*60;
+    content.dangerEventTimer=content.dangerEventTotal;
+    content.dangerEventWave=false;
+    content.dangerEventPressure=0;
+    spawnDangerEventSecurity(engine,room,content,4+(floor>=2?1:0)+(floor>=4?1:0));
+    room.cleared=false;
+    engine.roomLabel='EVENTO DE ALTO RIESGO';
+    engine.roomLabelTimer=90;
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,2.5);
+  }
+  if(!content.dangerEventActive) return;
+  engine.dangerEventMusic=true;
+  setMusic('event',floor);
+  room.cleared=false;
+  if((content.dangerEventTimer ?? 0)>0) content.dangerEventTimer!--;
+  const total=content.dangerEventTotal ?? 1,timer=content.dangerEventTimer ?? 0;
+  const elapsed=total-timer;
+  if(!content.dangerEventWave && elapsed>=total*.5) {
+    content.dangerEventWave=true;
+    spawnDangerEventSecurity(engine,room,content,2+(floor>=3?1:0));
+    engine.roomLabel='¡REFUERZOS EN CAMINO!';engine.roomLabelTimer=72;
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,3);
+  }
+  if(timer>0 && content.enemies.length===0 && engine.frame>(content.dangerEventPressure ?? 0)) {
+    content.dangerEventPressure=engine.frame+210;
+    spawnDangerEventSecurity(engine,room,content,2+(floor>=4?1:0));
+  }
+  if(timer<=0 && content.enemies.length===0) {
+    content.dangerEventActive=false;content.dangerEventDone=true;
+    engine.dangerEventMusic=false;setMusic('run',floor);
+    engine.toast='EVENTO SUPERADO';engine.toastTimer=90;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // BUCLE DE ACTUALIZACIÓN
 // ---------------------------------------------------------------------------
 export function updateEngine(engine: GameEngine) {
+  updateDangerEvent(engine);
   if(engine.state===GameState.MAP) return;
   engine.frame++;
   if(engine.state===GameState.HEIST_INTRO) {
@@ -1058,13 +1198,15 @@ export function updateEngine(engine: GameEngine) {
         const price=shopPrice(engine,s);
         if (player.crumbs >= price) {
           let ok = true;
-          if (s.isWeapon) ok = tryGiveWeapon(engine, s.itemId, 'shop', si, s.x, s.y - 20);
+          if (s.isFood && player.hp >= player.maxHp) {ok=false;engine.toast='VIDA COMPLETA';engine.toastTimer=60;playDeny();}
+          else if (s.isWeapon) ok = tryGiveWeapon(engine, s.itemId, 'shop', si, s.x, s.y - 20);
           else if (ACTIVE_ITEMS[s.itemId] && player.activeItem && player.activeItem !== s.itemId) ok = offerActiveSwap(engine, s.itemId, 'shop', si, s.x, s.y);
           if (ok) {
             player.crumbs -= price;
             player.couponUsed=true;s.soldAt=engine.frame;s.sold = true;
-            if (!s.isWeapon && !ACTIVE_ITEMS[s.itemId]) grantItem(engine, s.itemId, false, false);
-            if (!s.isWeapon && ACTIVE_ITEMS[s.itemId] && !engine.activeSwap) grantItem(engine, s.itemId, false, true);
+            if (s.isFood) {healPlayer(engine,foodHeal(s.itemId));playHeal();}
+            else if (!s.isWeapon && !ACTIVE_ITEMS[s.itemId]) grantItem(engine, s.itemId, false, false);
+            if (!s.isFood && !s.isWeapon && ACTIVE_ITEMS[s.itemId] && !engine.activeSwap) grantItem(engine, s.itemId, false, true);
             spawn(engine, s.x, s.y, 'spark', 10, '#f4d03f');
             playEquip();merchantSpeak(engine,pick(['No hago devoluciones.','Buena elección. Creo.','No tengo factura.']));
           }
@@ -1102,7 +1244,7 @@ export function updateEngine(engine: GameEngine) {
   }
 
   // --- Sala despejada ---
-  if (!room.cleared && content.enemies.length === 0 && (content.alarmTimer ?? 0)<=0) {
+  if (!room.cleared && !content.dangerEventActive && content.enemies.length === 0 && (content.alarmTimer ?? 0)<=0) {
     room.cleared = true;
     content.clearAge=0;engine.hitStop=Math.max(engine.hitStop,2);
     const firstClear=!content.clearCounted;content.clearCounted=true;
@@ -1121,7 +1263,7 @@ export function updateEngine(engine: GameEngine) {
     }
     applyMapItemEffects(engine,false);
     spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 16, '#39d353');
-    if ((room.type === RoomType.COMBAT || room.type === RoomType.CHALLENGE) && Math.random() < .16+getBuild(player).rewardChance+engine.alert*.0006+(room.modifier==='alarm'?.1:0)) {
+    if (room.type === RoomType.COMBAT && Math.random() < .07+getBuild(player).rewardChance*.5+engine.alert*.0003+(room.modifier==='alarm'?.03:0)) {
       content.items.push({ x: CANVAS_WIDTH / 2 - 8, y: CANVAS_HEIGHT / 2 - 8, itemId: rollItem(engine), isWeapon: false, isActive: false });
     }
     if (room.type === RoomType.CHALLENGE) {
@@ -2187,7 +2329,7 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
       type: rollFood(), value: 1, lifetime: 99999,
     });
   }
-  if(e.elite && Math.random()<.12) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+  if(e.elite && Math.random()<.04) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
 }
 
 export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact'|'projectile'='contact',police=false) {
@@ -2258,7 +2400,7 @@ export function handleDash(engine: GameEngine) {
 export function handleActiveItem(engine: GameEngine) {
   const p = engine.player;
   if(engine.state!==GameState.PLAYING || engine.swap || engine.transition.active) return;
-  if (!p.activeItem || p.activeItemCooldown > 0) return;
+  if (!p.activeItem || (p.activeItemCooldown > 0 && !(p.activeItem==='remote_bomb' && engine.remoteBomb))) return;
   const content = getContent(engine);
   const rule=ACTIVE_RULES[p.activeItem], b=getBuild(p);
   if(!rule) return;
@@ -2310,6 +2452,19 @@ export function handleActiveItem(engine: GameEngine) {
         const spot=safeDrop(room,p.x-24+i*24,p.y+26);
         content.pickups.push({x:spot.x+8,y:spot.y+8,type:rollFood(),value:1,lifetime:99999});
       }playRarityPickup(3);break;
+    case 'remoteBomb': {
+      if(engine.remoteBomb) {
+        const bomb=engine.remoteBomb;
+        explode(engine,makeProjectile(bomb.x,bomb.y,0,0,'baguette',55,true,1,{explode:120}),content,false);
+        spawn(engine,bomb.x,bomb.y,'spark',18,'#f4d03f');
+        engine.shakeIntensity=Math.max(engine.shakeIntensity,4);
+        engine.remoteBomb=null;
+      } else {
+        engine.remoteBomb={x:cx,y:cy,life:1800};
+        playBounce();
+      }
+      break;
+    }
     case 'chaos': {
       const outcome=rngInt(0,4);
       if(outcome===0) explode(engine,makeProjectile(cx,cy,0,0,'baguette',80,true,1,{explode:150}),content);
@@ -2453,7 +2608,7 @@ export function shopPrice(engine:GameEngine,product:{cost:number}) {
   const b=getBuild(engine.player);
   const discount=Math.max(b.coupon>0?.25:0,b.firstDiscount);
   const coupon=!engine.player.couponUsed?1-discount:1;
-  return Math.max(1,Math.ceil(product.cost*b.shop*coupon));
+  return Math.max(1,Math.ceil(product.cost*b.shop*coupon*(1.25+engine.map.floorIndex*.2)));
 }
 function merchantSpeak(engine:GameEngine,line:string) {
   const room=getContent(engine);room.merchantLine=line;room.merchantUntil=engine.frame+150;
@@ -2471,6 +2626,9 @@ export function selectEventOption(engine:GameEngine,index:number) {
 function activateEvent(engine:GameEngine) {
   const content=getContent(engine),event=content.event!,p=engine.player;
   if(event.used) return;
+  if(currentRoom(engine).type===RoomType.EVENT && !content.cafe && content.dangerEventActive) {
+    event.message='Primero sobrevive al operativo.';playDeny();return;
+  }
   const cost=event.kind==='safe'?18:event.kind==='vending'?8:event.kind==='atm'?12:event.kind==='interrogation'?15:0;
   if(event.selected===1 && event.kind!=='interrogation') {event.message='Una decisión prudente. Quizá.';event.used=true;return;}
   if(event.kind==='interrogation' && event.selected===1) {
