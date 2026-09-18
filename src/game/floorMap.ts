@@ -152,7 +152,7 @@ export function roomStatus(e:GameEngine,id:string):string {
   const r=e.map.rooms.get(id),c=e.contents.get(id);
   if(!r) return '';
   if(!r.visited) return 'Descubierta · Sin visitar';
-  if(r.type===RoomType.BOSS||r.type===RoomType.MINIBOSS) return r.cleared?(c?.stairs?'Derrotado · Escaleras':'Derrotado'):'Pendiente';
+  if(r.type===RoomType.BOSS||r.type===RoomType.SUBBOSS||r.type===RoomType.MINIBOSS) return r.cleared?(c?.stairs?'Derrotado · Escaleras':'Derrotado'):'Pendiente';
   if(c?.stairs) return 'Escaleras disponibles';
   if(c?.shopItems) return c.shopItems.every(i=>i.sold)?'Agotada':c.shopItems.some(i=>i.sold)?'Visitada · Compra realizada':'Visitada · Abierta';
   if(c?.choices) return c.choiceTaken?'Recompensa recogida':'Elige una recompensa';
