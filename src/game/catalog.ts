@@ -1,4 +1,4 @@
-import { ITEMS, ACTIVE_ITEMS, WEAPONS, ENEMIES, BOSSES, MINIBOSSES, SKINS, FLAVOR } from './data';
+import { ITEMS, ACTIVE_ITEMS, WEAPONS, ENEMIES, BOSSES, SUBBOSSES, MINIBOSSES, SKINS, FLAVOR } from './data';
 import { ITEM_ART, getIconPixels } from './itemArt';
 import { ACTIVE_RULES, FOODS, PASSIVE_RULES } from './itemRules';
 
@@ -34,7 +34,7 @@ export const CATALOG: CatalogEntry[] = [
   ...Object.entries(FOODS).map(([id,f])=>({id,name:f.name,description:f.description,flavor:f.flavor,rarity:f.rarity,
     category:'items' as const,sprite:id,mechanic:'COMIDA · Recupera corazones al recoger'})),
   ...Object.values(WEAPONS).map(w=>({id:w.id,name:w.name,description:w.special,flavor:FLAVOR[w.id] ?? '',rarity:w.rarity,category:'weapons' as const,sprite:w.id,mechanic:'ARMA · Cambia con la rueda'})),
-  ...Object.values({...BOSSES,...MINIBOSSES}).map(b=>({id:b.id,name:b.name,description:b.subtitle,flavor:BOSSES[b.id]?'El banco tiene un problema contigo.':'Un problema menor. Con peor humor.',rarity:BOSSES[b.id]?4:2,category:'bosses' as const,sprite:b.id,mechanic:BOSSES[b.id]?'JEFE DE PISO · Botín garantizado':'MINIJEFE · Riesgo y recompensa'})),
+  ...Object.values({...BOSSES,...SUBBOSSES,...MINIBOSSES}).map(b=>({id:b.id,name:b.name,description:b.subtitle,flavor:BOSSES[b.id]?'El banco tiene un problema contigo.':'Un problema menor. Con peor humor.',rarity:BOSSES[b.id]?4:SUBBOSSES[b.id]?3:2,category:'bosses' as const,sprite:b.id,mechanic:BOSSES[b.id]?'JEFE DE PISO · 3 fases · Botín garantizado':SUBBOSSES[b.id]?'SUBJEFE · 2 fases · Encuentro de alto riesgo':'MINIJEFE · Enrage · Riesgo y recompensa'})),
   ...Object.values(ENEMIES).map(e=>({id:e.id,name:e.name,description:enemyInfo[e.behavior],flavor:'Empleado del mes. En detenciones.',rarity:0,category:'enemies' as const,sprite:e.id,mechanic:'SEGURIDAD DEL BANCO'})),
   ...SKINS.map(s=>({id:s.id,name:s.name,description:s.description,flavor:'Solo cambia tu estilo, nunca tus estadísticas.',rarity:s.cost>=500?4:1,category:'skins' as const,sprite:s.id,mechanic:`COSMÉTICO · ${s.cost} monedas doradas`})),
 ];

@@ -420,85 +420,88 @@ export interface BossDef {
 export const BOSSES: Record<string, BossDef> = {
   captain_honk: {
     id: 'captain_honk', name: 'CAPITÁN HONK',
-    subtitle: 'Jefe de seguridad del banco',
-    hp: 200, speed: 1.5, size: 32, phases: 3,
+    subtitle: 'Jefe de seguridad · control, supresión y ley marcial',
+    hp: 260, speed: 1.55, size: 34, phases: 3,
   },
   comisario_pico_duro: {
     id: 'comisario_pico_duro', name: 'COMISARIO PICO DURO',
-    subtitle: 'Ordena formaciones y cubre el vestíbulo',
-    hp: 220, speed: 1.35, size: 32, phases: 2,
+    subtitle: 'Formaciones, cerco y ejecución',
+    hp: 300, speed: 1.4, size: 34, phases: 3,
   },
   toaster_9000: {
     id: 'toaster_9000', name: 'LA TOSTADORA 9000',
-    subtitle: 'Electrodoméstico poseído',
-    hp: 260, speed: 0.8, size: 40, phases: 3,
+    subtitle: 'Calentamiento, sobrecarga y fusión',
+    hp: 340, speed: .9, size: 42, phases: 3,
   },
   general_ganso: {
     id: 'general_ganso', name: 'GENERAL GANSO',
-    subtitle: 'Armadura de ganso. Después corre más',
-    hp: 300, speed: 1.1, size: 36, phases: 2,
+    subtitle: 'Armadura pesada que termina en furia de guerra',
+    hp: 380, speed: 1.15, size: 38, phases: 3,
   },
   don_levadura: {
     id: 'don_levadura', name: 'DON LEVADURA',
-    subtitle: 'Masa mutante de la panadería',
-    hp: 280, speed: 1, size: 36, phases: 2,
+    subtitle: 'Fermentación, expansión y horno vivo',
+    hp: 360, speed: 1.05, size: 38, phases: 3,
   },
   director_seguridad: {
     id: 'director_seguridad', name: 'DIRECTOR DE SEGURIDAD',
-    subtitle: 'Láseres, drones y barreras',
-    hp: 320, speed: .95, size: 38, phases: 2,
+    subtitle: 'Protocolo, contención y bloqueo total',
+    hp: 420, speed: 1.02, size: 40, phases: 3,
   },
   bread_banker: {
     id: 'bread_banker', name: 'EL BANQUERO DEL PAN',
-    subtitle: 'Amo y señor de todo el pan',
-    hp: 380, speed: 1.2, size: 40, phases: 3,
+    subtitle: 'Autoridad, codicia y abominación del pan',
+    hp: 500, speed: 1.25, size: 42, phases: 3,
   },
 };
 
 export const MINIBOSSES: Record<string, BossDef> = {
   tax_collector: {
     id: 'tax_collector', name: 'EL RECAUDADOR',
-    subtitle: 'Un ganso furioso con traje',
-    hp: 100, speed: 1.8, size: 24, phases: 1,
-  },
-  head_baker: {
-    id: 'head_baker', name: 'EL PANADERO JEFE',
-    subtitle: 'Maestro de la masa explosiva',
-    hp: 120, speed: 1.2, size: 24, phases: 1,
+    subtitle: 'Maletines, cobros y multas de área',
+    hp: 125, speed: 1.9, size: 25, phases: 1,
   },
   sargento_migajas: {
     id: 'sargento_migajas', name: 'SARGENTO MIGAJAS',
-    subtitle: 'Escopeta, carga corta y dos refuerzos',
-    hp: 110, speed: 1.3, size: 26, phases: 1,
-  },
-  el_auditor: {
-    id: 'el_auditor', name: 'EL AUDITOR',
-    subtitle: 'Gallina con maletines explosivos',
-    hp: 115, speed: 1.1, size: 26, phases: 1,
-  },
-  ganso_antidisturbios: {
-    id: 'ganso_antidisturbios', name: 'GANSO ANTIDISTURBIOS',
-    subtitle: 'Escudo frontal y golpe de choque',
-    hp: 140, speed: .9, size: 28, phases: 1,
+    subtitle: 'Escopeta, carga y refuerzos',
+    hp: 135, speed: 1.4, size: 27, phases: 1,
   },
   dron_centinela: {
     id: 'dron_centinela', name: 'DRON CENTINELA',
-    subtitle: 'Patrones giratorios y drones chicos',
-    hp: 125, speed: 1.4, size: 26, phases: 1, 
+    subtitle: 'Anillos, barridos y microdrones',
+    hp: 145, speed: 1.5, size: 27, phases: 1,
   },
   panadero_loco: {
     id: 'panadero_loco', name: 'EL PANADERO LOCO',
     subtitle: 'Bombas de masa y zonas de horno',
-    hp: 130, speed: 1.15, size: 26, phases: 1,
-  },
-  cajero_3000: {
-    id: 'cajero_3000', name: 'CAJERO 3000',
-    subtitle: 'Monedas, láser y botín extra',
-    hp: 150, speed: .7, size: 30, phases: 1,
+    hp: 150, speed: 1.25, size: 27, phases: 1,
   },
 };
 
-/** Each floor still has exactly one boss; the pool only chooses which one. */
+export const SUBBOSSES: Record<string, BossDef> = {
+  head_baker: {
+    id: 'head_baker', name: 'EL PANADERO JEFE',
+    subtitle: 'Masa explosiva · transformación de fermento',
+    hp: 190, speed: 1.25, size: 30, phases: 2,
+  },
+  el_auditor: {
+    id: 'el_auditor', name: 'EL AUDITOR',
+    subtitle: 'Maletines explosivos · revisión total',
+    hp: 185, speed: 1.2, size: 30, phases: 2,
+  },
+  ganso_antidisturbios: {
+    id: 'ganso_antidisturbios', name: 'GANSO ANTIDISTURBIOS',
+    subtitle: 'Escudo frontal · furia sin blindaje',
+    hp: 220, speed: 1, size: 32, phases: 2,
+  },
+  cajero_3000: {
+    id: 'cajero_3000', name: 'CAJERO 3000',
+    subtitle: 'Monedas, láser y modo emergencia',
+    hp: 230, speed: .85, size: 34, phases: 2,
+  },
+};
+
+/** Cada piso conserva exactamente un jefe de piso; los pools eligen la variante. */
 export const FLOOR_BOSS_POOL: string[][] = [
   ['captain_honk', 'comisario_pico_duro'],
   ['captain_honk', 'toaster_9000'],
@@ -508,12 +511,20 @@ export const FLOOR_BOSS_POOL: string[][] = [
   ['bread_banker'],
 ];
 export const FLOOR_MINIBOSS_POOL: string[][] = [
-  ['sargento_migajas', 'tax_collector'],
-  ['el_auditor', 'sargento_migajas'],
-  ['ganso_antidisturbios', 'panadero_loco'],
-  ['dron_centinela', 'panadero_loco'],
-  ['cajero_3000', 'dron_centinela'],
+  ['tax_collector', 'sargento_migajas'],
+  ['sargento_migajas', 'dron_centinela'],
+  ['panadero_loco', 'tax_collector'],
+  ['panadero_loco', 'dron_centinela'],
+  ['dron_centinela', 'sargento_migajas'],
+  ['tax_collector', 'dron_centinela'],
+];
+export const FLOOR_SUBBOSS_POOL: string[][] = [
+  ['head_baker', 'el_auditor'],
+  ['el_auditor', 'head_baker'],
+  ['ganso_antidisturbios', 'head_baker'],
+  ['ganso_antidisturbios', 'el_auditor'],
   ['cajero_3000', 'ganso_antidisturbios'],
+  ['cajero_3000', 'el_auditor'],
 ];
 
 export interface DuckCharacter {
