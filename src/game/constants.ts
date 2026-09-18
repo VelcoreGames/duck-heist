@@ -91,6 +91,7 @@ export enum RoomType {
   GUN_VAN = 'GUN_VAN',
   CHALLENGE = 'CHALLENGE',
   MINIBOSS = 'MINIBOSS',
+  SUBBOSS = 'SUBBOSS',
   BOSS = 'BOSS',
   SECRET = 'SECRET',
   EVENT = 'EVENT',
