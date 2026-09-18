@@ -17,8 +17,9 @@ export const ROOM_STYLE:Record<RoomType,{label:string;color:string;symbol:string
   [RoomType.TREASURE]:{label:'SALA DEL TESORO',color:'#eac56d',symbol:'item'},
   [RoomType.SHOP]:{label:'TIENDA',color:'#71c799',symbol:'shop'},
   [RoomType.GUN_VAN]:{label:'CAMIONETA',color:'#e79a45',symbol:'van'},
-  [RoomType.MINIBOSS]:{label:'MINIJEFE',color:'#efa869',symbol:'mini'},
-  [RoomType.BOSS]:{label:'JEFE',color:'#c76c75',symbol:'boss'},
+  [RoomType.MINIBOSS]:{label:'MINIJEFE',color:'#e7a85f',symbol:'mini'},
+  [RoomType.SUBBOSS]:{label:'SUBJEFE',color:'#db7f6f',symbol:'subboss'},
+  [RoomType.BOSS]:{label:'JEFE DE PISO',color:'#c64b5d',symbol:'boss'},
   [RoomType.CHOICE]:{label:'RECOMPENSA',color:'#b39be0',symbol:'reward'},
   [RoomType.EVENT]:{label:'SALA ESPECIAL',color:'#b39be0',symbol:'event'},
   [RoomType.CHALLENGE]:{label:'DESAFÍO',color:'#c692a5',symbol:'challenge'},
@@ -243,7 +244,7 @@ export function renderFloorMap(e:GameEngine) {
     });
   }
 
-  const legend:[RoomType,string][]=[[RoomType.COMBAT,'Normal'],[RoomType.ITEM,'Objeto'],[RoomType.SHOP,'Tienda'],[RoomType.MINIBOSS,'Minijefe'],[RoomType.BOSS,'Jefe'],[RoomType.CHOICE,'Recompensa']];
+  const legend:[RoomType,string][]=[[RoomType.COMBAT,'Normal'],[RoomType.ITEM,'Objeto'],[RoomType.SHOP,'Tienda'],[RoomType.MINIBOSS,'Minijefe'],[RoomType.SUBBOSS,'Subjefe'],[RoomType.BOSS,'Jefe de piso'],[RoomType.CHOICE,'Recompensa']];
   legend.forEach(([type,label],i)=>{const x=31+i*65;drawRoomSymbol(c,{type,cleared:false,visited:false} as MapRoom,x,305,9);text(c,label,x+9,308,6.5,'#9cbac0','left');});
   drawRoomSymbol(c,{type:RoomType.START,cleared:false,visited:false} as MapRoom,420,305,9,true);text(c,'Escaleras',429,308,6,'#9cbac0','left');
   text(c,e.lastInput==='gamepad'?'PALANCA / CRUCETA · INSPECCIONAR':'WASD / FLECHAS / MOUSE · INSPECCIONAR',28,329,6.5,'#829fad','left');
