@@ -1,0 +1,29 @@
+name: Step 1 cleanup
+on:
+  push:
+    branches: [step1-source-sync]
+    paths:
+      - '.github/workflows/step1-cleanup.yml'
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: step1-source-sync
+      - name: Remove Step 1 temporary tooling
+        run: |
+          rm -f .github/workflows/step1-*.yml
+          rm -f step1-bundle-foods.log step1-typecheck.log
+          rm -rf step1-parity
+          rm -f scripts/step1-sync-v043-source.py
+      - name: Commit clean branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m 'Clean Step 1 temporary tooling'
+          git push origin HEAD:step1-source-sync
