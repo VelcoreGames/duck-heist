@@ -25,18 +25,19 @@ jobs:
         run: npx vite build
       - name: Verify Step 1 parity markers
         run: |
-          test "$(cat VERSION)" = "0.4.3"
-          grep -q 'viewport-fit=cover' index.html
-          grep -q "const VERSION = 'v0.4.3';" index.html
-          grep -q "'MONEDAS'" src/game/render.ts
-          grep -q "'MIGAJAS'" src/game/render.ts
-          grep -q 'ESTADÍSTICAS DE LA RUN' src/game/render.ts
-          grep -q "DIFFICULTY = 'DIFFICULTY'" src/game/constants.ts
-          grep -q "LOCO POR EL PAN" src/game/engine.ts
-          grep -q "k==='tab'" src/App.tsx
-          grep -q "dangerEventActive" src/game/engine.ts
-          test -s dist/index.html
-          test -n "$(find dist/assets -maxdepth 1 -type f -name '*.js' -print -quit)"
+          set -e
+          echo CHECK_VERSION && test "$(cat VERSION)" = "0.4.3"
+          echo CHECK_VIEWPORT && grep -Fq 'viewport-fit=cover' index.html
+          echo CHECK_BADGE && grep -Fq "const VERSION = 'v0.4.3';" index.html
+          echo CHECK_MONEDAS && grep -Fq "'MONEDAS'" src/game/render.ts
+          echo CHECK_MIGAJAS && grep -Fq "'MIGAJAS'" src/game/render.ts
+          echo CHECK_STATS && grep -Fq 'ESTADÍSTICAS DE LA RUN' src/game/render.ts
+          echo CHECK_DIFFICULTY_STATE && grep -Fq "DIFFICULTY = 'DIFFICULTY'" src/game/constants.ts
+          echo CHECK_MAD && grep -Fq "LOCO POR EL PAN" src/game/engine.ts
+          echo CHECK_TAB && grep -Fq "k==='tab'" src/App.tsx
+          echo CHECK_DANGER && grep -Fq "dangerEventActive" src/game/engine.ts
+          echo CHECK_DIST_HTML && test -s dist/index.html
+          echo CHECK_DIST_JS && test -n "$(find dist/assets -maxdepth 1 -type f -name '*.js' -print -quit)"
       - uses: actions/upload-artifact@v4
         with:
           name: step1-final-audit-build
