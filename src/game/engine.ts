@@ -650,7 +650,10 @@ function preferredEndlessRole(engine:GameEngine) {
 }
 
 function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
-  const round=engine.endless.round,n=((round-1)%10)+1,rare=n>=8||round>=30||engine.endless.perfectStreak>=3;
+  const round=engine.endless.round,n=((round-1)%10)+1;
+  const boosted=engine.endless.nextRewardBoost>0;
+  const rare=n>=8||round>=30||engine.endless.perfectStreak>=3||boosted;
+  if(boosted)engine.endless.nextRewardBoost--;
   const role=preferredEndlessRole(engine);
   const result:EndlessRewardOption[]=[];
   const addItem=(preferred=false)=>{
@@ -785,7 +788,9 @@ function finishEndlessRound(engine:GameEngine) {
   e.rewardIndex=0;e.awaitingReward=e.rewardOptions.length>0;
   saveEndlessRecord(engine);
   setMusic('run',Math.min(5,e.alert));
-  engine.state=GameState.ENDLESS_REWARD;engine.onStateChange?.(engine.state);
+  engine.state=GameState.ENDLESS_REWARD;
+  saveEndlessCheckpoint(engine);
+  engine.onStateChange?.(engine.state);
 }
 
 export function startEndlessRound(engine:GameEngine) {
@@ -816,6 +821,7 @@ export function startEndlessRound(engine:GameEngine) {
 }
 
 export function startEndlessGame(engine:GameEngine) {
+  clearEndlessCheckpoint(engine);
   activeDifficulty=engine.difficulty;saveProgress(engine);nextEnemyId=0;initAudio();
   engine.gameMode='endless';engine.pendingMode='endless';engine.player=createPlayer(engine.metaLevels);
   const d=DIFFICULTIES[engine.difficulty];
@@ -838,22 +844,30 @@ export function restartCurrentMode(engine:GameEngine) {
 }
 
 export function moveEndlessReward(engine:GameEngine,dir:number) {
-  if(engine.state!==GameState.ENDLESS_REWARD||!engine.endless.rewardOptions.length) return;
+  if(engine.state!==GameState.ENDLESS_REWARD)return;
+  if(engine.endless.marketOpen){
+    engine.endless.marketIndex=(engine.endless.marketIndex+dir+3)%3;playUiMove();return;
+  }
+  if(!engine.endless.rewardOptions.length)return;
   const n=engine.endless.rewardOptions.length;
   engine.endless.rewardIndex=(engine.endless.rewardIndex+dir+n)%n;playUiMove();
 }
 
 export function recycleEndlessRewards(engine:GameEngine) {
-  if(engine.state!==GameState.ENDLESS_REWARD||!engine.endless.awaitingReward) return;
+  if(engine.state!==GameState.ENDLESS_REWARD)return;
+  if(engine.endless.marketOpen){skipEndlessMarket(engine);return;}
+  if(!engine.endless.awaitingReward)return;
   const amount=10+engine.endless.alert*4;
   engine.player.crumbs+=amount;engine.stats.breadStolen+=amount;
   engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;
   engine.toast=`RECICLADO · +${amount} MIGAJAS`;engine.toastTimer=80;playCoin();
+  openEndlessMarketIfNeeded(engine);
 }
 
 export function confirmEndlessReward(engine:GameEngine) {
   if(engine.state!==GameState.ENDLESS_REWARD) return;
   const e=engine.endless;
+  if(e.marketOpen){buyEndlessMarket(engine);return;}
   if(!e.awaitingReward||!e.rewardOptions.length){startEndlessRound(engine);return;}
   const reward=e.rewardOptions[e.rewardIndex];if(!reward)return;
   if(reward.kind==='item'&&reward.itemId) grantItem(engine,reward.itemId,false,false);
@@ -863,6 +877,7 @@ export function confirmEndlessReward(engine:GameEngine) {
   } else if(reward.kind==='heal') healPlayer(engine,reward.amount??1);
   else if(reward.kind==='crumbs'){const amount=reward.amount??10;engine.player.crumbs+=amount;engine.stats.breadStolen+=amount;playCoin();}
   e.rewardOptions=[];e.awaitingReward=false;playUiSelect();
+  openEndlessMarketIfNeeded(engine);
 }
 
 function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomContent) {
@@ -1733,6 +1748,7 @@ export function updateEngine(engine: GameEngine) {
     if(engine.gameMode==='endless'){
       engine.endless.score+=engine.endless.round*10;
       saveEndlessRecord(engine);
+      clearEndlessCheckpoint(engine);
     }
     engine.state = GameState.GAME_OVER;
     engine.swap=null;engine.mouseDown=false;engine.keys={};
@@ -1849,7 +1865,10 @@ export function confirmSwap(engine: GameEngine) {
     if (s) { p.crumbs -= shopPrice(engine,s);p.couponUsed=true;s.soldAt=engine.frame;merchantSpeak(engine,'No hago devoluciones.'); }
   }
   if (old && req.from!=='endless') content.items.push({ x: dx, y: dy, itemId: old.id, isWeapon: true, isActive: false });
-  if(req.from==='endless'){engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;}
+  if(req.from==='endless'){
+    engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;
+    openEndlessMarketIfNeeded(engine);
+  }
 
   engine.swap = null;
   engine.keys.e=false;engine.mouseDown=false;
