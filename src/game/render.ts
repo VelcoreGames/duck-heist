@@ -1513,6 +1513,35 @@ function renderSwapUI(engine: GameEngine) {
   text(ctx,engine.lastInput==='gamepad'?'B · CANCELAR':T.cancel,240,y+h-8,8,'#7c8494');
 }
 
+function renderEndlessRewardUI(engine:GameEngine) {
+  const ctx=engine.ui!,e=engine.endless;
+  ctx.fillStyle='rgba(3,7,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  drawPanel(ctx,24,24,432,300,'rgba(7,13,19,.97)','#8d6f23');
+  titleText(ctx,'ATRACO SIN FIN',240,50,16,'#f4d03f');
+  text(ctx,`RONDA ${Math.max(1,e.round)} · ALERTA ${e.alert}`,240,69,8,'#e9dfbd','center',true);
+  text(ctx,endlessStage(Math.max(1,e.round)),240,84,6.5,'#8fa7a8','center');
+  if(e.awaitingReward&&e.rewardOptions.length){
+    text(ctx,'ELIGE UNA RECOMPENSA',240,103,8,'#d7c789','center',true);
+    e.rewardOptions.forEach((opt,i)=>{
+      const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.rewardIndex;
+      drawPanel(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on?'rgba(69,54,20,.95)':'rgba(15,23,30,.96)',on?'#f4d03f':'#45515a');
+      text(ctx,opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN',x+ENDLESS_REWARD_LAYOUT.w/2,y+17,5.5,on?'#f4d03f':'#81949a','center',true);
+      wrappedText(ctx,opt.label,x+10,y+37,ENDLESS_REWARD_LAYOUT.w-20,7.5,9,2,on?'#fff2b3':'#dce5dc',true);
+      wrappedText(ctx,opt.description,x+10,y+65,ENDLESS_REWARD_LAYOUT.w-20,5.5,6.7,4,'#9babad');
+      if(on){text(ctx,'›',x-7,y+59,12,'#f4d03f');text(ctx,'‹',x+ENDLESS_REWARD_LAYOUT.w+7,y+59,12,'#f4d03f');}
+    });
+    text(ctx,'A / D · ELEGIR    ENTER · TOMAR',240,255,6.2,'#a3b5b4','center');
+    text(ctx,'R · RECICLAR TODO',240,276,6.2,'#c9a96b','center',true);
+  } else {
+    text(ctx,'RONDA SUPERADA',240,135,14,'#9fd2a9','center',true);
+    text(ctx,`PUNTUACIÓN  ${Math.round(e.score)}`,240,165,8,'#d8c789','center');
+    text(ctx,`PERFECTAS ${e.perfectRounds} · RACHA MÁX. ${e.maxPerfectStreak}`,240,188,6.5,'#9eafb2','center');
+    text(ctx,`SIGUIENTE: RONDA ${e.round+1}`,240,216,8,'#e4d29a','center',true);
+    text(ctx,'ENTER · SIGUIENTE RONDA',240,258,8,'#f4d03f','center',true);
+  }
+  text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${e.threatRank}`,240,303,5.8,'#7f919a','center');
+}
+
 function renderGameOverUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const f = engine.frame;
