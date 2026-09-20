@@ -1,0 +1,123 @@
+name: Endless Heist final QA
+on:
+  push:
+    branches: [feature/endless-heist]
+    paths:
+      - '.github/workflows/endless-final-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/endless-heist
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Static mode checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "0.6.0"
+          grep -Fq "ATRACO SIN FIN" src/game/render.ts
+          grep -Fq "makeEndlessEnemyPlan(e.round,e.special,engine.difficulty)" src/game/engine.ts
+          grep -Fq "DOBLE AMENAZA" src/game/engine.ts
+          grep -Fq "const VERSION = 'v0.6.0';" dist/index.html
+          test "$(git ls-files 'node_modules/**' | wc -l)" -eq 0
+      - run: npm install --no-save --package-lock=false playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/endless-final-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine);
+          await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='DIFFICULTY'&&window.duckHeistEngine.pendingMode==='endless');
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='HEIST_INTRO');
+          await page.evaluate(()=>window.duckHeistEngine.heistIntroTimer=1);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_REWARD');
+          const expected=['combat','combat','combat','combat','miniboss','combat','special','subboss','combat','boss'];
+          for(let round=1;round<=10;round++){
+            await page.keyboard.press('Enter');
+            await page.waitForFunction(r=>window.duckHeistEngine.endless.round===r&&['PLAYING','BOSS_INTRO'].includes(window.duckHeistEngine.state),round);
+            const before=await page.evaluate(()=>({kind:window.duckHeistEngine.endless.roundKind,state:window.duckHeistEngine.state}));
+            if(before.kind!==expected[round-1])throw new Error('Bad kind R'+round+': '+before.kind);
+            if(before.state==='BOSS_INTRO'){await page.evaluate(()=>window.duckHeistEngine.bossIntroTimer=1);await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING');}
+            await page.evaluate(()=>{const e=window.duckHeistEngine;e.endless.pendingEnemies=[];e.contents.get(e.currentKey).enemies=[];});
+            await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_REWARD');
+            const clean=await page.evaluate(()=>{const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);return[c.items.length,c.pickups.length,c.puddles.length,e.projectiles.length,e.grenades.length];});
+            if(clean.some(x=>x!==0))throw new Error('Arena not clean R'+round+': '+clean);
+            if((await page.evaluate(()=>window.duckHeistEngine.endless.awaitingReward)))await page.keyboard.press('r');
+          }
+          let e=await page.evaluate(()=>window.duckHeistEngine);
+          if(e.endless.alert!==1||e.endlessRecords.normal.round<10)throw new Error('R10 progression/record failed');
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.endless.round=49;e.endless.awaitingReward=false;e.endless.rewardOptions=[];});
+          await page.keyboard.press('Enter');await page.waitForFunction(()=>window.duckHeistEngine.endless.round===50&&window.duckHeistEngine.state==='BOSS_INTRO');
+          e=await page.evaluate(()=>window.duckHeistEngine);
+          if(e.endless.threatRank!=='NÉMESIS')throw new Error('R50 not NÉMESIS');
+          await page.evaluate(()=>window.duckHeistEngine.bossIntroTimer=1);await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING');
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.contents.get(e.currentKey).enemies=[];});await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_REWARD');
+          if(await page.evaluate(()=>window.duckHeistEngine.endless.awaitingReward))await page.keyboard.press('r');
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.endless.round=99;e.endless.awaitingReward=false;e.endless.rewardOptions=[];});
+          await page.keyboard.press('Enter');await page.waitForFunction(()=>window.duckHeistEngine.endless.round===100&&window.duckHeistEngine.state==='BOSS_INTRO');
+          const double=await page.evaluate(()=>({name:window.duckHeistEngine.bossIntroName,bosses:window.duckHeistEngine.contents.get(window.duckHeistEngine.currentKey).enemies.filter(x=>x.isBoss).map(x=>x.bossType)}));
+          if(double.name!=='DOBLE AMENAZA'||double.bosses.length!==2)throw new Error('R100 double threat failed '+JSON.stringify(double));
+          const layout=await page.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth,y:document.documentElement.scrollHeight>innerHeight}));
+          if(layout.x||layout.y)throw new Error('Overflow');
+          if(errors.length)throw new Error(errors.join(' | '));
+          await browser.close();
+          JS
+      - name: Normal heist regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4174 --bind 127.0.0.1 --directory dist >/tmp/heist-final-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+          await page.goto('http://127.0.0.1:4174/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine);
+          await page.keyboard.press('Enter');await page.waitForFunction(()=>window.duckHeistEngine.state==='DIFFICULTY');
+          await page.keyboard.press('Enter');await page.waitForFunction(()=>window.duckHeistEngine.state==='HEIST_INTRO');
+          await page.evaluate(()=>window.duckHeistEngine.heistIntroTimer=1);await page.waitForFunction(()=>window.duckHeistEngine.state==='FLOOR_INTRO');
+          const s=await page.evaluate(()=>({mode:window.duckHeistEngine.gameMode,rooms:window.duckHeistEngine.map.rooms.size}));
+          if(s.mode!=='heist'||s.rooms<10||errors.length)throw new Error('Normal regression '+JSON.stringify({s,errors}));
+          await browser.close();
+          JS
+      - name: Cleanup workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/endless-final-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: remove temporary endless final QA'
+          git push origin HEAD:feature/endless-heist
