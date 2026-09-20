@@ -1,0 +1,120 @@
+name: Endless polish QA
+on:
+  push:
+    branches: [feature/endless-heist-polish]
+    paths:
+      - '.github/workflows/endless-polish-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/endless-heist-polish
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Static checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "0.6.1"
+          grep -Fq "MERCADO DE RESPIRO" src/game/render.ts
+          grep -Fq "duckheist_endless_checkpoint" src/game/engine.ts
+          grep -Fq "ENDLESS_RESUME" src/game/constants.ts
+          grep -Fq "const VERSION = 'v0.6.1';" dist/index.html
+      - run: npm install --no-save --package-lock=false playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Market and checkpoint browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/polish-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const context=await browser.newContext({viewport:{width:1191,height:900}});
+          const page=await context.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine);
+          await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='DIFFICULTY');
+          await page.keyboard.press('Enter');await page.waitForFunction(()=>window.duckHeistEngine.state==='HEIST_INTRO');
+          await page.evaluate(()=>window.duckHeistEngine.heistIntroTimer=1);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_REWARD');
+          const finishRound=async(round)=>{
+            await page.keyboard.press('Enter');
+            await page.waitForFunction(r=>window.duckHeistEngine.endless.round===r&&['PLAYING','BOSS_INTRO'].includes(window.duckHeistEngine.state),round);
+            if(await page.evaluate(()=>window.duckHeistEngine.state==='BOSS_INTRO')){
+              await page.evaluate(()=>window.duckHeistEngine.bossIntroTimer=1);
+              await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING');
+            }
+            await page.evaluate(()=>{const e=window.duckHeistEngine;e.endless.pendingEnemies=[];e.contents.get(e.currentKey).enemies=[];});
+            await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_REWARD');
+          };
+          for(let r=1;r<=9;r++){
+            await finishRound(r);
+            if(await page.evaluate(()=>window.duckHeistEngine.endless.awaitingReward))await page.keyboard.press('r');
+          }
+          await finishRound(10);
+          if(!(await page.evaluate(()=>window.duckHeistEngine.endless.awaitingReward)))throw new Error('R10 reward missing');
+          await page.evaluate(()=>window.duckHeistEngine.player.crumbs=999);
+          await page.keyboard.press('r');
+          await page.waitForFunction(()=>window.duckHeistEngine.endless.marketOpen===true);
+          await page.keyboard.press('ArrowRight');
+          const beforeShield=await page.evaluate(()=>window.duckHeistEngine.player.shield);
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.endless.marketOpen===false);
+          const market=await page.evaluate(()=>({
+            shield:window.duckHeistEngine.player.shield,
+            round:window.duckHeistEngine.endless.round,
+            saved:window.duckHeistEngine.endlessCheckpointRound,
+            cp:JSON.parse(localStorage.getItem('duckheist_endless_checkpoint')||'null')
+          }));
+          if(market.shield!==beforeShield+1||market.saved!==10||market.cp?.endless?.round!==10)throw new Error('Market/checkpoint failed '+JSON.stringify(market));
+          // Reload the app and verify menu offers resume.
+          await page.reload({waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine);
+          let meta=await page.evaluate(()=>({state:window.duckHeistEngine.state,saved:window.duckHeistEngine.endlessCheckpointRound}));
+          if(meta.state!=='MENU'||meta.saved!==10)throw new Error('Checkpoint metadata missing '+JSON.stringify(meta));
+          await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_RESUME');
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='ENDLESS_REWARD'&&window.duckHeistEngine.gameMode==='endless');
+          const resumed=await page.evaluate(()=>({round:window.duckHeistEngine.endless.round,shield:window.duckHeistEngine.player.shield,crumbs:window.duckHeistEngine.player.crumbs}));
+          if(resumed.round!==10||resumed.shield<1)throw new Error('Resume failed '+JSON.stringify(resumed));
+          // Continue to R11 then die: dead runs must not remain resumable.
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.endless.round===11&&window.duckHeistEngine.state==='PLAYING');
+          await page.evaluate(()=>window.duckHeistEngine.player.hp=0);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='GAME_OVER');
+          const dead=await page.evaluate(()=>({saved:window.duckHeistEngine.endlessCheckpointRound,cp:localStorage.getItem('duckheist_endless_checkpoint')}));
+          if(dead.saved!==0||dead.cp!==null)throw new Error('Dead checkpoint not cleared '+JSON.stringify(dead));
+          if(errors.length)throw new Error(errors.join(' | '));
+          await browser.close();
+          JS
+      - name: Cleanup workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/endless-polish-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: remove temporary endless polish QA'
+          git push origin HEAD:feature/endless-heist-polish
