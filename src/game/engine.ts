@@ -595,20 +595,35 @@ function configureEndlessArena(engine:GameEngine) {
 
 function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
   const content=getContent(engine),sc=endlessDiffScale(engine);
-  const count=tier==='boss'&&engine.endless.round%100===0?2:1;
+  const doubleThreat=tier==='boss'&&engine.endless.round%100===0;
+  const compatiblePairs=[
+    ['captain_honk','don_levadura'],
+    ['comisario_pico_duro','toaster_9000'],
+    ['general_ganso','director_seguridad'],
+    ['bread_banker','captain_honk'],
+  ];
+  const ids=doubleThreat
+    ? compatiblePairs[(Math.floor(engine.endless.round/100)-1)%compatiblePairs.length]
+    : [endlessBagPick(engine,tier)];
   const names:string[]=[];
-  for(let i=0;i<count;i++) {
-    const id=endlessBagPick(engine,tier);
+  ids.forEach((id,i)=>{
     const def=tier==='mini'?MINIBOSSES[id]:tier==='sub'?SUBBOSSES[id]:BOSSES[id];
     const boss=makeBossEnemy(def,id,tier==='mini'?'mini':tier==='sub'?'sub':'boss',sc);
-    if(count>1) {boss.x=i===0?CANVAS_WIDTH*.28-boss.size/2:CANVAS_WIDTH*.72-boss.size/2;boss.y=CANVAS_HEIGHT*.25;}
+    if(doubleThreat) {
+      boss.x=i===0?CANVAS_WIDTH*.29-boss.size/2:CANVAS_WIDTH*.71-boss.size/2;
+      boss.y=CANVAS_HEIGHT*.25;
+    }
     applyEndlessBossRank(engine,boss);
+    if(doubleThreat){
+      boss.hp=Math.round(boss.hp*.76);boss.maxHp=boss.hp;
+      boss.dmgMul*=.9;boss.damage*=.9;boss.speed*=.96;boss.attackCooldown*=1.15;
+    }
     content.enemies.push(boss);names.push(def.name);
     discover(engine,'bosses',id);
-  }
-  engine.bossIntroName=count>1?'DOBLE AMENAZA':names[0];
-  engine.bossIntroSubtitle=count>1?names.join(' + '):`${engine.endless.threatRank} · ${endlessStage(engine.endless.round)}`;
-  engine.bossIntroTimer=count>1?125:tier==='boss'?90:tier==='sub'?72:52;
+  });
+  engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
+  engine.bossIntroSubtitle=doubleThreat?names.join(' + '):`${engine.endless.threatRank} · ${endlessStage(engine.endless.round)}`;
+  engine.bossIntroTimer=doubleThreat?125:tier==='boss'?90:tier==='sub'?72:52;
   playBossRoar();setMusic('boss');
   engine.state=GameState.BOSS_INTRO;engine.onStateChange?.(engine.state);
 }
