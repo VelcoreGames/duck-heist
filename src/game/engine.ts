@@ -402,6 +402,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let bestFloor=0;
   let tutorial={started:false,map:false,mapShown:false,wheel:false,dash:false};
   let madUnlocked=false;
+  let endlessRecords=emptyEndlessRecords();
   try {
     const saved = localStorage.getItem('duckheist_save');
     if (saved) {
@@ -416,6 +417,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     }
     const b = localStorage.getItem('duckheist_best');
     if (b) best = { ...best, ...JSON.parse(b) };
+    const er=localStorage.getItem('duckheist_endless_records');
+    if(er) endlessRecords={...endlessRecords,...JSON.parse(er)};
   } catch { /* sin almacenamiento */ }
   try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
   catch { madUnlocked=unlockedSkins.includes('golden'); }
@@ -449,6 +452,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     collectionTab:'items',collectionIndex:0,collectionScroll:0,
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
     difficulty:'normal',difficultyIndex:1,madUnlocked,
+    gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
     menuIndex: 0, pauseIndex: 0, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
