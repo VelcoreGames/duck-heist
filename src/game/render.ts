@@ -628,6 +628,8 @@ export function renderUI(engine: GameEngine) {
       drawHUD(engine); renderFloorIntroUI(engine); break;
     case GameState.BOSS_INTRO:
       drawHUD(engine); renderPrompts(engine); renderBossIntroUI(engine); break;
+    case GameState.ENDLESS_REWARD:
+      drawHUD(engine); renderEndlessRewardUI(engine); break;
     case GameState.FLOOR_CLEAR:
       renderFloorClearUI(engine); break;
     default:
@@ -969,6 +971,15 @@ function drawHUD(engine: GameEngine) {
     if(p.items.length>8)text(ctx,`+${p.items.length-8}`,12+n*14,CANVAS_HEIGHT-38,6,'#f4d03f','left');
   }
   renderDangerEventHUD(engine);
+  if(engine.gameMode==='endless'){
+    const e=engine.endless;
+    drawPanel(ctx,6,50,104,37,'rgba(4,9,14,.72)','rgba(137,109,48,.55)');
+    text(ctx,`RONDA ${Math.max(1,e.round)}`,12,62,7,'#f4d03f','left',true);
+    text(ctx,`ALERTA ${e.alert} · ${e.threatRank}`,12,73,5.2,'#b9c7be','left');
+    const pw=88;ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(12,78,pw,4);
+    ctx.fillStyle=e.pressure>=75?'#e55f55':e.pressure>=50?'#e6a04e':'#78b99a';ctx.fillRect(12,78,pw*clamp(e.pressure/100,0,1),4);
+    text(ctx,`PRESIÓN ${Math.round(e.pressure)}%`,104,86,4.6,'#8fa1a8','right');
+  }
 }
 
 function drawBossBar(engine: GameEngine) {
@@ -1093,6 +1104,10 @@ function renderMenuUI(engine: GameEngine) {
     if(on) {text(ctx,'›',x-9,y+15,14,'#e7c87f');text(ctx,'‹',x+w+9,y+15,14,'#e7c87f');}
     ctx.restore();
   });
+  if(engine.menuIndex===1){
+    const rec=engine.endlessRecords[engine.difficulty];
+    text(ctx,`RÉCORD ${DIFFICULTIES[engine.difficulty].label} · RONDA ${rec.round}`,240,316,5.8,'#aebd9e','center',true);
+  }
   text(ctx,T.tagline,240,326,9,'#dbbd77','center',true);
   text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR':'W / S · ELEGIR     ENTER · CONFIRMAR',30,348,6,'#738b89','left');
   drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} MONEDAS`,389,348,6,'#ac9f75','left');
