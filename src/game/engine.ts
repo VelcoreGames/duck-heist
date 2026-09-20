@@ -694,6 +694,10 @@ export function startEndlessRound(engine:GameEngine) {
   else if(e.roundKind==='boss') spawnEndlessBoss(engine,'boss');
   else {
     e.pendingEnemies=makeEndlessEnemyPlan(e.round,e.special);
+    if(e.special==='cameras'){
+      e.pendingEnemies.unshift('security_camera');
+      if(e.alert>=4)e.pendingEnemies.unshift('camara_movil');
+    }
     e.enemiesThisRound=e.pendingEnemies.length;
     engine.state=GameState.PLAYING;setMusic('run',Math.min(5,e.alert));engine.onStateChange?.(engine.state);
   }
@@ -1614,6 +1618,10 @@ export function updateEngine(engine: GameEngine) {
 
   // --- Muerte ---
   if (player.hp <= 0) {
+    if(engine.gameMode==='endless'){
+      engine.endless.score+=engine.endless.round*10;
+      saveEndlessRecord(engine);
+    }
     engine.state = GameState.GAME_OVER;
     engine.swap=null;engine.mouseDown=false;engine.keys={};
     engine.endFrame=engine.frame;
