@@ -1,5 +1,5 @@
 // Shared drawing and hit-test geometry. No duplicated menu rectangles.
-export const MAIN_MENU = { x:31, y:130, w:164, h:23, gap:5, count:6 };
+export const MAIN_MENU = { x:31, y:126, w:164, h:22, gap:4, count:7 };
 export const PAUSE_MENU={y:66,h:20,gap:4,w:202,count:6};
 export const SWAP_LAYOUT = { x:35, y:51, w:410, h:250, cardsY:171, cardW:185, cardH:84, gap:8 };
 export const WARDROBE = { x:203,y:70,w:252,h:228,cols:3,cellW:76,cellH:94,gap:6 };
@@ -23,5 +23,10 @@ export const ACTIVE_SWAP = { x: 95, y: 78, w: 290, h: 196, confirm:{x:118,y:228,
 export function activeSwapHit(x:number,y:number): 'confirm' | 'cancel' | -1 {
   if (inside(x,y,ACTIVE_SWAP.confirm)) return 'confirm';
   if (inside(x,y,ACTIVE_SWAP.cancel)) return 'cancel';
+  return -1;
+}
+export const ENDLESS_REWARD = { y:118,h:112,w:122,gap:12,startX:45 };
+export function endlessRewardHit(x:number,y:number,count:number) {
+  for(let i=0;i<count;i++) if(inside(x,y,{x:ENDLESS_REWARD.startX+i*(ENDLESS_REWARD.w+ENDLESS_REWARD.gap),y:ENDLESS_REWARD.y,w:ENDLESS_REWARD.w,h:ENDLESS_REWARD.h})) return i;
   return -1;
 }

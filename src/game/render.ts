@@ -22,7 +22,7 @@ import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, 
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel } from './engine';
 import { drawVaultScene } from './titleScene';
-import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS } from './layout';
+import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS, ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
 import { getBuild, FOODS } from './itemRules';
@@ -34,6 +34,7 @@ import { EVENTS } from './events';
 import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
+import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
@@ -627,6 +628,8 @@ export function renderUI(engine: GameEngine) {
       drawHUD(engine); renderFloorIntroUI(engine); break;
     case GameState.BOSS_INTRO:
       drawHUD(engine); renderPrompts(engine); renderBossIntroUI(engine); break;
+    case GameState.ENDLESS_REWARD:
+      drawHUD(engine); renderEndlessRewardUI(engine); break;
     case GameState.FLOOR_CLEAR:
       renderFloorClearUI(engine); break;
     default:
@@ -968,6 +971,15 @@ function drawHUD(engine: GameEngine) {
     if(p.items.length>8)text(ctx,`+${p.items.length-8}`,12+n*14,CANVAS_HEIGHT-38,6,'#f4d03f','left');
   }
   renderDangerEventHUD(engine);
+  if(engine.gameMode==='endless'){
+    const e=engine.endless;
+    drawPanel(ctx,6,50,104,37,'rgba(4,9,14,.72)','rgba(137,109,48,.55)');
+    text(ctx,`RONDA ${Math.max(1,e.round)}`,12,62,7,'#f4d03f','left',true);
+    text(ctx,`ALERTA ${e.alert} · ${e.threatRank}`,12,73,5.2,'#b9c7be','left');
+    const pw=88;ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(12,78,pw,4);
+    ctx.fillStyle=e.pressure>=75?'#e55f55':e.pressure>=50?'#e6a04e':'#78b99a';ctx.fillRect(12,78,pw*clamp(e.pressure/100,0,1),4);
+    text(ctx,`PRESIÓN ${Math.round(e.pressure)}%`,104,86,4.6,'#8fa1a8','right');
+  }
 }
 
 function drawBossBar(engine: GameEngine) {
@@ -1041,7 +1053,7 @@ function drawMinimap(engine: GameEngine) {
 // PANTALLAS (sólo UI)
 // ---------------------------------------------------------------------------
 export const MENU_ITEMS = [
-  { label: T.menuStart }, { label: T.menuUpgrades }, { label: T.menuWardrobe },
+  { label: T.menuStart }, { label: 'ATRACO SIN FIN' }, { label: T.menuUpgrades }, { label: T.menuWardrobe },
   { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
 ];
 
@@ -1059,8 +1071,8 @@ function renderDifficultyUI(engine:GameEngine) {
   const ctx=engine.ui!;
   const left=58,width=364,top=72,rowH=51,gap=5;
   drawPanel(ctx,30,22,420,306,'rgba(7,11,18,.94)','rgba(77,92,106,.72)');
-  titleText(ctx,'ELIGE LA DIFICULTAD DEL ATRACO',240,46,14,'#f4d03f');
-  text(ctx,'Puedes cambiarla al comenzar cada nueva partida.',240,60,5.8,'#7f919a','center');
+  titleText(ctx,engine.pendingMode==='endless'?'DIFICULTAD · ATRACO SIN FIN':'ELIGE LA DIFICULTAD DEL ATRACO',240,46,14,'#f4d03f');
+  text(ctx,engine.pendingMode==='endless'?'Misma base; la presión aumenta sin límite.':'Puedes cambiarla al comenzar cada nueva partida.',240,60,5.8,'#7f919a','center');
   DIFFICULTY_MODES.forEach((mode,i)=>{
     const def=DIFFICULTIES[mode],y=top+i*(rowH+gap),selected=engine.difficultyIndex===i,locked=mode==='mad'&&!engine.madUnlocked;
     const color=locked?'#9a6570':mode==='easy'?'#91d49b':mode==='normal'?'#f4d03f':mode==='hard'?'#f29a55':'#ff665e';
@@ -1077,7 +1089,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.4.3',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.6.0',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
@@ -1092,6 +1104,10 @@ function renderMenuUI(engine: GameEngine) {
     if(on) {text(ctx,'›',x-9,y+15,14,'#e7c87f');text(ctx,'‹',x+w+9,y+15,14,'#e7c87f');}
     ctx.restore();
   });
+  if(engine.menuIndex===1){
+    const rec=engine.endlessRecords[engine.difficulty];
+    text(ctx,`RÉCORD ${DIFFICULTIES[engine.difficulty].label} · RONDA ${rec.round}`,240,316,5.8,'#aebd9e','center',true);
+  }
   text(ctx,T.tagline,240,326,9,'#dbbd77','center',true);
   text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR':'W / S · ELEGIR     ENTER · CONFIRMAR',30,348,6,'#738b89','left');
   drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} MONEDAS`,389,348,6,'#ac9f75','left');
@@ -1374,7 +1390,7 @@ function renderPausedUI(engine: GameEngine) {
   ctx.fillRect(CANVAS_WIDTH / 2 - 60, 55, 120, 2);
 
   const items = [
-    { label: T.resume }, {label:'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
+    { label: T.resume }, {label:engine.gameMode==='endless'?'ARENA ÚNICA':'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
     { label: T.menuSettings }, { label: T.backToMenu },
   ];
   drawButtons(ctx,items,engine.pauseIndex,240,PAUSE_MENU.y,engine.frame,PAUSE_MENU.w,PAUSE_MENU.h,PAUSE_MENU.gap);
@@ -1397,7 +1413,7 @@ function renderPausedUI(engine: GameEngine) {
   });
   text(ctx,'DIFICULTAD',240,282,5.2,'#697882','center');
   text(ctx,difficultyLabel(engine),240,292,6.2,'#d9bd70','center',true);
-  text(ctx,`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
+  text(ctx,engine.gameMode==='endless'?`RONDA ${engine.endless.round} · ALERTA ${engine.endless.alert}`:`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
   text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA    ${engine.lastInput==='gamepad'?'B':'CLIC DERECHO'} · ESQUIVAR`,240,315,6.5,'#768f8f');
 }
 
@@ -1497,7 +1513,55 @@ function renderSwapUI(engine: GameEngine) {
   text(ctx,engine.lastInput==='gamepad'?'B · CANCELAR':T.cancel,240,y+h-8,8,'#7c8494');
 }
 
+function renderEndlessRewardUI(engine:GameEngine) {
+  const ctx=engine.ui!,e=engine.endless;
+  ctx.fillStyle='rgba(3,7,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  drawPanel(ctx,24,24,432,300,'rgba(7,13,19,.97)','#8d6f23');
+  titleText(ctx,'ATRACO SIN FIN',240,50,16,'#f4d03f');
+  text(ctx,`RONDA ${Math.max(1,e.round)} · ALERTA ${e.alert}`,240,69,8,'#e9dfbd','center',true);
+  text(ctx,endlessStage(Math.max(1,e.round)),240,84,6.5,'#8fa7a8','center');
+  if(e.awaitingReward&&e.rewardOptions.length){
+    text(ctx,'ELIGE UNA RECOMPENSA',240,103,8,'#d7c789','center',true);
+    e.rewardOptions.forEach((opt,i)=>{
+      const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.rewardIndex;
+      drawPanel(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on?'rgba(69,54,20,.95)':'rgba(15,23,30,.96)',on?'#f4d03f':'#45515a');
+      text(ctx,opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN',x+ENDLESS_REWARD_LAYOUT.w/2,y+17,5.5,on?'#f4d03f':'#81949a','center',true);
+      wrappedText(ctx,opt.label,x+10,y+37,ENDLESS_REWARD_LAYOUT.w-20,7.5,9,2,on?'#fff2b3':'#dce5dc',true);
+      wrappedText(ctx,opt.description,x+10,y+65,ENDLESS_REWARD_LAYOUT.w-20,5.5,6.7,4,'#9babad');
+      if(on){text(ctx,'›',x-7,y+59,12,'#f4d03f');text(ctx,'‹',x+ENDLESS_REWARD_LAYOUT.w+7,y+59,12,'#f4d03f');}
+    });
+    text(ctx,'A / D · ELEGIR    ENTER · TOMAR',240,255,6.2,'#a3b5b4','center');
+    text(ctx,'R · RECICLAR TODO',240,276,6.2,'#c9a96b','center',true);
+  } else {
+    text(ctx,'RONDA SUPERADA',240,135,14,'#9fd2a9','center',true);
+    text(ctx,`PUNTUACIÓN  ${Math.round(e.score)}`,240,165,8,'#d8c789','center');
+    text(ctx,`PERFECTAS ${e.perfectRounds} · RACHA MÁX. ${e.maxPerfectStreak}`,240,188,6.5,'#9eafb2','center');
+    text(ctx,`SIGUIENTE: RONDA ${e.round+1}`,240,216,8,'#e4d29a','center',true);
+    text(ctx,'ENTER · SIGUIENTE RONDA',240,258,8,'#f4d03f','center',true);
+  }
+  text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${e.threatRank}`,240,303,5.8,'#7f919a','center');
+}
+
 function renderGameOverUI(engine: GameEngine) {
+  if(engine.gameMode==='endless'){
+    const ctx=engine.ui!,e=engine.endless,rec=engine.endlessRecords[engine.difficulty];
+    ctx.fillStyle='rgba(8,6,12,.94)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    drawPanel(ctx,42,30,396,294,'rgba(10,14,21,.97)','#9a3f46');
+    titleText(ctx,'ATRACO TERMINADO',240,59,20,'#ff6258');
+    text(ctx,`RONDA ${e.round} · ALERTA ${e.alert}`,240,83,10,'#f0d27d','center',true);
+    text(ctx,endlessStage(Math.max(1,e.round)),240,99,6.5,'#8fa1a8','center');
+    const rows:[string,string][]=[
+      ['RÉCORD',`RONDA ${rec.round}`],['PUNTUACIÓN',Math.round(e.score).toString()],
+      ['ENEMIGOS',engine.stats.enemiesDefeated.toString()],['JEFES',engine.run.bosses.toString()],
+      ['RONDAS PERFECTAS',e.perfectRounds.toString()],['MEJOR RACHA',e.maxPerfectStreak.toString()],
+      ['DAÑO HECHO',Math.round(engine.run.dmgDealt).toString()],['DAÑO RECIBIDO',(Math.round(engine.run.dmgTaken*10)/10).toString()],
+      ['PROYECTILES',Math.round(e.damageBySource.projectile).toString()],['CONTACTO',Math.round(e.damageBySource.contact).toString()],
+    ];
+    rows.forEach(([k,v],i)=>{const y=120+i*14;text(ctx,k,74,y,7,'#8792a5','left');text(ctx,v,406,y,8,'#fff6c9','right',true);});
+    text(ctx,`MAYOR AMENAZA: ${e.damageBySource.projectile>=e.damageBySource.contact?'PROYECTILES':'CONTACTO'}`,240,268,6.5,'#d49991','center',true);
+    drawButtons(ctx,[{label:'OTRO INTENTO  [ENTER]'},{label:'MENÚ  [ESC]'}],engine.pauseIndex,240,286,engine.frame,200,22,4);
+    return;
+  }
   const ctx = engine.ui!;
   const f = engine.frame;
   ctx.fillStyle = 'rgba(8,6,12,0.9)';
