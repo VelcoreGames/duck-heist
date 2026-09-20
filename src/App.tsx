@@ -74,6 +74,10 @@ export default function App() {
     }
 
     const engine = createEngine(wc, wctx, uctx);
+    if(new URLSearchParams(window.location.search).get('auditoria')==='1'){
+      engine.testing=true;
+      (window as Window & {duckHeistEngine?:GameEngine}).duckHeistEngine=engine;
+    }
     engineRef.current = engine;
     engine.onStateChange = () => {
       force(n => n + 1);
@@ -139,7 +143,7 @@ export default function App() {
     const activatePause = () => {
       switch (engine.pauseIndex) {
         case 0: playUiSelect(); goTo(GameState.PLAYING); break;
-        case 1: openFloorMap(engine); break;
+        case 1: if(engine.gameMode!=='endless')openFloorMap(engine); break;
         case 2: playUiSelect(); restartCurrentMode(engine); break;
         case 3: playUiSelect(); subReturn = GameState.PAUSED; goTo(GameState.HOW_TO_PLAY); break;
         case 4: playUiSelect(); engine.settingsIndex = 0; subReturn = GameState.PAUSED; goTo(GameState.SETTINGS); break;
