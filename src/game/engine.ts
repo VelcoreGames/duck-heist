@@ -64,6 +64,7 @@ function emptyEndlessState():EndlessState {
     perfectRounds:0,perfectStreak:0,maxPerfectStreak:0,rewardOptions:[],rewardIndex:0,
     awaitingReward:true,bossBag:[],subbossBag:[],minibossBag:[],enemiesThisRound:0,killedThisRound:0,
     threatRank:'NORMAL',damageBySource:{contact:0,projectile:0},lastHitSource:null,
+    marketOpen:false,marketIndex:0,marketDoneRound:0,nextRewardBoost:0,
   };
 }
 function emptyEndlessRecords() {
@@ -403,6 +404,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let tutorial={started:false,map:false,mapShown:false,wheel:false,dash:false};
   let madUnlocked=false;
   let endlessRecords=emptyEndlessRecords();
+  let endlessCheckpointRound=0;
+  let endlessCheckpointDifficulty:DifficultyMode|null=null;
   try {
     const saved = localStorage.getItem('duckheist_save');
     if (saved) {
@@ -419,6 +422,14 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     if (b) best = { ...best, ...JSON.parse(b) };
     const er=localStorage.getItem('duckheist_endless_records');
     if(er) endlessRecords={...endlessRecords,...JSON.parse(er)};
+    const cp=localStorage.getItem('duckheist_endless_checkpoint');
+    if(cp){
+      const parsed=JSON.parse(cp);
+      if(parsed?.version===1 && parsed?.endless?.round>=1 && DIFFICULTY_MODES.includes(parsed.difficulty)){
+        endlessCheckpointRound=parsed.endless.round;
+        endlessCheckpointDifficulty=parsed.difficulty;
+      }
+    }
   } catch { /* sin almacenamiento */ }
   try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
   catch { madUnlocked=unlockedSkins.includes('golden'); }
@@ -453,6 +464,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
+    endlessCheckpointRound,endlessCheckpointDifficulty,endlessResumeIndex:0,
     menuIndex: 0, pauseIndex: 0, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
@@ -638,7 +650,10 @@ function preferredEndlessRole(engine:GameEngine) {
 }
 
 function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
-  const round=engine.endless.round,n=((round-1)%10)+1,rare=n>=8||round>=30||engine.endless.perfectStreak>=3;
+  const round=engine.endless.round,n=((round-1)%10)+1;
+  const boosted=engine.endless.nextRewardBoost>0;
+  const rare=n>=8||round>=30||engine.endless.perfectStreak>=3||boosted;
+  if(boosted)engine.endless.nextRewardBoost--;
   const role=preferredEndlessRole(engine);
   const result:EndlessRewardOption[]=[];
   const addItem=(preferred=false)=>{
@@ -665,6 +680,91 @@ function saveEndlessRecord(engine:GameEngine) {
   try {localStorage.setItem('duckheist_endless_records',JSON.stringify(engine.endlessRecords));} catch { /* sin almacenamiento */ }
 }
 
+function saveEndlessCheckpoint(engine:GameEngine) {
+  if(engine.gameMode!=='endless'||engine.endless.round<1)return;
+  const payload={
+    version:1,difficulty:engine.difficulty,
+    player:engine.player,endless:engine.endless,run:engine.run,stats:engine.stats,
+    offeredItems:engine.offeredItems,knownSynergies:engine.knownSynergies,
+  };
+  try {
+    localStorage.setItem('duckheist_endless_checkpoint',JSON.stringify(payload));
+    engine.endlessCheckpointRound=engine.endless.round;
+    engine.endlessCheckpointDifficulty=engine.difficulty;
+  } catch { /* sin almacenamiento */ }
+}
+
+export function clearEndlessCheckpoint(engine:GameEngine) {
+  try {localStorage.removeItem('duckheist_endless_checkpoint');} catch { /* sin almacenamiento */ }
+  engine.endlessCheckpointRound=0;engine.endlessCheckpointDifficulty=null;
+}
+
+export function resumeEndlessGame(engine:GameEngine):boolean {
+  try {
+    const raw=localStorage.getItem('duckheist_endless_checkpoint');
+    if(!raw)return false;
+    const cp=JSON.parse(raw);
+    if(cp?.version!==1||!cp?.player||!cp?.endless||cp.endless.round<1||!DIFFICULTY_MODES.includes(cp.difficulty))return false;
+    engine.difficulty=cp.difficulty;
+    engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(cp.difficulty));
+    activeDifficulty=engine.difficulty;
+    engine.gameMode='endless';engine.pendingMode='endless';
+    engine.player=cp.player;
+    engine.endless={...emptyEndlessState(),...cp.endless,roundActive:false,pendingEnemies:[],spawnCooldown:0,pressure:0};
+    engine.run=cp.run??newRunStats();
+    engine.stats=cp.stats??{breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
+    engine.offeredItems=cp.offeredItems??[];
+    engine.knownSynergies=cp.knownSynergies??[];
+    engine.map=createEndlessMap(engine.endless.alert);
+    engine.contents=new Map();engine.currentKey=engine.map.startKey;
+    const room=engine.map.rooms.get(engine.currentKey)!;
+    engine.contents.set(engine.currentKey,{enemies:[],pickups:[],items:[],puddles:[],doorAnim:{},lockFlash:0,combatTimer:0,ambient:0,magnet:0});
+    room.generated=true;room.visited=true;room.cleared=true;
+    engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];engine.grenades=[];engine.remoteBomb=null;engine.decoy=null;
+    engine.swap=null;engine.activeSwap=null;engine.pickupCard=null;engine.keys={};engine.mouseDown=false;
+    engine.endlessCheckpointRound=engine.endless.round;engine.endlessCheckpointDifficulty=engine.difficulty;
+    engine.roomLabel='ATRACO SIN FIN · CONTINUADO';engine.roomLabelTimer=100;
+    engine.state=GameState.ENDLESS_REWARD;setMusic('run',Math.min(5,engine.endless.alert));engine.onStateChange?.(engine.state);
+    return true;
+  } catch {return false;}
+}
+
+export function endlessMarketOptions(engine:GameEngine) {
+  const a=engine.endless.alert;
+  return [
+    {id:'heal',label:'PAN DE EMERGENCIA',description:'+1 corazón',cost:16+a*5},
+    {id:'shield',label:'BLINDAJE DE PAN',description:'+1 escudo para absorber un golpe',cost:22+a*6},
+    {id:'boost',label:'CONTACTO INTERNO',description:'Mejora la rareza del próximo draft',cost:28+a*7},
+  ] as const;
+}
+
+function openEndlessMarketIfNeeded(engine:GameEngine) {
+  const e=engine.endless;
+  if(e.round>0&&e.round%10===0&&e.marketDoneRound!==e.round){
+    e.marketOpen=true;e.marketIndex=0;e.marketDoneRound=e.round;
+    engine.toast='MERCADO DE RESPIRO';engine.toastTimer=90;
+    saveEndlessCheckpoint(engine);return true;
+  }
+  saveEndlessCheckpoint(engine);return false;
+}
+
+export function buyEndlessMarket(engine:GameEngine) {
+  const e=engine.endless;if(!e.marketOpen)return;
+  const option=endlessMarketOptions(engine)[e.marketIndex];if(!option)return;
+  if(engine.player.crumbs<option.cost){engine.toast='MIGAJAS INSUFICIENTES';engine.toastTimer=70;playDeny();return;}
+  if(option.id==='heal'&&engine.player.hp>=engine.player.maxHp){engine.toast='VIDA COMPLETA';engine.toastTimer=70;playDeny();return;}
+  engine.player.crumbs-=option.cost;
+  if(option.id==='heal')healPlayer(engine,1);
+  else if(option.id==='shield')engine.player.shield++;
+  else if(option.id==='boost')e.nextRewardBoost=Math.max(e.nextRewardBoost,1);
+  e.marketOpen=false;engine.toast='TRATO CERRADO';engine.toastTimer=70;playEquip();saveEndlessCheckpoint(engine);
+}
+
+export function skipEndlessMarket(engine:GameEngine) {
+  if(!engine.endless.marketOpen)return;
+  engine.endless.marketOpen=false;engine.toast='MIGAJAS GUARDADAS';engine.toastTimer=60;playUiBack();saveEndlessCheckpoint(engine);
+}
+
 function finishEndlessRound(engine:GameEngine) {
   const e=engine.endless,content=getContent(engine),room=currentRoom(engine);
   if(!e.roundActive) return;
@@ -688,7 +788,9 @@ function finishEndlessRound(engine:GameEngine) {
   e.rewardIndex=0;e.awaitingReward=e.rewardOptions.length>0;
   saveEndlessRecord(engine);
   setMusic('run',Math.min(5,e.alert));
-  engine.state=GameState.ENDLESS_REWARD;engine.onStateChange?.(engine.state);
+  engine.state=GameState.ENDLESS_REWARD;
+  saveEndlessCheckpoint(engine);
+  engine.onStateChange?.(engine.state);
 }
 
 export function startEndlessRound(engine:GameEngine) {
@@ -719,6 +821,7 @@ export function startEndlessRound(engine:GameEngine) {
 }
 
 export function startEndlessGame(engine:GameEngine) {
+  clearEndlessCheckpoint(engine);
   activeDifficulty=engine.difficulty;saveProgress(engine);nextEnemyId=0;initAudio();
   engine.gameMode='endless';engine.pendingMode='endless';engine.player=createPlayer(engine.metaLevels);
   const d=DIFFICULTIES[engine.difficulty];
@@ -741,22 +844,30 @@ export function restartCurrentMode(engine:GameEngine) {
 }
 
 export function moveEndlessReward(engine:GameEngine,dir:number) {
-  if(engine.state!==GameState.ENDLESS_REWARD||!engine.endless.rewardOptions.length) return;
+  if(engine.state!==GameState.ENDLESS_REWARD)return;
+  if(engine.endless.marketOpen){
+    engine.endless.marketIndex=(engine.endless.marketIndex+dir+3)%3;playUiMove();return;
+  }
+  if(!engine.endless.rewardOptions.length)return;
   const n=engine.endless.rewardOptions.length;
   engine.endless.rewardIndex=(engine.endless.rewardIndex+dir+n)%n;playUiMove();
 }
 
 export function recycleEndlessRewards(engine:GameEngine) {
-  if(engine.state!==GameState.ENDLESS_REWARD||!engine.endless.awaitingReward) return;
+  if(engine.state!==GameState.ENDLESS_REWARD)return;
+  if(engine.endless.marketOpen){skipEndlessMarket(engine);return;}
+  if(!engine.endless.awaitingReward)return;
   const amount=10+engine.endless.alert*4;
   engine.player.crumbs+=amount;engine.stats.breadStolen+=amount;
   engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;
   engine.toast=`RECICLADO · +${amount} MIGAJAS`;engine.toastTimer=80;playCoin();
+  openEndlessMarketIfNeeded(engine);
 }
 
 export function confirmEndlessReward(engine:GameEngine) {
   if(engine.state!==GameState.ENDLESS_REWARD) return;
   const e=engine.endless;
+  if(e.marketOpen){buyEndlessMarket(engine);return;}
   if(!e.awaitingReward||!e.rewardOptions.length){startEndlessRound(engine);return;}
   const reward=e.rewardOptions[e.rewardIndex];if(!reward)return;
   if(reward.kind==='item'&&reward.itemId) grantItem(engine,reward.itemId,false,false);
@@ -766,6 +877,7 @@ export function confirmEndlessReward(engine:GameEngine) {
   } else if(reward.kind==='heal') healPlayer(engine,reward.amount??1);
   else if(reward.kind==='crumbs'){const amount=reward.amount??10;engine.player.crumbs+=amount;engine.stats.breadStolen+=amount;playCoin();}
   e.rewardOptions=[];e.awaitingReward=false;playUiSelect();
+  openEndlessMarketIfNeeded(engine);
 }
 
 function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomContent) {
@@ -1636,6 +1748,7 @@ export function updateEngine(engine: GameEngine) {
     if(engine.gameMode==='endless'){
       engine.endless.score+=engine.endless.round*10;
       saveEndlessRecord(engine);
+      clearEndlessCheckpoint(engine);
     }
     engine.state = GameState.GAME_OVER;
     engine.swap=null;engine.mouseDown=false;engine.keys={};
@@ -1752,7 +1865,10 @@ export function confirmSwap(engine: GameEngine) {
     if (s) { p.crumbs -= shopPrice(engine,s);p.couponUsed=true;s.soldAt=engine.frame;merchantSpeak(engine,'No hago devoluciones.'); }
   }
   if (old && req.from!=='endless') content.items.push({ x: dx, y: dy, itemId: old.id, isWeapon: true, isActive: false });
-  if(req.from==='endless'){engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;}
+  if(req.from==='endless'){
+    engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;
+    openEndlessMarketIfNeeded(engine);
+  }
 
   engine.swap = null;
   engine.keys.e=false;engine.mouseDown=false;
