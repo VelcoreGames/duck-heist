@@ -159,6 +159,44 @@ export interface RunStats {
 }
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard' | 'mad';
+export type GameMode = 'heist' | 'endless';
+export type EndlessRoundKind = 'combat'|'miniboss'|'special'|'subboss'|'boss';
+export type EndlessSpecial = 'horde'|'elite'|'blackout'|'crossfire'|'cameras'|'siege'|'red_protocol';
+export type EndlessRewardKind = 'item'|'weapon'|'heal'|'crumbs'|'recycle';
+export interface EndlessRewardOption {
+  kind:EndlessRewardKind;
+  itemId?:string;
+  amount?:number;
+  label:string;
+  description:string;
+}
+export interface EndlessRecord { round:number; score:number; alert:number; }
+export interface EndlessState {
+  round:number;
+  alert:number;
+  pressure:number;
+  score:number;
+  roundKind:EndlessRoundKind;
+  special:EndlessSpecial|null;
+  pendingEnemies:string[];
+  spawnCooldown:number;
+  roundActive:boolean;
+  roundDamaged:boolean;
+  perfectRounds:number;
+  perfectStreak:number;
+  maxPerfectStreak:number;
+  rewardOptions:EndlessRewardOption[];
+  rewardIndex:number;
+  awaitingReward:boolean;
+  bossBag:string[];
+  subbossBag:string[];
+  minibossBag:string[];
+  enemiesThisRound:number;
+  killedThisRound:number;
+  threatRank:'NORMAL'|'VETERANO'|'ÉLITE'|'NÉMESIS';
+  damageBySource:{contact:number;projectile:number};
+  lastHitSource:'contact'|'projectile'|null;
+}
 
 export interface Settings {
   master: number; music: number; sfx: number;
@@ -172,7 +210,7 @@ export interface Settings {
 export interface SwapRequest {
   itemId: string;
   slot: number;             // arma que se reemplazaría
-  from: 'floor' | 'pedestal' | 'shop' | 'choice';
+  from: 'floor' | 'pedestal' | 'shop' | 'choice' | 'endless';
   srcIndex: number;         // índice en content.items / pedestal
   worldX: number; worldY: number;
   roomKey?:string;
@@ -311,7 +349,7 @@ export interface GameEngine {
   coffeeCrash:number;
   dangerEventMusic?:boolean;
   synergyNotice:{name:string;description:string;timer:number}|null;
-  activeSwap:{itemId:string;from:'floor'|'pedestal'|'shop'|'choice';srcIndex:number;worldX:number;worldY:number;roomKey:string}|null;
+  activeSwap:{itemId:string;from:'floor'|'pedestal'|'shop'|'choice'|'endless';srcIndex:number;worldX:number;worldY:number;roomKey:string}|null;
   collectionTab:CollectionCategory;
   collectionIndex:number;
   collectionScroll:number;
@@ -321,6 +359,10 @@ export interface GameEngine {
 
   difficulty: DifficultyMode;
   difficultyIndex: number;
+  gameMode: GameMode;
+  pendingMode: GameMode;
+  endless: EndlessState;
+  endlessRecords: Record<DifficultyMode,EndlessRecord>;
   madUnlocked: boolean;
 
   menuIndex: number;
