@@ -90,8 +90,8 @@ export function specialLabel(s:EndlessSpecial) {
   }[s];
 }
 
-export function makeEndlessEnemyPlan(round:number,special:EndlessSpecial|null):string[] {
-  const scale=endlessScale(round,'normal');
+export function makeEndlessEnemyPlan(round:number,special:EndlessSpecial|null,difficulty:DifficultyMode='normal'):string[] {
+  const scale=endlessScale(round,difficulty);
   const alert=Math.floor((Math.max(1,round)-1)/10);
   const maxFloor=Math.min(5,Math.floor(alert*.9)+Math.floor((round%10)/4));
   let pool=Object.values(ENEMIES).filter(e=>e.minFloor<=maxFloor && e.damage>0);
