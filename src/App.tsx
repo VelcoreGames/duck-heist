@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   createEngine, startGame, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
+  restartCurrentMode, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
   DIFFICULTY_MODES, selectDifficulty,
@@ -9,7 +10,7 @@ import {
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
-import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit } from './game/layout';
+import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit, endlessRewardHit } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
@@ -126,19 +127,20 @@ export default function App() {
       playUiSelect();
       initAudio();
       switch (engine.menuIndex) {
-        case 0: engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
-        case 1: engine.upgradeIndex = 0; subReturn = GameState.MENU; goTo(GameState.UPGRADES); break;
-        case 2: engine.wardrobeIndex=SKINS.findIndex(s=>s.id===engine.equippedSkin);ensureSkinVisible(engine);subReturn=GameState.MENU;goTo(GameState.WARDROBE);break;
-        case 3: subReturn=GameState.MENU;goTo(GameState.COLLECTION);break;
-        case 4: subReturn = GameState.MENU; goTo(GameState.HOW_TO_PLAY); break;
-        case 5: engine.settingsIndex = 0; subReturn = GameState.MENU; goTo(GameState.SETTINGS); break;
+        case 0: engine.pendingMode='heist';engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
+        case 1: engine.pendingMode='endless';engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
+        case 2: engine.upgradeIndex = 0; subReturn = GameState.MENU; goTo(GameState.UPGRADES); break;
+        case 3: engine.wardrobeIndex=SKINS.findIndex(s=>s.id===engine.equippedSkin);ensureSkinVisible(engine);subReturn=GameState.MENU;goTo(GameState.WARDROBE);break;
+        case 4: subReturn=GameState.MENU;goTo(GameState.COLLECTION);break;
+        case 5: subReturn = GameState.MENU; goTo(GameState.HOW_TO_PLAY); break;
+        case 6: engine.settingsIndex = 0; subReturn = GameState.MENU; goTo(GameState.SETTINGS); break;
       }
     };
     const activatePause = () => {
       switch (engine.pauseIndex) {
         case 0: playUiSelect(); goTo(GameState.PLAYING); break;
         case 1: openFloorMap(engine); break;
-        case 2: playUiSelect(); startGame(engine); break;
+        case 2: playUiSelect(); restartCurrentMode(engine); break;
         case 3: playUiSelect(); subReturn = GameState.PAUSED; goTo(GameState.HOW_TO_PLAY); break;
         case 4: playUiSelect(); engine.settingsIndex = 0; subReturn = GameState.PAUSED; goTo(GameState.SETTINGS); break;
         case 5: playUiBack(); engine.menuIndex = 0; setMusic('menu'); goTo(GameState.MENU); break;
@@ -146,7 +148,7 @@ export default function App() {
     };
     const activateEnd = () => {
       playUiSelect();
-      if (engine.pauseIndex === 0) startGame(engine);
+      if (engine.pauseIndex === 0) restartCurrentMode(engine);
       else { engine.menuIndex = 0; setMusic('menu'); goTo(GameState.MENU); }
     };
 
@@ -159,7 +161,7 @@ export default function App() {
         e.preventDefault();
       }
       if (e.repeat && k !== 'r') return;
-      if(k==='m') {toggleFloorMap(engine);return;}
+      if(k==='m') {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
       if(engine.state===GameState.MAP) {
         if(k==='escape') closeFloorMap(engine);
         else if(k==='w'||k==='arrowup') inspectMapDirection(engine,'N');
@@ -200,8 +202,8 @@ export default function App() {
 
       switch (engine.state) {
         case GameState.MENU:
-          if (up) menuMove(engine, -1, 6, 'menu');
-          else if (down) menuMove(engine, 1, 6, 'menu');
+          if (up) menuMove(engine, -1, 7, 'menu');
+          else if (down) menuMove(engine, 1, 7, 'menu');
           else if (yes) activateMenu();
           break;
         case GameState.DIFFICULTY:
@@ -257,6 +259,13 @@ export default function App() {
           else if (yes) buyUpgrade(engine, engine.upgradeIndex);
           else if (k === 'escape') { playUiBack(); goTo(subReturn); }
           break;
+        case GameState.ENDLESS_REWARD:
+          if(left || up) moveEndlessReward(engine,-1);
+          else if(right || down) moveEndlessReward(engine,1);
+          else if(k==='r') recycleEndlessRewards(engine);
+          else if(yes) confirmEndlessReward(engine);
+          else if(k==='escape'){playUiBack();engine.menuIndex=1;setMusic('menu');goTo(GameState.MENU);}
+          break;
         case GameState.PLAYING:
           if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
           else if (k === 'shift') handleDash(engine);
@@ -290,7 +299,7 @@ export default function App() {
       e.preventDefault();
       if (inSwap()) { selectSwapSlot(engine, engine.swapSel === 0 ? 1 : 0); return; }
       if (engine.state === GameState.MENU) {
-        menuMove(engine, e.deltaY > 0 ? 1 : -1, 6, 'menu');
+        menuMove(engine, e.deltaY > 0 ? 1 : -1, 7, 'menu');
         return;
       }
       if (engine.state === GameState.WARDROBE) {
@@ -325,7 +334,7 @@ export default function App() {
       const st = engine.state;
       if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.PAUSED || st === GameState.GAME_OVER || st === GameState.VICTORY) {
         const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
-        const cnt = st === GameState.MENU ? 6 : st===GameState.DIFFICULTY?4:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
+        const cnt = st === GameState.MENU ? 7 : st===GameState.DIFFICULTY?4:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
         const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
         const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
         const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
@@ -336,6 +345,9 @@ export default function App() {
           else if (st === GameState.PAUSED) { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
           else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
         }
+      } else if(st===GameState.ENDLESS_REWARD){
+        const hit=endlessRewardHit(p.x,p.y,engine.endless.rewardOptions.length);
+        if(hit>=0&&engine.endless.rewardIndex!==hit){engine.endless.rewardIndex=hit;softMove();}
       } else if (st === GameState.SETTINGS) {
         let hit = -1;
         SETTING_ROWS.forEach((_, i) => {
@@ -401,6 +413,12 @@ export default function App() {
         case GameState.MENU: {
           setMusic('menu');const i=mainMenuHit(x,y);
           if (i >= 0) { engine.menuIndex = i; activateMenu(); }
+          break;
+        }
+        case GameState.ENDLESS_REWARD: {
+          const hit=endlessRewardHit(x,y,engine.endless.rewardOptions.length);
+          if(hit>=0){engine.endless.rewardIndex=hit;confirmEndlessReward(engine);}
+          else if(!engine.endless.awaitingReward) confirmEndlessReward(engine);
           break;
         }
         case GameState.DIFFICULTY: {
