@@ -64,6 +64,7 @@ function emptyEndlessState():EndlessState {
     perfectRounds:0,perfectStreak:0,maxPerfectStreak:0,rewardOptions:[],rewardIndex:0,
     awaitingReward:true,bossBag:[],subbossBag:[],minibossBag:[],enemiesThisRound:0,killedThisRound:0,
     threatRank:'NORMAL',damageBySource:{contact:0,projectile:0},lastHitSource:null,
+    marketOpen:false,marketIndex:0,marketDoneRound:0,nextRewardBoost:0,
   };
 }
 function emptyEndlessRecords() {
@@ -403,6 +404,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let tutorial={started:false,map:false,mapShown:false,wheel:false,dash:false};
   let madUnlocked=false;
   let endlessRecords=emptyEndlessRecords();
+  let endlessCheckpointRound=0;
+  let endlessCheckpointDifficulty:DifficultyMode|null=null;
   try {
     const saved = localStorage.getItem('duckheist_save');
     if (saved) {
@@ -419,6 +422,14 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     if (b) best = { ...best, ...JSON.parse(b) };
     const er=localStorage.getItem('duckheist_endless_records');
     if(er) endlessRecords={...endlessRecords,...JSON.parse(er)};
+    const cp=localStorage.getItem('duckheist_endless_checkpoint');
+    if(cp){
+      const parsed=JSON.parse(cp);
+      if(parsed?.version===1 && parsed?.endless?.round>=1 && DIFFICULTY_MODES.includes(parsed.difficulty)){
+        endlessCheckpointRound=parsed.endless.round;
+        endlessCheckpointDifficulty=parsed.difficulty;
+      }
+    }
   } catch { /* sin almacenamiento */ }
   try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
   catch { madUnlocked=unlockedSkins.includes('golden'); }
@@ -453,6 +464,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
+    endlessCheckpointRound,endlessCheckpointDifficulty,endlessResumeIndex:0,
     menuIndex: 0, pauseIndex: 0, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
