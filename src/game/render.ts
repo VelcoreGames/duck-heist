@@ -1091,7 +1091,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.6.1',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.6.2',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{

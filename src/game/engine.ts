@@ -606,7 +606,11 @@ function configureEndlessArena(engine:GameEngine) {
 }
 
 function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
-  const content=getContent(engine),sc=endlessDiffScale(engine);
+  const content=getContent(engine),rawScale=endlessDiffScale(engine);
+  // Después de R100 la vida de bosses entra en soft cap; la dificultad continúa por patrones,
+  // presión y refuerzos para evitar peleas de varios minutos contra esponjas de HP.
+  const hpCap=tier==='boss'?6.25:tier==='sub'?7.25:8.25;
+  const sc={...rawScale,hp:Math.min(rawScale.hp,hpCap)};
   const doubleThreat=tier==='boss'&&engine.endless.round%100===0;
   const compatiblePairs=[
     ['captain_honk','don_levadura'],
@@ -668,7 +672,12 @@ function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
   else if(n===5){addWeapon();addItem(true);result.push(engine.endless.alert<6?{kind:'heal',amount:1,label:'RESPIRAR',description:'Recupera 1 corazón antes de seguir.'}:{kind:'crumbs',amount:20+engine.endless.alert*3,label:'SIN RESPIRO',description:'En alertas altas la curación deja de estar garantizada.'});}
   else if(n===7){addItem(true);addWeapon();result.push({kind:'crumbs',amount:18+engine.endless.alert*3,label:'PREMIO DE RIESGO',description:'Convierte el desafío en migajas.'});}
   else if(n===8){addItem(true);addWeapon();addItem(false);}
-  else {addItem(true);addWeapon();result.push({kind:'heal',amount:Math.max(1,engine.endless.alert<4?2:1),label:'BOTÍN DEL JEFE',description:'Recuperación limitada para el siguiente ciclo.'});}
+  else {
+    addItem(true);addWeapon();
+    if(engine.endless.alert<4) result.push({kind:'heal',amount:2,label:'BOTÍN DEL JEFE',description:'Recupera 2 corazones para el siguiente ciclo.'});
+    else if(engine.endless.alert<8) result.push({kind:'heal',amount:1,label:'BOTÍN DEL JEFE',description:'Recuperación limitada para el siguiente ciclo.'});
+    else result.push({kind:'crumbs',amount:30+engine.endless.alert*4,label:'SUMINISTROS CORTADOS',description:'En Alerta alta ya no hay curación garantizada.'});
+  }
   while(result.length<3) result.push({kind:'crumbs',amount:15+engine.endless.alert*2,label:'MIGAJAS',description:'Recompensa segura.'});
   return result.slice(0,3);
 }
@@ -733,7 +742,7 @@ export function endlessMarketOptions(engine:GameEngine) {
   const a=engine.endless.alert;
   return [
     {id:'heal',label:'PAN DE EMERGENCIA',description:'+1 corazón',cost:16+a*5},
-    {id:'shield',label:'BLINDAJE DE PAN',description:'+1 escudo para absorber un golpe',cost:22+a*6},
+    {id:'shield',label:'BLINDAJE DE PAN',description:'+1 escudo · máximo 2 acumulados',cost:22+a*6},
     {id:'boost',label:'CONTACTO INTERNO',description:'Mejora la rareza del próximo draft',cost:28+a*7},
   ] as const;
 }
@@ -753,6 +762,7 @@ export function buyEndlessMarket(engine:GameEngine) {
   const option=endlessMarketOptions(engine)[e.marketIndex];if(!option)return;
   if(engine.player.crumbs<option.cost){engine.toast='MIGAJAS INSUFICIENTES';engine.toastTimer=70;playDeny();return;}
   if(option.id==='heal'&&engine.player.hp>=engine.player.maxHp){engine.toast='VIDA COMPLETA';engine.toastTimer=70;playDeny();return;}
+  if(option.id==='shield'&&engine.player.shield>=2){engine.toast='BLINDAJE AL MÁXIMO';engine.toastTimer=70;playDeny();return;}
   engine.player.crumbs-=option.cost;
   if(option.id==='heal')healPlayer(engine,1);
   else if(option.id==='shield')engine.player.shield++;
@@ -906,6 +916,24 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
       const def=pool[Math.floor(Math.random()*pool.length)];
       const spot=freeTiles(room.layout,2).find(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>120);
       if(def&&spot) content.enemies.push(makeEnemy(def.id,endlessDiffScale(engine),spot.x,spot.y,!!ELITE_OK[def.id]&&Math.random()<.65));
+    }
+  }
+  if((e.roundKind==='miniboss'||e.roundKind==='subboss'||e.roundKind==='boss')&&e.alert>=4) {
+    // Bosses altos también castigan jugar excesivamente pasivo, sin acelerar sus telegraphs.
+    const bossPressure=scale.pressureGain*(.22+Math.min(.30,e.alert*.025));
+    e.pressure=Math.min(100,e.pressure+bossPressure);
+    const supports=content.enemies.filter(x=>!x.isBoss).length;
+    const supportCap=Math.min(2,1+Math.floor(e.alert/7));
+    if(e.pressure>=100&&supports<supportCap&&content.enemies.some(x=>x.isBoss)) {
+      e.pressure=45;
+      const pool=['policia_pato','policia_rapido',...(e.alert>=6?['dron_policial','policia_escopeta']:[])];
+      const id=pool[Math.floor(Math.random()*pool.length)];
+      const spot=freeTiles(room.layout,2).find(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>125);
+      if(spot) {
+        const elite=!!ELITE_OK[id]&&e.alert>=8&&Math.random()<Math.min(.6,scale.eliteChance);
+        content.enemies.push(makeEnemy(id,endlessDiffScale(engine),spot.x,spot.y,elite));
+        engine.toast='REFUERZO DURANTE EL JEFE';engine.toastTimer=70;playDanger('camera');
+      }
     }
   }
   if(!e.pendingEnemies.length&&content.enemies.length===0) finishEndlessRound(engine);

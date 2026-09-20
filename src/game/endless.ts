@@ -59,7 +59,8 @@ export function endlessScale(round:number,difficulty:DifficultyMode):EndlessScal
   const dmg=(1+(r-1)*.018+alert*.045)*difficultyMul.dmg;
   const speed=Math.min(1.48,(1+Math.min(.38,(r-1)*.005+alert*.012))*difficultyMul.speed);
   const baseFire=Math.max(.58,1-Math.min(.42,(r-1)*.004+alert*.009));
-  const fire=Math.max(.46,Math.min(1.22,baseFire*difficultyMul.fire));
+  // Nunca comprimimos la cadencia por debajo de ~52%: el endgame debe ser brutal, no ilegible.
+  const fire=Math.max(.52,Math.min(1.22,baseFire*difficultyMul.fire));
   const budget=Math.max(3,Math.round((3+r*.46+alert*1.25)*difficultyMul.count));
   const maxActive=Math.min(12,4+Math.floor(r/14)+Math.floor(alert/3));
   const eliteChance=Math.min(.78,(.025+r*.0065+alert*.02)*difficultyMul.elite);
@@ -118,8 +119,12 @@ export function makeEndlessEnemyPlan(round:number,special:EndlessSpecial|null,di
 }
 
 export function rewardRounds(round:number) {
-  const n=((Math.max(1,round)-1)%10)+1;
-  return n===3||n===5||n===7||n===8||n===10;
+  const r=Math.max(1,round),n=((r-1)%10)+1,alert=Math.floor((r-1)/10);
+  // La build se forma rápido, pero en el endgame deja de crecer sin límite.
+  if(alert<4) return n===3||n===5||n===7||n===8||n===10;
+  if(alert<7) return n===5||n===7||n===8||n===10;
+  if(alert<10) return n===5||n===8||n===10;
+  return n===8||n===10;
 }
 
 export function cleanupPoint() {
