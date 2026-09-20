@@ -496,6 +496,7 @@ function createPlayer(meta: Record<string, number>) {
 // RUN / PISOS
 // ---------------------------------------------------------------------------
 export function startGame(engine: GameEngine) {
+  engine.gameMode='heist';engine.pendingMode='heist';
   activeDifficulty=engine.difficulty;
   saveProgress(engine);
   nextEnemyId = 0;
@@ -1038,7 +1039,7 @@ export function updateEngine(engine: GameEngine) {
   if(engine.state===GameState.MAP) return;
   engine.frame++;
   if(engine.state===GameState.HEIST_INTRO) {
-    if(--engine.heistIntroTimer<=0) { engine.heistIntroSeen=true;startGame(engine); }
+    if(--engine.heistIntroTimer<=0) { engine.heistIntroSeen=true;if(engine.pendingMode==='endless')startEndlessGame(engine);else startGame(engine); }
     return;
   }
   if (engine.roomLabelTimer > 0) engine.roomLabelTimer--;
@@ -1069,6 +1070,8 @@ export function updateEngine(engine: GameEngine) {
   const room = currentRoom(engine);
   const content = getContent(engine);
   engine.run.time++;
+  updateEndlessDirector(engine,room,content);
+  if(engine.state!==GameState.PLAYING) return;
   updateTutorial(engine);
   if(engine.hitStop>0) {engine.hitStop--;return;}
   engine.deathEchoes=engine.deathEchoes.filter(d=>--d.life>0);
@@ -1119,7 +1122,7 @@ export function updateEngine(engine: GameEngine) {
     if (engine.restartHold >= RESTART_HOLD_FRAMES) {
       engine.restartHold = 0;
       engine.keys['r'] = false;
-      startGame(engine);
+      restartCurrentMode(engine);
       return;
     }
   } else if (engine.restartHold > 0) {
@@ -1518,7 +1521,7 @@ export function updateEngine(engine: GameEngine) {
   }
 
   // --- Sala despejada ---
-  if (!room.cleared && !content.dangerEventActive && content.enemies.length === 0 && (content.alarmTimer ?? 0)<=0) {
+  if (engine.gameMode!=='endless' && !room.cleared && !content.dangerEventActive && content.enemies.length === 0 && (content.alarmTimer ?? 0)<=0) {
     room.cleared = true;
     content.clearAge=0;engine.hitStop=Math.max(engine.hitStop,2);
     const firstClear=!content.clearCounted;content.clearCounted=true;
@@ -1641,7 +1644,7 @@ function revealFrontier(engine:GameEngine) {
 // ARMAS: inventario de dos huecos
 // ---------------------------------------------------------------------------
 /** Intenta dar un arma. Devuelve false si hay que abrir el menú de reemplazo. */
-function tryGiveWeapon(engine: GameEngine, itemId: string, from: 'floor' | 'pedestal' | 'shop' | 'choice', srcIndex: number, wx: number, wy: number): boolean {
+function tryGiveWeapon(engine: GameEngine, itemId: string, from: 'floor' | 'pedestal' | 'shop' | 'choice' | 'endless', srcIndex: number, wx: number, wy: number): boolean {
   if(!WEAPONS[itemId]) return false;
   const p = engine.player;
   const empty = p.weapons.findIndex(w => w === null);
@@ -1697,7 +1700,7 @@ export function confirmSwap(engine: GameEngine) {
   const p = engine.player;
   const content = getContent(engine);
   if(req.roomKey && req.roomKey!==engine.currentKey) {cancelSwap(engine);return;}
-  const source=req.from==='floor'?content.items[req.srcIndex]:req.from==='shop'?content.shopItems?.[req.srcIndex]:req.from==='choice'?content.choices?.[req.srcIndex]:content.pedestal;
+  const source=req.from==='endless'?{itemId:req.itemId}:req.from==='floor'?content.items[req.srcIndex]:req.from==='shop'?content.shopItems?.[req.srcIndex]:req.from==='choice'?content.choices?.[req.srcIndex]:content.pedestal;
   if(!source || source.itemId!==req.itemId || ('sold' in source && source.sold) || ('taken' in source && source.taken)) {cancelSwap(engine);return;}
   if(req.from==='shop' && p.crumbs<shopPrice(engine,content.shopItems![req.srcIndex])) {playDeny();cancelSwap(engine);return;}
   req.slot=engine.swapSel;
@@ -1725,7 +1728,8 @@ export function confirmSwap(engine: GameEngine) {
     const s = content.shopItems?.[req.srcIndex];
     if (s) { p.crumbs -= shopPrice(engine,s);p.couponUsed=true;s.soldAt=engine.frame;merchantSpeak(engine,'No hago devoluciones.'); }
   }
-  if (old) content.items.push({ x: dx, y: dy, itemId: old.id, isWeapon: true, isActive: false });
+  if (old && req.from!=='endless') content.items.push({ x: dx, y: dy, itemId: old.id, isWeapon: true, isActive: false });
+  if(req.from==='endless'){engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;}
 
   engine.swap = null;
   engine.keys.e=false;engine.mouseDown=false;
@@ -2655,6 +2659,10 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   content.enemies.splice(i,1);
   const room = currentRoom(engine);
   engine.stats.enemiesDefeated++;
+  if(engine.gameMode==='endless'&&engine.endless.roundActive){
+    engine.endless.killedThisRound++;
+    engine.endless.pressure=Math.max(0,engine.endless.pressure-(e.isBoss?20:e.elite?10:6));
+  }
   const build=getBuild(engine.player);
   const angle=Math.atan2(e.y-engine.player.y,e.x-engine.player.x);
   engine.deathEchoes.push({enemy:{...e,hurtTimer:0},life:e.isBoss?42:20,vx:Math.cos(angle)*1.4,vy:Math.sin(angle)*1.4});
@@ -2691,7 +2699,7 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   if (e.isBoss) {
     spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 26, '#f4d03f');
     if(BOSSES[e.bossType]) engine.run.bosses++;
-    if (room.type !== RoomType.BOSS) {
+    if (engine.gameMode!=='endless' && room.type !== RoomType.BOSS) {
       // el minijefe suelta botín inmediato (arma u objeto, de forma coherente)
       const asWeapon = Math.random() < 0.5;
       content.items.push({
@@ -2701,14 +2709,14 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
       });
       content.pickups.push({ x: e.x + e.size / 2 + 26, y: e.y + e.size / 2 + 14, type: 'hp', value: 1, lifetime: 99999 });
     }
-  } else if (Math.random() < 0.07 + luckBonus * 0.03) {
+  } else if (engine.gameMode!=='endless' && Math.random() < 0.07 + luckBonus * 0.03) {
     // curaciones poco frecuentes
     content.pickups.push({
       x: e.x + e.size / 2, y: e.y + e.size / 2,
       type: rollFood(), value: 1, lifetime: 99999,
     });
   }
-  if(e.elite && Math.random()<.04) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+  if(engine.gameMode!=='endless' && e.elite && Math.random()<.04) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
 }
 
 export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact'|'projectile'='contact',police=false) {
@@ -2738,6 +2746,11 @@ export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact
   }
   p.hp = Math.max(0, p.hp - loss);
   engine.run.dmgTaken += loss;
+  if(engine.gameMode==='endless'&&engine.endless.roundActive){
+    engine.endless.roundDamaged=true;
+    engine.endless.damageBySource[source]+=loss;
+    engine.endless.lastHitSource=source;
+  }
   p.hurtTimer = 22;
   p.iFrames = (p.items.includes('bread_helmet') ? 58 : 46) + 12;
   p.flash = 10;
