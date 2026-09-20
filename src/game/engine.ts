@@ -638,7 +638,7 @@ function preferredEndlessRole(engine:GameEngine) {
 }
 
 function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
-  const round=engine.endless.round,n=((round-1)%10)+1,rare=n>=8||round>=30;
+  const round=engine.endless.round,n=((round-1)%10)+1,rare=n>=8||round>=30||engine.endless.perfectStreak>=3;
   const role=preferredEndlessRole(engine);
   const result:EndlessRewardOption[]=[];
   const addItem=(preferred=false)=>{
@@ -649,8 +649,8 @@ function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
     const id=rollWeapon(engine,rare||n===10);
     result.push({kind:'weapon',itemId:id,label:WEAPONS[id].name,description:WEAPONS[id].description});
   };
-  if(n===3){addItem(true);result.push({kind:'heal',amount:1,label:'PAN DE RESERVA',description:'Recupera 1 corazón.'});result.push({kind:'crumbs',amount:12+engine.endless.alert*2,label:'BOTÍN RÁPIDO',description:'Migajas para sostener la run.'});}
-  else if(n===5){addWeapon();addItem(true);result.push({kind:'heal',amount:1,label:'RESPIRAR',description:'Recupera 1 corazón antes de seguir.'});}
+  if(n===3){addItem(true);result.push(engine.endless.alert<5?{kind:'heal',amount:1,label:'PAN DE RESERVA',description:'Recupera 1 corazón.'}:{kind:'crumbs',amount:14+engine.endless.alert*2,label:'RESERVAS AGOTADAS',description:'A estas alturas el banco casi no deja curación.'});result.push({kind:'crumbs',amount:12+engine.endless.alert*2,label:'BOTÍN RÁPIDO',description:'Migajas para sostener la run.'});}
+  else if(n===5){addWeapon();addItem(true);result.push(engine.endless.alert<6?{kind:'heal',amount:1,label:'RESPIRAR',description:'Recupera 1 corazón antes de seguir.'}:{kind:'crumbs',amount:20+engine.endless.alert*3,label:'SIN RESPIRO',description:'En alertas altas la curación deja de estar garantizada.'});}
   else if(n===7){addItem(true);addWeapon();result.push({kind:'crumbs',amount:18+engine.endless.alert*3,label:'PREMIO DE RIESGO',description:'Convierte el desafío en migajas.'});}
   else if(n===8){addItem(true);addWeapon();addItem(false);}
   else {addItem(true);addWeapon();result.push({kind:'heal',amount:Math.max(1,engine.endless.alert<4?2:1),label:'BOTÍN DEL JEFE',description:'Recuperación limitada para el siguiente ciclo.'});}
@@ -708,7 +708,7 @@ export function startEndlessRound(engine:GameEngine) {
   else if(e.roundKind==='subboss') spawnEndlessBoss(engine,'sub');
   else if(e.roundKind==='boss') spawnEndlessBoss(engine,'boss');
   else {
-    e.pendingEnemies=makeEndlessEnemyPlan(e.round,e.special);
+    e.pendingEnemies=makeEndlessEnemyPlan(e.round,e.special,engine.difficulty);
     if(e.special==='cameras'){
       e.pendingEnemies.unshift('security_camera');
       if(e.alert>=4)e.pendingEnemies.unshift('camara_movil');
