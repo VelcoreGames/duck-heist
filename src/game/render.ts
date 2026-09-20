@@ -1543,6 +1543,25 @@ function renderEndlessRewardUI(engine:GameEngine) {
 }
 
 function renderGameOverUI(engine: GameEngine) {
+  if(engine.gameMode==='endless'){
+    const ctx=engine.ui!,e=engine.endless,rec=engine.endlessRecords[engine.difficulty];
+    ctx.fillStyle='rgba(8,6,12,.94)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    drawPanel(ctx,42,30,396,294,'rgba(10,14,21,.97)','#9a3f46');
+    titleText(ctx,'ATRACO TERMINADO',240,59,20,'#ff6258');
+    text(ctx,`RONDA ${e.round} · ALERTA ${e.alert}`,240,83,10,'#f0d27d','center',true);
+    text(ctx,endlessStage(Math.max(1,e.round)),240,99,6.5,'#8fa1a8','center');
+    const rows:[string,string][]=[
+      ['RÉCORD',`RONDA ${rec.round}`],['PUNTUACIÓN',Math.round(e.score).toString()],
+      ['ENEMIGOS',engine.stats.enemiesDefeated.toString()],['JEFES',engine.run.bosses.toString()],
+      ['RONDAS PERFECTAS',e.perfectRounds.toString()],['MEJOR RACHA',e.maxPerfectStreak.toString()],
+      ['DAÑO HECHO',Math.round(engine.run.dmgDealt).toString()],['DAÑO RECIBIDO',(Math.round(engine.run.dmgTaken*10)/10).toString()],
+      ['PROYECTILES',Math.round(e.damageBySource.projectile).toString()],['CONTACTO',Math.round(e.damageBySource.contact).toString()],
+    ];
+    rows.forEach(([k,v],i)=>{const y=120+i*14;text(ctx,k,74,y,7,'#8792a5','left');text(ctx,v,406,y,8,'#fff6c9','right',true);});
+    text(ctx,`MAYOR AMENAZA: ${e.damageBySource.projectile>=e.damageBySource.contact?'PROYECTILES':'CONTACTO'}`,240,268,6.5,'#d49991','center',true);
+    drawButtons(ctx,[{label:'OTRO INTENTO  [ENTER]'},{label:'MENÚ  [ESC]'}],engine.pauseIndex,240,286,engine.frame,200,22,4);
+    return;
+  }
   const ctx = engine.ui!;
   const f = engine.frame;
   ctx.fillStyle = 'rgba(8,6,12,0.9)';
