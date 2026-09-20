@@ -1390,7 +1390,7 @@ function renderPausedUI(engine: GameEngine) {
   ctx.fillRect(CANVAS_WIDTH / 2 - 60, 55, 120, 2);
 
   const items = [
-    { label: T.resume }, {label:'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
+    { label: T.resume }, {label:engine.gameMode==='endless'?'ARENA ÚNICA':'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
     { label: T.menuSettings }, { label: T.backToMenu },
   ];
   drawButtons(ctx,items,engine.pauseIndex,240,PAUSE_MENU.y,engine.frame,PAUSE_MENU.w,PAUSE_MENU.h,PAUSE_MENU.gap);
@@ -1413,7 +1413,7 @@ function renderPausedUI(engine: GameEngine) {
   });
   text(ctx,'DIFICULTAD',240,282,5.2,'#697882','center');
   text(ctx,difficultyLabel(engine),240,292,6.2,'#d9bd70','center',true);
-  text(ctx,`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
+  text(ctx,engine.gameMode==='endless'?`RONDA ${engine.endless.round} · ALERTA ${engine.endless.alert}`:`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
   text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA    ${engine.lastInput==='gamepad'?'B':'CLIC DERECHO'} · ESQUIVAR`,240,315,6.5,'#768f8f');
 }
 
