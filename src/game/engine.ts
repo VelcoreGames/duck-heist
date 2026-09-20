@@ -12,6 +12,10 @@ import {
   type WeaponDef, type EnemyDef, type BossDef,
 } from './data';
 import { generateMap, key, freeTiles, type MapRoom } from './mapgen';
+import {
+  createEndlessMap, endlessRoundKind, endlessScale, endlessSpecial, endlessStage,
+  endlessThreatRank, makeEndlessEnemyPlan, rewardRounds, specialLabel,
+} from './endless';
 import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
@@ -25,7 +29,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -52,6 +56,22 @@ function scaledCurrency(value:number,multiplier:number) {
 }
 
 let nextEnemyId = 0;
+
+function emptyEndlessState():EndlessState {
+  return {
+    round:0,alert:0,pressure:0,score:0,roundKind:'combat',special:null,
+    pendingEnemies:[],spawnCooldown:0,roundActive:false,roundDamaged:false,
+    perfectRounds:0,perfectStreak:0,maxPerfectStreak:0,rewardOptions:[],rewardIndex:0,
+    awaitingReward:true,bossBag:[],subbossBag:[],minibossBag:[],enemiesThisRound:0,killedThisRound:0,
+    threatRank:'NORMAL',damageBySource:{contact:0,projectile:0},lastHitSource:null,
+  };
+}
+function emptyEndlessRecords() {
+  return {
+    easy:{round:0,score:0,alert:0},normal:{round:0,score:0,alert:0},
+    hard:{round:0,score:0,alert:0},mad:{round:0,score:0,alert:0},
+  };
+}
 
 export type DifficultyDef = {
   label:string; desc:string; hp:number; dmg:number; speed:number; fire:number;
