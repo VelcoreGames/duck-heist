@@ -196,6 +196,10 @@ export interface EndlessState {
   threatRank:'NORMAL'|'VETERANO'|'ÉLITE'|'NÉMESIS';
   damageBySource:{contact:number;projectile:number};
   lastHitSource:'contact'|'projectile'|null;
+  marketOpen:boolean;
+  marketIndex:number;
+  marketDoneRound:number;
+  nextRewardBoost:number;
 }
 
 export interface Settings {
@@ -363,6 +367,9 @@ export interface GameEngine {
   pendingMode: GameMode;
   endless: EndlessState;
   endlessRecords: Record<DifficultyMode,EndlessRecord>;
+  endlessCheckpointRound:number;
+  endlessCheckpointDifficulty:DifficultyMode|null;
+  endlessResumeIndex:number;
   madUnlocked: boolean;
 
   menuIndex: number;
