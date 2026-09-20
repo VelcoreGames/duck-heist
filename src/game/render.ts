@@ -22,7 +22,7 @@ import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, 
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel } from './engine';
 import { drawVaultScene } from './titleScene';
-import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS } from './layout';
+import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS, ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
 import { getBuild, FOODS } from './itemRules';
@@ -34,6 +34,7 @@ import { EVENTS } from './events';
 import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
+import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
@@ -1041,7 +1042,7 @@ function drawMinimap(engine: GameEngine) {
 // PANTALLAS (sólo UI)
 // ---------------------------------------------------------------------------
 export const MENU_ITEMS = [
-  { label: T.menuStart }, { label: T.menuUpgrades }, { label: T.menuWardrobe },
+  { label: T.menuStart }, { label: 'ATRACO SIN FIN' }, { label: T.menuUpgrades }, { label: T.menuWardrobe },
   { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
 ];
 
@@ -1059,8 +1060,8 @@ function renderDifficultyUI(engine:GameEngine) {
   const ctx=engine.ui!;
   const left=58,width=364,top=72,rowH=51,gap=5;
   drawPanel(ctx,30,22,420,306,'rgba(7,11,18,.94)','rgba(77,92,106,.72)');
-  titleText(ctx,'ELIGE LA DIFICULTAD DEL ATRACO',240,46,14,'#f4d03f');
-  text(ctx,'Puedes cambiarla al comenzar cada nueva partida.',240,60,5.8,'#7f919a','center');
+  titleText(ctx,engine.pendingMode==='endless'?'DIFICULTAD · ATRACO SIN FIN':'ELIGE LA DIFICULTAD DEL ATRACO',240,46,14,'#f4d03f');
+  text(ctx,engine.pendingMode==='endless'?'Misma base; la presión aumenta sin límite.':'Puedes cambiarla al comenzar cada nueva partida.',240,60,5.8,'#7f919a','center');
   DIFFICULTY_MODES.forEach((mode,i)=>{
     const def=DIFFICULTIES[mode],y=top+i*(rowH+gap),selected=engine.difficultyIndex===i,locked=mode==='mad'&&!engine.madUnlocked;
     const color=locked?'#9a6570':mode==='easy'?'#91d49b':mode==='normal'?'#f4d03f':mode==='hard'?'#f29a55':'#ff665e';
@@ -1077,7 +1078,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.4.3',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.6.0',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
