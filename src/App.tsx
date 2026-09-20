@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
   restartCurrentMode, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards,
+  resumeEndlessGame, clearEndlessCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
   DIFFICULTY_MODES, selectDifficulty,
@@ -23,6 +24,7 @@ const MENU_TOP=MAIN_MENU.y,MENU_H=MAIN_MENU.h,MENU_GAP=MAIN_MENU.gap,MENU_W=MAIN
 const PAUSE_TOP=PAUSE_MENU.y,PAUSE_H=PAUSE_MENU.h,PAUSE_GAP=PAUSE_MENU.gap,PAUSE_W=PAUSE_MENU.w;
 const OVER_TOP = CANVAS_HEIGHT - 62, OVER_H = 22, OVER_GAP = 4, OVER_W = 200;
 const DIFF_TOP=72,DIFF_H=51,DIFF_GAP=5,DIFF_W=364;
+const RESUME_TOP=154,RESUME_H=30,RESUME_GAP=10,RESUME_W=238;
 
 export default function App() {
   const worldRef = useRef<HTMLCanvasElement>(null);
@@ -132,7 +134,11 @@ export default function App() {
       initAudio();
       switch (engine.menuIndex) {
         case 0: engine.pendingMode='heist';engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
-        case 1: engine.pendingMode='endless';engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
+        case 1:
+          engine.pendingMode='endless';
+          if(engine.endlessCheckpointRound>0){engine.endlessResumeIndex=0;goTo(GameState.ENDLESS_RESUME);}
+          else {engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
+          break;
         case 2: engine.upgradeIndex = 0; subReturn = GameState.MENU; goTo(GameState.UPGRADES); break;
         case 3: engine.wardrobeIndex=SKINS.findIndex(s=>s.id===engine.equippedSkin);ensureSkinVisible(engine);subReturn=GameState.MENU;goTo(GameState.WARDROBE);break;
         case 4: subReturn=GameState.MENU;goTo(GameState.COLLECTION);break;
@@ -263,6 +269,18 @@ export default function App() {
           else if (yes) buyUpgrade(engine, engine.upgradeIndex);
           else if (k === 'escape') { playUiBack(); goTo(subReturn); }
           break;
+        case GameState.ENDLESS_RESUME:
+          if(up||left){engine.endlessResumeIndex=0;playUiMove();}
+          else if(down||right){engine.endlessResumeIndex=1;playUiMove();}
+          else if(yes){
+            if(engine.endlessResumeIndex===0){
+              playUiSelect();
+              if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
+            } else {
+              playUiSelect();clearEndlessCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);
+            }
+          } else if(k==='escape'){playUiBack();goTo(GameState.MENU);}
+          break;
         case GameState.ENDLESS_REWARD:
           if(left || up) moveEndlessReward(engine,-1);
           else if(right || down) moveEndlessReward(engine,1);
@@ -336,22 +354,27 @@ export default function App() {
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
       // micro-interacción: el puntero también navega las listas
       const st = engine.state;
-      if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.PAUSED || st === GameState.GAME_OVER || st === GameState.VICTORY) {
-        const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
-        const cnt = st === GameState.MENU ? 7 : st===GameState.DIFFICULTY?4:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
-        const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
-        const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
-        const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
+      if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.ENDLESS_RESUME || st === GameState.PAUSED || st === GameState.GAME_OVER || st === GameState.VICTORY) {
+        const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st===GameState.ENDLESS_RESUME?RESUME_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
+        const cnt = st === GameState.MENU ? 7 : st===GameState.DIFFICULTY?4:st===GameState.ENDLESS_RESUME?2:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
+        const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st===GameState.ENDLESS_RESUME?RESUME_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
+        const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st===GameState.ENDLESS_RESUME?RESUME_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
+        const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st===GameState.ENDLESS_RESUME?RESUME_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
         const i=st===GameState.MENU?mainMenuHit(p.x,p.y):hitList(p.x,p.y,top,cnt,h,g,w);
         if (i >= 0) {
           if (st === GameState.MENU) { if (engine.menuIndex !== i) { engine.menuIndex = i; softMove(); } }
           else if(st===GameState.DIFFICULTY){if(engine.difficultyIndex!==i){engine.difficultyIndex=i;softMove();}}
+          else if(st===GameState.ENDLESS_RESUME){if(engine.endlessResumeIndex!==i){engine.endlessResumeIndex=i;softMove();}}
           else if (st === GameState.PAUSED) { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
           else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
         }
       } else if(st===GameState.ENDLESS_REWARD){
-        const hit=endlessRewardHit(p.x,p.y,engine.endless.rewardOptions.length);
-        if(hit>=0&&engine.endless.rewardIndex!==hit){engine.endless.rewardIndex=hit;softMove();}
+        const count=engine.endless.marketOpen?3:engine.endless.rewardOptions.length;
+        const hit=endlessRewardHit(p.x,p.y,count);
+        if(hit>=0){
+          if(engine.endless.marketOpen&&engine.endless.marketIndex!==hit){engine.endless.marketIndex=hit;softMove();}
+          else if(!engine.endless.marketOpen&&engine.endless.rewardIndex!==hit){engine.endless.rewardIndex=hit;softMove();}
+        }
       } else if (st === GameState.SETTINGS) {
         let hit = -1;
         SETTING_ROWS.forEach((_, i) => {
@@ -419,10 +442,22 @@ export default function App() {
           if (i >= 0) { engine.menuIndex = i; activateMenu(); }
           break;
         }
+        case GameState.ENDLESS_RESUME: {
+          const i=hitList(x,y,RESUME_TOP,2,RESUME_H,RESUME_GAP,RESUME_W);
+          if(i>=0){
+            engine.endlessResumeIndex=i;
+            if(i===0){if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}}
+            else {clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}
+          }
+          break;
+        }
         case GameState.ENDLESS_REWARD: {
-          const hit=endlessRewardHit(x,y,engine.endless.rewardOptions.length);
-          if(hit>=0){engine.endless.rewardIndex=hit;confirmEndlessReward(engine);}
-          else if(!engine.endless.awaitingReward) confirmEndlessReward(engine);
+          const count=engine.endless.marketOpen?3:engine.endless.rewardOptions.length;
+          const hit=endlessRewardHit(x,y,count);
+          if(hit>=0){
+            if(engine.endless.marketOpen)engine.endless.marketIndex=hit;else engine.endless.rewardIndex=hit;
+            confirmEndlessReward(engine);
+          } else if(!engine.endless.awaitingReward&&!engine.endless.marketOpen) confirmEndlessReward(engine);
           break;
         }
         case GameState.DIFFICULTY: {
