@@ -15,6 +15,7 @@ import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
 import { drawBoss } from './sprites';
+import { drawBoss } from './sprites';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -260,6 +261,18 @@ export function runSelfChecks():CheckReport {
       assert(c.items.length===0&&c.pickups.length===0,'drops persistieron');
       assert(result.recycledItems===2&&result.discardedHealing===1,'limpieza incompleta');
       assert(e.player.crumbs>=5+result.recycledMigas&&e.totalGoldenCrumbs===2,'monedas perdidas');
+    });
+    check('Los 145 encuentros de jerarquía renderizan sin excepción',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      assert(all.length===145,'conteo total inesperado');
+      for(const b of all) for(let phase=0;phase<b.phases;phase++) drawBoss(ctx,40,40,b.id,120+phase*7,b.hp,b.hp,false,phase);
+    });
+    check('El roster completo utiliza las doce familias de ataque',()=>{
+      const expected=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
+      for(const group of [Object.values(MINIBOSSES),Object.values(SUBBOSSES),Object.values(BOSSES).filter(b=>!b.finalBoss)]){
+        const attacks=new Set(group.flatMap(b=>b.pattern.sequence));
+        assert(expected.every(a=>attacks.has(a as never)),'familia de ataque ausente');
+      }
     });
     check('Plantilla masiva contiene al menos 40 por jerarquía',()=>{
       assert(Object.keys(MINIBOSSES).length>=48,'faltan minijefes');
