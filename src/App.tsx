@@ -12,7 +12,7 @@ import {
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
-  MAIN_MENU, mainMenuHit, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  MAIN_MENU, mainMenuHit, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
@@ -211,7 +211,7 @@ export default function App() {
 
       const mouseOnlyMenu = [
         GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.COLLECTION,GameState.CAREER,
-        GameState.HOW_TO_PLAY,GameState.WARDROBE,GameState.SETTINGS,GameState.UPGRADES,GameState.ENDLESS_RESUME,
+        GameState.HOW_TO_PLAY,GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,GameState.ENDLESS_RESUME,
         GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
       ].includes(engine.state);
       if(mouseOnlyMenu)return;
@@ -514,7 +514,8 @@ export default function App() {
       switch (engine.state) {
         case GameState.MENU: {
           setMusic('menu');const i=mainMenuHit(x,y);
-          if (i >= 0) { engine.menuIndex = i; activateMenu(); }
+          if(i>=0){engine.menuIndex=i;activateMenu();}
+          else if(inside(x,y,MAIN_OPEN))activateMenu();
           break;
         }
         case GameState.DAILY_BRIEF:
