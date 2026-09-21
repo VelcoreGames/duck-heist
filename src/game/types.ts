@@ -221,6 +221,26 @@ export interface Settings {
   fullscreen: boolean;
   brightness: number;       // 0.6..1.4
   reduceMotion: boolean;    // reduce decorative menu motion
+  highContrast: boolean;
+}
+
+export interface KeyBindings {
+  moveUp:string; moveDown:string; moveLeft:string; moveRight:string;
+  shootUp:string; shootDown:string; shootLeft:string; shootRight:string;
+  interact:string; dash:string; active:string; map:string; pause:string;
+  weapon1:string; weapon2:string;
+}
+
+export interface CareerStats {
+  runs:number; wins:number; deaths:number; abandoned:number; endlessRuns:number;
+  totalEnemies:number; totalBosses:number; totalDamage:number; totalDamageTaken:number;
+  totalRooms:number; totalPlayFrames:number; bestEndlessRound:number; bestFloor:number;
+}
+
+export interface RunHistoryEntry {
+  id:string; mode:GameMode; difficulty:DifficultyMode; outcome:'victory'|'death'|'abandoned';
+  floor:number; round:number; time:number; enemies:number; bosses:number; damage:number;
+  damageTaken:number; items:number; weapons:number; golden:number; seed:string;
 }
 
 export interface SwapRequest {
@@ -345,6 +365,12 @@ export interface GameEngine {
   totalGoldenCrumbs: number;
   metaLevels: Record<string, number>;
   settings: Settings;
+  bindings: KeyBindings;
+  controlIndex:number;
+  controlCapture:boolean;
+  career: CareerStats;
+  runHistory: RunHistoryEntry[];
+  runRecorded:boolean;
   best: GameStats;
   /** cosméticos permanentes */
   unlockedSkins: string[];
@@ -369,6 +395,9 @@ export interface GameEngine {
   collectionTab:CollectionCategory;
   collectionIndex:number;
   collectionScroll:number;
+  collectionFilter:'all'|'known'|'unknown';
+  collectionSort:'default'|'name'|'rarity';
+  careerTab:number;
   wardrobeScroll:number;
   wardrobeScrollTarget:number;
   tooltip:{key:string;since:number};
