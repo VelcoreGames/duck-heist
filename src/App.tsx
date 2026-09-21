@@ -471,14 +471,6 @@ export default function App() {
       force(n => n + 1);
     };
 
-    const hitList = (x: number, y: number, top: number, count: number, h: number, gap: number, w: number) => {
-      for (let i = 0; i < count; i++) {
-        const by = top + i * (h + gap);
-        if (x > CANVAS_WIDTH / 2 - w / 2 - 4 && x < CANVAS_WIDTH / 2 + w / 2 + 4 && y > by - 3 && y < by + h + 3) return i;
-      }
-      return -1;
-    };
-
     const onDown = (ev: MouseEvent) => {
       engine.lastInput='keyboard';
       initAudio();

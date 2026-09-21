@@ -19,7 +19,7 @@ import {
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
 import {
-  text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar,
+  text, titleText, drawPanel, drawMenuScene, drawTitleLogo, drawBar,
   drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice, drawMouseButton,
   drawSectionLabel, drawKeyChip,
 } from './ui';
