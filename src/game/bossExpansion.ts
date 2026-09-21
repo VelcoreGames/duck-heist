@@ -48,20 +48,30 @@ export const BOSS_FAMILY_STYLE:Record<BossFamily,{accent:string;secondary:string
 const ATTACKS:BossAttackKind[]=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
 const MOBILITY:BossMobility[]=['hunter','orbit','skirmish','fortress','ambush'];
 
+function permutationCount(n:number,k:number){
+  let total=1;for(let i=0;i<k;i++)total*=n-i;return total;
+}
+
+function uniqueAttackSequence(tier:BossTier,index:number,wanted:number):BossAttackKind[] {
+  // Codifica el índice como una k-permutación. Para los primeros 48 índices
+  // garantiza secuencias distintas sin depender del azar ni de la seed de la partida.
+  const pool=[...ATTACKS];
+  let rank=index+(tier==='mini'?0:tier==='sub'?137:281);
+  rank%=permutationCount(pool.length,wanted);
+  const sequence:BossAttackKind[]=[];
+  for(let pos=0;pos<wanted;pos++){
+    const block=permutationCount(pool.length-1,wanted-pos-1);
+    const choice=block>0?Math.floor(rank/block):0;
+    rank=block>0?rank%block:0;
+    sequence.push(pool.splice(choice,1)[0]);
+  }
+  return sequence;
+}
+
 function patternFor(tier:BossTier,index:number,family:BossFamily):BossPatternDef {
   const salt=tier==='mini'?0:tier==='sub'?4:8;
   const wanted=tier==='mini'?4:tier==='sub'?5:6;
-  const raw=[
-    (index*3+salt)%ATTACKS.length,
-    (index*5+1+salt)%ATTACKS.length,
-    (index*7+4+salt)%ATTACKS.length,
-    (index*11+6+salt)%ATTACKS.length,
-    (index*13+9+salt)%ATTACKS.length,
-    (index*17+2+salt)%ATTACKS.length,
-  ];
-  const sequence:BossAttackKind[]=[];
-  for(const n of raw){const a=ATTACKS[n];if(!sequence.includes(a))sequence.push(a);}
-  for(let i=0;sequence.length<wanted;i++){const a=ATTACKS[(i+index+salt)%ATTACKS.length];if(!sequence.includes(a))sequence.push(a);}
+  const sequence=uniqueAttackSequence(tier,index,wanted);
   const style=BOSS_FAMILY_STYLE[family];
   const mobility=MOBILITY[(index*2+salt)%MOBILITY.length];
   const tempo=Number((.82+(index%7)*.045+(tier==='mini'?.04:tier==='boss'?-0.035:0)).toFixed(3));
