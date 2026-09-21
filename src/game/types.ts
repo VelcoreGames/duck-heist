@@ -62,6 +62,8 @@ export interface Enemy {
   stickyStacks?:number;
   healTimer?:number;
   buffTimer?:number;
+  mutation?:EndlessBossMutation|null;
+  mutationCounter?:number;
 }
 
 export type PickupType =
@@ -163,6 +165,8 @@ export type GameMode = 'heist' | 'endless';
 export type EndlessRoundKind = 'combat'|'miniboss'|'special'|'subboss'|'boss';
 export type EndlessSpecial = 'horde'|'elite'|'blackout'|'crossfire'|'cameras'|'siege'|'red_protocol';
 export type EndlessRewardKind = 'item'|'weapon'|'heal'|'crumbs'|'recycle';
+export type EndlessBossMutation = 'FRENÉTICO'|'BLINDADO'|'CAZADOR'|'REFUERZOS'|'TORMENTA';
+export type EndlessHazardKind = 'laser_cross'|'hot_corners'|'shock_ring';
 export interface EndlessRewardOption {
   kind:EndlessRewardKind;
   itemId?:string;
@@ -201,6 +205,11 @@ export interface EndlessState {
   marketDoneRound:number;
   nextRewardBoost:number;
   nextRoundTimer:number;
+  compositionLabel:string;
+  hazardKind:EndlessHazardKind|null;
+  hazardWarning:number;
+  hazardCooldown:number;
+  milestone:string|null;
 }
 
 export interface Settings {
