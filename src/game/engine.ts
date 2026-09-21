@@ -34,7 +34,7 @@ import type {
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
   playDoorLock, playDoorUnlock, playUiMove, playUiSelect, playUiBack,
-  playEquip, playWeaponSwap, playBossRoar, playStairs, playDeny,
+  playEquip, playWeaponSwap, playBossRoar, playBossPhase, playStairs, playDeny,
   playQuack, playQuackReady, playDashReady,
   playCoin,playHeal,playRarityPickup,playRoomClear,playCritical,playEnemyDeath,playBossWin,playReturn,playBounce,playFootstep,playDoorStyle,
   playDanger,
@@ -1547,6 +1547,11 @@ export function updateEngine(engine: GameEngine) {
     player.fireCooldown = Math.max(2,Math.round(w.fireRate/(build.fireRate*explosiveRate*synergyRate*(player.fireBoost>0?player.fireBoostPower:1))));
     player.facingAngle=Math.atan2(sy,sx);
     player.shootFlash = 4;
+    const kick=w.id==='baguette_launcher'||w.id==='rubber_duck_cannon'||w.id==='egg_cannon'?2.2:
+      w.id==='breadcrumb_shotgun'||w.id==='baguette_sniper'||w.id==='golden_egg_revolver'?1.45:.55;
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,kick);
+    const muzzleColor=w.id==='quack_laser'||w.id==='plasma_baker'?'#82e7ff':w.id==='golden_egg_revolver'?'#ffd85a':'#fff0b0';
+    spawn(engine,player.x+7+sx*12,player.y+8+sy*12,'spark',kick>2?4:kick>1?3:1,muzzleColor);
     if (Math.abs(sx) > Math.abs(sy)) player.dir = sx > 0 ? 'right' : 'left';
     else if (sy !== 0) player.dir = sy > 0 ? 'down' : 'up';
     playShoot(activeWeapon(player).id);
@@ -2790,6 +2795,8 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,name:string,phase:numb
   boss.stunned=tier==='boss'?50:tier==='sub'?38:18;
   boss.spawnAnim=Math.max(boss.spawnAnim,tier==='boss'?24:tier==='sub'?16:10);
   boss.telegraph=0;
+  boss.phaseTransition=tier==='boss'?54:tier==='sub'?42:30;
+  engine.hitStop=Math.max(engine.hitStop,tier==='boss'?5:tier==='sub'?3:2);
   const label=tier==='mini'?('ENRAGE · '+name):('FASE '+(phase+1)+' · '+name);
   engine.roomLabel=label;
   engine.roomLabelTimer=tier==='boss'?100:tier==='sub'?82:62;
@@ -2797,11 +2804,12 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,name:string,phase:numb
   const cx=boss.x+boss.size/2,cy=boss.y+boss.size/2;
   spawn(engine,cx,cy,'spark',tier==='boss'?28:tier==='sub'?20:12,tier==='boss'?'#ff6b5b':tier==='sub'?'#f0a36f':'#f4d03f');
   spawn(engine,cx,cy,'smoke',tier==='boss'?16:10,'#6c7684');
-  playBossRoar();
+  playBossPhase(tier);
 }
 
 function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: RoomContent) {
   const player=engine.player;
+  if((boss.phaseTransition??0)>0) boss.phaseTransition=Math.max(0,(boss.phaseTransition??0)-1);
   const px=player.x+7,py=player.y+8;
   const bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
   const pct=clamp(boss.hp/boss.maxHp,0,1);
@@ -2972,7 +2980,9 @@ export function damageEnemy(engine: GameEngine, e: Enemy, dmg: number, crit: boo
   spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'hit', 3);
   playHit();
   if (crit) {
-    spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 6, '#f4d03f');
+    spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 8, '#f4d03f');
+    engine.hitStop=Math.max(engine.hitStop,e.isBoss?2:1);
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?2.2:1.1);
     playCritical();
   }
   if (e.hp <= 0) killEnemy(engine, e, content);
@@ -2990,7 +3000,10 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   }
   const build=getBuild(engine.player);
   const angle=Math.atan2(e.y-engine.player.y,e.x-engine.player.x);
-  engine.deathEchoes.push({enemy:{...e,hurtTimer:0},life:e.isBoss?42:20,vx:Math.cos(angle)*1.4,vy:Math.sin(angle)*1.4});
+  const floorBossDeath=e.isBoss&&!!BOSSES[e.bossType];
+  const subBossDeath=e.isBoss&&!!SUBBOSSES[e.bossType];
+  const bossDeathLife=floorBossDeath?68:subBossDeath?54:e.isBoss?46:20;
+  engine.deathEchoes.push({enemy:{...e,hurtTimer:0,phaseTransition:0},life:bossDeathLife,vx:Math.cos(angle)*(floorBossDeath?.75:subBossDeath?1:1.4),vy:Math.sin(angle)*(floorBossDeath?.75:subBossDeath?1:1.4)});
   if(engine.deathEchoes.length>16) engine.deathEchoes.shift();
   engine.player.combo++;engine.player.comboTimer=120;
   if(build.infinite && engine.player.activeItemCooldown>0) engine.player.activeItemCooldown=Math.max(1,engine.player.activeItemCooldown-30);
@@ -2998,8 +3011,14 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'feather', 9, e.type.startsWith('policia') ? '#cfd8e3' : '#f0f0f0');
   spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'smoke', 5, '#4c5666');
   spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'crumb', 6, '#d4a574');
-  if(e.isBoss && BOSSES[e.bossType]) {playBossWin();engine.shakeIntensity=Math.max(engine.shakeIntensity,6);}
-  else playEnemyDeath();
+  if(e.isBoss) {
+    const floor=!!BOSSES[e.bossType],sub=!!SUBBOSSES[e.bossType];
+    engine.hitStop=Math.max(engine.hitStop,floor?8:sub?5:3);
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,floor?13:sub?9:6);
+    spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',floor?42:sub?30:22,floor?'#ffd85a':sub?'#ff9b68':'#f4d03f');
+    spawn(engine,e.x+e.size/2,e.y+e.size/2,'smoke',floor?24:sub?16:10,'#69737c');
+    if(floor) playBossWin(); else playEnemyDeath();
+  } else playEnemyDeath();
 
   const bonus=build.extraCrumbs+(Math.random()<build.extraDrop?2:0)+(e.elite?3:0)+(e.type==='robot_cajero'||e.bossType==='cajero_3000'?4:0);
   const luckBonus = engine.player.items.includes('lucky_feather') ? 1 : 0;
@@ -3111,7 +3130,9 @@ export function handleDash(engine: GameEngine) {
   );
   p.iFrames = Math.max(p.iFrames, DASH_DURATION + 4+(getBuild(p).ghost?18:0));
   playDash();
-  spawn(engine, p.x + 7, p.y + 8, 'feather', 6, '#f9e547');
+  engine.shakeIntensity=Math.max(engine.shakeIntensity,2.4);
+  spawn(engine, p.x + 7, p.y + 8, 'feather', 10, '#f9e547');
+  spawn(engine, p.x + 7-p.dashDir.x*5, p.y + 8-p.dashDir.y*5, 'smoke', 5, '#dbe7df');
 }
 
 export function handleActiveItem(engine: GameEngine) {

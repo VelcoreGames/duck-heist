@@ -810,9 +810,107 @@ export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame
   }
 }
 
+const BOSS_VISUAL:Record<string,{accent:string;secondary:string;family:'command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth';bob:number}> = {
+  captain_honk:{accent:'#4f7ad4',secondary:'#f05c55',family:'command',bob:.7},
+  comisario_pico_duro:{accent:'#9db7df',secondary:'#d69c4c',family:'command',bob:.45},
+  toaster_9000:{accent:'#ff7043',secondary:'#ffd166',family:'tech',bob:.18},
+  general_ganso:{accent:'#7189a8',secondary:'#d44747',family:'war',bob:.35},
+  don_levadura:{accent:'#d39b5f',secondary:'#8bb85a',family:'bakery',bob:.65},
+  director_seguridad:{accent:'#55c8de',secondary:'#ff6464',family:'tech',bob:.42},
+  bread_banker:{accent:'#f4d03f',secondary:'#d7a63d',family:'wealth',bob:.5},
+  tax_collector:{accent:'#c44f4f',secondary:'#d6b169',family:'finance',bob:.8},
+  sargento_migajas:{accent:'#7b94bb',secondary:'#f0b44f',family:'war',bob:.65},
+  dron_centinela:{accent:'#55d1e1',secondary:'#ef6666',family:'tech',bob:1.6},
+  panadero_loco:{accent:'#ef8b49',secondary:'#ffd06b',family:'bakery',bob:.9},
+  head_baker:{accent:'#f0eee7',secondary:'#a46f45',family:'bakery',bob:.55},
+  el_auditor:{accent:'#72b8a1',secondary:'#d6b169',family:'finance',bob:.55},
+  ganso_antidisturbios:{accent:'#8797a8',secondary:'#5c7fae',family:'riot',bob:.28},
+  cajero_3000:{accent:'#65d3a8',secondary:'#ffd166',family:'finance',bob:.22},
+};
+
+function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number) {
+  const v=BOSS_VISUAL[bossType];
+  if(!v)return;
+  const pulse=.55+.45*Math.sin(frame*.12);
+  const phaseGlow=phase>0?1:0;
+  ctx.save();
+
+  // Firma de familia: hace legible el rol incluso en movimiento.
+  if(v.family==='command'){
+    rect(ctx,bx+2,by+10,4,3,v.accent);rect(ctx,bx+28,by+10,4,3,v.accent);
+    rect(ctx,bx+5,by-5,5,2,v.secondary);rect(ctx,bx+22,by-5,5,2,v.secondary);
+    if(frame%30<15){px(ctx,bx+7,by-7,v.accent,2);px(ctx,bx+24,by-7,v.secondary,2);}
+  } else if(v.family==='finance'){
+    rect(ctx,bx+2,by+18,6,7,'#4d3727');rect(ctx,bx+26,by+18,6,7,'#4d3727');
+    px(ctx,bx+5,by+20,v.secondary,2);px(ctx,bx+29,by+20,v.secondary,2);
+    if(frame%26<5){px(ctx,bx+1,by+5,v.secondary,2);px(ctx,bx+31,by+8,v.secondary,2);}
+  } else if(v.family==='bakery'){
+    rect(ctx,bx-2,by+18,4,8,'#9a6842');rect(ctx,bx+32,by+18,4,8,'#9a6842');
+    ctx.globalAlpha=.4+.2*pulse;rect(ctx,bx+8,by-7,16,3,v.secondary);ctx.globalAlpha=1;
+  } else if(v.family==='tech'){
+    rect(ctx,bx-4,by+11,5,4,v.accent);rect(ctx,bx+33,by+11,5,4,v.accent);
+    ctx.globalAlpha=.45+.35*pulse;px(ctx,bx+4,by+4,v.secondary,2);px(ctx,bx+28,by+4,v.secondary,2);ctx.globalAlpha=1;
+  } else if(v.family==='riot'){
+    rect(ctx,bx+29,by+10,8,22,'#667887');rect(ctx,bx+31,by+12,4,18,v.accent);
+    rect(ctx,bx-3,by+12,4,17,'#343d46');
+  } else if(v.family==='war'){
+    rect(ctx,bx+1,by+12,5,4,'#4c5967');rect(ctx,bx+28,by+12,5,4,'#4c5967');
+    px(ctx,bx+11,by+20,'#d8b24a',2);px(ctx,bx+15,by+20,'#c65a4b',2);px(ctx,bx+19,by+20,'#8aaad1',2);
+  } else if(v.family==='wealth'){
+    // Corona y lluvia de monedas.
+    rect(ctx,bx+7,by-17,22,3,'#3b3020');rect(ctx,bx+9,by-20,4,4,v.accent);rect(ctx,bx+16,by-22,4,6,v.accent);rect(ctx,bx+23,by-20,4,4,v.accent);
+    if(frame%18<4){px(ctx,bx-2,by+6,v.accent,2);px(ctx,bx+38,by+14,v.accent,2);}
+  }
+
+  // Accesorio único por individuo.
+  switch(bossType){
+    case 'comisario_pico_duro':
+      ctx.fillStyle=v.secondary;ctx.translate(bx+31,by+15);ctx.rotate(-.55);ctx.fillRect(-1,-18,3,36);ctx.fillRect(-4,-18,9,3);break;
+    case 'toaster_9000':
+      ctx.globalAlpha=.35+.3*pulse;ctx.strokeStyle=v.accent;ctx.lineWidth=2;
+      for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(bx+8+i*12,by+5,5+phase*2,Math.PI,Math.PI*2);ctx.stroke();}break;
+    case 'general_ganso':
+      rect(ctx,bx-5,by+8,6,17,'#475666');rect(ctx,bx+32,by+8,6,17,'#475666');break;
+    case 'don_levadura':
+      for(let i=0;i<3+phase;i++){const a=frame*.035+i*2.1;ctx.globalAlpha=.35;ctx.fillStyle=v.secondary;ctx.beginPath();ctx.arc(bx+18+Math.cos(a)*(14+i*2),by+20+Math.sin(a)*(8+i),2+i%2,0,Math.PI*2);ctx.fill();}break;
+    case 'director_seguridad':
+      for(const dx of [-9,41]){ctx.strokeStyle=v.accent;ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(bx+dx,by+14,5,0,Math.PI*2);ctx.stroke();px(ctx,bx+dx-1,by+13,v.secondary,2);}break;
+    case 'tax_collector':
+      rect(ctx,bx+8,by+12,2,12,'#8d2331');rect(ctx,bx+11,by+12,2,12,'#8d2331');break;
+    case 'sargento_migajas':
+      for(let i=0;i<4;i++)rect(ctx,bx+5+i*6,by+15,3,5,i%2?v.secondary:'#7f5a36');break;
+    case 'dron_centinela':
+      rect(ctx,bx-8,by+7,9,2,v.accent);rect(ctx,bx+33,by+7,9,2,v.accent);
+      rect(ctx,bx-6,by+4,2,8,'#8fa6ad');rect(ctx,bx+38,by+4,2,8,'#8fa6ad');break;
+    case 'panadero_loco':
+      ctx.globalAlpha=.5+.3*pulse;rect(ctx,bx+5,by+27,22,5,'#6d3022');rect(ctx,bx+8,by+28,16,3,v.accent);break;
+    case 'head_baker':
+      ctx.fillStyle='#8b5f3f';ctx.translate(bx+18,by+25);ctx.rotate(Math.sin(frame*.08)*.18);ctx.fillRect(-18,-2,36,4);break;
+    case 'el_auditor':
+      for(let i=0;i<3;i++){ctx.globalAlpha=.5;rect(ctx,bx-5+i*19,by-4-(i%2)*3,9,6,'#e8e0c8');px(ctx,bx-3+i*19,by-2-(i%2)*3,'#b24b4b',2);}break;
+    case 'ganso_antidisturbios':
+      ctx.strokeStyle=v.accent;ctx.globalAlpha=.75;ctx.strokeRect(bx+27,by+8,12,25);break;
+    case 'cajero_3000':
+      ctx.globalAlpha=.55+.35*pulse;rect(ctx,bx+9,by+12,16,8,'#183b32');rect(ctx,bx+11,by+14,12,4,v.accent);ctx.globalAlpha=1;break;
+    case 'captain_honk':
+      if(frame%20<10){px(ctx,bx+5,by-9,'#5ea4ff',3);px(ctx,bx+25,by-9,'#ff5f57',3);}break;
+    case 'bread_banker':
+      ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.accent;ctx.beginPath();ctx.arc(bx+18,by+15,24+phase*3,0,Math.PI*2);ctx.stroke();break;
+  }
+
+  if(phaseGlow){
+    ctx.globalAlpha=.4+.22*pulse;ctx.strokeStyle=phase>=2?'#ff4d54':v.accent;ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(bx+18,by+22,23+phase*5,17+phase*4,0,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean, phase = 0) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
+  const visual=BOSS_VISUAL[bossType];
+  const bob=visual ? Math.sin(frame*.075 + bossType.length)*visual.bob : 0;
+  const finalRage=phase>=2 ? Math.sin(frame*.65)*.7 : 0;
+  const bx = Math.floor(x + finalRage);
+  const by = Math.floor(y + bob);
   const floorBoss = ['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','bread_banker'].includes(bossType);
   const subBoss = ['head_baker','el_auditor','ganso_antidisturbios','cajero_3000'].includes(bossType);
   if (phase > 0) {
@@ -1055,6 +1153,8 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
     rect(ctx, bx + 10, by + 16, 12, 4, '#c5ad6d'); rect(ctx, bx + 20, by + 20, 10, 8, '#5d4037');
   }
   
+  drawBossIdentity(ctx,bx,by,bossType,frame,phase);
+
   // El diseño escala visualmente con la dificultad de fase.
   if (phase >= 1) {
     const accent=subBoss?'#f09a69':floorBoss?'#ff875f':'#f4d03f';

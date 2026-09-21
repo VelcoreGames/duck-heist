@@ -230,10 +230,15 @@ export function renderWorld(engine: GameEngine) {
 
   for (const e of content.enemies) drawEnemy(ctx, e, f, engine);
   for(const d of engine.deathEchoes) {
-    ctx.save();ctx.globalAlpha=d.life/(d.enemy.isBoss?42:20);
-    ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);ctx.rotate((20-d.life)*.035);
-    ctx.scale(Math.max(.3,d.life/20),Math.max(.2,d.life/24));
-    if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false);
+    const floorDeath=d.enemy.isBoss&&!!BOSSES[d.enemy.bossType],subDeath=d.enemy.isBoss&&!!SUBBOSSES[d.enemy.bossType];
+    const maxLife=floorDeath?68:subDeath?54:d.enemy.isBoss?46:20;
+    const deathT=clamp(d.life/maxLife,0,1);
+    ctx.save();ctx.globalAlpha=deathT;
+    ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);
+    ctx.rotate((1-deathT)*(floorDeath?.7:1.05));
+    const sx=.32+deathT*.68,sy=.18+deathT*.82;
+    ctx.scale(sx,sy);
+    if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false,d.enemy.bossPhase);
     else {
       switch(d.enemy.type) {
         case 'toaster_turret':drawToasterTurret(ctx,-10,-10,f,false);break;
@@ -299,8 +304,31 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   if (p.hp > 0) {
-    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,
+    if(p.dashTimer>0){
+      for(let i=3;i>=1;i--){
+        ctx.save();
+        ctx.globalAlpha=.08+i*.055;
+        const ox=-p.dashDir.x*(i*5+2),oy=-p.dashDir.y*(i*5+2);
+        drawDuckSkin(ctx,p.x+ox,p.y+oy,f-i*2,engine.equippedSkin,p.dir,true,false,true,p.shootFlash>0);
+        ctx.restore();
+      }
+      ctx.save();ctx.globalAlpha=.34;ctx.strokeStyle='#fff3a8';ctx.lineWidth=1;
+      for(let i=-1;i<=1;i++){
+        const px=p.x+7-p.dashDir.x*(12+i*4)+p.dashDir.y*i*4;
+        const py=p.y+8-p.dashDir.y*(12+i*4)-p.dashDir.x*i*4;
+        ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px-p.dashDir.x*16,py-p.dashDir.y*16);ctx.stroke();
+      }
+      ctx.restore();
+    }
+    const recoil=p.shootFlash>0?(p.shootFlash/4)*1.6:0;
+    const drawX=p.x-Math.cos(p.facingAngle)*recoil,drawY=p.y-Math.sin(p.facingAngle)*recoil;
+    drawDuckSkin(ctx, drawX, drawY, f, engine.equippedSkin, p.dir, p.moving,
       p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);
+    if(p.shootFlash>0){
+      const mx=p.x+7+Math.cos(p.facingAngle)*14,my=p.y+8+Math.sin(p.facingAngle)*14;
+      ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);ctx.globalAlpha=.7;
+      ctx.fillStyle='#fff4bd';ctx.fillRect(0,-2,7,4);ctx.fillStyle='#f4d03f';ctx.fillRect(5,-1,5,2);ctx.restore();
+    }
     if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
       ctx.globalAlpha = 0.2;
       ctx.fillStyle = '#fff';
@@ -557,6 +585,30 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
 
   if (e.isBoss) {
+    const cx=e.x+e.size/2,cy=e.y+e.size/2;
+    if((e.phaseTransition??0)>0){
+      const pt=e.phaseTransition??0;
+      const progress=1-pt/54;
+      ctx.save();
+      ctx.globalAlpha=Math.min(.8,pt/18);
+      const accent=BOSSES[e.bossType]?'#ff5d63':SUBBOSSES[e.bossType]?'#f39a68':'#f4d03f';
+      ctx.strokeStyle=accent;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(cx,cy,12+progress*42,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha*=.55;ctx.beginPath();ctx.arc(cx,cy,22+progress*58,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.12+.14*Math.sin(f*.35);ctx.fillStyle=accent;ctx.beginPath();ctx.arc(cx,cy,18+(54-pt)*.35,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    if(e.telegraph>.05){
+      const t=e.telegraph,ang=e.moveAngle;
+      ctx.save();
+      ctx.globalAlpha=.16+t*.34;
+      ctx.strokeStyle=BOSSES[e.bossType]?'#ff6a63':SUBBOSSES[e.bossType]?'#f1a26f':'#ffd166';
+      ctx.lineWidth=2+t*2;
+      ctx.beginPath();ctx.arc(cx,cy,e.size*.62+t*8,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.18+t*.32;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*(70+t*55),cy+Math.sin(ang)*(70+t*55));ctx.stroke();
+      ctx.setLineDash([]);ctx.restore();
+    }
     if(engine.gameMode==='endless'&&e.mutation){
       const mutationColor=e.mutation==='TORMENTA'?'#79c8ff':e.mutation==='BLINDADO'?'#aab9c8':e.mutation==='CAZADOR'?'#ff7b68':e.mutation==='REFUERZOS'?'#d6b06a':'#ff9b58';
       ctx.save();ctx.globalAlpha=.16+.08*Math.sin(f*.14+e.id);ctx.strokeStyle=mutationColor;ctx.lineWidth=2;
@@ -940,7 +992,7 @@ function renderDangerEventHUD(engine: GameEngine) {
 
 function drawHUD(engine: GameEngine) {
   const ctx=engine.ui!;
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.7.0',8,8);ctx.restore();
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.8.0',8,8);ctx.restore();
   const p=engine.player;
   const heartW=Math.min(p.maxHp,10)*13+7;
   ctx.fillStyle='rgba(5,12,18,.48)';ctx.fillRect(4,4,heartW,18);
@@ -1062,6 +1114,14 @@ function drawBossBar(engine: GameEngine) {
     ctx.fillStyle='rgba(4,6,12,.95)';
     ctx.fillRect(x+(w/phaseCount)*i,y+6,2,10);
   }
+  if(phaseCount>1){
+    for(let i=0;i<phaseCount;i++){
+      const px=x+(w/phaseCount)*(i+.5),active=i===phase,done=i<phase;
+      ctx.fillStyle=active?accent:done?'#6e7b82':'#303842';
+      const pulse=active?1+Math.round((Math.sin(engine.frame*.16)+1)*.5):0;
+      ctx.fillRect(Math.round(px)-3-pulse,y+18,6+pulse*2,2);
+    }
+  }
 }
 function drawMinimap(engine: GameEngine) {
   const ctx = engine.ui!;
@@ -1139,7 +1199,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.7.0',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.8.0',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
@@ -1402,6 +1462,17 @@ function renderBossIntroUI(engine: GameEngine) {
   const t = engine.bossIntroTimer;
   ctx.fillStyle = 'rgba(4,6,14,0.82)';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  for(let y=0;y<CANVAS_HEIGHT;y+=8){ctx.fillStyle='rgba(255,255,255,.018)';ctx.fillRect(0,y,CANVAS_WIDTH,1);}
+  const introBoss=getContentOf(engine).enemies.find((e:Enemy)=>e.isBoss);
+  if(introBoss){
+    ctx.save();
+    const s=BOSSES[introBoss.bossType]?2.15:SUBBOSSES[introBoss.bossType]?1.8:1.55;
+    ctx.translate(365,170);ctx.scale(s,s);
+    ctx.globalAlpha=.12+.08*Math.sin(engine.frame*.08);
+    ctx.filter='brightness(1.5)';
+    drawBoss(ctx,-introBoss.size/2,-introBoss.size/2,introBoss.bossType,engine.frame,introBoss.hp,introBoss.maxHp,false,introBoss.bossPhase);
+    ctx.filter='none';ctx.restore();
+  }
   const a = Math.min(1, (115 - t) / 18);
   ctx.globalAlpha = clamp(a, 0, 1);
   ctx.fillStyle = '#8a2c2c';
