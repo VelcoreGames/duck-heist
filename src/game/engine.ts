@@ -1414,7 +1414,7 @@ export function updateEngine(engine: GameEngine) {
     const md = Math.hypot(mx, my);
     if (md > 6) { sx = mx / md; sy = my / md; }
   }
-  if ((sx || sy) && player.fireCooldown <= 0 && player.switchAnim <= 6 && player.dashTimer<=0) {
+  if ((sx || sy) && player.fireCooldown <= 0 && player.switchAnim <= 6) {
     fireWeapon(engine, sx, sy);
     const w=activeWeapon(player),synergyRate=w.id==='feather_gun'&&player.items.includes('oxxo_coffee')?1.3:1;
     const explosiveRate=w.explode?build.explosiveRate:1;
