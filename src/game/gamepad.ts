@@ -1,5 +1,6 @@
 import { GameState } from './constants';
 import type { GameEngine } from './types';
+import { keyLabel } from './controls';
 
 export function deadzone(value:number,threshold=.2) {
   if(!Number.isFinite(value)||Math.abs(value)<threshold)return 0;
@@ -47,7 +48,14 @@ export class GamepadInput {
 }
 
 export function actionPrompt(e:GameEngine,key:'interact'|'active'|'dash'|'map'|'pause'|'weapons') {
-  const keys={interact:'E',active:'ESPACIO',dash:'SHIFT / CLIC DERECHO',map:'M',pause:'ESC',weapons:'RUEDA DEL MOUSE'};
+  const keys={
+    interact:keyLabel(e.bindings.interact),
+    active:keyLabel(e.bindings.active),
+    dash:keyLabel(e.bindings.dash)+' / CLIC DERECHO',
+    map:keyLabel(e.bindings.map),
+    pause:keyLabel(e.bindings.pause),
+    weapons:'RUEDA / '+keyLabel(e.bindings.weapon1)+' / '+keyLabel(e.bindings.weapon2),
+  };
   const pad={interact:'A',active:'Y',dash:'B',map:'VIEW',pause:'START',weapons:'LB / RB'};
   return (e.lastInput==='gamepad'?pad:keys)[key];
 }
