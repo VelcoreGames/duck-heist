@@ -54,8 +54,9 @@ export function drawCatalogSprite(e:GameEngine,entry:CatalogEntry,x:number,y:num
 export function renderCollection(e:GameEngine) {
   const c=e.ui!, list=collectionEntries(e.collectionTab),selected=list[e.collectionIndex] ?? list[0];
   const discovered=list.filter(i=>known(e,i)).length;
-  drawMenuBackdrop(c,e.frame,.93,'#9abf9f');
-  drawMenuHeader(c,'COLECCIÓN','Todo lo que el banco ya te dejó descubrir.',e.frame,'#9abf9f','ARCHIVO DEL BANCO');
+  const mf=e.settings.reduceMotion?0:e.frame;
+  drawMenuBackdrop(c,mf,.93,'#9abf9f');
+  drawMenuHeader(c,'COLECCIÓN','Todo lo que el banco ya te dejó descubrir.',mf,'#9abf9f','ARCHIVO DEL BANCO');
   text(c,'DESCUBIERTOS · '+discovered+' / '+list.length,444,63,5.8,'#91a9a6','right',true,false);
   COLLECTION_TABS.forEach((tab,i)=>{
     const on=tab.id===e.collectionTab,x=29+i*86;
