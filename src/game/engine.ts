@@ -52,6 +52,8 @@ const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const bound=(engine:GameEngine,action:keyof GameEngine['bindings'])=>!!engine.keys[engine.bindings[action]];
+const clearBound=(engine:GameEngine,action:keyof GameEngine['bindings'])=>{engine.keys[engine.bindings[action]]=false;};
 const isPolice=(e:Enemy)=>e.type.startsWith('policia')||e.type==='dron_policial'||e.type==='ganso_k9'||e.type==='security_camera';
 function scaledCurrency(value:number,multiplier:number) {
   const amount=value*multiplier;return Math.floor(amount)+(Math.random()<amount%1?1:0);
@@ -1471,10 +1473,10 @@ export function updateEngine(engine: GameEngine) {
 
   // --- Movimiento (inercia de pato) ---
   let inX = engine.pad.connected?engine.pad.moveX:0, inY = engine.pad.connected?engine.pad.moveY:0;
-  if (engine.keys['w']) inY = -1;
-  if (engine.keys['s']) inY = 1;
-  if (engine.keys['a']) inX = -1;
-  if (engine.keys['d']) inX = 1;
+  if (bound(engine,'moveUp')) inY = -1;
+  if (bound(engine,'moveDown')) inY = 1;
+  if (bound(engine,'moveLeft')) inX = -1;
+  if (bound(engine,'moveRight')) inX = 1;
   const moveLength=Math.hypot(inX,inY);if(moveLength>1) {inX/=moveLength;inY/=moveLength;}
 
   let speedMult = build.speed;
@@ -1543,10 +1545,10 @@ export function updateEngine(engine: GameEngine) {
   if (engine.mouseDown && (activeWeapon(player).id === 'plasma_baker' || activeWeapon(player).id === 'golden_egg_revolver' || activeWeapon(player).id === 'baguette_sniper')) player.charge = Math.min(70, player.charge + 1);
   if (engine.coffeeCrash > 0) { engine.coffeeCrash--; player.speedBoost = Math.max(0, player.speedBoost); }
   let sx = 0, sy = 0;
-  if (engine.keys['arrowleft']) sx = -1;
-  if (engine.keys['arrowright']) sx = 1;
-  if (engine.keys['arrowup']) sy = -1;
-  if (engine.keys['arrowdown']) sy = 1;
+  if (bound(engine,'shootLeft')) sx = -1;
+  if (bound(engine,'shootRight')) sx = 1;
+  if (bound(engine,'shootUp')) sy = -1;
+  if (bound(engine,'shootDown')) sy = 1;
   if(engine.pad.connected && engine.pad.shoot && Math.hypot(engine.pad.aimX,engine.pad.aimY)>.18) {
     sx=engine.pad.aimX;sy=engine.pad.aimY;
   }
@@ -1735,27 +1737,27 @@ export function updateEngine(engine: GameEngine) {
   if (engine.swapGuard > 0) engine.swapGuard--;
   for (let i = content.items.length - 1; i >= 0; i--) {
     const it = content.items[i];
-    if (dist(it.x + 8, it.y + 8, player.x + 7, player.y + 8) < 24 && engine.keys['e'] && engine.swapGuard <= 0) {
+    if (dist(it.x + 8, it.y + 8, player.x + 7, player.y + 8) < 24 && bound(engine,'interact') && engine.swapGuard <= 0) {
       if (it.isWeapon) {
         if (!tryGiveWeapon(engine, it.itemId, 'floor', i, it.x, it.y)) {
-          engine.keys['e'] = false;
+          bound(engine,'interact') = false;
           continue;   // se abre el menú de reemplazo; el arma sigue en el suelo
         }
       } else if (ACTIVE_ITEMS[it.itemId] && engine.player.activeItem && engine.player.activeItem !== it.itemId) {
-        if (!offerActiveSwap(engine, it.itemId, 'floor', i, it.x, it.y)) { engine.keys['e'] = false; continue; }
+        if (!offerActiveSwap(engine, it.itemId, 'floor', i, it.x, it.y)) { bound(engine,'interact') = false; continue; }
       } else {
         grantItem(engine, it.itemId, false, !!ACTIVE_ITEMS[it.itemId]);
       }
       spawn(engine, it.x + 8, it.y + 8, 'spark', 10, '#f4d03f');
       content.items.splice(i, 1);
-      engine.keys['e'] = false;
+      bound(engine,'interact') = false;
     }
   }
 
   // --- Pedestales ---
   if (content.pedestal && !content.pedestal.taken) {
     const ped = content.pedestal;
-    if (dist(ped.x + 12, ped.y, player.x + 7, player.y + 8) < 28 && engine.keys['e']) {
+    if (dist(ped.x + 12, ped.y, player.x + 7, player.y + 8) < 28 && bound(engine,'interact')) {
       let ok = true;
       if (ped.isWeapon) ok = tryGiveWeapon(engine, ped.itemId, 'pedestal', -1, ped.x, ped.y - 20);
       else if (ACTIVE_ITEMS[ped.itemId] && player.activeItem && player.activeItem !== ped.itemId) ok = offerActiveSwap(engine, ped.itemId, 'pedestal', -1, ped.x, ped.y);
@@ -1765,33 +1767,33 @@ export function updateEngine(engine: GameEngine) {
         spawn(engine, ped.x + 12, ped.y, 'spark', 20, '#f4d03f');
         engine.shakeIntensity = Math.max(engine.shakeIntensity, 2);
       }
-      engine.keys['e'] = false;
+      bound(engine,'interact') = false;
     }
   }
 
   if(content.choices && !content.choiceTaken && !engine.swap) {
     for(let i=0;i<content.choices.length;i++) {
       const ped=content.choices[i];
-      if(!ped.taken && dist(ped.x+12,ped.y,player.x+7,player.y+8)<28 && engine.keys.e) {
+      if(!ped.taken && dist(ped.x+12,ped.y,player.x+7,player.y+8)<28 && bound(engine,'interact')) {
         let ok=true;
         if(ped.isFood) {healPlayer(engine,foodHeal(ped.itemId));playHeal();}
         else if(ped.isWeapon) ok=tryGiveWeapon(engine,ped.itemId,'choice',i,ped.x,ped.y);
         else grantItem(engine,ped.itemId,false,!!ACTIVE_ITEMS[ped.itemId]);
         if(ok) {finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');}
-        engine.keys.e=false;break;
+        bound(engine,'interact')=false;break;
       }
     }
   }
-  if(content.event && !content.event.used && engine.keys.e && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
-    engine.keys.e=false;activateEvent(engine);
+  if(content.event && !content.event.used && bound(engine,'interact') && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
+    bound(engine,'interact')=false;activateEvent(engine);
   }
 
   // --- Cofre ---
   if (content.chest && !content.chest.opened) {
     const c = content.chest;
-    if (dist(player.x + 7, player.y + 8, c.x + 10, c.y + 8) < 28 && engine.keys['e']) {
+    if (dist(player.x + 7, player.y + 8, c.x + 10, c.y + 8) < 28 && bound(engine,'interact')) {
       c.opened = true;
-      engine.keys['e'] = false;
+      bound(engine,'interact') = false;
       content.items.push({ x: c.x - 6, y: c.y - 22, itemId: rollItem(engine), isWeapon: false, isActive: false });
       for (let i = 0; i < 6; i++) {
         content.pickups.push({ x: c.x + rng(-22, 22), y: c.y + rng(-18, 18), type: 'crumb', value: rngInt(2, 5), lifetime: 99999 });
@@ -1808,7 +1810,7 @@ export function updateEngine(engine: GameEngine) {
     for (let si = 0; si < content.shopItems.length; si++) {
       const s = content.shopItems[si];
       if (s.sold) continue;
-      if (dist(player.x + 7, player.y + 8, s.x, s.y) < 26 && engine.keys['e']) {
+      if (dist(player.x + 7, player.y + 8, s.x, s.y) < 26 && bound(engine,'interact')) {
         const price=shopPrice(engine,s);
         if (player.crumbs >= price) {
           let ok = true;
@@ -1828,7 +1830,7 @@ export function updateEngine(engine: GameEngine) {
           engine.toast = T.notEnough; engine.toastTimer = 70; playDeny();s.deniedUntil=engine.frame+40;
           if((content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,pick(['Te faltan migajas.','Mira, pero no toques.']));
         }
-        engine.keys['e'] = false;
+        bound(engine,'interact') = false;
       }
     }
   }
@@ -1838,8 +1840,8 @@ export function updateEngine(engine: GameEngine) {
     content.stairs.glow = Math.min(1, content.stairs.glow + 0.02);
     if (content.stairs.unlocked) {
       const st = content.stairs;
-      if (dist(player.x + 7, player.y + 8, st.x + 16, st.y + 16) < 34 && engine.keys['e']) {
-        engine.keys['e'] = false;
+      if (dist(player.x + 7, player.y + 8, st.x + 16, st.y + 16) < 34 && bound(engine,'interact')) {
+        bound(engine,'interact') = false;
         descendStairs(engine);
         return;
       }
@@ -2078,7 +2080,7 @@ export function confirmSwap(engine: GameEngine) {
   }
 
   engine.swap = null;
-  engine.keys.e=false;engine.mouseDown=false;
+  bound(engine,'interact')=false;engine.mouseDown=false;
   playEquip();
   showPickupCard(engine, req.itemId, true);
   spawn(engine, p.x + 7, p.y + 8, 'spark', 12, '#f4d03f');
@@ -2088,7 +2090,7 @@ export function cancelSwap(engine: GameEngine) {
   if (!engine.swap && !engine.activeSwap) return;
   engine.swap = null;
   engine.activeSwap = null;
-  engine.keys.e=false;engine.mouseDown=false;
+  bound(engine,'interact')=false;engine.mouseDown=false;
   playUiBack();
 }
 
@@ -2125,7 +2127,7 @@ export function confirmActiveSwap(engine: GameEngine) {
     s.sold = true;
   }
   engine.activeSwap = null;
-  engine.keys.e = false;
+  bound(engine,'interact') = false;
   engine.mouseDown = false;
 }
 
@@ -3136,10 +3138,10 @@ export function handleDash(engine: GameEngine) {
   if(engine.state!==GameState.PLAYING || engine.swap || engine.transition.active) return;
   if (p.dashCooldown > 0 || p.dashTimer > 0) return;
   let dx = 0, dy = 0;
-  if (engine.keys['a']) dx = -1;
-  if (engine.keys['d']) dx = 1;
-  if (engine.keys['w']) dy = -1;
-  if (engine.keys['s']) dy = 1;
+  if (bound(engine,'moveLeft')) dx = -1;
+  if (bound(engine,'moveRight')) dx = 1;
+  if (bound(engine,'moveUp')) dy = -1;
+  if (bound(engine,'moveDown')) dy = 1;
   if(engine.lastInput==='gamepad'&&engine.pad.connected){dx=engine.pad.moveX;dy=engine.pad.moveY;}
   if (!dx && !dy) {
     dx = p.dir === 'left' ? -1 : p.dir === 'right' ? 1 : 0;
