@@ -19,6 +19,8 @@ import {
 import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
+import { DEFAULT_BINDINGS } from './controls';
+import { loadCareer, recordRun } from './career';
 import type { CollectionCategory } from './catalog';
 import { WARDROBE } from './layout';
 import { EVENTS } from './events';
@@ -409,6 +411,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let totalGolden = 0;
   let metaLevels: Record<string, number> = {};
   let settings = { ...DEFAULT_SETTINGS };
+  let bindings = { ...DEFAULT_BINDINGS };
+  const careerData=loadCareer();
   let best = { breadStolen: 0, enemiesDefeated: 0, roomsCleared: 0, goldenCrumbs: 0, floorsCleared: 0 };
   let unlockedSkins: string[] = ['robber'];
   let equippedSkin = 'robber';
@@ -426,6 +430,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
       totalGolden = d.totalGoldenCrumbs ?? 0;
       metaLevels = d.metaLevels ?? {};
       settings = { ...settings, ...(d.settings ?? {}) };
+      bindings = { ...bindings, ...(d.bindings ?? {}) };
       unlockedSkins = d.unlockedSkins ?? ['robber'];
       equippedSkin = d.equippedSkin ?? 'robber';
       discovered=d.discovered;bestFloor=d.bestFloor;
@@ -468,12 +473,13 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     transition: { active: false, timer: 0, total: 22, dir: null, targetKey: null },
     restartHold: 0, bossDefeatTimer: 0, rewardDropTimer: 0,
     swap: null, swapSel: 0, swapGuard: 0, overlayLabels: [],
-    totalGoldenCrumbs: totalGolden, metaLevels, settings, best,
+    totalGoldenCrumbs: totalGolden, metaLevels, settings, bindings, controlIndex:0, controlCapture:false,
+    career:careerData.career,runHistory:careerData.history,runRecorded:false,best,
     unlockedSkins, equippedSkin,
     discovered, bestFloor, newRecord:false, knownSynergies:[],endFrame:0,
     heistIntroTimer:0,heistIntroSeen:false, hitStop:0, deathEchoes:[], decoy:null,
     grenades:[], remoteBomb:null, drone:null, coffeeCrash:0, activeSwap:null, synergyNotice:null,
-    collectionTab:'items',collectionIndex:0,collectionScroll:0,
+    collectionTab:'items',collectionIndex:0,collectionScroll:0,collectionFilter:'all',collectionSort:'default',careerTab:0,
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
@@ -551,7 +557,7 @@ export function startGame(engine: GameEngine) {
   engine.pickupCard = null;
   engine.mouseDown=false;engine.keys={};engine.hitStop=0;engine.deathEchoes=[];engine.decoy=null;
   engine.grenades=[];engine.remoteBomb=null;engine.drone=null;engine.coffeeCrash=0;engine.activeSwap=null;
-  engine.knownSynergies=[];engine.synergyNotice=null;engine.newRecord=false;engine.tooltip={key:'',since:0};
+  engine.knownSynergies=[];engine.synergyNotice=null;engine.newRecord=false;engine.runRecorded=false;engine.tooltip={key:'',since:0};
   engine.bossIntroSeen = {};
   engine.overlayLabels = [];
   engine.transition = { active: false, timer: 0, total: 22, dir: null, targetKey: null };
@@ -924,7 +930,7 @@ export function startEndlessGame(engine:GameEngine) {
   engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];engine.grenades=[];
   engine.stats={breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
   engine.swap=null;engine.activeSwap=null;engine.pickupCard=null;engine.bossIntroSeen={};engine.keys={};engine.mouseDown=false;
-  engine.roomLabel='ATRACO SIN FIN';engine.roomLabelTimer=0;engine.endless.awaitingReward=false;
+  engine.roomLabel='ATRACO SIN FIN';engine.roomLabelTimer=0;engine.endless.awaitingReward=false;engine.runRecorded=false;
   engine.state=GameState.PLAYING;setMusic('run',0);queueNextEndlessRound(engine,42);
 }
 
@@ -1130,6 +1136,7 @@ function loadNextFloor(engine: GameEngine) {
     engine.madUnlocked=true;
     try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
     if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
+    recordRun(engine,'victory');
     engine.state = GameState.VICTORY;
     engine.endFrame=engine.frame;playQuack();
     engine.pauseIndex = 0;
@@ -1944,6 +1951,7 @@ export function updateEngine(engine: GameEngine) {
       saveEndlessRecord(engine);
       clearEndlessCheckpoint(engine);
     }
+    recordRun(engine,'death');
     engine.state = GameState.GAME_OVER;
     engine.swap=null;engine.mouseDown=false;engine.keys={};
     engine.endFrame=engine.frame;
@@ -3274,6 +3282,9 @@ export const SETTING_ROWS = [
   { key: 'shake', label: T.settingShake, kind: 'shake' as const, group:'FEEDBACK', description:'Intensidad del movimiento de cámara al golpear o recibir daño.' },
   { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const, group:'FEEDBACK', description:'Muestra u oculta los números de daño sobre enemigos.' },
   { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO UI', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
+  { key: 'highContrast', label: 'ALTO CONTRASTE', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Aumenta contraste de interfaz y lectura del HUD.' },
+  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento, elimina temblor y amplía la UI.' },
+  { key: 'controls', label: 'CONFIGURAR CONTROLES', kind: 'action' as const, group:'CONTROLES', description:'Remapea movimiento, disparo y acciones del teclado.' },
   { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const, group:'VIDEO', description:'Aumenta o reduce el tamaño visual de la interfaz.' },
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
   { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const, group:'VIDEO', description:'Ajusta el brillo del canvas del juego.' },
@@ -3291,6 +3302,11 @@ export function settingValue(engine: GameEngine, i: number) {
 export function adjustSetting(engine: GameEngine, i: number, dir: number) {
   const row = SETTING_ROWS[i];
   if (!row) return;
+  if (row.key === 'accessPreset') {
+    engine.settings.reduceMotion=true;engine.settings.highContrast=true;engine.settings.shake=0;engine.settings.damageNumbers=true;
+    engine.settings.uiScale=3;engine.settings.brightness=1.1;playUiSelect();saveSettings(engine);return;
+  }
+  if (row.key === 'controls') return;
   if (row.key === 'testQuack') {
     playQuack();
     return;
