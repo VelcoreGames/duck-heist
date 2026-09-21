@@ -50,7 +50,7 @@ export function renderCareer(e:GameEngine){
     if(!e.runHistory.length){
       titleText(c,'SIN HISTORIAL',240,190,12,'#74898d','center',false);
       text(c,'Termina o abandona una run para crear el primer registro.',240,212,5.6,'#718588','center',false,false);
-    } else e.runHistory.slice(0,6).forEach((r,i)=>{
+    } else e.runHistory.slice(0,5).forEach((r,i)=>{
       const y=139+i*25,accent=outcomeColor(r);
       drawMenuCard(c,48,y,384,21,false,accent,'rgba(10,24,30,.91)');
       text(c,outcomeLabel(r),58,y+14,4.7,accent,'left',true,false);
@@ -59,7 +59,18 @@ export function renderCareer(e:GameEngine){
       text(c,String(r.enemies)+' ENEM.',326,y+14,4.5,'#8ca09f','left',false,false);
       text(c,fmt(r.time),421,y+14,4.9,'#d4c886','right',true,false);
     });
-    if(e.runHistory.length>6) text(c,'+'+(e.runHistory.length-6)+' REGISTROS MÁS GUARDADOS',240,292,4.7,'#708488','center',true,false);
+    if(e.runHistory.length>=2){
+      const now=e.runHistory[0],prev=e.runHistory[1];
+      const progressNow=now.mode==='endless'?now.round:now.floor,progressPrev=prev.mode==='endless'?prev.round:prev.floor;
+      const sameMode=now.mode===prev.mode;
+      const signed=(n:number)=>n>0?'+'+n:String(n);
+      drawMenuCard(c,48,270,384,24,false,'#6b8588','rgba(7,18,24,.96)');
+      text(c,'VS RUN ANTERIOR',58,284,4.4,'#779093','left',true,false);
+      text(c,sameMode?'PROGRESO '+signed(progressNow-progressPrev):'MODO DISTINTO',154,284,4.5,'#c7d4cf','left',true,false);
+      text(c,'ENEM. '+signed(now.enemies-prev.enemies),260,284,4.5,'#9fb3ae','left',true,false);
+      text(c,'DAÑO '+signed(now.damage-prev.damage),340,284,4.5,'#9fb3ae','left',true,false);
+      if(e.runHistory.length>5) text(c,'+'+(e.runHistory.length-5),422,284,4.5,'#79b9d2','right',true,false);
+    }
   } else {
     const list=careerAchievements(e),unlocked=list.filter(a=>a.unlocked).length;
     drawMenuCard(c,34,105,412,195,false,'#e6c56f','rgba(8,20,26,.96)');
