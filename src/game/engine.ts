@@ -19,6 +19,8 @@ import {
 import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
+import { DEFAULT_BINDINGS } from './controls';
+import { loadCareer, recordRun } from './career';
 import type { CollectionCategory } from './catalog';
 import { WARDROBE } from './layout';
 import { EVENTS } from './events';
@@ -50,6 +52,8 @@ const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const bound=(engine:GameEngine,action:keyof GameEngine['bindings'])=>!!engine.keys[engine.bindings[action]];
+const clearBound=(engine:GameEngine,action:keyof GameEngine['bindings'])=>{engine.keys[engine.bindings[action]]=false;};
 const isPolice=(e:Enemy)=>e.type.startsWith('policia')||e.type==='dron_policial'||e.type==='ganso_k9'||e.type==='security_camera';
 function scaledCurrency(value:number,multiplier:number) {
   const amount=value*multiplier;return Math.floor(amount)+(Math.random()<amount%1?1:0);
@@ -409,6 +413,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let totalGolden = 0;
   let metaLevels: Record<string, number> = {};
   let settings = { ...DEFAULT_SETTINGS };
+  let bindings = { ...DEFAULT_BINDINGS };
+  const careerData=loadCareer();
   let best = { breadStolen: 0, enemiesDefeated: 0, roomsCleared: 0, goldenCrumbs: 0, floorsCleared: 0 };
   let unlockedSkins: string[] = ['robber'];
   let equippedSkin = 'robber';
@@ -426,6 +432,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
       totalGolden = d.totalGoldenCrumbs ?? 0;
       metaLevels = d.metaLevels ?? {};
       settings = { ...settings, ...(d.settings ?? {}) };
+      bindings = { ...bindings, ...(d.bindings ?? {}) };
       unlockedSkins = d.unlockedSkins ?? ['robber'];
       equippedSkin = d.equippedSkin ?? 'robber';
       discovered=d.discovered;bestFloor=d.bestFloor;
@@ -446,6 +453,9 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   } catch { /* sin almacenamiento */ }
   try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
   catch { madUnlocked=unlockedSkins.includes('golden'); }
+
+  careerData.career.bestFloor=Math.max(careerData.career.bestFloor,bestFloor);
+  careerData.career.bestEndlessRound=Math.max(careerData.career.bestEndlessRound,...Object.values(endlessRecords).map(r=>r.round||0));
 
   setVolumes(settings.master, settings.music, settings.sfx);
 
@@ -468,12 +478,13 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     transition: { active: false, timer: 0, total: 22, dir: null, targetKey: null },
     restartHold: 0, bossDefeatTimer: 0, rewardDropTimer: 0,
     swap: null, swapSel: 0, swapGuard: 0, overlayLabels: [],
-    totalGoldenCrumbs: totalGolden, metaLevels, settings, best,
+    totalGoldenCrumbs: totalGolden, metaLevels, settings, bindings, controlIndex:0, controlCapture:false,
+    career:careerData.career,runHistory:careerData.history,runRecorded:false,best,
     unlockedSkins, equippedSkin,
     discovered, bestFloor, newRecord:false, knownSynergies:[],endFrame:0,
     heistIntroTimer:0,heistIntroSeen:false, hitStop:0, deathEchoes:[], decoy:null,
     grenades:[], remoteBomb:null, drone:null, coffeeCrash:0, activeSwap:null, synergyNotice:null,
-    collectionTab:'items',collectionIndex:0,collectionScroll:0,
+    collectionTab:'items',collectionIndex:0,collectionScroll:0,collectionFilter:'all',collectionSort:'default',careerTab:0,
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
@@ -551,7 +562,7 @@ export function startGame(engine: GameEngine) {
   engine.pickupCard = null;
   engine.mouseDown=false;engine.keys={};engine.hitStop=0;engine.deathEchoes=[];engine.decoy=null;
   engine.grenades=[];engine.remoteBomb=null;engine.drone=null;engine.coffeeCrash=0;engine.activeSwap=null;
-  engine.knownSynergies=[];engine.synergyNotice=null;engine.newRecord=false;engine.tooltip={key:'',since:0};
+  engine.knownSynergies=[];engine.synergyNotice=null;engine.newRecord=false;engine.runRecorded=false;engine.tooltip={key:'',since:0};
   engine.bossIntroSeen = {};
   engine.overlayLabels = [];
   engine.transition = { active: false, timer: 0, total: 22, dir: null, targetKey: null };
@@ -924,13 +935,18 @@ export function startEndlessGame(engine:GameEngine) {
   engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];engine.grenades=[];
   engine.stats={breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
   engine.swap=null;engine.activeSwap=null;engine.pickupCard=null;engine.bossIntroSeen={};engine.keys={};engine.mouseDown=false;
-  engine.roomLabel='ATRACO SIN FIN';engine.roomLabelTimer=0;engine.endless.awaitingReward=false;
+  engine.roomLabel='ATRACO SIN FIN';engine.roomLabelTimer=0;engine.endless.awaitingReward=false;engine.runRecorded=false;
   engine.state=GameState.PLAYING;setMusic('run',0);queueNextEndlessRound(engine,42);
 }
 
 export function restartCurrentMode(engine:GameEngine) {
+  recordRun(engine,'abandoned');
   if(engine.gameMode==='endless'||engine.pendingMode==='endless') startEndlessGame(engine);
   else startGame(engine);
+}
+
+export function abandonCurrentRun(engine:GameEngine) {
+  recordRun(engine,'abandoned');
 }
 
 export function moveEndlessReward(engine:GameEngine,dir:number) {
@@ -1130,6 +1146,7 @@ function loadNextFloor(engine: GameEngine) {
     engine.madUnlocked=true;
     try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
     if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
+    recordRun(engine,'victory');
     engine.state = GameState.VICTORY;
     engine.endFrame=engine.frame;playQuack();
     engine.pauseIndex = 0;
@@ -1459,10 +1476,10 @@ export function updateEngine(engine: GameEngine) {
 
   // --- Movimiento (inercia de pato) ---
   let inX = engine.pad.connected?engine.pad.moveX:0, inY = engine.pad.connected?engine.pad.moveY:0;
-  if (engine.keys['w']) inY = -1;
-  if (engine.keys['s']) inY = 1;
-  if (engine.keys['a']) inX = -1;
-  if (engine.keys['d']) inX = 1;
+  if (bound(engine,'moveUp')) inY = -1;
+  if (bound(engine,'moveDown')) inY = 1;
+  if (bound(engine,'moveLeft')) inX = -1;
+  if (bound(engine,'moveRight')) inX = 1;
   const moveLength=Math.hypot(inX,inY);if(moveLength>1) {inX/=moveLength;inY/=moveLength;}
 
   let speedMult = build.speed;
@@ -1531,10 +1548,10 @@ export function updateEngine(engine: GameEngine) {
   if (engine.mouseDown && (activeWeapon(player).id === 'plasma_baker' || activeWeapon(player).id === 'golden_egg_revolver' || activeWeapon(player).id === 'baguette_sniper')) player.charge = Math.min(70, player.charge + 1);
   if (engine.coffeeCrash > 0) { engine.coffeeCrash--; player.speedBoost = Math.max(0, player.speedBoost); }
   let sx = 0, sy = 0;
-  if (engine.keys['arrowleft']) sx = -1;
-  if (engine.keys['arrowright']) sx = 1;
-  if (engine.keys['arrowup']) sy = -1;
-  if (engine.keys['arrowdown']) sy = 1;
+  if (bound(engine,'shootLeft')) sx = -1;
+  if (bound(engine,'shootRight')) sx = 1;
+  if (bound(engine,'shootUp')) sy = -1;
+  if (bound(engine,'shootDown')) sy = 1;
   if(engine.pad.connected && engine.pad.shoot && Math.hypot(engine.pad.aimX,engine.pad.aimY)>.18) {
     sx=engine.pad.aimX;sy=engine.pad.aimY;
   }
@@ -1723,27 +1740,27 @@ export function updateEngine(engine: GameEngine) {
   if (engine.swapGuard > 0) engine.swapGuard--;
   for (let i = content.items.length - 1; i >= 0; i--) {
     const it = content.items[i];
-    if (dist(it.x + 8, it.y + 8, player.x + 7, player.y + 8) < 24 && engine.keys['e'] && engine.swapGuard <= 0) {
+    if (dist(it.x + 8, it.y + 8, player.x + 7, player.y + 8) < 24 && bound(engine,'interact') && engine.swapGuard <= 0) {
       if (it.isWeapon) {
         if (!tryGiveWeapon(engine, it.itemId, 'floor', i, it.x, it.y)) {
-          engine.keys['e'] = false;
+          clearBound(engine,'interact');
           continue;   // se abre el menú de reemplazo; el arma sigue en el suelo
         }
       } else if (ACTIVE_ITEMS[it.itemId] && engine.player.activeItem && engine.player.activeItem !== it.itemId) {
-        if (!offerActiveSwap(engine, it.itemId, 'floor', i, it.x, it.y)) { engine.keys['e'] = false; continue; }
+        if (!offerActiveSwap(engine, it.itemId, 'floor', i, it.x, it.y)) { clearBound(engine,'interact'); continue; }
       } else {
         grantItem(engine, it.itemId, false, !!ACTIVE_ITEMS[it.itemId]);
       }
       spawn(engine, it.x + 8, it.y + 8, 'spark', 10, '#f4d03f');
       content.items.splice(i, 1);
-      engine.keys['e'] = false;
+      clearBound(engine,'interact');
     }
   }
 
   // --- Pedestales ---
   if (content.pedestal && !content.pedestal.taken) {
     const ped = content.pedestal;
-    if (dist(ped.x + 12, ped.y, player.x + 7, player.y + 8) < 28 && engine.keys['e']) {
+    if (dist(ped.x + 12, ped.y, player.x + 7, player.y + 8) < 28 && bound(engine,'interact')) {
       let ok = true;
       if (ped.isWeapon) ok = tryGiveWeapon(engine, ped.itemId, 'pedestal', -1, ped.x, ped.y - 20);
       else if (ACTIVE_ITEMS[ped.itemId] && player.activeItem && player.activeItem !== ped.itemId) ok = offerActiveSwap(engine, ped.itemId, 'pedestal', -1, ped.x, ped.y);
@@ -1753,33 +1770,33 @@ export function updateEngine(engine: GameEngine) {
         spawn(engine, ped.x + 12, ped.y, 'spark', 20, '#f4d03f');
         engine.shakeIntensity = Math.max(engine.shakeIntensity, 2);
       }
-      engine.keys['e'] = false;
+      clearBound(engine,'interact');
     }
   }
 
   if(content.choices && !content.choiceTaken && !engine.swap) {
     for(let i=0;i<content.choices.length;i++) {
       const ped=content.choices[i];
-      if(!ped.taken && dist(ped.x+12,ped.y,player.x+7,player.y+8)<28 && engine.keys.e) {
+      if(!ped.taken && dist(ped.x+12,ped.y,player.x+7,player.y+8)<28 && bound(engine,'interact')) {
         let ok=true;
         if(ped.isFood) {healPlayer(engine,foodHeal(ped.itemId));playHeal();}
         else if(ped.isWeapon) ok=tryGiveWeapon(engine,ped.itemId,'choice',i,ped.x,ped.y);
         else grantItem(engine,ped.itemId,false,!!ACTIVE_ITEMS[ped.itemId]);
         if(ok) {finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');}
-        engine.keys.e=false;break;
+        clearBound(engine,'interact');break;
       }
     }
   }
-  if(content.event && !content.event.used && engine.keys.e && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
-    engine.keys.e=false;activateEvent(engine);
+  if(content.event && !content.event.used && bound(engine,'interact') && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
+    clearBound(engine,'interact');activateEvent(engine);
   }
 
   // --- Cofre ---
   if (content.chest && !content.chest.opened) {
     const c = content.chest;
-    if (dist(player.x + 7, player.y + 8, c.x + 10, c.y + 8) < 28 && engine.keys['e']) {
+    if (dist(player.x + 7, player.y + 8, c.x + 10, c.y + 8) < 28 && bound(engine,'interact')) {
       c.opened = true;
-      engine.keys['e'] = false;
+      clearBound(engine,'interact');
       content.items.push({ x: c.x - 6, y: c.y - 22, itemId: rollItem(engine), isWeapon: false, isActive: false });
       for (let i = 0; i < 6; i++) {
         content.pickups.push({ x: c.x + rng(-22, 22), y: c.y + rng(-18, 18), type: 'crumb', value: rngInt(2, 5), lifetime: 99999 });
@@ -1796,7 +1813,7 @@ export function updateEngine(engine: GameEngine) {
     for (let si = 0; si < content.shopItems.length; si++) {
       const s = content.shopItems[si];
       if (s.sold) continue;
-      if (dist(player.x + 7, player.y + 8, s.x, s.y) < 26 && engine.keys['e']) {
+      if (dist(player.x + 7, player.y + 8, s.x, s.y) < 26 && bound(engine,'interact')) {
         const price=shopPrice(engine,s);
         if (player.crumbs >= price) {
           let ok = true;
@@ -1816,7 +1833,7 @@ export function updateEngine(engine: GameEngine) {
           engine.toast = T.notEnough; engine.toastTimer = 70; playDeny();s.deniedUntil=engine.frame+40;
           if((content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,pick(['Te faltan migajas.','Mira, pero no toques.']));
         }
-        engine.keys['e'] = false;
+        clearBound(engine,'interact');
       }
     }
   }
@@ -1826,8 +1843,8 @@ export function updateEngine(engine: GameEngine) {
     content.stairs.glow = Math.min(1, content.stairs.glow + 0.02);
     if (content.stairs.unlocked) {
       const st = content.stairs;
-      if (dist(player.x + 7, player.y + 8, st.x + 16, st.y + 16) < 34 && engine.keys['e']) {
-        engine.keys['e'] = false;
+      if (dist(player.x + 7, player.y + 8, st.x + 16, st.y + 16) < 34 && bound(engine,'interact')) {
+        clearBound(engine,'interact');
         descendStairs(engine);
         return;
       }
@@ -1944,6 +1961,7 @@ export function updateEngine(engine: GameEngine) {
       saveEndlessRecord(engine);
       clearEndlessCheckpoint(engine);
     }
+    recordRun(engine,'death');
     engine.state = GameState.GAME_OVER;
     engine.swap=null;engine.mouseDown=false;engine.keys={};
     engine.endFrame=engine.frame;
@@ -2065,7 +2083,7 @@ export function confirmSwap(engine: GameEngine) {
   }
 
   engine.swap = null;
-  engine.keys.e=false;engine.mouseDown=false;
+  clearBound(engine,'interact');engine.mouseDown=false;
   playEquip();
   showPickupCard(engine, req.itemId, true);
   spawn(engine, p.x + 7, p.y + 8, 'spark', 12, '#f4d03f');
@@ -2075,7 +2093,7 @@ export function cancelSwap(engine: GameEngine) {
   if (!engine.swap && !engine.activeSwap) return;
   engine.swap = null;
   engine.activeSwap = null;
-  engine.keys.e=false;engine.mouseDown=false;
+  clearBound(engine,'interact');engine.mouseDown=false;
   playUiBack();
 }
 
@@ -2112,7 +2130,7 @@ export function confirmActiveSwap(engine: GameEngine) {
     s.sold = true;
   }
   engine.activeSwap = null;
-  engine.keys.e = false;
+  clearBound(engine,'interact');
   engine.mouseDown = false;
 }
 
@@ -3123,10 +3141,10 @@ export function handleDash(engine: GameEngine) {
   if(engine.state!==GameState.PLAYING || engine.swap || engine.transition.active) return;
   if (p.dashCooldown > 0 || p.dashTimer > 0) return;
   let dx = 0, dy = 0;
-  if (engine.keys['a']) dx = -1;
-  if (engine.keys['d']) dx = 1;
-  if (engine.keys['w']) dy = -1;
-  if (engine.keys['s']) dy = 1;
+  if (bound(engine,'moveLeft')) dx = -1;
+  if (bound(engine,'moveRight')) dx = 1;
+  if (bound(engine,'moveUp')) dy = -1;
+  if (bound(engine,'moveDown')) dy = 1;
   if(engine.lastInput==='gamepad'&&engine.pad.connected){dx=engine.pad.moveX;dy=engine.pad.moveY;}
   if (!dx && !dy) {
     dx = p.dir === 'left' ? -1 : p.dir === 'right' ? 1 : 0;
@@ -3274,6 +3292,9 @@ export const SETTING_ROWS = [
   { key: 'shake', label: T.settingShake, kind: 'shake' as const, group:'FEEDBACK', description:'Intensidad del movimiento de cámara al golpear o recibir daño.' },
   { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const, group:'FEEDBACK', description:'Muestra u oculta los números de daño sobre enemigos.' },
   { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO UI', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
+  { key: 'highContrast', label: 'ALTO CONTRASTE', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Aumenta contraste de interfaz y lectura del HUD.' },
+  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento, elimina temblor y amplía la UI.' },
+  { key: 'controls', label: 'CONFIGURAR CONTROLES', kind: 'action' as const, group:'CONTROLES', description:'Remapea movimiento, disparo y acciones del teclado.' },
   { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const, group:'VIDEO', description:'Aumenta o reduce el tamaño visual de la interfaz.' },
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
   { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const, group:'VIDEO', description:'Ajusta el brillo del canvas del juego.' },
@@ -3291,6 +3312,11 @@ export function settingValue(engine: GameEngine, i: number) {
 export function adjustSetting(engine: GameEngine, i: number, dir: number) {
   const row = SETTING_ROWS[i];
   if (!row) return;
+  if (row.key === 'accessPreset') {
+    engine.settings.reduceMotion=true;engine.settings.highContrast=true;engine.settings.shake=0;engine.settings.damageNumbers=true;
+    engine.settings.uiScale=3;engine.settings.brightness=1.1;playUiSelect();saveSettings(engine);return;
+  }
+  if (row.key === 'controls') return;
   if (row.key === 'testQuack') {
     playQuack();
     return;

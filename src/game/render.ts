@@ -38,6 +38,9 @@ import { EVENTS } from './events';
 import { MODIFIER_LABELS } from './modifiers';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
+import { keyLabel } from './controls';
+import { renderControls } from './controlsUI';
+import { renderCareer } from './careerUI';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -159,7 +162,7 @@ export function renderWorld(engine: GameEngine) {
   }
 
   if (s === GameState.HOW_TO_PLAY || s === GameState.SETTINGS ||
-      s === GameState.WARDROBE || s === GameState.UPGRADES || s===GameState.COLLECTION) {
+      s === GameState.WARDROBE || s === GameState.UPGRADES || s===GameState.COLLECTION || s===GameState.CONTROLS || s===GameState.CAREER) {
     drawVaultScene(ctx,engine.frame,engine.equippedSkin);
     ctx.fillStyle = 'rgba(4,6,14,0.86)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -317,7 +320,7 @@ export function renderWorld(engine: GameEngine) {
     const it=nearestEndlessItem;
     const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
     text(ctx,it.isWeapon?'ARMA':it.isActive?'ACTIVO':'OBJETO',it.x+8,it.y-15,5.2,it.isWeapon?'#7fd6ff':it.isActive?'#d4a6ff':'#e7d48a','center',true);
-    text(ctx,`E · TOMAR   R · RECICLAR`,it.x+8,it.y+34,4.8,'#d4d9d2','center');
+    text(ctx,actionPrompt(engine,'interact')+' · TOMAR   R · RECICLAR',it.x+8,it.y+34,4.8,'#d4d9d2','center');
     if(def?.name) text(ctx,def.name,it.x+8,it.y-7,4.8,'#c8d0cc','center');
   }
 
@@ -900,6 +903,8 @@ export function renderUI(engine: GameEngine) {
     }
     case GameState.HOW_TO_PLAY: renderHowToPlayUI(engine); break;
     case GameState.SETTINGS: renderSettingsUI(engine); break;
+    case GameState.CONTROLS: renderControls(engine); break;
+    case GameState.CAREER: renderCareer(engine); break;
     case GameState.WARDROBE: renderWardrobeUI(engine); break;
     case GameState.UPGRADES: renderUpgradesUI(engine); break;
     case GameState.GAME_OVER: renderGameOverUI(engine); break;
@@ -1027,7 +1032,7 @@ function renderPrompts(engine: GameEngine) {
     wrappedText(ctx,event.used?event.message:def.description,x+10,y+53,w-20,8,11,2,'#b9cac0');
     if(!event.used) {
       def.options.forEach((s,i)=>text(ctx,`${i+1} · ${s}`,x+11,y+78+i*13,8,event.selected===i?'#f4d03f':'#728c8c','left',event.selected===i));
-      prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    E · CONFIRMAR');
+      prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    '+actionPrompt(engine,'interact')+' · CONFIRMAR');
     }
   }
   if(content.challenge==='alarm' && !room.cleared) text(ctx,`ALARMA · ${Math.ceil((content.alarmTimer ?? 0)/60)} s`,240,64,9,'#e2a477','center',true);
@@ -1499,8 +1504,11 @@ function renderHowToPlayUI(engine: GameEngine) {
     ['PALANCA IZQ.','Moverse'],['PALANCA DER. + RT','Apuntar / disparar'],['B','Esquivar'],['A','Interactuar'],
     ['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Mapa'],['START','Pausa'],
   ]:[
-    ['WASD','Moverse'],['FLECHAS / CLIC IZQ.','Disparar'],['SHIFT / CLIC DER.','Esquivar'],['E','Interactuar'],
-    ['ESPACIO','Objeto activo'],['RUEDA','Cambiar arma'],['M','Mapa'],['ESC','Pausa'],
+    [keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight),'Moverse'],
+    [keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' / CLIC','Disparar'],
+    [keyLabel(engine.bindings.dash)+' / CLIC DER.','Esquivar'],[keyLabel(engine.bindings.interact),'Interactuar'],
+    [keyLabel(engine.bindings.active),'Objeto activo'],['RUEDA / '+keyLabel(engine.bindings.weapon1)+' / '+keyLabel(engine.bindings.weapon2),'Cambiar arma'],
+    [keyLabel(engine.bindings.map),'Mapa'],[keyLabel(engine.bindings.pause),'Pausa'],
   ];
 
   drawMenuCard(ctx,28,72,226,240,false,'#d7b56c','rgba(8,20,26,.95)');
@@ -1534,20 +1542,20 @@ function renderSettingsUI(engine: GameEngine) {
   drawMenuBackdrop(ctx,mf,.93,'#8fb7c8');
   drawMenuHeader(ctx,'AJUSTES','Cada opción explica qué cambia antes de tocarla.',mf,'#8fb7c8','SISTEMA DEL ATRACO');
 
-  drawMenuCard(ctx,48,65,CANVAS_WIDTH-96,216,false,'#8fb7c8','rgba(8,20,26,.95)');
+  drawMenuCard(ctx,48,64,CANVAS_WIDTH-96,196,false,'#8fb7c8','rgba(8,20,26,.95)');
   SETTING_ROWS.forEach((row, i) => {
     const y = SETTINGS.y + i * (SETTINGS.h+SETTINGS.gap);
     const on = i === engine.settingsIndex;
     const groupColor=row.group==='AUDIO'?'#d4b96e':row.group==='FEEDBACK'?'#d98069':row.group==='ACCESIBILIDAD'?'#b992d8':row.group==='VIDEO'?'#8fb7c8':'#78c99a';
     drawMenuCard(ctx,SETTINGS.x,y,SETTINGS.w,SETTINGS.h,on,groupColor,on?'rgba(25,40,47,.98)':'rgba(10,24,30,.88)');
     ctx.fillStyle=groupColor;ctx.globalAlpha=on?1:.55;ctx.fillRect(SETTINGS.x+4,y+4,2,SETTINGS.h-8);ctx.globalAlpha=1;
-    text(ctx,String(i+1).padStart(2,'0'),SETTINGS.x+12,y+11,4.2,on?groupColor:'#50666d','left',true,false);
-    text(ctx,row.label,SETTINGS.x+32,y+11,5.8,on?'#eef6f2':'#a9b7b6','left',on,false);
+    text(ctx,String(i+1).padStart(2,'0'),SETTINGS.x+12,y+10,4.1,on?groupColor:'#50666d','left',true,false);
+    text(ctx,row.label,SETTINGS.x+32,y+10,5.4,on?'#eef6f2':'#a9b7b6','left',on,false);
     const v = settingValue(engine, i);
     if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind==='brightness') {
       const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind==='brightness'?1.4:3;
       drawBar(ctx,305,y+4,68,v/max,on?groupColor:'#52656b');
-      text(ctx,row.kind==='vol'?String(Math.round(v*100))+'%':String(v),405,y+11,5.2,on?'#dbeef1':'#7d9296','right',true,false);
+      text(ctx,row.kind==='vol'?String(Math.round(v*100))+'%':String(v),405,y+10,5.0,on?'#dbeef1':'#7d9296','right',true,false);
     } else {
       const label=row.kind==='action'?'PROBAR':v>.5?T.on:T.off;
       const col=row.kind==='action'?'#d8c57d':v>.5?'#78c99a':'#879699';
@@ -1557,9 +1565,9 @@ function renderSettingsUI(engine: GameEngine) {
   });
 
   const selected=SETTING_ROWS[engine.settingsIndex] ?? SETTING_ROWS[0];
-  drawMenuCard(ctx,62,284,356,33,false,'#526b72','rgba(7,18,24,.96)');
-  text(ctx,selected.group,74,297,4.6,'#8fb7c8','left',true,false);
-  wrappedText(ctx,selected.description,74,309,332,5.5,6.5,2,'#aab9b7');
+  drawMenuCard(ctx,62,268,356,49,false,'#526b72','rgba(7,18,24,.96)');
+  text(ctx,selected.group,74,282,4.6,'#8fb7c8','left',true,false);
+  wrappedText(ctx,selected.description,74,294,332,5.4,6.4,3,'#aab9b7');
 
   drawMenuFooter(
     ctx,
@@ -2006,7 +2014,7 @@ function renderSwapUI(engine: GameEngine) {
   text(ctx,'ACTUAL · '+(old?.description ?? ''),240,271,5.4,'#839799','center',false,false);
   drawMenuFooter(
     ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · REEMPLAZAR   B · CANCELAR':'1 / 2 · ELEGIR   ENTER / E · REEMPLAZAR   ESC · CANCELAR',
+    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · REEMPLAZAR   B · CANCELAR':'1 / 2 · ELEGIR   ENTER / '+keyLabel(engine.bindings.interact)+' · REEMPLAZAR   ESC · CANCELAR',
     'EL ARMA DESCARTADA QUEDA EN EL SUELO',
     '#ff9f43',
   );
