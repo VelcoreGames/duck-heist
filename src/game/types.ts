@@ -160,6 +160,7 @@ export interface RunStats {
   goldenEarned: number;
   seed:string;
   weaponIds:string[];
+  itemIds:string[];
   weaponStats:Record<string,WeaponRunStat>;
 }
 
