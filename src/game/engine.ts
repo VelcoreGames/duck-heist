@@ -1740,17 +1740,17 @@ export function updateEngine(engine: GameEngine) {
     if (dist(it.x + 8, it.y + 8, player.x + 7, player.y + 8) < 24 && bound(engine,'interact') && engine.swapGuard <= 0) {
       if (it.isWeapon) {
         if (!tryGiveWeapon(engine, it.itemId, 'floor', i, it.x, it.y)) {
-          bound(engine,'interact') = false;
+          clearBound(engine,'interact');
           continue;   // se abre el menú de reemplazo; el arma sigue en el suelo
         }
       } else if (ACTIVE_ITEMS[it.itemId] && engine.player.activeItem && engine.player.activeItem !== it.itemId) {
-        if (!offerActiveSwap(engine, it.itemId, 'floor', i, it.x, it.y)) { bound(engine,'interact') = false; continue; }
+        if (!offerActiveSwap(engine, it.itemId, 'floor', i, it.x, it.y)) { clearBound(engine,'interact'); continue; }
       } else {
         grantItem(engine, it.itemId, false, !!ACTIVE_ITEMS[it.itemId]);
       }
       spawn(engine, it.x + 8, it.y + 8, 'spark', 10, '#f4d03f');
       content.items.splice(i, 1);
-      bound(engine,'interact') = false;
+      clearBound(engine,'interact');
     }
   }
 
@@ -1767,7 +1767,7 @@ export function updateEngine(engine: GameEngine) {
         spawn(engine, ped.x + 12, ped.y, 'spark', 20, '#f4d03f');
         engine.shakeIntensity = Math.max(engine.shakeIntensity, 2);
       }
-      bound(engine,'interact') = false;
+      clearBound(engine,'interact');
     }
   }
 
@@ -1780,12 +1780,12 @@ export function updateEngine(engine: GameEngine) {
         else if(ped.isWeapon) ok=tryGiveWeapon(engine,ped.itemId,'choice',i,ped.x,ped.y);
         else grantItem(engine,ped.itemId,false,!!ACTIVE_ITEMS[ped.itemId]);
         if(ok) {finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');}
-        bound(engine,'interact')=false;break;
+        clearBound(engine,'interact');break;
       }
     }
   }
   if(content.event && !content.event.used && bound(engine,'interact') && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
-    bound(engine,'interact')=false;activateEvent(engine);
+    clearBound(engine,'interact');activateEvent(engine);
   }
 
   // --- Cofre ---
@@ -1793,7 +1793,7 @@ export function updateEngine(engine: GameEngine) {
     const c = content.chest;
     if (dist(player.x + 7, player.y + 8, c.x + 10, c.y + 8) < 28 && bound(engine,'interact')) {
       c.opened = true;
-      bound(engine,'interact') = false;
+      clearBound(engine,'interact');
       content.items.push({ x: c.x - 6, y: c.y - 22, itemId: rollItem(engine), isWeapon: false, isActive: false });
       for (let i = 0; i < 6; i++) {
         content.pickups.push({ x: c.x + rng(-22, 22), y: c.y + rng(-18, 18), type: 'crumb', value: rngInt(2, 5), lifetime: 99999 });
@@ -1830,7 +1830,7 @@ export function updateEngine(engine: GameEngine) {
           engine.toast = T.notEnough; engine.toastTimer = 70; playDeny();s.deniedUntil=engine.frame+40;
           if((content.merchantUntil ?? 0)<engine.frame) merchantSpeak(engine,pick(['Te faltan migajas.','Mira, pero no toques.']));
         }
-        bound(engine,'interact') = false;
+        clearBound(engine,'interact');
       }
     }
   }
@@ -1841,7 +1841,7 @@ export function updateEngine(engine: GameEngine) {
     if (content.stairs.unlocked) {
       const st = content.stairs;
       if (dist(player.x + 7, player.y + 8, st.x + 16, st.y + 16) < 34 && bound(engine,'interact')) {
-        bound(engine,'interact') = false;
+        clearBound(engine,'interact');
         descendStairs(engine);
         return;
       }
@@ -2080,7 +2080,7 @@ export function confirmSwap(engine: GameEngine) {
   }
 
   engine.swap = null;
-  bound(engine,'interact')=false;engine.mouseDown=false;
+  clearBound(engine,'interact');engine.mouseDown=false;
   playEquip();
   showPickupCard(engine, req.itemId, true);
   spawn(engine, p.x + 7, p.y + 8, 'spark', 12, '#f4d03f');
@@ -2090,7 +2090,7 @@ export function cancelSwap(engine: GameEngine) {
   if (!engine.swap && !engine.activeSwap) return;
   engine.swap = null;
   engine.activeSwap = null;
-  bound(engine,'interact')=false;engine.mouseDown=false;
+  clearBound(engine,'interact');engine.mouseDown=false;
   playUiBack();
 }
 
@@ -2127,7 +2127,7 @@ export function confirmActiveSwap(engine: GameEngine) {
     s.sold = true;
   }
   engine.activeSwap = null;
-  bound(engine,'interact') = false;
+  clearBound(engine,'interact');
   engine.mouseDown = false;
 }
 
