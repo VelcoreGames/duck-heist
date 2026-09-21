@@ -958,6 +958,61 @@ export function confirmEndlessReward(engine:GameEngine) {
   if(!openEndlessMarketIfNeeded(engine))queueNextEndlessRound(engine,42);
 }
 
+function endlessHazardLabel(kind:EndlessHazardKind) {
+  return kind==='laser_cross'?'BARRIDO LÁSER':kind==='hot_corners'?'ESQUINAS EN LLAMAS':'ANILLO DE CHOQUE';
+}
+
+function chooseEndlessHazard(engine:GameEngine):EndlessHazardKind {
+  const pool:EndlessHazardKind[]=['laser_cross','hot_corners'];
+  if(engine.endless.alert>=4)pool.push('shock_ring');
+  return pool[(engine.endless.round+engine.endless.alert+Math.floor(engine.frame/60))%pool.length];
+}
+
+function triggerEndlessHazard(engine:GameEngine,content:RoomContent,kind:EndlessHazardKind) {
+  const px=engine.player.x+7,py=engine.player.y+8;
+  if(kind==='laser_cross') {
+    const horizontal=engine.endless.round%2===0;
+    const points:number[]=[];
+    for(let v=64;v<=(horizontal?CANVAS_WIDTH:CANVAS_HEIGHT)-64;v+=32)points.push(v);
+    for(const v of points){
+      const x=horizontal?v:CANVAS_WIDTH/2,y=horizontal?CANVAS_HEIGHT/2:v;
+      if(dist(x,y,px,py)<42)continue;
+      content.puddles.push({x,y,life:135,kind:'fire',radius:13});
+    }
+  } else if(kind==='hot_corners') {
+    const pts=[[66,66],[CANVAS_WIDTH-66,66],[66,CANVAS_HEIGHT-66],[CANVAS_WIDTH-66,CANVAS_HEIGHT-66]];
+    for(const [x,y] of pts)content.puddles.push({x,y,life:165,kind:'fire',radius:34});
+  } else {
+    for(let i=0;i<10;i++){
+      const a=i/10*Math.PI*2;
+      content.puddles.push({x:CANVAS_WIDTH/2+Math.cos(a)*92,y:CANVAS_HEIGHT/2+Math.sin(a)*76,life:150,kind:'fire',radius:15});
+    }
+  }
+  engine.shakeIntensity=Math.max(engine.shakeIntensity,2.5);
+  playDanger('camera');
+}
+
+function updateEndlessHazard(engine:GameEngine,content:RoomContent) {
+  const e=engine.endless;
+  if(e.alert<2||!e.roundActive)return;
+  if((e.roundKind==='miniboss'||e.roundKind==='subboss'||e.roundKind==='boss')&&e.alert<4)return;
+  if(e.hazardWarning>0){
+    e.hazardWarning--;
+    if(e.hazardWarning===0&&e.hazardKind){
+      triggerEndlessHazard(engine,content,e.hazardKind);
+      e.hazardCooldown=Math.max(210,560-e.alert*24-(e.milestone?90:0));
+      e.hazardKind=null;
+    }
+    return;
+  }
+  if(e.hazardCooldown>0){e.hazardCooldown--;return;}
+  e.hazardKind=chooseEndlessHazard(engine);
+  e.hazardWarning=54;
+  engine.toast=`PELIGRO · ${endlessHazardLabel(e.hazardKind)}`;
+  engine.toastTimer=50;
+  playDanger('camera');
+}
+
 function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomContent) {
   const e=engine.endless;
   if(engine.gameMode!=='endless'||engine.state!==GameState.PLAYING) return;
@@ -966,6 +1021,7 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     return;
   }
   const scale=endlessScale(e.round,engine.difficulty);
+  updateEndlessHazard(engine,content);
   if(e.roundKind==='combat'||e.roundKind==='special') {
     e.pressure=Math.min(100,e.pressure+scale.pressureGain);
     e.spawnCooldown--;
