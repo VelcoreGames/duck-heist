@@ -210,7 +210,7 @@ export default function App() {
       }
 
       const mouseOnlyMenu = [
-        GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.COLLECTION,GameState.CAREER,
+        GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.MAP,GameState.COLLECTION,GameState.CAREER,
         GameState.HOW_TO_PLAY,GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,GameState.ENDLESS_RESUME,
         GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
       ].includes(engine.state);
@@ -644,20 +644,14 @@ export default function App() {
     let lastContrast=engine.settings.highContrast;
     let lastDevice=engine.lastInput;
     const padAction=(action:PadAction)=>{
-      if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
-      if(action==='left'||action==='right'){
-        if(engine.state===GameState.COLLECTION){collectionTab(engine,COLLECTION_TABS.findIndex(t=>t.id===engine.collectionTab)+(action==='right'?1:-1));return;}
-        if(engine.state===GameState.CAREER){careerTab(engine,engine.careerTab+(action==='right'?1:-1));playUiMove();return;}
-      }
       const live=engine.state===GameState.PLAYING;
+      if(!live)return;
+      if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
       const liveKeys:Partial<Record<PadAction,string>>={
         map:engine.bindings.map,pause:engine.bindings.pause,dash:engine.bindings.dash,
         active:engine.bindings.active,interact:engine.bindings.interact,
       };
-      const menuKeys:Record<string,string>={
-        map:'m',pause:'Escape',dash:'Shift',active:' ',interact:'e',back:'Escape',confirm:'Enter',up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',
-      };
-      const key=(live&&liveKeys[action])||menuKeys[action]||'Enter';
+      const key=liveKeys[action]||'Enter';
       onKeyDown(new KeyboardEvent('keydown',{key}),true);
       if(action!=='interact')engine.keys[key.toLowerCase()]=false;
     };
