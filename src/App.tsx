@@ -259,10 +259,7 @@ export default function App() {
         case GameState.HEIST_INTRO:
           if(yes && engine.heistIntroSeen) engine.heistIntroTimer=1;
           break;
-        case GameState.COLLECTION: return 'A / D categoría · Q filtro · E ordenar · P carrera · ESC volver';
-    case GameState.CAREER:return 'A / D cambiar vista · ESC colección';
-    case GameState.CONTROLS:return engine.controlCapture?'PULSA UNA TECLA · ESC cancelar':'FLECHAS elegir · ENTER remapear · R restaurar · ESC ajustes';
-    case GameState.COLLECTION: {
+        case GameState.COLLECTION: {
           const tab=COLLECTION_TABS.findIndex(t=>t.id===engine.collectionTab);
           if(k==='escape') goTo(subReturn);
           else if(k==='p'){engine.careerTab=0;playUiSelect();goTo(GameState.CAREER);}
@@ -805,6 +802,9 @@ function hintFor(engine: GameEngine): string {
     case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · M / ESC cerrar';
     case GameState.PAUSED: return 'ESC continuar · flechas navegar · TAB info de run';
     case GameState.RUN_INFO:return 'A / D cambiar vista · ESC volver a pausa';
+    case GameState.COLLECTION:return 'A / D categoría · Q filtro · E ordenar · P carrera · ESC volver';
+    case GameState.CAREER:return 'A / D cambiar vista · ESC colección';
+    case GameState.CONTROLS:return engine.controlCapture?'PULSA UNA TECLA · ESC cancelar':'FLECHAS elegir · ENTER remapear · R restaurar · ESC ajustes';
     case GameState.CONFIRM:return 'W / S elegir · ENTER confirmar · ESC cancelar';
     default: return 'ENTER confirmar · ESC volver';
   }
