@@ -581,7 +581,8 @@ export default function App() {
 
       const st = engine.state;
       const live = st === GameState.PLAYING || st === GameState.FLOOR_INTRO ||
-        st === GameState.BOSS_INTRO || st === GameState.FLOOR_CLEAR || st===GameState.HEIST_INTRO;
+        st === GameState.BOSS_INTRO || st === GameState.FLOOR_CLEAR || st===GameState.HEIST_INTRO ||
+        st===GameState.ENDLESS_REWARD;
       if (live) updateEngine(engine);
       else if(st===GameState.MAP) engine.mapView.frame++;
       else engine.frame++;
