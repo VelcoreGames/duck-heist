@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
+  createEngine, beginHeist, startDailyChallenge, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
   restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
   resumeEndlessGame, clearEndlessCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
@@ -22,6 +22,7 @@ import { controlsHit, resetControls } from './game/controlsUI';
 import { careerClick, careerTab } from './game/careerUI';
 import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
+import { refreshDailyRuntime } from './game/dailyChallenge';
 
 const MENU_TOP=MAIN_MENU.y,MENU_H=MAIN_MENU.h,MENU_GAP=MAIN_MENU.gap,MENU_W=MAIN_MENU.w;
 const PAUSE_TOP=PAUSE_MENU.y,PAUSE_H=PAUSE_MENU.h,PAUSE_GAP=PAUSE_MENU.gap,PAUSE_W=PAUSE_MENU.w;
@@ -143,11 +144,13 @@ export default function App() {
           if(engine.endlessCheckpointRound>0){engine.endlessResumeIndex=0;goTo(GameState.ENDLESS_RESUME);}
           else {engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
           break;
-        case 2: engine.upgradeIndex = 0; subReturn = GameState.MENU; goTo(GameState.UPGRADES); break;
-        case 3: engine.wardrobeIndex=SKINS.findIndex(s=>s.id===engine.equippedSkin);ensureSkinVisible(engine);subReturn=GameState.MENU;goTo(GameState.WARDROBE);break;
-        case 4: subReturn=GameState.MENU;goTo(GameState.COLLECTION);break;
-        case 5: subReturn = GameState.MENU; goTo(GameState.HOW_TO_PLAY); break;
-        case 6: engine.settingsIndex = 0; subReturn = GameState.MENU; goTo(GameState.SETTINGS); break;
+        case 2:
+          refreshDailyRuntime(engine);engine.pendingMode='daily';goTo(GameState.DAILY_BRIEF);break;
+        case 3: engine.upgradeIndex = 0; subReturn = GameState.MENU; goTo(GameState.UPGRADES); break;
+        case 4: engine.wardrobeIndex=SKINS.findIndex(s=>s.id===engine.equippedSkin);ensureSkinVisible(engine);subReturn=GameState.MENU;goTo(GameState.WARDROBE);break;
+        case 5: subReturn=GameState.MENU;goTo(GameState.COLLECTION);break;
+        case 6: subReturn = GameState.MENU; goTo(GameState.HOW_TO_PLAY); break;
+        case 7: engine.settingsIndex = 0; subReturn = GameState.MENU; goTo(GameState.SETTINGS); break;
       }
     };
     const openConfirm=(kind:GameEngine['confirmKind'])=>{
@@ -246,9 +249,13 @@ export default function App() {
 
       switch (engine.state) {
         case GameState.MENU:
-          if (up) menuMove(engine, -1, 7, 'menu');
-          else if (down) menuMove(engine, 1, 7, 'menu');
+          if (up) menuMove(engine, -1, 8, 'menu');
+          else if (down) menuMove(engine, 1, 8, 'menu');
           else if (yes) activateMenu();
+          break;
+        case GameState.DAILY_BRIEF:
+          if(yes){playUiSelect();beginHeist(engine);}
+          else if(k==='escape'){playUiBack();engine.pendingMode='heist';goTo(GameState.MENU);}
           break;
         case GameState.DIFFICULTY:
           if(up) moveDifficulty(-1);
@@ -421,7 +428,7 @@ export default function App() {
       const st = engine.state;
       if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.ENDLESS_RESUME || st === GameState.PAUSED || st === GameState.CONFIRM || st === GameState.GAME_OVER || st === GameState.VICTORY) {
         const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st===GameState.ENDLESS_RESUME?RESUME_TOP:st===GameState.CONFIRM?CONFIRM_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
-        const cnt = st === GameState.MENU ? 7 : st===GameState.DIFFICULTY?4:st===GameState.ENDLESS_RESUME?2:st===GameState.CONFIRM?2:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
+        const cnt = st === GameState.MENU ? MAIN_MENU.count : st===GameState.DIFFICULTY?4:st===GameState.ENDLESS_RESUME?2:st===GameState.CONFIRM?2:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
         const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st===GameState.ENDLESS_RESUME?RESUME_H:st===GameState.CONFIRM?CONFIRM_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
         const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st===GameState.ENDLESS_RESUME?RESUME_GAP:st===GameState.CONFIRM?CONFIRM_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
         const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st===GameState.ENDLESS_RESUME?RESUME_W:st===GameState.CONFIRM?CONFIRM_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
@@ -519,6 +526,9 @@ export default function App() {
           if (i >= 0) { engine.menuIndex = i; activateMenu(); }
           break;
         }
+        case GameState.DAILY_BRIEF:
+          if(y>=298){playUiSelect();beginHeist(engine);}else if(y<60){playUiBack();engine.pendingMode='heist';goTo(GameState.MENU);}
+          break;
         case GameState.ENDLESS_RESUME: {
           const i=hitList(x,y,RESUME_TOP,2,RESUME_H,RESUME_GAP,RESUME_W);
           if(i>=0){
@@ -799,6 +809,7 @@ function hintFor(engine: GameEngine): string {
   switch (engine.state) {
     case GameState.MENU: return 'W / S elegir · ENTER confirmar · rueda también vale';
     case GameState.DIFFICULTY:return 'W / S dificultad · ENTER confirmar · ESC volver';
+    case GameState.DAILY_BRIEF:return 'ENTER comenzar desafío · ESC volver';
     case GameState.PLAYING: return keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight)+' mover · MOUSE / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' disparar · '+keyLabel(engine.bindings.dash)+' esquivar · '+keyLabel(engine.bindings.interact)+' interactuar';
     case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · '+keyLabel(engine.bindings.map)+' / ESC cerrar';
     case GameState.PAUSED: return 'ESC continuar · flechas navegar · TAB info de run';
