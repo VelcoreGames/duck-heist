@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, activeSwapHit, endlessRewardHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, HUD_MENU, activeSwapHit, endlessRewardHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -426,6 +426,7 @@ export default function App() {
       const p = toWorld(ev);
       engine.mouseX = p.x; engine.mouseY = p.y;
       if(Math.abs(ev.movementX)+Math.abs(ev.movementY)>1)engine.lastInput='keyboard';
+      if(engine.state===GameState.PLAYING)setCursor(inside(p.x,p.y,HUD_MENU)?'pointer':'crosshair');
       if(engine.state===GameState.MAP) {mapHit(engine,p.x,p.y);return;}
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
@@ -510,7 +511,10 @@ export default function App() {
         if(inside(x,y,SWAP_CANCEL)){cancelSwap(engine);return;}
         const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
-      if (engine.state === GameState.PLAYING) { engine.mouseDown = true; return; }
+      if(engine.state===GameState.PLAYING){
+        if(inside(x,y,HUD_MENU)){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);setMusic('menu');return;}
+        engine.mouseDown=true;return;
+      }
       switch (engine.state) {
         case GameState.MENU: {
           setMusic('menu');const i=mainMenuHit(x,y);
