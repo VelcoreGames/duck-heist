@@ -165,7 +165,7 @@ export interface RunStats {
 }
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard' | 'mad';
-export type GameMode = 'heist' | 'endless';
+export type GameMode = 'heist' | 'endless' | 'daily';
 export type EndlessRoundKind = 'combat'|'miniboss'|'special'|'subboss'|'boss';
 export type EndlessSpecial = 'horde'|'elite'|'blackout'|'crossfire'|'cameras'|'siege'|'red_protocol';
 export type EndlessRewardKind = 'item'|'weapon'|'heal'|'crumbs'|'recycle';
@@ -262,6 +262,22 @@ export interface ContractPeriodState {
   rewarded:string[];
 }
 export interface ContractState { daily:ContractPeriodState; weekly:ContractPeriodState; }
+
+export type DailyModifier='SECURITY_SURGE'|'ELITE_AUDIT'|'SPEED_CHECK'|'GLASS_BEAK'|'NO_LUNCH'|'HOT_START';
+export type DailyMedal='NONE'|'BRONZE'|'SILVER'|'GOLD'|'PLATINUM';
+export interface DailyChallengeRecord {
+  key:string;seed:string;attempts:number;bestScore:number;bestMedal:DailyMedal;bestFloor:number;bestTime:number;
+  completed:boolean;rewardGranted:number;
+}
+export interface DailyChallengeProfile {
+  current:DailyChallengeRecord;totalCompleted:number;goldCount:number;currentStreak:number;bestStreak:number;lastCompletedKey:string;
+}
+export interface DailyChallengeRuntime {
+  key:string;seed:string;modifiers:DailyModifier[];score:number;
+}
+export interface DailyChallengeResult {
+  score:number;medal:DailyMedal;reward:number;newBest:boolean;outcome:'victory'|'death'|'abandoned';
+}
 
 export interface SwapRequest {
   itemId: string;
@@ -392,6 +408,9 @@ export interface GameEngine {
   runHistory: RunHistoryEntry[];
   runRecorded:boolean;
   contracts:ContractState;
+  dailyProfile:DailyChallengeProfile;
+  daily:DailyChallengeRuntime;
+  dailyResult:DailyChallengeResult|null;
   best: GameStats;
   /** cosméticos permanentes */
   unlockedSkins: string[];
