@@ -210,7 +210,7 @@ export function runSelfChecks():CheckReport {
     check('Credencial falsa modera la alerta',()=>{const e=setup();e.alert=0;e.player.items=['fake_id'];changeAlert(e,10);assert(e.alert===8,'crecimiento incorrecto');});
     check('Los cuatro activos añadidos ejecutan su mecánica',()=>{
       const butter=setup(),bc=butter.contents.get(butter.currentKey)!;butter.player.activeItem='butter_sprayer';handleActiveItem(butter);
-      assert(bc.puddles.length>=5&&bc.puddles.every(p=>p.kind==='water'),'aspersor sin zona de mantequilla');
+      assert(bc.puddles.length>=5&&bc.puddles.every(p=>p.kind==='butter'),'aspersor sin zona de mantequilla');
       const drone=setup();drone.player.activeItem='crumb_drone';handleActiveItem(drone);assert(drone.drone?.life===600,'dron no desplegado');
       const bread=setup();bread.player.activeItem='emergency_bread';bread.player.hp=bread.player.maxHp-2;handleActiveItem(bread);assert(bread.player.hp===bread.player.maxHp,'pan no curó 2');
       const alarm=setup();alarm.player.activeItem='fake_alarm';handleActiveItem(alarm);assert(alarm.decoy?.stunOnExpire===150&&alarm.decoy.life===240,'alarma falsa incompleta');
@@ -243,7 +243,7 @@ export function runSelfChecks():CheckReport {
       assert(LOCALE==='es-MX','locale incorrecto');
       const text=[...Object.values(T).flat().filter(v=>typeof v==='string'),...CATALOG.flatMap(i=>[i.name,i.description,i.flavor])].join(' ');
       assert(!/\b(coger|coge|pulsa|ratón|dash|cooldown|settings|room|shop|boss|skin|run|floor)\b/i.test(text),'terminología no localizada');
-      assert(COLLECTION_TABS.map(t=>t.name).join('|')==='OBJETOS|ARMAS|ENEMIGOS|JEFES|ASPECTOS','secciones incorrectas');
+      assert(COLLECTION_TABS.map(t=>t.name).join('|')==='OBJETOS|ARMAS|ENEMIGOS|JEFES|ASPECTOS|SINERGIAS','secciones incorrectas');
     });
     for(let floor=0;floor<6;floor++) for(const template of ROOM_TEMPLATES)check(`Plantilla ${floor}/${template}`,()=>{
       const room:MapRoom={gx:0,gy:0,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,distance:1,floorIndex:floor,layout:[]};
