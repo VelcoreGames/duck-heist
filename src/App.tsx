@@ -434,7 +434,7 @@ export default function App() {
       if(st===GameState.MENU){
         const i=mainMenuHit(p.x,p.y);if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
       }else if(st===GameState.DIFFICULTY){
-        for(let i=0;i<4;i++)if(inside(p.x,p.y,difficultyRect(i))&&engine.difficultyIndex!==i){engine.difficultyIndex=i;softMove();}
+        // La dificultad cambia solo al hacer clic; el hover se dibuja aparte.
       }else if(st===GameState.ENDLESS_RESUME){
         for(let i=0;i<2;i++)if(inside(p.x,p.y,endlessResumeRect(i))&&engine.endlessResumeIndex!==i){engine.endlessResumeIndex=i;softMove();}
       }else if(st===GameState.PAUSED){
@@ -444,16 +444,14 @@ export default function App() {
       }else if(st===GameState.GAME_OVER||st===GameState.VICTORY){
         const i=hitList(p.x,p.y,OVER_TOP,2,OVER_H,OVER_GAP,OVER_W);if(i>=0&&engine.pauseIndex!==i){engine.pauseIndex=i;softMove();}
       } else if(st===GameState.CAREER){
-        const w=65,gap=5,start=28;
-        for(let i=0;i<6;i++) if(inside(p.x,p.y,{x:start+i*(w+gap),y:68,w,h:24})&&engine.careerTab!==i){engine.careerTab=i;softMove();}
+        // Las pestañas cambian con clic, no con hover.
       } else if(st===GameState.CONTROLS){
         CONTROL_ROWS.forEach((_,i)=>{
           const col=i<8?0:1,row=i<8?i:i-8,bx=34+col*210,by=78+row*27;
           if(inside(p.x,p.y,{x:bx,y:by,w:202,h:22})&&engine.controlIndex!==i){engine.controlIndex=i;softMove();}
         });
       } else if(st===GameState.RUN_INFO){
-        if(inside(p.x,p.y,{x:42,y:70,w:190,h:24})&&engine.runInfoTab!==0){engine.runInfoTab=0;softMove();}
-        else if(inside(p.x,p.y,{x:248,y:70,w:190,h:24})&&engine.runInfoTab!==1){engine.runInfoTab=1;softMove();}
+        // La vista cambia únicamente con clic.
       } else if(st===GameState.ENDLESS_REWARD){
         const count=engine.endless.marketOpen?3:engine.endless.rewardOptions.length;
         const hit=endlessRewardHit(p.x,p.y,count);
