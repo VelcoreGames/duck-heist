@@ -20,7 +20,7 @@ import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
 import { DEFAULT_BINDINGS } from './controls';
-import { loadCareer, recordRun } from './career';
+import { loadCareer, recordRun, refreshContracts } from './career';
 import type { CollectionCategory } from './catalog';
 import { WARDROBE } from './layout';
 import { EVENTS } from './events';
@@ -456,6 +456,11 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
   careerData.career.bestFloor=Math.max(careerData.career.bestFloor,bestFloor);
   careerData.career.bestEndlessRound=Math.max(careerData.career.bestEndlessRound,...Object.values(endlessRecords).map(r=>r.round||0));
+  for(const d of DIFFICULTY_MODES){
+    const legacy=endlessRecords[d],rec=careerData.career.difficulty[d];
+    rec.bestEndlessRound=Math.max(rec.bestEndlessRound,legacy.round||0);
+    rec.bestEndlessScore=Math.max(rec.bestEndlessScore,legacy.score||0);
+  }
 
   setVolumes(settings.master, settings.music, settings.sfx);
 
@@ -532,6 +537,7 @@ function createPlayer(meta: Record<string, number>) {
 // RUN / PISOS
 // ---------------------------------------------------------------------------
 export function startGame(engine: GameEngine) {
+  refreshContracts(engine);
   engine.gameMode='heist';engine.pendingMode='heist';
   activeDifficulty=engine.difficulty;
   saveProgress(engine);
@@ -924,6 +930,7 @@ export function startEndlessRound(engine:GameEngine) {
 }
 
 export function startEndlessGame(engine:GameEngine) {
+  refreshContracts(engine);
   clearEndlessCheckpoint(engine);
   activeDifficulty=engine.difficulty;saveProgress(engine);nextEnemyId=0;initAudio();
   engine.gameMode='endless';engine.pendingMode='endless';engine.player=createPlayer(engine.metaLevels);
