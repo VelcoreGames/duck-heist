@@ -2267,6 +2267,14 @@ function makeProjectile(
   };
 }
 
+function weaponRunStat(engine:GameEngine,id:string) {
+  return engine.run.weaponStats[id] ?? (engine.run.weaponStats[id]={shots:0,damage:0,kills:0});
+}
+function trackWeaponDamage(engine:GameEngine,id:string|undefined,actual:number,killed=false) {
+  if(!id||actual<=0)return;
+  const stat=weaponRunStat(engine,id);stat.damage+=actual;if(killed)stat.kills++;
+}
+
 function fireWeapon(engine: GameEngine, dx: number, dy: number) {
   const p = engine.player;
   const w = activeWeapon(p);
@@ -2278,6 +2286,7 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
   if (!len) return;
   dx /= len; dy /= len;
   p.shotCounter++;
+  weaponRunStat(engine,w.id).shots++;
 
   const continuous = w.continuous;
   const baseCount=(continuous?1:w.projectileCount)+(b.triple&&p.shotCounter%4===0?2:0);
@@ -2435,7 +2444,11 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
             spawn(engine, p.x, p.y, 'spark', 6, '#9fb0c4');
             engine.damageNumbers.push({ x: e.x + e.size / 2, y: e.y - 6, value: 0, life: 1, crit: false });
             playHit();
-            if(p.sourceWeapon==='golden_egg_revolver') damageEnemy(engine,e,Math.round(p.damage*.35),false,content);
+            if(p.sourceWeapon==='golden_egg_revolver') {
+              const amount=Math.round(p.damage*.35),actual=Math.min(e.hp,amount);
+              trackWeaponDamage(engine,p.sourceWeapon,actual,amount>=e.hp);
+              damageEnemy(engine,e,amount,false,content);
+            }
             p.hitEnemies.add(e.id);
             if (!p.piercing) { engine.projectiles.splice(i, 1); removed = true; }
             break;
@@ -2459,6 +2472,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         if(crit && build.sneeze) {e.stunned=Math.max(e.stunned ?? 0,build.sneeze);e.fireCooldown=Math.max(45,e.fireCooldown);e.windup=0;e.chargeTimer=0;e.recover=40;}
 
         const final = Math.max(1, Math.floor(dmg));
+        trackWeaponDamage(engine,p.sourceWeapon,Math.min(e.hp,final),final>=e.hp);
         damageEnemy(engine, e, final, crit, content);
         if((p.knockback ?? 0)>0 && e.hp>0) {
           const len=Math.hypot(p.vx,p.vy)||1;const k=(p.knockback ?? 1)*(e.isBoss?.4:1.5);
@@ -2510,7 +2524,9 @@ function explode(engine: GameEngine, p: Projectile, content: RoomContent, hurtPl
   for (const e of [...content.enemies]) {
     if (dist(p.x, p.y, e.x + e.size / 2, e.y + e.size / 2) < radius + e.size / 2) {
       const shielded=e.behavior==='shielded' && e.recover<=0;
-      damageEnemy(engine, e, Math.max(1, Math.round(p.damage*(shielded?.4:1))), false, content);
+      const amount=Math.max(1,Math.round(p.damage*(shielded?.4:1)));
+      trackWeaponDamage(engine,p.sourceWeapon,Math.min(e.hp,amount),amount>=e.hp);
+      damageEnemy(engine,e,amount,false,content);
       if (p.burning) e.burn = Math.max(e.burn, 180);
       if(p.nuclear) {e.slowTimer=180;e.slowPower=.35;}
     }
