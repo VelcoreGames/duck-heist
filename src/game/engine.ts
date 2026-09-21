@@ -784,7 +784,7 @@ function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
     const id=rollWeapon(engine,rare||n===10);
     result.push({kind:'weapon',itemId:id,label:WEAPONS[id].name,description:WEAPONS[id].description});
   };
-  if(n===3){addItem(true);result.push(engine.endless.alert<5?{kind:'heal',amount:1,label:'PAN DE RESERVA',description:'Recupera 1 corazón.'}:{kind:'crumbs',amount:14+engine.endless.alert*2,label:'RESERVAS AGOTADAS',description:'A estas alturas el banco casi no deja curación.'});result.push({kind:'crumbs',amount:12+engine.endless.alert*2,label:'BOTÍN RÁPIDO',description:'Migas para sostener esta run.'});}
+  if(n===3){addItem(true);result.push(engine.endless.alert<5?{kind:'heal',amount:1,label:'PAN DE RESERVA',description:'Recupera 1 corazón.'}:{kind:'crumbs',amount:14+engine.endless.alert*2,label:'RESERVAS AGOTADAS',description:'A estas alturas el banco casi no deja curación.'});result.push({kind:'crumbs',amount:12+engine.endless.alert*2,label:'BOTÍN RÁPIDO',description:'Migas para sostener esta partida.'});}
   else if(n===5){addWeapon();addItem(true);result.push(engine.endless.alert<6?{kind:'heal',amount:1,label:'RESPIRAR',description:'Recupera 1 corazón antes de seguir.'}:{kind:'crumbs',amount:20+engine.endless.alert*3,label:'SIN RESPIRO',description:'En alertas altas la curación deja de estar garantizada.'});}
   else if(n===7){addItem(true);addWeapon();result.push({kind:'crumbs',amount:18+engine.endless.alert*3,label:'PREMIO DE RIESGO',description:'Convierte el desafío en migas.'});}
   else if(n===8){addItem(true);addWeapon();addItem(false);}
