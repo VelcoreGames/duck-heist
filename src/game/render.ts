@@ -69,6 +69,37 @@ function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'
 // ===========================================================================
 // CAPA DE MUNDO
 // ===========================================================================
+function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:number){
+  if(engine.gameMode!=='endless')return;
+  const e=engine.endless,alert=e.alert,pressure=e.pressure;
+  ctx.save();
+  if(alert>=2){
+    const alarm=.022+Math.min(.07,alert*.006)+Math.max(0,pressure-45)*.0007;
+    ctx.globalAlpha=alarm*(.75+.25*Math.sin(f*.045));
+    ctx.fillStyle=alert>=8?'#b51f28':'#8d342f';
+    ctx.fillRect(32,32,CANVAS_WIDTH-64,CANVAS_HEIGHT-64);
+  }
+  if(alert>=4){
+    for(let i=0;i<4;i++){
+      const y=58+i*68+Math.sin(f*.018+i)*5;
+      ctx.globalAlpha=.025+Math.min(.05,alert*.003);
+      ctx.fillStyle=i%2?'#d3d8c4':'#b7c9c7';
+      ctx.fillRect(42,y,CANVAS_WIDTH-84,1);
+    }
+  }
+  if(pressure>=50){
+    const a=Math.min(.16,(pressure-45)*.0025)*(.78+.22*Math.sin(f*.08));
+    const g=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,115,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,275);
+    g.addColorStop(0,'rgba(150,28,32,0)');g.addColorStop(1,`rgba(150,28,32,${a})`);
+    ctx.globalAlpha=1;ctx.fillStyle=g;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  }
+  if(e.milestone){
+    ctx.globalAlpha=.08+.03*Math.sin(f*.11);ctx.strokeStyle=e.round>=100?'#ff6c66':'#f4d03f';ctx.lineWidth=2;
+    ctx.strokeRect(35,35,CANVAS_WIDTH-70,CANVAS_HEIGHT-70);
+  }
+  ctx.restore();
+}
+
 export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
   const s = engine.state;
@@ -107,6 +138,7 @@ export function renderWorld(engine: GameEngine) {
     for(let i=0;i<6;i++)ctx.fillRect(48+i*67,52,16,238);
   }
   if(room.modifier==='alarm'&&!room.cleared){ctx.globalAlpha=.06+Math.sin(f*.05)*.025;ctx.fillStyle='#e15a4f';ctx.fillRect(32,32,416,288);ctx.globalAlpha=1;}
+  drawEndlessArenaMood(ctx,engine,f);
 
   for (const p of content.puddles) {
     ctx.globalAlpha = Math.min(0.55, p.life / 200);
@@ -320,10 +352,20 @@ export function renderWorld(engine: GameEngine) {
       }
       ctx.restore();
     }
-    const recoil=p.shootFlash>0?(p.shootFlash/4)*1.6:0;
+    const currentWeapon=activeWeapon(p);
+    const recoilPower=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'?2.8:
+      currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_sniper'||currentWeapon.id==='golden_egg_revolver'?2.0:1.15;
+    const recoil=p.shootFlash>0?(p.shootFlash/6)*recoilPower:0;
     const drawX=p.x-Math.cos(p.facingAngle)*recoil,drawY=p.y-Math.sin(p.facingAngle)*recoil;
-    drawDuckSkin(ctx, drawX, drawY, f, engine.equippedSkin, p.dir, p.moving,
+    const dashHorizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
+    const sx=p.dashTimer>0?(dashHorizontal?1.18:.88):p.shootFlash>0?1.04:1;
+    const sy=p.dashTimer>0?(dashHorizontal?.86:1.14):p.shootFlash>0?.97:1;
+    ctx.save();
+    ctx.translate(drawX+7,drawY+9);
+    ctx.scale(sx,sy);
+    drawDuckSkin(ctx, -7, -9, f, engine.equippedSkin, p.dir, p.moving,
       p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);
+    ctx.restore();
     if(p.shootFlash>0){
       const mx=p.x+7+Math.cos(p.facingAngle)*14,my=p.y+8+Math.sin(p.facingAngle)*14;
       ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);ctx.globalAlpha=.7;
@@ -530,9 +572,20 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   const dirX = (player.x + 7) > (e.x + e.size / 2) ? 1 : -1;
 
   if (e.spawnAnim > 0) {
-    ctx.globalAlpha = 1 - e.spawnAnim / 18;
-    ctx.fillStyle = '#ff3b30';
-    ctx.fillRect(e.x + e.size / 2 - 1, e.y - 10, 2, 10);
+    const total=e.isBoss?42:Math.max(18,e.spawnAnim);
+    const t=clamp(1-e.spawnAnim/total,0,1);
+    const cx=e.x+e.size/2,cy=e.y+e.size/2;
+    ctx.save();
+    ctx.globalAlpha=.18+.55*(1-t);
+    ctx.strokeStyle=e.isBoss?'#ff6b63':e.elite?'#f4d03f':'#ff8a63';
+    ctx.lineWidth=e.isBoss?2:1;
+    ctx.beginPath();ctx.ellipse(cx,cy+e.size*.36,e.size*(.7-.25*t),e.size*(.3-.1*t),0,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.18+.4*(1-t);
+    ctx.fillStyle=e.isBoss?'#ff5d63':'#ff8b68';
+    ctx.fillRect(cx-1,e.y-18-(1-t)*7,2,18+(1-t)*7);
+    ctx.fillRect(cx-7+(t*5),cy-1,14-t*10,2);
+    ctx.globalAlpha=t;
+    ctx.restore();
   }
 
   // aura de élite
@@ -596,6 +649,8 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       ctx.beginPath();ctx.arc(cx,cy,12+progress*42,0,Math.PI*2);ctx.stroke();
       ctx.globalAlpha*=.55;ctx.beginPath();ctx.arc(cx,cy,22+progress*58,0,Math.PI*2);ctx.stroke();
       ctx.globalAlpha=.12+.14*Math.sin(f*.35);ctx.fillStyle=accent;ctx.beginPath();ctx.arc(cx,cy,18+(54-pt)*.35,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.22+.3*(1-progress);ctx.strokeStyle=accent;ctx.lineWidth=1;
+      for(let i=0;i<8;i++){const a=i*Math.PI/4+f*.015,r1=18+progress*16,r2=34+progress*35;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);ctx.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);ctx.stroke();}
       ctx.restore();
     }
     if(e.telegraph>.05){
@@ -615,7 +670,17 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       ctx.beginPath();ctx.ellipse(e.x+e.size/2,e.y+e.size/2+3,e.size*.76,e.size*.62,0,0,Math.PI*2);ctx.stroke();ctx.restore();
       ctx.fillStyle=mutationColor;ctx.globalAlpha=.85;ctx.fillRect(e.x+e.size/2-5,e.y-10,10,2);ctx.globalAlpha=1;
     }
+    ctx.save();
+    const wind=e.telegraph>.05?e.telegraph:0;
+    const phasePulse=(e.phaseTransition??0)>0?Math.sin((54-(e.phaseTransition??0))*.28)*.045:0;
+    const scale=1+wind*.055+phasePulse;
+    ctx.translate(cx,cy);
+    ctx.scale(scale,Math.max(.9,1-wind*.025+phasePulse));
+    ctx.translate(-cx,-cy);
+    if(hurt)ctx.filter='brightness(1.85) saturate(.55)';
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
+    ctx.filter='none';
+    ctx.restore();
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
   } else {
@@ -1003,6 +1068,11 @@ function drawHUD(engine: GameEngine) {
     drawHeart(ctx,0,0,i<p.hp,p.hp>i&&p.hp<i+1);
     if(p.healFlash>0&&i<p.hp){ctx.globalAlpha=p.healFlash/36;ctx.fillStyle='#badba4';ctx.fillRect(1,13,10,1);}
     ctx.restore();
+  }
+  if(p.hurtTimer>0){
+    const hurtA=clamp(p.hurtTimer/22,0,1);
+    ctx.save();ctx.globalAlpha=.18+.34*hurtA;ctx.strokeStyle='#ff6c63';ctx.lineWidth=1;
+    ctx.strokeRect(2.5,2.5,heartW+3,21);ctx.restore();
   }
   if(p.shield>0||p.helmetShield||p.contactShield>0)text(ctx,`ESCUDO ${p.shield+p.contactShield+(p.helmetShield?1:0)}`,6,31,5.5,'#9fdae0','left');
 
