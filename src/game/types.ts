@@ -65,6 +65,8 @@ export interface Enemy {
   mutation?:EndlessBossMutation|null;
   mutationCounter?:number;
   phaseTransition?:number;
+  /** Secuencia aprendible de la firma de combate de jefes data-driven. */
+  bossAttackIndex?:number;
 }
 
 export type PickupType =
