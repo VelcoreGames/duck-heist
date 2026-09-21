@@ -26,8 +26,8 @@ export const MAP_CLOSE:Rect={x:356,y:318,w:96,h:22};
 export const HUD_MENU:Rect={x:354,y:6,w:40,h:17};
 export const SWAP_CANCEL:Rect={x:176,y:309,w:128,h:24};
 
-export const SETTINGS={x:34,y:75,w:202,h:26,gapX:8,gapY:5,cols:2};
-export const settingsRect=(i:number):Rect=>({x:SETTINGS.x+(i>=7?SETTINGS.w+SETTINGS.gapX:0),y:SETTINGS.y+(i%7)*(SETTINGS.h+SETTINGS.gapY),w:SETTINGS.w,h:SETTINGS.h});
+export const SETTINGS={x:34,y:82,w:202,h:26,gapX:8,gapY:6,cols:2,rows:6};
+export const settingsRect=(i:number):Rect=>({x:SETTINGS.x+(i>=SETTINGS.rows?SETTINGS.w+SETTINGS.gapX:0),y:SETTINGS.y+(i%SETTINGS.rows)*(SETTINGS.h+SETTINGS.gapY),w:SETTINGS.w,h:SETTINGS.h});
 export const settingsMinusRect=(i:number):Rect=>{const r=settingsRect(i);return{x:r.x+r.w-78,y:r.y+3,w:22,h:r.h-6};};
 export const settingsPlusRect=(i:number):Rect=>{const r=settingsRect(i);return{x:r.x+r.w-24,y:r.y+3,w:22,h:r.h-6};};
 export const settingsActionRect=(i:number):Rect=>{const r=settingsRect(i);return{x:r.x+r.w-88,y:r.y+3,w:84,h:r.h-6};};
