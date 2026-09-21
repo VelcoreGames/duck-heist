@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
-  restartCurrentMode, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards,
+  restartCurrentMode, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
   resumeEndlessGame, clearEndlessCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
@@ -170,7 +170,7 @@ export default function App() {
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k)) {
         e.preventDefault();
       }
-      if (e.repeat && k !== 'r') return;
+      if (e.repeat) return;
       if(k==='m') {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
       if(engine.state===GameState.MAP) {
         if(k==='escape') closeFloorMap(engine);
@@ -292,6 +292,7 @@ export default function App() {
           if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
           else if (k === 'shift') handleDash(engine);
           else if (k === ' ') handleActiveItem(engine);
+          else if (k === 'r' && engine.gameMode==='endless') recycleNearestEndlessFloorItem(engine);
           else if (k === '1' && !selectEventOption(engine,0)) selectWeaponDirect(engine, 0);
           else if (k === '2' && !selectEventOption(engine,1)) selectWeaponDirect(engine, 1);
           break;

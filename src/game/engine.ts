@@ -14,7 +14,7 @@ import {
 import { generateMap, key, freeTiles, type MapRoom } from './mapgen';
 import {
   createEndlessMap, endlessRoundKind, endlessScale, endlessSpecial, endlessStage,
-  endlessThreatRank, makeEndlessEnemyPlan, rewardRounds, specialLabel,
+  endlessThreatRank, endlessComposition, endlessMilestone, endlessBossMutation, rewardRounds, specialLabel,
 } from './endless';
 import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
@@ -29,7 +29,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -65,6 +65,7 @@ function emptyEndlessState():EndlessState {
     awaitingReward:true,bossBag:[],subbossBag:[],minibossBag:[],enemiesThisRound:0,killedThisRound:0,
     threatRank:'NORMAL',damageBySource:{contact:0,projectile:0},lastHitSource:null,
     marketOpen:false,marketIndex:0,marketDoneRound:0,nextRewardBoost:0,nextRoundTimer:0,
+    compositionLabel:'',hazardKind:null,hazardWarning:0,hazardCooldown:0,milestone:null,
   };
 }
 function queueNextEndlessRound(engine:GameEngine,frames=42) {
@@ -596,6 +597,46 @@ function applyEndlessBossRank(engine:GameEngine,boss:Enemy) {
   boss.attackCooldown=Math.max(28,boss.attackCooldown*mult.cool);
 }
 
+function applyEndlessBossMutation(engine:GameEngine,boss:Enemy,ordinal=0) {
+  if(engine.gameMode!=='endless')return;
+  const mutation=endlessBossMutation(engine.endless.round,boss.bossType,ordinal);
+  boss.mutation=mutation;
+  boss.mutationCounter=0;
+  if(!mutation)return;
+  if(mutation==='FRENÉTICO'){
+    boss.speed*=1.07;
+    boss.attackCooldown=Math.max(26,boss.attackCooldown*.84);
+  } else if(mutation==='BLINDADO'){
+    boss.hp=Math.round(boss.hp*1.18);
+    boss.maxHp=boss.hp;
+  } else if(mutation==='CAZADOR'){
+    boss.speed*=1.05;
+    boss.attackCooldown=Math.max(28,boss.attackCooldown*.94);
+  } else if(mutation==='REFUERZOS'){
+    boss.hp=Math.round(boss.hp*1.08);
+    boss.maxHp=boss.hp;
+  } else if(mutation==='TORMENTA'){
+    boss.attackCooldown=Math.max(28,boss.attackCooldown*.91);
+  }
+}
+
+function applyBossMutationAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,ang:number,tier:'mini'|'sub'|'boss') {
+  if(engine.gameMode!=='endless'||!boss.mutation)return;
+  boss.mutationCounter=(boss.mutationCounter??0)+1;
+  const n=boss.mutationCounter;
+  if(boss.mutation==='CAZADOR'&&n%2===0){
+    bossFan(engine,boss,ang,3,tier==='boss'?.18:.22,3.55,'enemy_bullet');
+  } else if(boss.mutation==='REFUERZOS'&&n%3===0){
+    const pool=tier==='boss'?['policia_rapido','dron_policial','policia_escopeta']:['policia_pato','policia_rapido'];
+    bossSupport(engine,room,content,pool,tier==='boss'?7:5);
+  } else if(boss.mutation==='TORMENTA'&&n%2===0){
+    bossRing(engine,boss,tier==='boss'?12:8,tier==='boss'?2.8:2.45,'drone_shot',engine.frame*.045);
+  } else if(boss.mutation==='FRENÉTICO'&&n%3===0){
+    boss.moveAngle=ang;
+    boss.moveTimer=Math.max(boss.moveTimer,tier==='boss'?18:14);
+  }
+}
+
 function resetEndlessArena(engine:GameEngine) {
   const room=engine.map.rooms.get(engine.currentKey)!;
   const content=getContent(engine);
@@ -646,11 +687,12 @@ function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
       boss.y=CANVAS_HEIGHT*.25;
     }
     applyEndlessBossRank(engine,boss);
+    applyEndlessBossMutation(engine,boss,i);
     if(doubleThreat){
       boss.hp=Math.round(boss.hp*.76);boss.maxHp=boss.hp;
       boss.dmgMul*=.9;boss.damage*=.9;boss.speed*=.96;boss.attackCooldown*=1.15;
     }
-    content.enemies.push(boss);names.push(def.name);
+    content.enemies.push(boss);names.push(def.name+(boss.mutation?` · ${boss.mutation}`:''));
     discover(engine,'bosses',id);
   });
   engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
@@ -826,6 +868,10 @@ export function startEndlessRound(engine:GameEngine) {
   e.round++;e.alert=Math.floor((e.round-1)/10);e.pressure=0;e.roundDamaged=false;e.killedThisRound=0;
   e.roundKind=endlessRoundKind(e.round);e.special=e.roundKind==='special'?endlessSpecial(e.round):null;
   e.threatRank=e.round%50===0?'NÉMESIS':endlessThreatRank(e.round);
+  e.milestone=endlessMilestone(e.round);
+  e.compositionLabel='';
+  e.hazardKind=null;e.hazardWarning=0;
+  e.hazardCooldown=Math.max(160,520-e.alert*22-(e.milestone?80:0));
   e.pendingEnemies=[];e.spawnCooldown=0;e.roundActive=true;e.awaitingReward=false;e.rewardOptions=[];e.rewardIndex=0;e.nextRoundTimer=0;
   resetEndlessArena(engine);configureEndlessArena(engine);
   const room=currentRoom(engine);room.cleared=false;room.doors=[];
@@ -841,12 +887,16 @@ export function startEndlessRound(engine:GameEngine) {
   engine.player.vx=0;engine.player.vy=0;engine.player.firstHitUsed=false;
   engine.player.roomShield=getBuild(engine.player).roomShield;
   const title=e.roundKind==='special'?specialLabel(e.special!):e.roundKind==='miniboss'?'MINIJEFE':e.roundKind==='subboss'?'SUBJEFE':e.roundKind==='boss'?'JEFE DE PISO':'ASALTO';
-  engine.roomLabel=`RONDA ${e.round} · ${title}`;engine.roomLabelTimer=48;
+  engine.roomLabel=e.milestone?`${e.milestone} · RONDA ${e.round}`:`RONDA ${e.round} · ${title}`;
+  engine.roomLabelTimer=e.milestone?92:48;
+  if(e.milestone){engine.toast=e.round===50?'EL BANCO ACTIVA FUERZA TOTAL':e.round===100?'DOS JEFES · UNA SOLA ARENA':'EL BANCO YA NO TIENE REGLAS';engine.toastTimer=110;playDanger('camera');}
   if(e.roundKind==='miniboss') spawnEndlessBoss(engine,'mini');
   else if(e.roundKind==='subboss') spawnEndlessBoss(engine,'sub');
   else if(e.roundKind==='boss') spawnEndlessBoss(engine,'boss');
   else {
-    e.pendingEnemies=makeEndlessEnemyPlan(e.round,e.special,engine.difficulty);
+    const composition=endlessComposition(e.round,e.special,engine.difficulty);
+    e.compositionLabel=composition.label;
+    e.pendingEnemies=[...composition.enemies];
     if(e.special==='cameras'){
       e.pendingEnemies.unshift('security_camera');
       if(e.alert>=4)e.pendingEnemies.unshift('camara_movil');
@@ -900,6 +950,26 @@ export function recycleEndlessRewards(engine:GameEngine) {
   if(!openEndlessMarketIfNeeded(engine))queueNextEndlessRound(engine,42);
 }
 
+export function recycleNearestEndlessFloorItem(engine:GameEngine) {
+  if(engine.gameMode!=='endless'||engine.state!==GameState.PLAYING||engine.swap||engine.activeSwap)return false;
+  const content=getContent(engine),p=engine.player;
+  let best=-1,bestDist=34;
+  for(let i=0;i<content.items.length;i++){
+    const it=content.items[i],d=dist(it.x+8,it.y+8,p.x+7,p.y+8);
+    if(d<bestDist){bestDist=d;best=i;}
+  }
+  if(best<0)return false;
+  const it=content.items[best];
+  const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
+  const rarity=Math.max(1,def?.rarity??1);
+  const amount=4+rarity*3+(it.isWeapon?3:0);
+  content.items.splice(best,1);
+  p.crumbs+=amount;engine.stats.breadStolen+=amount;
+  engine.toast=`RECICLADO · +${amount} MIGAJAS`;engine.toastTimer=55;
+  spawn(engine,it.x+8,it.y+8,'spark',8,'#d8bc70');playCoin();
+  return true;
+}
+
 export function confirmEndlessReward(engine:GameEngine) {
   if(engine.state!==GameState.ENDLESS_REWARD) return;
   const e=engine.endless;
@@ -916,6 +986,61 @@ export function confirmEndlessReward(engine:GameEngine) {
   if(!openEndlessMarketIfNeeded(engine))queueNextEndlessRound(engine,42);
 }
 
+function endlessHazardLabel(kind:EndlessHazardKind) {
+  return kind==='laser_cross'?'BARRIDO LÁSER':kind==='hot_corners'?'ESQUINAS EN LLAMAS':'ANILLO DE CHOQUE';
+}
+
+function chooseEndlessHazard(engine:GameEngine):EndlessHazardKind {
+  const pool:EndlessHazardKind[]=['laser_cross','hot_corners'];
+  if(engine.endless.alert>=4)pool.push('shock_ring');
+  return pool[(engine.endless.round+engine.endless.alert+Math.floor(engine.frame/60))%pool.length];
+}
+
+function triggerEndlessHazard(engine:GameEngine,content:RoomContent,kind:EndlessHazardKind) {
+  const px=engine.player.x+7,py=engine.player.y+8;
+  if(kind==='laser_cross') {
+    const horizontal=engine.endless.round%2===0;
+    const points:number[]=[];
+    for(let v=64;v<=(horizontal?CANVAS_WIDTH:CANVAS_HEIGHT)-64;v+=32)points.push(v);
+    for(const v of points){
+      const x=horizontal?v:CANVAS_WIDTH/2,y=horizontal?CANVAS_HEIGHT/2:v;
+      if(dist(x,y,px,py)<42)continue;
+      content.puddles.push({x,y,life:135,kind:'fire',radius:13});
+    }
+  } else if(kind==='hot_corners') {
+    const pts=[[66,66],[CANVAS_WIDTH-66,66],[66,CANVAS_HEIGHT-66],[CANVAS_WIDTH-66,CANVAS_HEIGHT-66]];
+    for(const [x,y] of pts)content.puddles.push({x,y,life:165,kind:'fire',radius:34});
+  } else {
+    for(let i=0;i<10;i++){
+      const a=i/10*Math.PI*2;
+      content.puddles.push({x:CANVAS_WIDTH/2+Math.cos(a)*92,y:CANVAS_HEIGHT/2+Math.sin(a)*76,life:150,kind:'fire',radius:15});
+    }
+  }
+  engine.shakeIntensity=Math.max(engine.shakeIntensity,2.5);
+  playDanger('camera');
+}
+
+function updateEndlessHazard(engine:GameEngine,content:RoomContent) {
+  const e=engine.endless;
+  if(e.alert<2||!e.roundActive)return;
+  if((e.roundKind==='miniboss'||e.roundKind==='subboss'||e.roundKind==='boss')&&e.alert<4)return;
+  if(e.hazardWarning>0){
+    e.hazardWarning--;
+    if(e.hazardWarning===0&&e.hazardKind){
+      triggerEndlessHazard(engine,content,e.hazardKind);
+      e.hazardCooldown=Math.max(210,560-e.alert*24-(e.milestone?90:0));
+      e.hazardKind=null;
+    }
+    return;
+  }
+  if(e.hazardCooldown>0){e.hazardCooldown--;return;}
+  e.hazardKind=chooseEndlessHazard(engine);
+  e.hazardWarning=54;
+  engine.toast=`PELIGRO · ${endlessHazardLabel(e.hazardKind)}`;
+  engine.toastTimer=50;
+  playDanger('camera');
+}
+
 function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomContent) {
   const e=engine.endless;
   if(engine.gameMode!=='endless'||engine.state!==GameState.PLAYING) return;
@@ -924,6 +1049,7 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     return;
   }
   const scale=endlessScale(e.round,engine.difficulty);
+  updateEndlessHazard(engine,content);
   if(e.roundKind==='combat'||e.roundKind==='special') {
     e.pressure=Math.min(100,e.pressure+scale.pressureGain);
     e.spawnCooldown--;
@@ -2813,6 +2939,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       }
       boss.attackTimer=Math.max(32,boss.attackCooldown*(1-phase*.2));
     }
+    applyBossMutationAttack(engine,boss,room,content,ang,tier);
   }
 
   const moveScale=tier==='boss'?(1+phase*.23):tier==='sub'?(1+phase*.18):(1+phase*.14);

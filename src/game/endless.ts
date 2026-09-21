@@ -1,7 +1,7 @@
 import { CANVAS_HEIGHT, CANVAS_WIDTH, RoomType } from './constants';
 import { ENEMIES } from './data';
 import { generateRoomLayout, type GameMap, type MapRoom } from './mapgen';
-import type { DifficultyMode, EndlessRoundKind, EndlessSpecial } from './types';
+import type { DifficultyMode, EndlessRoundKind, EndlessSpecial, EndlessBossMutation } from './types';
 
 export const ENDLESS_ROOM_KEY='0,0';
 
@@ -91,31 +91,93 @@ export function specialLabel(s:EndlessSpecial) {
   }[s];
 }
 
-export function makeEndlessEnemyPlan(round:number,special:EndlessSpecial|null,difficulty:DifficultyMode='normal'):string[] {
+export interface EndlessComposition {
+  label:string;
+  enemies:string[];
+}
+
+function endlessRolePool(maxFloor:number,role:'assault'|'ranged'|'tank'|'support'|'fast') {
+  const behaviors:Record<typeof role,string[]>={
+    assault:['chaser','chaser_shooter','shotgunner','baton','k9'],
+    ranged:['shooter','sniper','shotgunner','drone','grenadier','turret','atm'],
+    tank:['shielded','atm','captain'],
+    support:['medic','captain'],
+    fast:['swarmer','roller','k9','baton'],
+  };
+  return Object.values(ENEMIES).filter(e=>e.minFloor<=maxFloor&&e.damage>0&&behaviors[role].includes(e.behavior));
+}
+
+function pickAffordable(pool:ReturnType<typeof endlessRolePool>,budget:number) {
+  const choices=pool.filter(e=>e.threat<=Math.max(1,budget+1));
+  const source=choices.length?choices:pool;
+  return source.length?source[Math.floor(Math.random()*source.length)]:null;
+}
+
+export function endlessComposition(round:number,special:EndlessSpecial|null,difficulty:DifficultyMode='normal'):EndlessComposition {
   const scale=endlessScale(round,difficulty);
   const alert=Math.floor((Math.max(1,round)-1)/10);
   const maxFloor=Math.min(5,Math.floor(alert*.9)+Math.floor((round%10)/4));
-  let pool=Object.values(ENEMIES).filter(e=>e.minFloor<=maxFloor && e.damage>0);
-  if(special==='horde') pool=pool.filter(e=>e.threat<=2);
-  if(special==='crossfire') {
-    const ranged=pool.filter(e=>['shooter','sniper','shotgunner','drone','grenadier','turret','atm'].includes(e.behavior));
-    if(ranged.length) pool=ranged;
+  const all=Object.values(ENEMIES).filter(e=>e.minFloor<=maxFloor&&e.damage>0);
+  const role=(r:'assault'|'ranged'|'tank'|'support'|'fast')=>endlessRolePool(maxFloor,r);
+  let label='ASALTO MIXTO';
+  let opening:('assault'|'ranged'|'tank'|'support'|'fast')[]=['assault','ranged'];
+  if(special==='horde'){label='HORDA DE CHOQUE';opening=['fast','assault','fast','assault'];}
+  else if(special==='elite'){label='ESCUADRA ÉLITE';opening=['tank','ranged','assault'];}
+  else if(special==='crossfire'){label='FUEGO CRUZADO';opening=['ranged','ranged','assault'];}
+  else if(special==='siege'){label='FORTALEZA';opening=['tank','support','ranged','tank'];}
+  else if(special==='red_protocol'){label='PROTOCOLO ROJO';opening=['tank','support','ranged','fast'];}
+  else {
+    const templates=[
+      {label:'PINZA',roles:['assault','ranged','fast'] as typeof opening},
+      {label:'ESCOLTA',roles:['tank','support','assault'] as typeof opening},
+      {label:'CAZA',roles:['fast','fast','ranged'] as typeof opening},
+      {label:'FUEGO CRUZADO',roles:['ranged','assault','ranged'] as typeof opening},
+      {label:'COMANDO',roles:['support','assault','ranged'] as typeof opening},
+      {label:'FORTALEZA',roles:['tank','ranged','support'] as typeof opening},
+    ].filter((_,i)=>alert>=5||i<5).filter((_,i)=>alert>=2||i<3);
+    const t=templates[(round*7+alert*3)%templates.length];
+    label=t.label;opening=t.roles;
   }
-  if(special==='siege') {
-    const heavy=pool.filter(e=>e.threat>=2);
-    if(heavy.length) pool=heavy;
-  }
-  if(!pool.length) pool=Object.values(ENEMIES).filter(e=>e.minFloor===0);
-  const result:string[]=[];
+  const enemies:string[]=[];
   let budget=Math.max(3,scale.budget+(special==='horde'?4:special==='red_protocol'?5:0));
-  let guard=0;
-  while(budget>0 && guard++<60) {
-    const candidates=pool.filter(e=>e.threat<=budget+1);
-    const pick=(candidates.length?candidates:pool)[Math.floor(Math.random()*(candidates.length?candidates.length:pool.length))];
-    result.push(pick.id);
-    budget-=Math.max(1,pick.threat);
+  for(const r of opening){
+    const pick=pickAffordable(role(r),budget);
+    if(!pick) continue;
+    enemies.push(pick.id);budget-=Math.max(1,pick.threat);
+    if(budget<=0) break;
   }
-  return result;
+  let guard=0;
+  while(budget>0&&guard++<60){
+    let pool=all;
+    if(special==='horde') pool=all.filter(e=>e.threat<=2);
+    if(special==='elite') pool=all.filter(e=>e.threat>=2);
+    const pick=pickAffordable(pool,budget);
+    if(!pick)break;
+    enemies.push(pick.id);budget-=Math.max(1,pick.threat);
+  }
+  return {label,enemies};
+}
+
+export function makeEndlessEnemyPlan(round:number,special:EndlessSpecial|null,difficulty:DifficultyMode='normal'):string[] {
+  return endlessComposition(round,special,difficulty).enemies;
+}
+
+export function endlessMilestone(round:number) {
+  if(round===50)return 'ATRACO CRÍTICO';
+  if(round===100)return 'DOBLE AMENAZA';
+  if(round>100&&round%50===0)return 'PROTOCOLO SIN REGLAS';
+  return null;
+}
+
+export function endlessBossMutation(round:number,bossType:string,ordinal=0):EndlessBossMutation|null {
+  const rank=endlessThreatRank(round);
+  if(rank==='NORMAL')return null;
+  const veteran:EndlessBossMutation[]=['FRENÉTICO','BLINDADO'];
+  const elite:EndlessBossMutation[]=['FRENÉTICO','BLINDADO','CAZADOR','REFUERZOS'];
+  const nemesis:EndlessBossMutation[]=['FRENÉTICO','CAZADOR','REFUERZOS','TORMENTA','BLINDADO'];
+  const pool=rank==='VETERANO'?veteran:rank==='ÉLITE'?elite:nemesis;
+  const salt=[...bossType].reduce((a,ch)=>a+ch.charCodeAt(0),0)+round*13+ordinal*19;
+  return pool[salt%pool.length];
 }
 
 export function rewardRounds(round:number) {

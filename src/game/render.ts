@@ -175,6 +175,23 @@ export function renderWorld(engine: GameEngine) {
     }
   }
 
+  if(engine.gameMode==='endless'&&engine.endless.hazardWarning>0&&engine.endless.hazardKind){
+    const e=engine.endless,t=1-e.hazardWarning/54;
+    ctx.save();ctx.globalAlpha=.16+.24*Math.sin((f+e.hazardWarning)*.42)**2;
+    ctx.strokeStyle=e.hazardKind==='laser_cross'?'#ff6f64':e.hazardKind==='hot_corners'?'#ff9d5c':'#e6d66a';
+    ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=2;
+    if(e.hazardKind==='laser_cross'){
+      if(e.round%2===0){ctx.fillRect(58,CANVAS_HEIGHT/2-7,CANVAS_WIDTH-116,14);}
+      else ctx.fillRect(CANVAS_WIDTH/2-7,56,14,CANVAS_HEIGHT-112);
+    } else if(e.hazardKind==='hot_corners'){
+      for(const [x,y] of [[66,66],[CANVAS_WIDTH-66,66],[66,CANVAS_HEIGHT-66],[CANVAS_WIDTH-66,CANVAS_HEIGHT-66]]){ctx.beginPath();ctx.arc(x,y,34,0,Math.PI*2);ctx.stroke();}
+    } else {
+      ctx.beginPath();ctx.ellipse(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,92,76,0,0,Math.PI*2);ctx.stroke();
+    }
+    ctx.globalAlpha=.78;text(ctx,`PELIGRO · ${e.hazardKind==='laser_cross'?'LÁSER':e.hazardKind==='hot_corners'?'ESQUINAS':'ANILLO'}`,CANVAS_WIDTH/2,42,5.6,'#ffb079','center',true);
+    ctx.restore();void t;
+  }
+
   for (const p of content.pickups) {
     if (p.type === 'hp' || p.type === 'sandwich' || p.type === 'baguette' ||
         p.type === 'croissant' || p.type === 'torta' || p.type === 'pan_dorado') {
@@ -189,11 +206,26 @@ export function renderWorld(engine: GameEngine) {
     } else drawCoin(ctx, p.x, p.y, f, p.type === 'golden_crumb');
   }
 
+  let nearestEndlessItem:{x:number;y:number;itemId:string;isWeapon:boolean;isActive:boolean;d:number}|null=null;
   for (const it of content.items) {
     const fy = it.y + Math.sin(f * 0.07) * 2;
     const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
-    ctx.globalAlpha=ITEMS[it.itemId]?.cursed?.3:.14;ctx.fillStyle=ITEMS[it.itemId]?.cursed?'#663174':RARITY_COLORS[def?.rarity ?? 3];ctx.beginPath();ctx.arc(it.x+8,fy+8,17,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-    drawItemIcon(ctx,it.x-4,fy-4,it.itemId,24,RARITY_COLORS[def?.rarity ?? 3]);
+    const rarityColor=RARITY_COLORS[def?.rarity ?? 3];
+    const categoryColor=it.isWeapon?'#66c7ff':it.isActive?'#c98cff':rarityColor;
+    ctx.globalAlpha=ITEMS[it.itemId]?.cursed?.34:.17;ctx.fillStyle=ITEMS[it.itemId]?.cursed?'#663174':categoryColor;ctx.beginPath();ctx.arc(it.x+8,fy+8,18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.strokeStyle=categoryColor;ctx.globalAlpha=.62;ctx.strokeRect(it.x-5,fy-5,26,26);ctx.globalAlpha=1;
+    drawItemIcon(ctx,it.x-4,fy-4,it.itemId,24,rarityColor);
+    if(engine.gameMode==='endless'){
+      const d=dist(it.x+8,it.y+8,engine.player.x+7,engine.player.y+8);
+      if(d<38&&(!nearestEndlessItem||d<nearestEndlessItem.d))nearestEndlessItem={...it,d};
+    }
+  }
+  if(nearestEndlessItem){
+    const it=nearestEndlessItem;
+    const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
+    text(ctx,it.isWeapon?'ARMA':it.isActive?'ACTIVO':'OBJETO',it.x+8,it.y-15,5.2,it.isWeapon?'#7fd6ff':it.isActive?'#d4a6ff':'#e7d48a','center',true);
+    text(ctx,`E · TOMAR   R · RECICLAR`,it.x+8,it.y+34,4.8,'#d4d9d2','center');
+    if(def?.name) text(ctx,def.name,it.x+8,it.y-7,4.8,'#c8d0cc','center');
   }
 
   for (const e of content.enemies) drawEnemy(ctx, e, f, engine);
@@ -525,6 +557,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
 
   if (e.isBoss) {
+    if(engine.gameMode==='endless'&&e.mutation){
+      const mutationColor=e.mutation==='TORMENTA'?'#79c8ff':e.mutation==='BLINDADO'?'#aab9c8':e.mutation==='CAZADOR'?'#ff7b68':e.mutation==='REFUERZOS'?'#d6b06a':'#ff9b58';
+      ctx.save();ctx.globalAlpha=.16+.08*Math.sin(f*.14+e.id);ctx.strokeStyle=mutationColor;ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(e.x+e.size/2,e.y+e.size/2+3,e.size*.76,e.size*.62,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ctx.fillStyle=mutationColor;ctx.globalAlpha=.85;ctx.fillRect(e.x+e.size/2-5,e.y-10,10,2);ctx.globalAlpha=1;
+    }
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
@@ -902,7 +940,7 @@ function renderDangerEventHUD(engine: GameEngine) {
 
 function drawHUD(engine: GameEngine) {
   const ctx=engine.ui!;
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.6.6',8,8);ctx.restore();
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.7.0',8,8);ctx.restore();
   const p=engine.player;
   const heartW=Math.min(p.maxHp,10)*13+7;
   ctx.fillStyle='rgba(5,12,18,.48)';ctx.fillRect(4,4,heartW,18);
@@ -986,7 +1024,10 @@ function drawHUD(engine: GameEngine) {
     text(ctx,`ALERTA ${e.alert} · ${e.threatRank}`,12,73,5.2,'#b9c7be','left');
     const pw=88;ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(12,78,pw,4);
     ctx.fillStyle=e.pressure>=75?'#e55f55':e.pressure>=50?'#e6a04e':'#78b99a';ctx.fillRect(12,78,pw*clamp(e.pressure/100,0,1),4);
-    text(ctx,`PRESIÓN ${Math.round(e.pressure)}%`,104,86,4.6,'#8fa1a8','right');
+    const pressureState=e.pressure>=75?'CRÍTICO':e.pressure>=50?'PELIGRO':e.pressure>=25?'ALERTA':'CONTROL';
+    text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${pressureState}`,104,86,4.4,e.pressure>=75?'#ef8278':'#8fa1a8','right',e.pressure>=75);
+    if(e.compositionLabel&&e.roundActive&&e.roundKind!=='boss'&&e.roundKind!=='subboss'&&e.roundKind!=='miniboss')text(ctx,e.compositionLabel,12,96,4.8,'#8ea9a2','left',true);
+    if(e.milestone)text(ctx,e.milestone,240,31,6.4,e.round>=100?'#ff6c66':'#f4d03f','center',true);
   }
 }
 
@@ -1008,6 +1049,7 @@ function drawBossBar(engine: GameEngine) {
   text(ctx,tier,CANVAS_WIDTH/2,y-12,5.4,'#7f8998','center');
   text(ctx,def?.name??'',CANVAS_WIDTH/2,y,isFloorBoss?14:isSubBoss?12:11,accent,'center',true);
   if(phaseText) text(ctx,phaseText,CANVAS_WIDTH/2,y+22,5.2,accent,'center',phase>0);
+  if(engine.gameMode==='endless'&&boss.mutation) text(ctx,`MUTACIÓN · ${boss.mutation}`,CANVAS_WIDTH/2,y+30,5.1,boss.mutation==='TORMENTA'?'#8ecfff':boss.mutation==='BLINDADO'?'#b6c3ce':'#f2a66f','center',true);
   ctx.fillStyle='rgba(4,6,12,.88)';ctx.fillRect(x,y+6,w,10);
   const pct=clamp(boss.hp/boss.maxHp,0,1)*clamp(1-boss.spawnAnim/30,0,1);
   const g=ctx.createLinearGradient(x,0,x+w,0);
@@ -1097,7 +1139,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.6.6',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.7.0',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
