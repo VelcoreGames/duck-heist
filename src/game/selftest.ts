@@ -3,7 +3,7 @@ import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENE
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
-import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,GameState } from './engine';
+import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,type Dir } from './constants';
@@ -251,6 +251,22 @@ export function runSelfChecks():CheckReport {
       assert(late.warning<early.warning&&late.warning>=34,'aviso tardío ilegible');
       assert(late.repeatCooldown<early.repeatCooldown&&late.repeatCooldown>=145,'cadencia de peligros fuera de rango');
       assert(late.openingCooldown>=120,'peligro inicial instantáneo');
+    });
+    check('Sin Fin muestra el botín viajando al pato antes de cobrarlo',()=>{
+      const e=setup(),c=e.contents.get(e.currentKey)!;e.gameMode='endless';e.state=GameState.PLAYING;e.endless.round=1;e.endless.roundActive=true;
+      e.player.crumbs=0;e.player.goldenCrumbs=0;e.totalGoldenCrumbs=0;e.player.hp=e.player.maxHp;
+      c.items=[{x:70,y:70,itemId:'feather_gun',isWeapon:true,isActive:false}];
+      c.pickups=[{x:390,y:75,type:'crumb',value:5,lifetime:99999},{x:390,y:250,type:'golden_crumb',value:2,lifetime:99999},{x:80,y:250,type:'hp',value:1,lifetime:99999}];
+      const beforeItem=dist(c.items[0].x+8,c.items[0].y+8,e.player.x+7,e.player.y+8);
+      const beforeCoin=dist(c.pickups[0].x,c.pickups[0].y,e.player.x+7,e.player.y+8);
+      beginEndlessFloorSweep(e,c);
+      assert(e.player.crumbs===0&&e.totalGoldenCrumbs===0,'el botín se cobró antes de animarse');
+      assert(c.items[0].vacuuming&&c.pickups.every(p=>p.forceMagnet),'el barrido no marcó todo el botín');
+      tick(e,5);
+      assert(c.items.length===0||dist(c.items[0].x+8,c.items[0].y+8,e.player.x+7,e.player.y+8)<beforeItem,'el objeto no viajó al pato');
+      assert(c.pickups.length<3||dist(c.pickups[0].x,c.pickups[0].y,e.player.x+7,e.player.y+8)<beforeCoin,'las monedas no viajaron al pato');
+      tick(e,120);
+      assert(e.player.crumbs>=5&&e.totalGoldenCrumbs===2,'el botín visual no se acreditó al llegar');
     });
     check('Sin Fin limpia drops entre rondas sin perder monedas',()=>{
       const e=setup(),c=e.contents.get(e.currentKey)!;e.gameMode='endless';e.player.crumbs=0;e.player.goldenCrumbs=0;e.totalGoldenCrumbs=0;
