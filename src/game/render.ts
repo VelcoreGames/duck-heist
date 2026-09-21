@@ -1839,96 +1839,59 @@ function renderSwapUI(engine: GameEngine) {
   const ctx = engine.ui!;
   const req = engine.swap!;
   const p = engine.player;
-  ctx.fillStyle = 'rgba(4,5,12,0.88)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-  const w = 410, h = 250;
-  const x = CANVAS_WIDTH / 2 - w / 2, y = CANVAS_HEIGHT / 2 - h / 2;
-  drawPanel(ctx, x, y, w, h, 'rgba(9,12,22,0.98)', '#f4d03f');
-  titleText(ctx, T.inventoryFull, CANVAS_WIDTH / 2, y + 26, 18, '#ff9f43');
-  text(ctx, T.replaceQuestion, CANVAS_WIDTH / 2, y + 42, 11, '#e8c99b', 'center', true);
-
-  // arma en el suelo (nueva)
   const newW = WEAPONS[req.itemId];
-  const px = x + 16, py = y + 54;
-  ctx.fillStyle = 'rgba(255,159,67,0.12)';
-  ctx.fillRect(px, py, w - 32, 44);
-  ctx.strokeStyle = '#f4a72b';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(px, py, w - 32, 44);
-  text(ctx, T.onFloor, px + 8, py + 13, 9, '#8792a5', 'left', true);
-  ctx.save();
-  ctx.translate(px + 8, py + 18);
-  ctx.scale(1.2, 1.2);
-  drawWeaponIcon(ctx, 0, 0, newW.id);
-  ctx.restore();
-  wrappedText(ctx,newW.name,px+40,py+24,w-85,10,12,1,RARITY_COLORS[newW.rarity],true);
-  wrappedText(ctx,newW.special,px+40,py+38,w-85,8,10,1,'#c3cbd9');
+  const x=35,y=51,w=410,h=250;
 
-  // tus armas (con iluminación clara de selección y comparación de estadísticas)
-  text(ctx, T.yours, x + 16, y + 112, 10, '#8792a5', 'left', true);
+  drawMenuBackdrop(ctx,engine.frame,.92,'#ff9f43');
+  drawMenuHeader(ctx,'INVENTARIO LLENO','Compara antes de soltar un arma.',engine.frame,'#ff9f43','CAMBIO DE EQUIPO');
+
+  drawMenuCard(ctx,x+16,y+12,w-32,52,true,'#ff9f43','rgba(35,25,18,.97)');
+  text(ctx,'EN EL SUELO',x+28,y+30,5,'#a58162','left',true,false);
+  ctx.save();ctx.translate(x+30,y+35);ctx.scale(1.2,1.2);drawWeaponIcon(ctx,0,0,newW.id);ctx.restore();
+  wrappedText(ctx,newW.name,x+64,y+38,w-112,9,11,1,RARITY_COLORS[newW.rarity],true);
+  wrappedText(ctx,newW.special,x+64,y+53,w-112,5.8,7,1,'#aeb9b4');
+
+  text(ctx,'ELIGE QUÉ ARMA SOLTAR',x+16,y+91,5.4,'#73878b','left',true,false);
+
   for (let i = 0; i < 2; i++) {
     const w2 = p.weapons[i]!;
-    const bw = (w - 40) / 2;
+    const bw = 185;
     const bx = x + 16 + i * (bw + 8);
-    const by = y + 120;
+    const by = 171;
     const sel = engine.swapSel === i;
 
-    ctx.save();
-    if (sel) {
-      ctx.shadowColor = '#f4d03f';
-      ctx.shadowBlur = 10;
-    }
-    ctx.fillStyle = sel ? 'rgba(244,208,63,0.18)' : 'rgba(255,255,255,0.03)';
-    ctx.fillRect(bx, by, bw, 84);
-    ctx.fillStyle = sel ? '#f4d03f' : '#2f3644';
-    ctx.fillRect(bx, by, bw, sel ? 2 : 1);
-    ctx.fillRect(bx, by + 83, bw, 1);
-    ctx.fillRect(bx, by, 1, 84);
-    ctx.fillRect(bx + bw - 1, by, 1, 84);
-    ctx.restore();
+    drawMenuCard(ctx,bx,by,bw,84,sel,'#ff9f43',sel?'rgba(42,31,21,.98)':'rgba(10,23,29,.96)');
+    text(ctx,'SLOT '+(i+1),bx+10,by+14,4.8,sel?'#ff9f43':'#65797e','left',true,false);
+    text(ctx,RARITY_NAMES[w2.rarity],bx+bw-10,by+14,4.8,RARITY_COLORS[w2.rarity],'right',true,false);
+    ctx.save();ctx.translate(bx+9,by+21);ctx.scale(1.15,1.15);ctx.globalAlpha=sel?1:.72;drawWeaponIcon(ctx,0,0,w2.id);ctx.restore();
+    wrappedText(ctx,w2.name,bx+38,by+28,bw-50,7.5,9,1,sel?'#fff0c2':'#c7d1cc',true);
 
-    text(ctx, `${T.slot} ${i + 1}`, bx + 8, by + 14, 9, sel ? '#fff6c9' : '#8792a5', 'left', true);
-    wrappedText(ctx,w2.name,bx+36,by+25,bw-42,8,10,1,sel?'#fff6c9':'#a9b3c4',true);
-    text(ctx, RARITY_NAMES[w2.rarity], bx + bw - 8, by + 14, 8, RARITY_COLORS[w2.rarity], 'right', true);
-
-    ctx.save();
-    ctx.translate(bx + 8, by + 18);
-    ctx.scale(1.15, 1.15);
-    ctx.globalAlpha = sel ? 1 : 0.6;
-    drawWeaponIcon(ctx, 0, 0, w2.id);
-    ctx.restore();
-
-    // Comparación de estadísticas si está seleccionada
-    if (sel) {
-      const statsComp: [string, number, number][] = [
-        [T.statDmg, newW.bars.dmg, w2.bars.dmg],
-        [T.statRate, newW.bars.rate, w2.bars.rate],
-        [T.statRange, newW.bars.range, w2.bars.range],
-        [T.statSpeed, newW.bars.speed, w2.bars.speed],
-      ];
-      statsComp.forEach(([label, newV, curV], si) => {
-        const sy = by + 38 + si * 10;
-        const diff = newV - curV;
-        text(ctx, label, bx + 8, sy + 3, 5.8, '#a0b2b3', 'left');
-        for (let b = 0; b < 5; b++) {
-          ctx.fillStyle = b < newV ? (diff > 0 ? '#39d353' : diff < 0 ? '#ff5b4f' : '#f4d03f') : 'rgba(255,255,255,0.12)';
-          ctx.fillRect(bx + 103 + b * 9, sy - 3, 7, 5);
-        }
-        const diffLabel = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '=';
-        const diffCol = diff > 0 ? '#39d353' : diff < 0 ? '#ff5b4f' : '#8792a5';
-        text(ctx, diffLabel, bx + bw - 8, sy + 3, 8, diffCol, 'right', true);
-      });
-      titleText(ctx, '\u25BC REEMPLAZAR', bx + bw / 2, by - 4, 9, '#f4d03f');
-    } else {
-      wrappedText(ctx,w2.special,bx+8,by+49,bw-16,7.5,10,2,'#7c8494');
-    }
+    const statsComp:[string,number,number][]=[
+      [T.statDmg,newW.bars.dmg,w2.bars.dmg],
+      [T.statRate,newW.bars.rate,w2.bars.rate],
+      [T.statRange,newW.bars.range,w2.bars.range],
+      [T.statSpeed,newW.bars.speed,w2.bars.speed],
+    ];
+    statsComp.forEach(([label,newV,curV],si)=>{
+      const sy=by+40+si*9,diff=newV-curV;
+      text(ctx,label,bx+9,sy+3,4.7,'#7f9397','left',false,false);
+      for(let b=0;b<5;b++){
+        ctx.fillStyle=b<newV?(diff>0?'#78c99a':diff<0?'#d85d58':'#e6c56f'):'rgba(255,255,255,.1)';
+        ctx.fillRect(bx+91+b*9,sy-3,7,5);
+      }
+      text(ctx,diff>0?'+'+diff:diff<0?String(diff):'=',bx+bw-8,sy+3,6,diff>0?'#78c99a':diff<0?'#d85d58':'#788d91','right',true,false);
+    });
+    if(sel) text(ctx,'REEMPLAZAR',bx+bw/2,by+79,5.2,'#ffb465','center',true,false);
   }
 
   const old=p.weapons[engine.swapSel];
-  text(ctx,`ACTUAL: ${old?.description ?? ''}`,240,y+h-34,7,'#8ea4a3');
-  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · REEMPLAZAR':'1 / 2 · ELEGIR · CLIC O ENTER/E PARA CONFIRMAR',240,y+h-20,8,'#e8c99b','center',true);
-  text(ctx,engine.lastInput==='gamepad'?'B · CANCELAR':T.cancel,240,y+h-8,8,'#7c8494');
+  text(ctx,'ACTUAL · '+(old?.description ?? ''),240,271,5.4,'#839799','center',false,false);
+  drawMenuFooter(
+    ctx,
+    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · REEMPLAZAR   B · CANCELAR':'1 / 2 · ELEGIR   ENTER / E · REEMPLAZAR   ESC · CANCELAR',
+    'EL ARMA DESCARTADA QUEDA EN EL SUELO',
+    '#ff9f43',
+  );
 }
 
 function renderEndlessResumeUI(engine:GameEngine) {
