@@ -320,7 +320,7 @@ export function renderWorld(engine: GameEngine) {
     const it=nearestEndlessItem;
     const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
     text(ctx,it.isWeapon?'ARMA':it.isActive?'ACTIVO':'OBJETO',it.x+8,it.y-15,5.2,it.isWeapon?'#7fd6ff':it.isActive?'#d4a6ff':'#e7d48a','center',true);
-    text(ctx,`E · TOMAR   R · RECICLAR`,it.x+8,it.y+34,4.8,'#d4d9d2','center');
+    text(ctx,actionPrompt(engine,'interact')+' · TOMAR   R · RECICLAR',it.x+8,it.y+34,4.8,'#d4d9d2','center');
     if(def?.name) text(ctx,def.name,it.x+8,it.y-7,4.8,'#c8d0cc','center');
   }
 
@@ -1032,7 +1032,7 @@ function renderPrompts(engine: GameEngine) {
     wrappedText(ctx,event.used?event.message:def.description,x+10,y+53,w-20,8,11,2,'#b9cac0');
     if(!event.used) {
       def.options.forEach((s,i)=>text(ctx,`${i+1} · ${s}`,x+11,y+78+i*13,8,event.selected===i?'#f4d03f':'#728c8c','left',event.selected===i));
-      prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    E · CONFIRMAR');
+      prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    '+actionPrompt(engine,'interact')+' · CONFIRMAR');
     }
   }
   if(content.challenge==='alarm' && !room.cleared) text(ctx,`ALARMA · ${Math.ceil((content.alarmTimer ?? 0)/60)} s`,240,64,9,'#e2a477','center',true);
@@ -2014,7 +2014,7 @@ function renderSwapUI(engine: GameEngine) {
   text(ctx,'ACTUAL · '+(old?.description ?? ''),240,271,5.4,'#839799','center',false,false);
   drawMenuFooter(
     ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · REEMPLAZAR   B · CANCELAR':'1 / 2 · ELEGIR   ENTER / E · REEMPLAZAR   ESC · CANCELAR',
+    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · REEMPLAZAR   B · CANCELAR':'1 / 2 · ELEGIR   ENTER / '+keyLabel(engine.bindings.interact)+' · REEMPLAZAR   ESC · CANCELAR',
     'EL ARMA DESCARTADA QUEDA EN EL SUELO',
     '#ff9f43',
   );
