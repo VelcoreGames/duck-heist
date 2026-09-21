@@ -1,3 +1,4 @@
+import { gameRandom } from './random';
 import { ITEMS, ACTIVE_ITEMS } from './data';
 import type { ItemRole } from './expansion';
 import type { GameEngine } from './types';
@@ -12,7 +13,7 @@ export function pickPassive(e:GameEngine,role?:ItemRole,exclude:string[]=[],rare
   // Recent offers are de-prioritized, but uncollected objects remain valid.
   const unseen=pool.filter(id=>!e.offeredItems.includes(id));if(unseen.length) pool=unseen;
   if(!pool.length) return null;
-  const id=pool[Math.floor(Math.random()*pool.length)];e.offeredItems.push(id);return id;
+  const id=pool[Math.floor(gameRandom()*pool.length)];e.offeredItems.push(id);return id;
 }
 export function diverseRewards(e:GameEngine):string[] {
   const result:string[]=[];
@@ -24,5 +25,5 @@ export function diverseRewards(e:GameEngine):string[] {
 }
 export function fallbackActive(e:GameEngine) {
   const pool=Object.keys(ACTIVE_ITEMS).filter(id=>id!==e.player.activeItem);
-  return pool[Math.floor(Math.random()*pool.length)];
+  return pool[Math.floor(gameRandom()*pool.length)];
 }

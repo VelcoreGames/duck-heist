@@ -21,6 +21,8 @@ import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
 import { DEFAULT_BINDINGS } from './controls';
 import { loadCareer, recordRun, refreshContracts } from './career';
+import { seededRandom, gameRandom, setGameRandom, resetGameRandom } from './random';
+import { dailyModifiers, dailyScore, ensureDailyProfile, finalizeDaily, loadDailyChallenge } from './dailyChallenge';
 import type { CollectionCategory } from './catalog';
 import { WARDROBE } from './layout';
 import { EVENTS } from './events';
@@ -46,9 +48,10 @@ import {
 // ---------------------------------------------------------------------------
 // UTILIDADES
 // ---------------------------------------------------------------------------
-const rng = (min: number, max: number) => Math.random() * (max - min) + min;
-const rngInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+const random=gameRandom;
+const rng = (min: number, max: number) => random() * (max - min) + min;
+const rngInt = (min: number, max: number) => Math.floor(random() * (max - min + 1)) + min;
+const pick = <T,>(a: T[]): T => a[Math.floor(random() * a.length)];
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -56,7 +59,7 @@ const bound=(engine:GameEngine,action:keyof GameEngine['bindings'])=>!!engine.ke
 const clearBound=(engine:GameEngine,action:keyof GameEngine['bindings'])=>{engine.keys[engine.bindings[action]]=false;};
 const isPolice=(e:Enemy)=>e.type.startsWith('policia')||e.type==='dron_policial'||e.type==='ganso_k9'||e.type==='security_camera';
 function scaledCurrency(value:number,multiplier:number) {
-  const amount=value*multiplier;return Math.floor(amount)+(Math.random()<amount%1?1:0);
+  const amount=value*multiplier;return Math.floor(amount)+(random()<amount%1?1:0);
 }
 
 let nextEnemyId = 0;
@@ -104,6 +107,7 @@ export const DIFFICULTIES:Record<DifficultyMode,DifficultyDef> = {
   mad:{label:'LOCO POR EL PAN',desc:'El banco va a por ti. Máxima presión, más élites y casi sin respiro.',hp:1.28,dmg:1.38,speed:1.12,fire:.74,count:1.22,elite:1.75,startHearts:0,floorHeal:.5},
 };
 let activeDifficulty:DifficultyMode = 'normal';
+let activeDailyModifiers:import('./types').DailyModifier[]=[];
 
 export function getDifficulty(engine:GameEngine) { return DIFFICULTIES[engine.difficulty]; }
 export function difficultyLabel(engine:GameEngine) { return getDifficulty(engine).label; }
@@ -131,10 +135,13 @@ export function floorScale(floorIndex: number, roomDistance = 0): DiffScale {
   const fire=Math.max(.55,1-f*.07);
   const count=1+f*.22+depth;
   const elite=f<=1?(f===1?.1:0):Math.min(.42,.14+f*.09+depth*.5);
+  const security=activeDailyModifiers.includes('SECURITY_SURGE');
+  const speedCheck=activeDailyModifiers.includes('SPEED_CHECK');
+  const eliteAudit=activeDailyModifiers.includes('ELITE_AUDIT');
   return {
-    hp:hp*mode.hp,dmg:dmg*mode.dmg,speed:speed*mode.speed,
-    fire:Math.max(.42,Math.min(1.28,fire*mode.fire)),count:count*mode.count,
-    eliteChance:elite===0?0:Math.min(.65,elite*mode.elite),pattern:f,
+    hp:hp*mode.hp*(security?1.18:1),dmg:dmg*mode.dmg*(security?1.12:1),speed:speed*mode.speed*(speedCheck?1.06:1),
+    fire:Math.max(.42,Math.min(1.28,fire*mode.fire*(speedCheck?.86:1))),count:count*mode.count,
+    eliteChance:elite===0?(eliteAudit?.16:0):Math.min(.78,elite*mode.elite+(eliteAudit?.16:0)),pattern:f,
   };
 }
 
@@ -204,7 +211,7 @@ function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss'
 function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
   const content: RoomContent = {
     enemies: [], pickups: [], items: [], puddles: [],
-    doorAnim: {}, lockFlash: 0, combatTimer: 0, ambient: Math.random() * 100,
+    doorAnim: {}, lockFlash: 0, combatTimer: 0, ambient: random() * 100,
     magnet: 0,
   };
   for (const d of room.doors) content.doorAnim[d] = 1;
@@ -225,15 +232,15 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
       const extra = Math.floor((sc.count - 1) * 2.2);
       for (let i = 0; i < extra && list.length < 9; i++) list.push(pick(list));
       if((b.extraEnemy || room.modifier==='alarm')&&list.length<10) list.push('policia_pato');
-      if(engine.map.floorIndex>=2&&engine.alert>30&&Math.random()<.4) list.push(pick(['policia_francotirador','policia_medico','policia_capitan','ganso_k9']));
+      if(engine.map.floorIndex>=2&&engine.alert>30&&random()<.4) list.push(pick(['policia_francotirador','policia_medico','policia_capitan','ganso_k9']));
       if(room.modifier==='cameras') {list.push('security_camera');content.securityTimer=540;}
       for (const t of list) {
         const spot = spots.pop();
         if (!spot) break;
         const canElite = !!ELITE_OK[t] && engine.map.floorIndex >= 1;
-        content.enemies.push(makeEnemy(t, sc, spot.x, spot.y, canElite && Math.random() < sc.eliteChance));
+        content.enemies.push(makeEnemy(t, sc, spot.x, spot.y, canElite && random() < sc.eliteChance));
       }
-      if(room.type===RoomType.CHALLENGE) {content.challenge=Math.random()<.5?'flawless':'alarm';if(content.challenge==='alarm') content.alarmTimer=1800;}
+      if(room.type===RoomType.CHALLENGE) {content.challenge=random()<.5?'flawless':'alarm';if(content.challenge==='alarm') content.alarmTimer=1800;}
       break;
     }
     case RoomType.MINIBOSS: {
@@ -280,7 +287,7 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
         content.pickups.push({
           x: rng(TILE_SIZE * 3, CANVAS_WIDTH - TILE_SIZE * 3),
           y: rng(TILE_SIZE * 3, CANVAS_HEIGHT - TILE_SIZE * 3),
-          type: Math.random() < 0.3 ? 'golden_crumb' : 'crumb',
+          type: random() < 0.3 ? 'golden_crumb' : 'crumb',
           value: rngInt(2, 5), lifetime: 99999,
         });
       }
@@ -303,7 +310,7 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
       if(pool.length<3) pool=Object.keys(WEAPONS).filter(id=>id!=='quack_blaster');
       const selected:string[]=[];
       while(selected.length<3 && pool.length) {
-        const index=Math.floor(Math.random()*pool.length);
+        const index=Math.floor(random()*pool.length);
         selected.push(pool.splice(index,1)[0]);
       }
       content.shopItems=selected.map((id,i)=>({
@@ -312,10 +319,10 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
       break;
     }
     case RoomType.EVENT: {
-      if (Math.random() < .38) {
+      if (random() < .38) {
         content.cafe = true;
         const foods = ['hp','croissant','sandwich','baguette','torta'];
-        const selected = [...foods].sort(() => Math.random() - .5).slice(0, 3);
+        const selected = [...foods].sort(() => random() - .5).slice(0, 3);
         const foodCost = (id:string) => id === 'hp' ? 5 : id === 'croissant' ? 7 : (id === 'sandwich' || id === 'baguette') ? 9 : 14;
         content.shopItems = selected.map((id, i) => ({
           itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:145+i*95,y:232,
@@ -336,9 +343,9 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
 }
 
 export function rollItem(engine: GameEngine): string {
-  if(Math.random()<.16) return fallbackActive(engine);
+  if(random()<.16) return fallbackActive(engine);
   const b=getBuild(engine.player),special=currentRoom(engine).type!==RoomType.COMBAT;
-  return pickPassive(engine,undefined,[],Math.random()<.2+b.rarityLuck+(special?b.specialReward:0)) ?? fallbackActive(engine);
+  return pickPassive(engine,undefined,[],random()<.2+b.rarityLuck+(special?b.specialReward:0)) ?? fallbackActive(engine);
 }
 
 /** Arma aleatoria evitando duplicar las que ya llevas */
@@ -348,7 +355,7 @@ function rollWeapon(engine: GameEngine, biasRare = false): string {
   if (!pool.length) pool = Object.keys(WEAPONS).filter(w => w !== 'quack_blaster');
   if (biasRare) {
     const rare = pool.filter(w => WEAPONS[w].rarity >= 2);
-    if (rare.length && Math.random() < 0.75) return pick(rare);
+    if (rare.length && random() < 0.75) return pick(rare);
   }
   return pick(pool);
 }
@@ -415,6 +422,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let settings = { ...DEFAULT_SETTINGS };
   let bindings = { ...DEFAULT_BINDINGS };
   const careerData=loadCareer();
+  const dailyProfile=loadDailyChallenge();
+  ensureDailyProfile(dailyProfile);
   let best = { breadStolen: 0, enemiesDefeated: 0, roomsCleared: 0, goldenCrumbs: 0, floorsCleared: 0 };
   let unlockedSkins: string[] = ['robber'];
   let equippedSkin = 'robber';
@@ -484,7 +493,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     restartHold: 0, bossDefeatTimer: 0, rewardDropTimer: 0,
     swap: null, swapSel: 0, swapGuard: 0, overlayLabels: [],
     totalGoldenCrumbs: totalGolden, metaLevels, settings, bindings, controlIndex:0, controlCapture:false,
-    career:careerData.career,runHistory:careerData.history,runRecorded:false,contracts:careerData.contracts,best,
+    career:careerData.career,runHistory:careerData.history,runRecorded:false,contracts:careerData.contracts,
+    dailyProfile,daily:{key:dailyProfile.current.key,seed:dailyProfile.current.seed,modifiers:dailyModifiers(dailyProfile.current.key),score:0},dailyResult:null,best,
     unlockedSkins, equippedSkin,
     discovered, bestFloor, newRecord:false, knownSynergies:[],endFrame:0,
     heistIntroTimer:0,heistIntroSeen:false, hitStop:0, deathEchoes:[], decoy:null,
@@ -499,8 +509,8 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   };
 }
 
-function newRunStats() {
-  const seed=`PAN-${Math.floor(Math.random()*0xffffffff).toString(16).toUpperCase().padStart(8,'0')}`;
+function newRunStats(seedOverride?:string) {
+  const seed=seedOverride??`PAN-${Math.floor(random()*0xffffffff).toString(16).toUpperCase().padStart(8,'0')}`;
   return { time: 0, bosses: 0, items: 0, weaponsFound: 1, dmgDealt: 0, dmgTaken: 0, floorReached: 1, goldenEarned: 0,seed,weaponIds:['quack_blaster'],itemIds:[],weaponStats:{} };
 }
 
@@ -538,7 +548,8 @@ function createPlayer(meta: Record<string, number>) {
 // ---------------------------------------------------------------------------
 export function startGame(engine: GameEngine) {
   refreshContracts(engine);
-  engine.gameMode='heist';engine.pendingMode='heist';
+  resetGameRandom();activeDailyModifiers=[];
+  engine.gameMode='heist';engine.pendingMode='heist';engine.dailyResult=null;
   activeDifficulty=engine.difficulty;
   saveProgress(engine);
   nextEnemyId = 0;
@@ -580,6 +591,32 @@ export function startGame(engine: GameEngine) {
   saveProgress(engine);
 }
 
+export function startDailyChallenge(engine:GameEngine) {
+  refreshContracts(engine);ensureDailyProfile(engine.dailyProfile);
+  const current=engine.dailyProfile.current;
+  engine.gameMode='daily';engine.pendingMode='daily';engine.difficulty='normal';engine.difficultyIndex=DIFFICULTY_MODES.indexOf('normal');
+  activeDifficulty='normal';engine.daily={key:current.key,seed:current.seed,modifiers:dailyModifiers(current.key),score:0};engine.dailyResult=null;
+  activeDailyModifiers=[...engine.daily.modifiers];setGameRandom(seededRandom(current.seed+':run'));
+  saveProgress(engine);nextEnemyId=0;initAudio();
+  engine.player=createPlayer({});
+  if(engine.daily.modifiers.includes('GLASS_BEAK')) {engine.player.maxHp=3;engine.player.hp=3;engine.player.damageMultiplier*=1.25;}
+  engine.tutorialRun=false;
+  engine.alert=engine.daily.modifiers.includes('HOT_START')?25:0;engine.roomStreak=0;engine.seenRoomKeys=[];engine.offeredItems=[];engine.stainedFloor=-1;
+  engine.tutorialHint=null;engine.pad={...engine.pad,moveX:0,moveY:0,shoot:false};
+  engine.run=newRunStats(current.seed);engine.map=generateMap(0,current.seed);engine.contents=new Map();engine.currentKey=engine.map.startKey;
+  engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];
+  engine.stats={breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
+  discover(engine,'items','emergency_quack');
+  engine.shakeIntensity=0;engine.restartHold=0;engine.bossDefeatTimer=0;engine.rewardDropTimer=0;engine.floorClearTimer=0;
+  engine.swap=null;engine.swapGuard=0;engine.swapSel=0;engine.pickupCard=null;
+  engine.mouseDown=false;engine.keys={};engine.hitStop=0;engine.deathEchoes=[];engine.decoy=null;
+  engine.grenades=[];engine.remoteBomb=null;engine.drone=null;engine.coffeeCrash=0;engine.activeSwap=null;
+  engine.knownSynergies=[];engine.synergyNotice=null;engine.newRecord=false;engine.runRecorded=false;engine.tooltip={key:'',since:0};
+  engine.bossIntroSeen={};engine.overlayLabels=[];engine.transition={active:false,timer:0,total:22,dir:null,targetKey:null};
+  enterRoom(engine,engine.map.startKey,null);engine.floorIntroTimer=110;engine.state=GameState.FLOOR_INTRO;
+  engine.roomLabel='DESAFÍO DIARIO';engine.roomLabelTimer=90;setMusic('run',0);engine.onStateChange?.(engine.state);saveProgress(engine);
+}
+
 export function beginHeist(engine:GameEngine) {
   engine.heistIntroTimer=90;engine.state=GameState.HEIST_INTRO;engine.mouseDown=false;engine.keys={};
   playDoorLock();setMusic('off');engine.onStateChange?.(engine.state);
@@ -593,7 +630,7 @@ function endlessBagPick(engine:GameEngine,tier:'mini'|'sub'|'boss'):string {
   const source=tier==='mini'?Object.keys(MINIBOSSES):tier==='sub'?Object.keys(SUBBOSSES):Object.keys(BOSSES);
   if(!bag.length) {
     bag=[...source];
-    for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}
+    for(let i=bag.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}
     state[keyName]=bag;
   }
   return bag.shift() ?? source[0];
@@ -931,6 +968,7 @@ export function startEndlessRound(engine:GameEngine) {
 
 export function startEndlessGame(engine:GameEngine) {
   refreshContracts(engine);
+  resetGameRandom();activeDailyModifiers=[];engine.dailyResult=null;
   clearEndlessCheckpoint(engine);
   activeDifficulty=engine.difficulty;saveProgress(engine);nextEnemyId=0;initAudio();
   engine.gameMode='endless';engine.pendingMode='endless';engine.player=createPlayer(engine.metaLevels);
@@ -948,14 +986,20 @@ export function startEndlessGame(engine:GameEngine) {
   engine.state=GameState.PLAYING;setMusic('run',0);queueNextEndlessRound(engine,42);
 }
 
+function recordOutcome(engine:GameEngine,outcome:'victory'|'death'|'abandoned') {
+  if(engine.testing||engine.runRecorded||engine.run.time<=0)return;
+  if(engine.gameMode==='daily')finalizeDaily(engine,outcome);
+  recordRun(engine,outcome);
+}
 export function restartCurrentMode(engine:GameEngine) {
-  recordRun(engine,'abandoned');
+  recordOutcome(engine,'abandoned');
   if(engine.gameMode==='endless'||engine.pendingMode==='endless') startEndlessGame(engine);
+  else if(engine.gameMode==='daily'||engine.pendingMode==='daily') startDailyChallenge(engine);
   else startGame(engine);
 }
 
 export function abandonCurrentRun(engine:GameEngine) {
-  recordRun(engine,'abandoned');
+  recordOutcome(engine,'abandoned');
   saveProgress(engine);
 }
 
@@ -1087,11 +1131,11 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     if(e.pendingEnemies.length&&content.enemies.length<scale.maxActive+pressureBoost&&e.spawnCooldown<=0) {
       const id=e.pendingEnemies.shift()!;
       const spots=freeTiles(room.layout,2).filter(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>105);
-      const spot=spots[Math.floor(Math.random()*Math.max(1,spots.length))]??freeTiles(room.layout,2)[0];
+      const spot=spots[Math.floor(random()*Math.max(1,spots.length))]??freeTiles(room.layout,2)[0];
       if(spot) {
         const sc=endlessDiffScale(engine);
         const forcedElite=e.special==='elite'||e.special==='red_protocol';
-        const elite=!!ELITE_OK[id]&&(forcedElite||Math.random()<Math.min(.9,scale.eliteChance+e.pressure*.0025));
+        const elite=!!ELITE_OK[id]&&(forcedElite||random()<Math.min(.9,scale.eliteChance+e.pressure*.0025));
         content.enemies.push(makeEnemy(id,sc,spot.x,spot.y,elite));
       }
       e.spawnCooldown=Math.max(10,scale.spawnDelay-Math.floor(e.pressure/18));
@@ -1099,9 +1143,9 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     if(e.pressure>=100) {
       e.pressure=62;playDanger('camera');engine.toast='PRESIÓN 100% · REFUERZOS';engine.toastTimer=70;
       const pool=Object.values(ENEMIES).filter(x=>x.minFloor<=Math.min(5,e.alert)&&x.damage>0);
-      const def=pool[Math.floor(Math.random()*pool.length)];
+      const def=pool[Math.floor(random()*pool.length)];
       const spot=freeTiles(room.layout,2).find(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>120);
-      if(def&&spot) content.enemies.push(makeEnemy(def.id,endlessDiffScale(engine),spot.x,spot.y,!!ELITE_OK[def.id]&&Math.random()<.65));
+      if(def&&spot) content.enemies.push(makeEnemy(def.id,endlessDiffScale(engine),spot.x,spot.y,!!ELITE_OK[def.id]&&random()<.65));
     }
   }
   if((e.roundKind==='miniboss'||e.roundKind==='subboss'||e.roundKind==='boss')&&e.alert>=4) {
@@ -1113,10 +1157,10 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     if(e.pressure>=100&&supports<supportCap&&content.enemies.some(x=>x.isBoss)) {
       e.pressure=45;
       const pool=['policia_pato','policia_rapido',...(e.alert>=6?['dron_policial','policia_escopeta']:[])];
-      const id=pool[Math.floor(Math.random()*pool.length)];
+      const id=pool[Math.floor(random()*pool.length)];
       const spot=freeTiles(room.layout,2).find(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>125);
       if(spot) {
-        const elite=!!ELITE_OK[id]&&e.alert>=8&&Math.random()<Math.min(.6,scale.eliteChance);
+        const elite=!!ELITE_OK[id]&&e.alert>=8&&random()<Math.min(.6,scale.eliteChance);
         content.enemies.push(makeEnemy(id,endlessDiffScale(engine),spot.x,spot.y,elite));
         engine.toast='REFUERZO DURANTE EL JEFE';engine.toastTimer=70;playDanger('camera');
       }
@@ -1152,11 +1196,13 @@ function descendStairs(engine: GameEngine) {
 function loadNextFloor(engine: GameEngine) {
   const idx = engine.map.floorIndex + 1;
   if (idx >= TOTAL_FLOORS) {
-    engine.totalGoldenCrumbs+=100;engine.run.goldenEarned+=100;engine.stats.goldenCrumbs+=100;
-    engine.madUnlocked=true;
-    try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
-    if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
-    recordRun(engine,'victory');
+    if(engine.gameMode!=='daily'){
+      engine.totalGoldenCrumbs+=100;engine.run.goldenEarned+=100;engine.stats.goldenCrumbs+=100;
+      engine.madUnlocked=true;
+      try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
+      if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
+    }
+    recordOutcome(engine,'victory');
     engine.state = GameState.VICTORY;
     engine.endFrame=engine.frame;playQuack();
     engine.pauseIndex = 0;
@@ -1318,9 +1364,9 @@ function spawnDangerEventSecurity(engine:GameEngine, room:MapRoom, content:RoomC
     return true;
   });
   for(let i=0;i<count && spots.length;i++) {
-    const index=Math.floor(Math.random()*spots.length);
+    const index=Math.floor(random()*spots.length);
     const spot=spots.splice(index,1)[0];
-    const type=pool[Math.floor(Math.random()*pool.length)];
+    const type=pool[Math.floor(random()*pool.length)];
     content.enemies.push(makeEnemy(type,floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
   }
 }
@@ -1385,7 +1431,12 @@ export function updateEngine(engine: GameEngine) {
   if(engine.state===GameState.MAP) return;
   engine.frame++;
   if(engine.state===GameState.HEIST_INTRO) {
-    if(--engine.heistIntroTimer<=0) { engine.heistIntroSeen=true;if(engine.pendingMode==='endless')startEndlessGame(engine);else startGame(engine); }
+    if(--engine.heistIntroTimer<=0) {
+      engine.heistIntroSeen=true;
+      if(engine.pendingMode==='endless')startEndlessGame(engine);
+      else if(engine.pendingMode==='daily')startDailyChallenge(engine);
+      else startGame(engine);
+    }
     return;
   }
   if (engine.roomLabelTimer > 0) engine.roomLabelTimer--;
@@ -1417,6 +1468,7 @@ export function updateEngine(engine: GameEngine) {
   const room = currentRoom(engine);
   const content = getContent(engine);
   engine.run.time++;
+  if(engine.gameMode==='daily')engine.daily.score=dailyScore(engine,'live');
   updateEndlessDirector(engine,room,content);
   if(engine.state!==GameState.PLAYING) return;
   updateTutorial(engine);
@@ -1614,7 +1666,7 @@ export function updateEngine(engine: GameEngine) {
       const a=Math.atan2(target.y-child.y,target.x-child.x);
       const proj=makeProjectile(child.x+8,child.y+8,Math.cos(a)*4,Math.sin(a)*4,'quack',child.damage,true,60);
       engine.projectiles.push(proj);
-      if(Math.random()<build.duplicates) engine.projectiles.push({...proj,vy:proj.vy+.25,hitEnemies:new Set()});
+      if(random()<build.duplicates) engine.projectiles.push({...proj,vy:proj.vy+.25,hitEnemies:new Set()});
       child.cooldown=(child.kind==='chicken'?60:child.damage===3?32:48)*(gang?.75:1);
     }
   });
@@ -1739,7 +1791,7 @@ export function updateEngine(engine: GameEngine) {
       }
       if (isCoin) spawn(engine, p.x, p.y, 'spark', 4, '#f4d03f');
       if(isCoin) playCoin(); else playHeal();
-      if(!isCoin && Math.random()<build.keepFood) {p.collectDelay=75;spawn(engine,p.x,p.y,'spark',2,'#afd9ae');}
+      if(!isCoin && random()<build.keepFood) {p.collectDelay=75;spawn(engine,p.x,p.y,'spark',2,'#afd9ae');}
       else content.pickups.splice(i, 1);
       continue;
     }
@@ -1811,7 +1863,7 @@ export function updateEngine(engine: GameEngine) {
       for (let i = 0; i < 6; i++) {
         content.pickups.push({ x: c.x + rng(-22, 22), y: c.y + rng(-18, 18), type: 'crumb', value: rngInt(2, 5), lifetime: 99999 });
       }
-      if (Math.random() < 0.3) content.pickups.push({ x: c.x + 24, y: c.y, type: 'hp', value: 1, lifetime: 99999 });
+      if (random() < 0.3) content.pickups.push({ x: c.x + 24, y: c.y, type: 'hp', value: 1, lifetime: 99999 });
       spawn(engine, c.x + 10, c.y, 'coin', 14, '#f4d03f');
       engine.shakeIntensity = Math.max(engine.shakeIntensity, 2.5);
       playExplosion();
@@ -1884,7 +1936,7 @@ export function updateEngine(engine: GameEngine) {
     if(firstClear && (room.type===RoomType.COMBAT || room.type===RoomType.CHALLENGE)){
       if(!content.damaged){
         engine.roomStreak++;engine.toast='SALA PERFECTA';engine.toastTimer=90;
-        if(!content.perfectAwarded&&Math.random()<.25)content.pickups.push({x:240,y:192,type:Math.random()<.85?'crumb':'hp',value:5,lifetime:99999});
+        if(!content.perfectAwarded&&random()<.25)content.pickups.push({x:240,y:192,type:random()<.85?'crumb':'hp',value:5,lifetime:99999});
         if(engine.roomStreak===3||engine.roomStreak===5){player.perfectBuff=600;engine.toast=engine.roomStreak===3?'3 SALAS · IMPECABLE':'5 SALAS · PROFESIONAL';engine.toastTimer=110;}
       }else engine.roomStreak=0;
       content.perfectAwarded=true;
@@ -1892,7 +1944,7 @@ export function updateEngine(engine: GameEngine) {
     }
     applyMapItemEffects(engine,false);
     spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 16, '#39d353');
-    if (room.type === RoomType.COMBAT && Math.random() < .07+getBuild(player).rewardChance*.5+engine.alert*.0003+(room.modifier==='alarm'?.03:0)) {
+    if (room.type === RoomType.COMBAT && random() < .07+getBuild(player).rewardChance*.5+engine.alert*.0003+(room.modifier==='alarm'?.03:0)) {
       content.items.push({ x: CANVAS_WIDTH / 2 - 8, y: CANVAS_HEIGHT / 2 - 8, itemId: rollItem(engine), isWeapon: false, isActive: false });
     }
     if (room.type === RoomType.CHALLENGE) {
@@ -1901,7 +1953,7 @@ export function updateEngine(engine: GameEngine) {
     }
     if(content.event?.kind==='interrogation') content.items.push({x:232,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     if(room.type===RoomType.BOSS) {content.rewardTimer=75;setMusic('run',engine.map.floorIndex);}
-    if(room.type===RoomType.COMBAT && Math.random()<.12) content.pickups.push({x:240,y:198,type:'hp',value:1,lifetime:99999});
+    if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:240,y:198,type:'hp',value:1,lifetime:99999});
   }
 
   for (const d of room.doors) {
@@ -1913,13 +1965,13 @@ export function updateEngine(engine: GameEngine) {
   if ((content.rewardTimer ?? 0) > 0) {
     content.rewardTimer!--;
     if (content.rewardTimer === 0 && room.type === RoomType.BOSS && !content.stairs) {
-      const asWeapon = Math.random() < 0.45;
+      const asWeapon = random() < 0.45;
       const pedestal:Pedestal = {
         x: CANVAS_WIDTH / 2 - 12, y: CANVAS_HEIGHT / 2 - 14,
         itemId: asWeapon ? rollWeapon(engine, true) : rollBossRewardItem(engine),
         isWeapon: asWeapon, taken: false, bossLoot: true,rise:0,
       };
-      if(Math.random()<.4) {
+      if(random()<.4) {
         content.choices=[{...pedestal,x:132,itemId:rollWeapon(engine,true),isWeapon:true},
           {...pedestal,x:228,itemId:rollBossRewardItem(engine),isWeapon:false},
           {...pedestal,x:324,itemId:'pan_dorado',isWeapon:false,isFood:true}];
@@ -1971,7 +2023,7 @@ export function updateEngine(engine: GameEngine) {
       saveEndlessRecord(engine);
       clearEndlessCheckpoint(engine);
     }
-    recordRun(engine,'death');
+    recordOutcome(engine,'death');
     engine.state = GameState.GAME_OVER;
     engine.swap=null;engine.mouseDown=false;engine.keys={};
     engine.endFrame=engine.frame;
@@ -2170,14 +2222,17 @@ function foodHeal(type: string): number {
 }
 
 function rollFood() {
-  const n=Math.random();
+  const n=random();
   return n<.01?'pan_dorado':n<.06?'torta':n<.2?'baguette':n<.4?'sandwich':n<.55?'croissant':'hp';
 }
 
 function healPlayer(engine: GameEngine, n: number) {
   const p = engine.player;
   if (n >= 99) p.hp = p.maxHp;
-  else p.hp = Math.min(p.maxHp, p.hp + n*getBuild(p).healing);
+  else {
+    const dailyHeal=engine.gameMode==='daily'&&engine.daily.modifiers.includes('NO_LUNCH')?.65:1;
+    p.hp=Math.min(p.maxHp,p.hp+n*getBuild(p).healing*dailyHeal);
+  }
   p.healFlash=36;
   if(getBuild(p).honey) p.honeyTimer=300;
   if(getBuild(p).chocolate) p.chocolateTimer=300;
@@ -2313,7 +2368,7 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
     if(p.chocolateTimer>0) dmg*=1+b.chocolate;
     let burning = false;
     if (p.items.includes('toaster') && p.shotCounter % 5 === 0) { type = 'toast'; dmg *= 1.5; burning = true; }
-    if (b.burn>0 || Math.random()<b.burnChance || (w.id==='baguette_launcher'&&b.burnChance>0)) burning = true;
+    if (b.burn>0 || random()<b.burnChance || (w.id==='baguette_launcher'&&b.burnChance>0)) burning = true;
     if (w.id === 'quack_blaster' && p.shotCounter % 6 === 0) { dmg *= 1.4; type = 'quack_power'; }
     if (w.id === 'feather_gun') {
       p.heat = Math.min(100, p.heat + 8);
@@ -2343,7 +2398,7 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
     engine.projectiles.push(proj);
     proj.ricochetBoost=p.items.includes('industrial_butter');
 
-    if (Math.random()<b.duplicates) {
+    if (random()<b.duplicates) {
       engine.projectiles.push({ ...proj, hitEnemies: new Set(),bounces:proj.bounces+(w.id==='rubber_duck_cannon'?1:0), vx: proj.vx + rng(-0.6, 0.6), vy: proj.vy + rng(-0.6, 0.6) });
     }
   }
@@ -2389,7 +2444,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     p.x += p.vx; p.y += p.vy;
     if(!p.friendly && !p.reflectionTested && player.dashTimer>0 && build.reflectChance && dist(p.x,p.y,player.x+7,player.y+8)<25) {
       p.reflectionTested=true;
-      if(Math.random()<build.reflectChance) {p.friendly=true;p.vx*=-1;p.vy*=-1;p.damage=10;p.hitEnemies.clear();spawn(engine,p.x,p.y,'spark',4,'#aad9dd');continue;}
+      if(random()<build.reflectChance) {p.friendly=true;p.vx*=-1;p.vy*=-1;p.damage=10;p.hitEnemies.clear();spawn(engine,p.x,p.y,'spark',4,'#aad9dd');continue;}
     }
     if(!p.friendly && build.bodyguard && player.guardianCooldown<=0) {
       const guard=player.companions.find(c=>c.kind==='guard');
@@ -2477,7 +2532,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         let crit = false;
         let critChance = p.type === 'golden_egg' ? 0.3 : 0.05;
         critChance+=build.crit;
-        if (Math.random() < critChance) { dmg *= 2; crit = true; }
+        if (random() < critChance) { dmg *= 2; crit = true; }
         if(crit && build.sneeze) {e.stunned=Math.max(e.stunned ?? 0,build.sneeze);e.fireCooldown=Math.max(45,e.fireCooldown);e.windup=0;e.chargeTimer=0;e.recover=40;}
 
         const final = Math.max(1, Math.floor(dmg));
@@ -2493,13 +2548,13 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         if (p.burning || (crit && build.spicyCrit)) e.burn = Math.max(e.burn, 180);
         if(build.slow>0) {e.slowTimer=120;e.slowPower=build.slow;}
         if(build.sticky) {e.stickyStacks=Math.min(.45,(e.stickyStacks ?? 0)+build.sticky*(p.type==='quack_laser'?2:1));e.slowTimer=180;e.slowPower=Math.max(e.slowPower ?? 0,e.stickyStacks);}
-        if(crit && (build.goldCrit>0 || p.sourceWeapon==='golden_egg_revolver') && Math.random()<.35) content.pickups.push({x:e.x+e.size/2,y:e.y+e.size/2,type:'crumb',value:1,lifetime:99999});
-        if(crit && Math.random()<build.critCoinChance) content.pickups.push({x:e.x+e.size/2,y:e.y+e.size/2,type:'crumb',value:1,lifetime:99999});
+        if(crit && (build.goldCrit>0 || p.sourceWeapon==='golden_egg_revolver') && random()<.35) content.pickups.push({x:e.x+e.size/2,y:e.y+e.size/2,type:'crumb',value:1,lifetime:99999});
+        if(crit && random()<build.critCoinChance) content.pickups.push({x:e.x+e.size/2,y:e.y+e.size/2,type:'crumb',value:1,lifetime:99999});
         if(crit && e.hp<=0 && build.confetti) {
           spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',9,'#ddb0dd');
           for(const other of [...content.enemies]) if(dist(e.x,e.y,other.x,other.y)<58) damageEnemy(engine,other,build.confetti,false,content);
         }
-        if (p.type === 'quack_laser' && player.items.includes('golden_beak') && Math.random() < 0.14) {
+        if (p.type === 'quack_laser' && player.items.includes('golden_beak') && random() < 0.14) {
           content.pickups.push({ x: e.x + e.size / 2, y: e.y + e.size / 2, type: 'crumb', value: 1, lifetime: 600 });
         }
         if (p.explode > 0) { explode(engine, p, content); engine.projectiles.splice(i, 1); removed = true; break; }
@@ -3077,7 +3132,7 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
     if(floor) playBossWin(); else playEnemyDeath();
   } else playEnemyDeath();
 
-  const bonus=build.extraCrumbs+(Math.random()<build.extraDrop?2:0)+(e.elite?3:0)+(e.type==='robot_cajero'||e.bossType==='cajero_3000'?4:0);
+  const bonus=build.extraCrumbs+(random()<build.extraDrop?2:0)+(e.elite?3:0)+(e.type==='robot_cajero'||e.bossType==='cajero_3000'?4:0);
   const luckBonus = engine.player.items.includes('lucky_feather') ? 1 : 0;
   const coinCount=rngInt(1,3)+bonus+(room.modifier==='openVault'?2:0);
   for (let c = 0; c < coinCount; c++) {
@@ -3086,7 +3141,7 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
       type: 'crumb', value: scaledCurrency(rngInt(1,3),build.currencyScale), lifetime: 900,
     });
   }
-  if (Math.random() < 0.1 + luckBonus * 0.05 || e.isBoss) {
+  if (random() < 0.1 + luckBonus * 0.05 || e.isBoss) {
     content.pickups.push({
       x: e.x + e.size / 2, y: e.y + e.size / 2,
       type: 'golden_crumb', value: e.isBoss ? rngInt(5, 10) : 1, lifetime: 99999,
@@ -3095,14 +3150,14 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   if (engine.player.items.includes('pond_water')) {
     content.puddles.push({ x: e.x + e.size / 2, y: e.y + e.size / 2, life: 420 });
   }
-  if(Math.random()<build.radiation) content.puddles.push({x:e.x+e.size/2,y:e.y+e.size/2,life:240,kind:'radiation',radius:32});
+  if(random()<build.radiation) content.puddles.push({x:e.x+e.size/2,y:e.y+e.size/2,life:240,kind:'radiation',radius:32});
 
   if (e.isBoss) {
     spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 26, '#f4d03f');
     if(BOSSES[e.bossType]) engine.run.bosses++;
     if (engine.gameMode!=='endless' && room.type !== RoomType.BOSS) {
       // el minijefe suelta botín inmediato (arma u objeto, de forma coherente)
-      const asWeapon = Math.random() < 0.5;
+      const asWeapon = random() < 0.5;
       content.items.push({
         x: e.x + e.size / 2 - 8, y: e.y + e.size / 2 - 8,
         itemId: asWeapon ? rollWeapon(engine, true) : rollItem(engine),
@@ -3110,14 +3165,14 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
       });
       content.pickups.push({ x: e.x + e.size / 2 + 26, y: e.y + e.size / 2 + 14, type: 'hp', value: 1, lifetime: 99999 });
     }
-  } else if (engine.gameMode!=='endless' && Math.random() < 0.07 + luckBonus * 0.03) {
+  } else if (engine.gameMode!=='endless' && random() < 0.07 + luckBonus * 0.03) {
     // curaciones poco frecuentes
     content.pickups.push({
       x: e.x + e.size / 2, y: e.y + e.size / 2,
       type: rollFood(), value: 1, lifetime: 99999,
     });
   }
-  if(engine.gameMode!=='endless' && e.elite && Math.random()<.04) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+  if(engine.gameMode!=='endless' && e.elite && random()<.04) content.items.push({x:e.x,y:e.y,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
 }
 
 export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact'|'projectile'='contact',police=false) {
@@ -3132,7 +3187,7 @@ export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact
     p.iFrames=30;spawn(engine,p.x+7,p.y+8,'spark',8,'#b7dfe5');playHit();return;
   }
 
-  if (Math.random()<b.block+(source==='projectile'?b.projectileBlock:0)) {
+  if (random()<b.block+(source==='projectile'?b.projectileBlock:0)) {
     spawn(engine, p.x + 7, p.y + 8, 'crumb', 6, '#a67c52');
     engine.damageNumbers.push({ x: p.x + 7, y: p.y - 4, value: 0, life: 1, crit: false });
     p.iFrames = 18;
@@ -3142,7 +3197,7 @@ export function damagePlayer(engine: GameEngine, dmgMul: number, source:'contact
   const heavy = dmgMul >= 1.5;
   let loss = (heavy ? 2 : 1)*(source==='contact' && police?1-b.contactReduction:1);
   if(!p.firstHitUsed) {loss*=1-b.firstHitReduction;p.firstHitUsed=true;}
-  if(p.hp<=loss && !p.reviveUsed && Math.random()<b.lethalSave) {
+  if(p.hp<=loss && !p.reviveUsed && random()<b.lethalSave) {
     p.reviveUsed=true;p.hp=.5;p.iFrames=120;engine.toast='¡HOY NO!';engine.toastTimer=90;getContent(engine).damaged=true;return;
   }
   p.hp = Math.max(0, p.hp - loss);
@@ -3298,12 +3353,10 @@ function spawn(engine: GameEngine, x: number, y: number, type: string, count: nu
 function saveProgress(engine: GameEngine) {
   if(engine.testing) return;
   try {
-    if(engine.run.time>0 && engine.run.floorReached>engine.bestFloor) {engine.bestFloor=engine.run.floorReached;engine.newRecord=true;}
+    if(engine.gameMode!=='daily'&&engine.run.time>0&&engine.run.floorReached>engine.bestFloor) {engine.bestFloor=engine.run.floorReached;engine.newRecord=true;}
     localStorage.setItem('duckheist_save', JSON.stringify(permanentSnapshot(engine)));
-    if (engine.stats.breadStolen > (engine.best.breadStolen ?? 0)) {
-      engine.newRecord=true;
-      engine.best = { ...engine.stats };
-      localStorage.setItem('duckheist_best', JSON.stringify(engine.stats));
+    if(engine.gameMode!=='daily'&&engine.stats.breadStolen>(engine.best.breadStolen??0)) {
+      engine.newRecord=true;engine.best={...engine.stats};localStorage.setItem('duckheist_best',JSON.stringify(engine.stats));
     }
   } catch { /* ignorar */ }
 }
@@ -3456,7 +3509,7 @@ function activateEvent(engine:GameEngine) {
     case 'injured':p.hp--;awardGolden(engine,8);event.message='Los cómplices no se olvidan.';break;
     case 'interrogation':event.message='No hemos visto ningún pato.';changeAlert(engine,-3);break;
     case 'atm':
-      if(Math.random()<.35) {awardGolden(engine,8);event.message='¡Error bancario a tu favor!';}
+      if(random()<.35) {awardGolden(engine,8);event.message='¡Error bancario a tu favor!';}
       else {content.pickups.push({x:240,y:143,type:'crumb',value:4,lifetime:99999});event.message='Solo devuelve 4 migajas. Típico.';}break;
   }
   playPickup();
