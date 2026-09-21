@@ -262,9 +262,9 @@ export function runSelfChecks():CheckReport {
       assert(e.player.crumbs>=5+result.recycledMigas&&e.totalGoldenCrumbs===2,'monedas perdidas');
     });
     check('Plantilla masiva contiene al menos 40 por jerarquía',()=>{
-      assert(Object.keys(MINIBOSSES).length>=40,'faltan minijefes');
-      assert(Object.keys(SUBBOSSES).length>=40,'faltan subjefes');
-      assert(Object.values(BOSSES).filter(b=>!b.finalBoss).length>=40,'faltan jefes de piso rotativos');
+      assert(Object.keys(MINIBOSSES).length>=48,'faltan minijefes');
+      assert(Object.keys(SUBBOSSES).length>=48,'faltan subjefes');
+      assert(Object.values(BOSSES).filter(b=>!b.finalBoss).length>=48,'faltan jefes de piso rotativos');
     });
     check('Cada jefe data-driven tiene firma de combate única y válida',()=>{
       const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
@@ -284,7 +284,7 @@ export function runSelfChecks():CheckReport {
     });
     check('Pisos 1 a 5 rotan ocho jefes y piso 6 fija al Gran Jefe',()=>{
       assert(FLOOR_BOSS_POOL.length===6,'cantidad de pisos incorrecta');
-      assert(FLOOR_BOSS_POOL.slice(0,5).every(pool=>pool.length===8),'cada piso previo debe tener ocho jefes');
+      assert(FLOOR_BOSS_POOL.slice(0,5).every(pool=>pool.length>=8),'cada piso previo debe tener al menos ocho jefes');
       assert(FLOOR_BOSS_POOL[5].length===1&&FLOOR_BOSS_POOL[5][0]===FINAL_BOSS_ID,'jefe final no está fijado');
       assert(BOSSES[FINAL_BOSS_ID]?.finalBoss===true&&BOSSES[FINAL_BOSS_ID]?.name==='EL GRAN JEFE DEL BANCO','identidad del jefe final incorrecta');
     });
@@ -292,8 +292,8 @@ export function runSelfChecks():CheckReport {
       const mini=new Set(FLOOR_MINIBOSS_POOL.flat()),sub=new Set(FLOOR_SUBBOSS_POOL.flat());
       assert(Object.keys(MINIBOSSES).every(id=>mini.has(id)),'minijefe inaccesible');
       assert(Object.keys(SUBBOSSES).every(id=>sub.has(id)),'subjefe inaccesible');
-      assert(FLOOR_MINIBOSS_POOL.slice(0,5).every(p=>p.length===8),'pool de minijefes desbalanceado');
-      assert(FLOOR_SUBBOSS_POOL.slice(0,5).every(p=>p.length===8),'pool de subjefes desbalanceado');
+      assert(FLOOR_MINIBOSS_POOL.slice(0,5).every(p=>p.length>=8),'pool de minijefes desbalanceado');
+      assert(FLOOR_SUBBOSS_POOL.slice(0,5).every(p=>p.length>=8),'pool de subjefes desbalanceado');
     });
     check('Jerarquía de jefes conserva fases previstas',()=>{
       assert(Object.values(MINIBOSSES).every(b=>b.phases===1),'minijefe con fases inesperadas');
