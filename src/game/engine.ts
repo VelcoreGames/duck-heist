@@ -478,7 +478,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
     endlessCheckpointRound,endlessCheckpointDifficulty,endlessResumeIndex:0,
-    menuIndex: 0, pauseIndex: 0, runInfoTab:0, confirmIndex:1, confirmKind:null, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
+    menuIndex: 0, pauseIndex: 0, runInfoTab:0, confirmIndex:1, confirmKind:null, confirmReturnState:GameState.PAUSED, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
 }
