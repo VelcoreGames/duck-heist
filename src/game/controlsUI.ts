@@ -1,5 +1,5 @@
 import { CONTROL_ROWS, DEFAULT_BINDINGS, keyLabel } from './controls';
-import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, text, wrappedText } from './ui';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, text } from './ui';
 import { BACK_BUTTON, CONTROLS_RESET, inside } from './layout';
 import type { GameEngine } from './types';
 
