@@ -1777,39 +1777,59 @@ function renderFloorClearUI(engine: GameEngine) {
 
 function renderPausedUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  ctx.fillStyle = 'rgba(4,6,14,0.8)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  drawPanel(ctx, 42, 18, CANVAS_WIDTH - 84, CANVAS_HEIGHT - 36);
-  titleText(ctx, T.paused, CANVAS_WIDTH / 2, 48, 24, '#f4d03f');
-  ctx.fillStyle = '#8a2c2c';
-  ctx.fillRect(CANVAS_WIDTH / 2 - 60, 55, 120, 2);
+  drawMenuBackdrop(ctx,engine.frame,.86,'#e6c56f');
+  drawMenuHeader(
+    ctx,
+    'ATRACO EN PAUSA',
+    engine.gameMode==='endless'?'La arena espera. La presión no.':'Revisa la run antes de volver al banco.',
+    engine.frame,
+    '#e6c56f',
+    'ESTADO DE LA OPERACIÓN',
+  );
 
   const items = [
-    { label: T.resume }, {label:engine.gameMode==='endless'?'ARENA ÚNICA':'MAPA'}, { label: T.restartRun }, { label: T.menuHowTo },
-    { label: T.menuSettings }, { label: T.backToMenu },
+    T.resume,
+    engine.gameMode==='endless'?'ARENA ÚNICA':'MAPA',
+    T.restartRun,
+    T.menuHowTo,
+    T.menuSettings,
+    T.backToMenu,
   ];
-  drawButtons(ctx,items,engine.pauseIndex,240,PAUSE_MENU.y,engine.frame,PAUSE_MENU.w,PAUSE_MENU.h,PAUSE_MENU.gap);
-
-  text(ctx, T.controls, CANVAS_WIDTH / 2, 220, 11, '#8792a5', 'center', true);
-  const rows: [string, string][] = engine.lastInput==='gamepad'?[
-    ['PALANCA','Moverse'],['RT','Disparar'],['B','Esquivar'],['Y','Objeto activo'],['A','Interactuar'],['VIEW','Mapa'],
-  ]:[
-    [T.keyMove, T.ctrlMove], [T.keyShoot, T.ctrlShoot], [T.keyDash, T.ctrlDash],
-    [T.keyItem, T.ctrlItem], [T.keyInteract, T.ctrlInteract], [T.keyRestart, T.ctrlRestart],
-  ];
-  rows.forEach(([k, v], i) => {
-    const col = i % 2, row = Math.floor(i / 2);
-    const x = CANVAS_WIDTH / 2 - 128 + col * 132;
-    const y = 236 + row * 16;
-    ctx.fillStyle = 'rgba(244,208,63,0.10)';
-    ctx.fillRect(x, y - 10, 48, 13);
-    text(ctx, k, x + 24, y, 8, '#f4d03f', 'center', true);
-    wrappedText(ctx,v,x+54,y,76,7,9,2,'#a9b3c4');
+  items.forEach((label,i)=>{
+    const x=CANVAS_WIDTH/2-PAUSE_MENU.w/2;
+    const y=PAUSE_MENU.y+i*(PAUSE_MENU.h+PAUSE_MENU.gap);
+    const on=i===engine.pauseIndex;
+    drawMenuCard(ctx,x,y,PAUSE_MENU.w,PAUSE_MENU.h,on,'#e6c56f',on?'rgba(36,34,25,.97)':'rgba(9,22,28,.94)');
+    text(ctx,String(i+1).padStart(2,'0'),x+12,y+14,4.7,on?'#e6c56f':'#4f666c','left',true,false);
+    text(ctx,label,x+34,y+14,7.4,on?'#fff0bc':'#c7d3ce','left',true,false);
+    if(on) text(ctx,'›',x+PAUSE_MENU.w-12,y+14,11,'#e6c56f','center',true,false);
   });
-  text(ctx,'DIFICULTAD',240,282,5.2,'#697882','center');
-  text(ctx,difficultyLabel(engine),240,292,6.2,'#d9bd70','center',true);
-  text(ctx,engine.gameMode==='endless'?`RONDA ${engine.endless.round} · ALERTA ${engine.endless.alert}`:`SEMILLA · ${engine.run.seed}`,240,300,9,'#d4bb7b','center',true);
-  text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA    ${engine.lastInput==='gamepad'?'B':'CLIC DERECHO'} · ESQUIVAR`,240,315,6.5,'#768f8f');
+
+  drawMenuCard(ctx,42,224,396,72,false,'#52666d','rgba(7,17,23,.95)');
+  drawSectionLabel(ctx,'RESUMEN DE RUN',56,242,'#8fa8a7');
+
+  const c1=64,c2=194,c3=326;
+  text(ctx,'DIFICULTAD',c1,258,4.8,'#61777c','left',false,false);
+  text(ctx,difficultyLabel(engine),c1,271,7,'#e6c56f','left',true,false);
+
+  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',c2,258,4.8,'#61777c','left',false,false);
+  text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',c2,271,7,'#d8e1db','left',true,false);
+
+  text(ctx,'MONEDAS',c3,258,4.8,'#61777c','left',false,false);
+  text(ctx,String(engine.totalGoldenCrumbs),c3,271,7,'#d8c57d','left',true,false);
+
+  if(engine.gameMode==='endless'){
+    text(ctx,'ALERTA '+engine.endless.alert+' · PRESIÓN '+Math.round(engine.endless.pressure)+'%',240,289,5.2,'#c57a6c','center',true,false);
+  } else {
+    text(ctx,'SEMILLA · '+engine.run.seed,240,289,5.2,'#7f9496','center',true,false);
+  }
+
+  drawMenuFooter(
+    ctx,
+    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   B · VOLVER':'W / S · ELEGIR   ENTER · CONFIRMAR   ESC · VOLVER',
+    actionPrompt(engine,'weapons')+' · CAMBIAR ARMA',
+    '#e6c56f',
+  );
 }
 
 function renderSwapUI(engine: GameEngine) {
