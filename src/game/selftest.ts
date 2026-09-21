@@ -291,7 +291,11 @@ export function runSelfChecks():CheckReport {
     check('Pisos 1 a 5 rotan ocho jefes y piso 6 fija al Gran Jefe',()=>{
       assert(FLOOR_BOSS_POOL.length===6,'cantidad de pisos incorrecta');
       assert(FLOOR_BOSS_POOL.slice(0,5).every(pool=>pool.length>=8),'cada piso previo debe tener al menos ocho jefes');
+      const rotating=Object.values(BOSSES).filter(b=>!b.finalBoss).map(b=>b.id);
+      const accessible=new Set(FLOOR_BOSS_POOL.slice(0,5).flat());
+      assert(rotating.every(id=>accessible.has(id)),'jefe rotativo inaccesible');
       assert(FLOOR_BOSS_POOL[5].length===1&&FLOOR_BOSS_POOL[5][0]===FINAL_BOSS_ID,'jefe final no está fijado');
+      assert(!FLOOR_BOSS_POOL.slice(0,5).flat().includes(FINAL_BOSS_ID),'el Gran Jefe apareció antes del piso 6');
       assert(BOSSES[FINAL_BOSS_ID]?.finalBoss===true&&BOSSES[FINAL_BOSS_ID]?.name==='EL GRAN JEFE DEL BANCO','identidad del jefe final incorrecta');
     });
     check('Pools de minijefes y subjefes cubren todo el catálogo',()=>{
