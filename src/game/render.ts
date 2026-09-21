@@ -1418,14 +1418,14 @@ function renderDifficultyUI(engine:GameEngine) {
     engine.frame,accent,'PLANIFICACIÓN DEL ATRACO',
   );
   DIFFICULTY_MODES.forEach((mode,i)=>{
-    const def=DIFFICULTIES[mode],box=difficultyRect(i),selected=engine.difficultyIndex===i,locked=mode==='mad'&&!engine.madUnlocked;
+    const def=DIFFICULTIES[mode],box=difficultyRect(i),selected=engine.difficultyIndex===i,hover=inside(engine.mouseX,engine.mouseY,box),locked=mode==='mad'&&!engine.madUnlocked;
     const color=locked?'#8f6671':mode==='easy'?'#78c99a':mode==='normal'?'#e6c56f':mode==='hard'?'#e89a58':'#e55f59';
-    drawMenuCard(ctx,box.x,box.y,box.w,box.h,selected,color,selected?'rgba(31,31,25,.97)':'rgba(10,22,28,.94)');
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,selected||hover,color,selected?'rgba(31,31,25,.97)':hover?'rgba(23,31,31,.97)':'rgba(10,22,28,.94)');
     if(locked) drawDifficultyLock(ctx,box.x+14,box.y+13,color);
     titleText(ctx,def.label,box.x+(locked?32:14),box.y+24,9,color,'left',false);
     for(let n=0;n<i+1;n++) drawDifficultySkull(ctx,box.x+14+n*12,box.y+34,color);
     wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,box.x+14,box.y+53,box.w-28,5.1,6.2,2,locked?'#8a6870':'#9cafaf');
-    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':'CLIC PARA ELEGIR',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected?color:'#60747b','right',true,false);
+    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?'CLIC PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected||hover?color:'#60747b','right',true,false);
   });
   drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),accent);
   const locked=engine.difficulty==='mad'&&!engine.madUnlocked;
@@ -1793,7 +1793,7 @@ function renderRunInfoUI(engine:GameEngine) {
   drawMenuBackdrop(ctx,mf,.95,'#79b9d2');
   drawMenuHeader(ctx,'INFO DE RUN','Haz clic en una pestaña para cambiar de vista.',mf,'#79b9d2','DOSSIER EN CURSO');
   const tabs=[{label:'BUILD',x:42,w:190},{label:engine.gameMode==='endless'?'ARENA / RENDIMIENTO':'RENDIMIENTO',x:248,w:190}];
-  tabs.forEach((tab,i)=>{const on=engine.runInfoTab===i;drawMenuCard(ctx,tab.x,70,tab.w,24,on,on?'#79b9d2':'#52676e',on?'rgba(22,39,46,.98)':'rgba(8,21,27,.94)');text(ctx,tab.label,tab.x+tab.w/2,86,6.6,on?'#eaf7f5':'#8ca0a1','center',true,false);});
+  tabs.forEach((tab,i)=>{const on=engine.runInfoTab===i,hover=inside(engine.mouseX,engine.mouseY,{x:tab.x,y:70,w:tab.w,h:24});drawMenuCard(ctx,tab.x,70,tab.w,24,on||hover,on?'#79b9d2':'#52676e',on?'rgba(22,39,46,.98)':hover?'rgba(16,30,36,.98)':'rgba(8,21,27,.94)');text(ctx,tab.label,tab.x+tab.w/2,86,6.6,on?'#eaf7f5':hover?'#cad9d7':'#8ca0a1','center',true,false);});
 
   if(engine.runInfoTab===0){
     drawMenuCard(ctx,34,106,202,190,false,'#e6c56f','rgba(8,20,26,.96)');drawSectionLabel(ctx,'ARMAS',50,125,'#e6c56f');
