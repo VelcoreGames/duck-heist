@@ -1,0 +1,86 @@
+name: v0.8.0 Gameplay audit green gate
+on:
+  push:
+    branches: [fix/v080-endless-recycle-input-qa]
+    paths:
+      - '.github/workflows/v080-gameplay-audit-green-gate.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v080-endless-recycle-input-qa
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Version guard
+        run: node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-green-gate.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine && window.duckHeistAudit);
+          const result=await page.evaluate(()=>{
+            const audit=window.duckHeistAudit;
+            if(audit.failures.length) return {error:'audit',failures:audit.failures};
+            const e=window.duckHeistEngine;
+            e.testing=true;e.state='PLAYING';e.gameMode='endless';e.bindings.recycle='q';e.player.crumbs=0;
+            const content={enemies:[],pickups:[],items:[{x:e.player.x,y:e.player.y,itemId:'bread_helmet',isWeapon:false,isActive:false}],puddles:[],doorAnim:{},lockFlash:0,combatTimer:0,ambient:0,magnet:0};
+            e.contents.set(e.currentKey,content);
+            window.dispatchEvent(new KeyboardEvent('keydown',{key:'r'}));
+            const afterR={items:content.items.length,crumbs:e.player.crumbs};
+            window.dispatchEvent(new KeyboardEvent('keyup',{key:'r'}));
+            window.dispatchEvent(new KeyboardEvent('keydown',{key:'q'}));
+            const afterQ={items:content.items.length,crumbs:e.player.crumbs};
+            window.dispatchEvent(new KeyboardEvent('keyup',{key:'q'}));
+            return {passed:audit.passed,afterR,afterQ,binding:e.bindings.recycle};
+          });
+          if(result.error) throw new Error('self audit failures: '+result.failures.join(' | '));
+          if(result.binding!=='q') throw new Error('binding '+JSON.stringify(result));
+          if(result.afterR.items!==1||result.afterR.crumbs!==0) throw new Error('hardcoded R still recycles '+JSON.stringify(result.afterR));
+          if(result.afterQ.items!==0||result.afterQ.crumbs<=0) throw new Error('configured recycle failed '+JSON.stringify(result.afterQ));
+          const overflow=await page.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth,y:document.documentElement.scrollHeight>innerHeight}));
+          if(overflow.x||overflow.y) throw new Error('document overflow '+JSON.stringify(overflow));
+          if(errors.length) throw new Error('runtime errors '+errors.join(' | '));
+          console.log(JSON.stringify(result,null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and remove temporary QA
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-gameplay-audit-green-gate.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh green v0.8.0 gameplay audit bundle'
+            git push origin HEAD:fix/v080-endless-recycle-input-qa
+          fi
