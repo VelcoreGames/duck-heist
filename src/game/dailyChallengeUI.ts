@@ -36,6 +36,8 @@ export function renderDailyBrief(e:GameEngine){
   text(c,rec.completed?'COMPLETADO HOY':'PENDIENTE',44,285,5.1,rec.completed?'#78c99a':'#d8b46e','left',true,false);
   text(c,'SIN MEJORAS PERMANENTES · DIFICULTAD NORMAL ESTANDARIZADA',438,285,4.4,'#74898c','right',true,false);
 
+  drawMenuCard(c,170,298,140,20,true,'#c98cff','rgba(36,25,45,.98)');
+  text(c,'COMENZAR DESAFÍO',240,312,6.1,'#f2e6fa','center',true,false);
   drawMenuFooter(c,e.lastInput==='gamepad'?'A · COMENZAR   B · VOLVER':'ENTER · COMENZAR   ESC · VOLVER','RÉCORD DIARIO LOCAL','#c98cff');
 }
 
