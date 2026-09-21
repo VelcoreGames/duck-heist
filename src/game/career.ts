@@ -57,7 +57,7 @@ function normalizeHistory(raw:unknown):RunHistoryEntry[]{
       damage:finite(r.damage),damageTaken:finite(r.damageTaken),items:finite(r.items),weapons:finite(r.weapons),
       golden:finite(r.golden),seed:typeof r.seed==='string'?r.seed:'PAN-LEGACY',
       weaponIds:stringList(r.weaponIds),itemIds:stringList(r.itemIds),
-      activeItemId:typeof r.activeItemId==='string'?r.activeItemId:null,synergyIds:stringList(r.synergyIds),
+      activeItemId:typeof r.activeItemId==='string'?r.activeItemId:null,synergyIds:stringList(r.synergyIds),dailyScore:finite(r.dailyScore),
     };
   });
 }
@@ -175,7 +175,7 @@ export function recordRun(engine:GameEngine,outcome:RunHistoryEntry['outcome']) 
     enemies:engine.stats.enemiesDefeated,bosses:engine.run.bosses,damage:Math.round(engine.run.dmgDealt),
     damageTaken:Math.round(engine.run.dmgTaken*10)/10,items:engine.run.items,weapons:engine.run.weaponsFound,
     golden:engine.run.goldenEarned,seed:engine.run.seed,weaponIds,itemIds,activeItemId:engine.player.activeItem,
-    synergyIds:[...engine.knownSynergies],
+    synergyIds:[...engine.knownSynergies],dailyScore:engine.gameMode==='daily'?(engine.dailyResult?.score??engine.daily.score):0,
   };
   engine.runHistory=[entry,...engine.runHistory].slice(0,12);
   const c=engine.career;
