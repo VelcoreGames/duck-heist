@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
-  restartCurrentMode, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
+  restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
   resumeEndlessGame, clearEndlessCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
@@ -16,7 +16,10 @@ import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHi
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
 import { COLLECTION_TABS, collectionEntries } from './game/catalog';
-import { collectionMove, collectionTab, collectionClick } from './game/collectionUI';
+import { collectionMove, collectionTab, collectionClick, collectionViewEntries, cycleCollectionFilter, cycleCollectionSort } from './game/collectionUI';
+import { CONTROL_ROWS, remapBinding } from './game/controls';
+import { controlsHit, resetControls } from './game/controlsUI';
+import { careerClick, careerTab } from './game/careerUI';
 import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 
@@ -157,7 +160,7 @@ export default function App() {
     const executeConfirm=()=>{
       const kind=engine.confirmKind;engine.confirmKind=null;engine.confirmIndex=1;playUiSelect();
       if(kind==='restart'){restartCurrentMode(engine);return;}
-      if(kind==='quit'){engine.menuIndex=0;setMusic('menu');goTo(GameState.MENU);return;}
+      if(kind==='quit'){abandonCurrentRun(engine);engine.menuIndex=0;setMusic('menu');goTo(GameState.MENU);return;}
       if(kind==='new_endless'){
         clearEndlessCheckpoint(engine);
         engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));
@@ -189,13 +192,22 @@ export default function App() {
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k)) {
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k)) {
         e.preventDefault();
       }
       if (e.repeat) return;
-      if(k==='m' && (engine.state===GameState.PLAYING||engine.state===GameState.PAUSED)) {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
+
+      if(engine.state===GameState.CONTROLS && engine.controlCapture){
+        if(k==='escape'){engine.controlCapture=false;playUiBack();force(n=>n+1);return;}
+        if(k==='f'){playUiBack();return;}
+        const row=CONTROL_ROWS[engine.controlIndex];
+        if(row){remapBinding(engine.bindings,row.id,k);engine.controlCapture=false;saveSettings(engine);playUiSelect();force(n=>n+1);}
+        return;
+      }
+
+      if(k===engine.bindings.map && (engine.state===GameState.PLAYING||engine.state===GameState.PAUSED)) {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
       if(engine.state===GameState.MAP) {
-        if(k==='escape') closeFloorMap(engine);
+        if(k==='escape'||k===engine.bindings.map) closeFloorMap(engine);
         else if(k==='w'||k==='arrowup') inspectMapDirection(engine,'N');
         else if(k==='s'||k==='arrowdown') inspectMapDirection(engine,'S');
         else if(k==='a'||k==='arrowleft') inspectMapDirection(engine,'W');
@@ -218,7 +230,7 @@ export default function App() {
 
       // --- MENÚ DE REEMPLAZO DE ARMA (prioridad máxima en juego) ---
       if (engine.activeSwap) {
-        if (yes || k === 'e') confirmActiveSwap(engine);
+        if (yes || k === engine.bindings.interact) confirmActiveSwap(engine);
         else if (k === 'escape') cancelSwap(engine);
         return;
       }
@@ -227,7 +239,7 @@ export default function App() {
         else if (k === '2') selectSwapSlot(engine, 1);
         else if (left || up) selectSwapSlot(engine, engine.swapSel === 0 ? 1 : 0);
         else if (right || down) selectSwapSlot(engine, engine.swapSel === 0 ? 1 : 0);
-        else if (yes || k === 'e') confirmSwap(engine);
+        else if (yes || k === engine.bindings.interact) confirmSwap(engine);
         else if (k === 'escape') cancelSwap(engine);
         return;
       }
@@ -247,9 +259,15 @@ export default function App() {
         case GameState.HEIST_INTRO:
           if(yes && engine.heistIntroSeen) engine.heistIntroTimer=1;
           break;
-        case GameState.COLLECTION: {
+        case GameState.COLLECTION: return 'A / D categoría · Q filtro · E ordenar · P carrera · ESC volver';
+    case GameState.CAREER:return 'A / D cambiar vista · ESC colección';
+    case GameState.CONTROLS:return engine.controlCapture?'PULSA UNA TECLA · ESC cancelar':'FLECHAS elegir · ENTER remapear · R restaurar · ESC ajustes';
+    case GameState.COLLECTION: {
           const tab=COLLECTION_TABS.findIndex(t=>t.id===engine.collectionTab);
           if(k==='escape') goTo(subReturn);
+          else if(k==='p'){engine.careerTab=0;playUiSelect();goTo(GameState.CAREER);}
+          else if(k==='q'){cycleCollectionFilter(engine);playUiMove();}
+          else if(k==='e'){cycleCollectionSort(engine);playUiMove();}
           else if(k==='a') collectionTab(engine,tab-1);
           else if(k==='d' || k==='tab') {e.preventDefault();collectionTab(engine,tab+1);}
           else if(up) collectionMove(engine,-4);
@@ -258,6 +276,11 @@ export default function App() {
           else if(right) collectionMove(engine,1);
           break;
         }
+        case GameState.CAREER:
+          if(k==='escape'){playUiBack();goTo(GameState.COLLECTION);}
+          else if(left||k==='a'){careerTab(engine,engine.careerTab-1);playUiMove();}
+          else if(right||k==='d'||k==='tab'){careerTab(engine,engine.careerTab+1);playUiMove();}
+          break;
         case GameState.HOW_TO_PLAY:
           if (yes || k === 'escape') { playUiBack(); goTo(subReturn); }
           break;
@@ -280,11 +303,21 @@ export default function App() {
           else if (yes) {
             const row = SETTING_ROWS[engine.settingsIndex];
             if (row.key === 'fullscreen') toggleFullscreen(engine, applySize);
+            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;playUiSelect();goTo(GameState.CONTROLS);}
             else if (row.kind === 'bool') adjustSetting(engine, engine.settingsIndex, 1);
             else adjustSetting(engine, engine.settingsIndex, 1);
           } else if (k === 'escape') { playUiBack(); goTo(subReturn); }
           break;
         }
+        case GameState.CONTROLS:
+          if(k==='escape'){playUiBack();goTo(GameState.SETTINGS);}
+          else if(k==='r'){resetControls(engine);saveSettings(engine);playUiSelect();}
+          else if(up){engine.controlIndex=(engine.controlIndex-1+CONTROL_ROWS.length)%CONTROL_ROWS.length;playUiMove();}
+          else if(down){engine.controlIndex=(engine.controlIndex+1)%CONTROL_ROWS.length;playUiMove();}
+          else if(left){engine.controlIndex=Math.max(0,engine.controlIndex-8);playUiMove();}
+          else if(right){engine.controlIndex=Math.min(CONTROL_ROWS.length-1,engine.controlIndex+8);playUiMove();}
+          else if(yes){engine.controlCapture=true;playUiSelect();}
+          break;
         case GameState.UPGRADES:
           if (up) menuMove(engine, -1, 4, 'upgrade');
           else if (down) menuMove(engine, 1, 4, 'upgrade');
@@ -311,12 +344,12 @@ export default function App() {
           else if(k==='escape'){openConfirm('quit');}
           break;
         case GameState.PLAYING:
-          if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
-          else if (k === 'shift') handleDash(engine);
-          else if (k === ' ') handleActiveItem(engine);
+          if (k === engine.bindings.pause) { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
+          else if (k === engine.bindings.dash) handleDash(engine);
+          else if (k === engine.bindings.active) handleActiveItem(engine);
           else if (k === 'r' && engine.gameMode==='endless') recycleNearestEndlessFloorItem(engine);
-          else if (k === '1' && !selectEventOption(engine,0)) selectWeaponDirect(engine, 0);
-          else if (k === '2' && !selectEventOption(engine,1)) selectWeaponDirect(engine, 1);
+          else if (k === engine.bindings.weapon1 && !selectEventOption(engine,0)) selectWeaponDirect(engine, 0);
+          else if (k === engine.bindings.weapon2 && !selectEventOption(engine,1)) selectWeaponDirect(engine, 1);
           break;
         case GameState.PAUSED:
           if (k === 'escape') { playUiBack(); goTo(GameState.PLAYING); }
@@ -365,7 +398,7 @@ export default function App() {
         return;
       }
       if(engine.state===GameState.COLLECTION) {
-        const max=Math.max(0,Math.ceil(collectionEntries(engine.collectionTab).length/4)*64-8-COLLECTION.h);
+        const max=Math.max(0,Math.ceil(collectionViewEntries(engine).length/4)*64-8-COLLECTION.h);
         engine.collectionScroll=Math.max(0,Math.min(max,engine.collectionScroll+e.deltaY/engine.scale));
         return;
       }
@@ -404,6 +437,13 @@ export default function App() {
           else if (st === GameState.CONFIRM) { if (engine.confirmIndex !== i) { engine.confirmIndex = i; softMove(); } }
           else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
         }
+      } else if(st===GameState.CAREER){
+        for(let i=0;i<3;i++) if(inside(p.x,p.y,{x:52+i*126,y:68,w:114,h:24})&&engine.careerTab!==i){engine.careerTab=i;softMove();}
+      } else if(st===GameState.CONTROLS){
+        CONTROL_ROWS.forEach((_,i)=>{
+          const col=i<8?0:1,row=i<8?i:i-8,bx=34+col*210,by=78+row*27;
+          if(inside(p.x,p.y,{x:bx,y:by,w:202,h:22})&&engine.controlIndex!==i){engine.controlIndex=i;softMove();}
+        });
       } else if(st===GameState.RUN_INFO){
         if(inside(p.x,p.y,{x:42,y:70,w:190,h:24})&&engine.runInfoTab!==0){engine.runInfoTab=0;softMove();}
         else if(inside(p.x,p.y,{x:248,y:70,w:190,h:24})&&engine.runInfoTab!==1){engine.runInfoTab=1;softMove();}
@@ -504,7 +544,14 @@ export default function App() {
           if(i>=0){engine.difficultyIndex=i;activateDifficulty();}else{playUiBack();goTo(GameState.MENU);}
           break;
         }
-        case GameState.COLLECTION:collectionClick(engine,x,y);break;
+        case GameState.COLLECTION:
+          if(inside(x,y,{x:356,y:81,w:95,h:18})){engine.careerTab=0;playUiSelect();goTo(GameState.CAREER);}
+          else collectionClick(engine,x,y);
+          break;
+        case GameState.CAREER:careerClick(engine,x,y);break;
+        case GameState.CONTROLS:
+          if(!controlsHit(engine,x,y)&&y>325){playUiBack();goTo(GameState.SETTINGS);}
+          break;
         case GameState.PAUSED: {
           const i = hitList(x, y, PAUSE_TOP, PAUSE_MENU.count, PAUSE_H, PAUSE_GAP, PAUSE_W);
           if (i >= 0) { engine.pauseIndex = i; activatePause(); }
@@ -535,6 +582,7 @@ export default function App() {
             engine.settingsIndex = hit;
             const row = SETTING_ROWS[hit];
             if (row.key === 'fullscreen') toggleFullscreen(engine, applySize);
+            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;goTo(GameState.CONTROLS);}
             else adjustSetting(engine, hit, x > CANVAS_WIDTH / 2 ? 1 : -1);
           } else { playUiBack(); goTo(subReturn); }
           break;
@@ -594,17 +642,25 @@ export default function App() {
     const step = 1000 / 60;
     let lastUiScale = engine.settings.uiScale;
     let lastBrightness=-1;
+    let lastContrast=engine.settings.highContrast;
     let lastDevice=engine.lastInput;
     const padAction=(action:PadAction)=>{
       if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
-      const key:Record<Exclude<PadAction,'previousWeapon'|'nextWeapon'>,string>={
-        map:'m',pause:'Escape',dash:'Shift',active:' ',interact:'e',back:'Escape',confirm:'Enter',up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',
-      };
       if(action==='left'||action==='right'){
         if(engine.state===GameState.COLLECTION){collectionTab(engine,COLLECTION_TABS.findIndex(t=>t.id===engine.collectionTab)+(action==='right'?1:-1));return;}
+        if(engine.state===GameState.CAREER){careerTab(engine,engine.careerTab+(action==='right'?1:-1));playUiMove();return;}
       }
-      onKeyDown(new KeyboardEvent('keydown',{key:key[action]}),true);
-      if(action!=='interact')engine.keys[key[action].toLowerCase()]=false;
+      const live=engine.state===GameState.PLAYING;
+      const liveKeys:Partial<Record<PadAction,string>>={
+        map:engine.bindings.map,pause:engine.bindings.pause,dash:engine.bindings.dash,
+        active:engine.bindings.active,interact:engine.bindings.interact,
+      };
+      const menuKeys:Record<string,string>={
+        map:'m',pause:'Escape',dash:'Shift',active:' ',interact:'e',back:'Escape',confirm:'Enter',up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight',
+      };
+      const key=(live&&liveKeys[action])||menuKeys[action]||'Enter';
+      onKeyDown(new KeyboardEvent('keydown',{key}),true);
+      if(action!=='interact')engine.keys[key.toLowerCase()]=false;
     };
     const onFsChange = () => {
       engine.settings.fullscreen = !!document.fullscreenElement;
@@ -626,7 +682,11 @@ export default function App() {
         lastUiScale = engine.settings.uiScale;
         applySize();
       }
-      if(lastBrightness!==engine.settings.brightness) {lastBrightness=engine.settings.brightness;wc.style.filter=`brightness(${lastBrightness})`;}
+      if(lastBrightness!==engine.settings.brightness||lastContrast!==engine.settings.highContrast) {
+        lastBrightness=engine.settings.brightness;lastContrast=engine.settings.highContrast;
+        wc.style.filter=`brightness(${lastBrightness}) contrast(${lastContrast?1.08:1})`;
+        uc.style.filter=lastContrast?'contrast(1.18) saturate(1.05)':'none';
+      }
 
       const st = engine.state;
       const live = st === GameState.PLAYING || st === GameState.FLOOR_INTRO ||
