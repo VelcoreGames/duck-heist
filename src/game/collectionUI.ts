@@ -72,7 +72,7 @@ export function drawCatalogSprite(e:GameEngine,entry:CatalogEntry,x:number,y:num
   c.restore();
 }
 export function renderCollection(e:GameEngine) {
-  const c=e.ui!, all=collectionEntries(e.collectionTab),list=collectionViewEntries(e),selected=list[e.collectionIndex] ?? list[0] ?? all[0];
+  const c=e.ui!, all=collectionEntries(e.collectionTab),list=collectionViewEntries(e),selected=list[e.collectionIndex] ?? list[0];
   const discovered=all.filter(i=>known(e,i)).length;
   const mf=e.settings.reduceMotion?0:e.frame;
   drawMenuBackdrop(c,mf,.93,'#9abf9f');
