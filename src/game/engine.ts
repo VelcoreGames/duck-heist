@@ -987,6 +987,7 @@ export function startEndlessGame(engine:GameEngine) {
 }
 
 function recordOutcome(engine:GameEngine,outcome:'victory'|'death'|'abandoned') {
+  if(engine.testing||engine.runRecorded||engine.run.time<=0)return;
   if(engine.gameMode==='daily')finalizeDaily(engine,outcome);
   recordRun(engine,outcome);
 }
