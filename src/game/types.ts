@@ -424,7 +424,7 @@ export interface GameEngine {
   heistIntroSeen:boolean;
   hitStop:number;
   deathEchoes:{enemy:Enemy;life:number;vx:number;vy:number}[];
-  decoy:{x:number;y:number;life:number;explosive:boolean}|null;
+  decoy:{x:number;y:number;life:number;explosive:boolean;stunOnExpire?:number}|null;
   grenades:import('./grenades').ThrownGrenade[];
   remoteBomb:{x:number;y:number;life:number}|null;
   drone:{x:number;y:number;life:number;cooldown:number}|null;
