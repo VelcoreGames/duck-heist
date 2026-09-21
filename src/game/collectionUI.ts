@@ -111,7 +111,11 @@ export function renderCollection(e:GameEngine) {
     else text(c,'???',x+26,y+47,8,'#6a8184');
   });c.restore();
   const totalH=Math.ceil(list.length/4)*64-8,max=Math.max(1,totalH-COLLECTION.h);
-  if(totalH>COLLECTION.h) { c.fillStyle='#284149';c.fillRect(452,89,3,217);c.fillStyle='#afad79';c.fillRect(452,89+e.collectionScroll/max*169,3,48); }
+  if(totalH>COLLECTION.h) {
+    c.fillStyle='#284149';c.fillRect(452,COLLECTION.y,3,COLLECTION.h);
+    const thumbH=Math.max(32,COLLECTION.h*(COLLECTION.h/Math.max(COLLECTION.h,totalH)));
+    c.fillStyle='#afad79';c.fillRect(452,COLLECTION.y+e.collectionScroll/max*(COLLECTION.h-thumbH),3,thumbH);
+  }
   drawMenuFooter(
     c,
     e.lastInput==='gamepad'?'LB / RB · CATEGORÍA   CRUCETA · EXPLORAR   B · VOLVER':'A / D · CATEGORÍA   Q · FILTRO   E · ORDEN   P · CARRERA   ESC · VOLVER',
