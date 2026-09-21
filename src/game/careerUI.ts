@@ -1,5 +1,4 @@
 import { careerAchievements } from './career';
-import { RARITY_COLORS } from './data';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel, text, wrappedText, titleText } from './ui';
 import type { GameEngine, RunHistoryEntry } from './types';
 
