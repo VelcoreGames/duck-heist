@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  createEngine, beginHeist, startDailyChallenge, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
+  createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
   restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
   resumeEndlessGame, clearEndlessCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
