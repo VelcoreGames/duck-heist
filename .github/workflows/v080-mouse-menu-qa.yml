@@ -1,0 +1,317 @@
+name: v0.8.0 mouse-first menus QA
+on:
+  push:
+    branches: [feature/v080-mouse-first-menu-redesign]
+    paths:
+      - '.github/workflows/v080-mouse-menu-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v080-mouse-first-menu-redesign
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Static menu invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "0.8.0"
+          grep -Fq '"version": "0.8.0"' package.json
+          grep -Fq "HUD_MENU" src/App.tsx
+          grep -Fq "MAIN_OPEN" src/App.tsx
+          grep -Fq "COLLECTION_FILTER" src/game/collectionUI.ts
+          grep -Fq "drawMouseButton" src/game/controlsUI.ts
+          grep -Fq "if(!live)return;" src/App.tsx
+          ! grep -Fq "String(i+1).padStart(2,'0')" src/game/controlsUI.ts
+          ! grep -Fq "String(i+1).padStart(2,'0')" src/game/dailyChallengeUI.ts
+          ! grep -Fq "String(i+1).padStart(2,'0')" src/game/careerUI.ts
+          ! grep -Fq "String(i+1).padStart(2,'0')" src/game/collectionUI.ts
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Mouse-only functional QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-menu.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine&&document.querySelector('canvas[role="application"]'));
+          await page.evaluate(()=>{localStorage.clear();const e=window.duckHeistEngine;e.testing=false;e.totalGoldenCrumbs=999;});
+          const canvas=page.locator('canvas[role="application"]');
+          const click=async(x,y)=>{
+            const b=await canvas.boundingBox();if(!b)throw new Error('canvas missing');
+            await page.mouse.click(b.x+x/480*b.width,b.y+y/352*b.height);
+            await page.waitForTimeout(70);
+          };
+          const move=async(x,y)=>{
+            const b=await canvas.boundingBox();if(!b)throw new Error('canvas missing');
+            await page.mouse.move(b.x+x/480*b.width,b.y+y/352*b.height);
+            await page.waitForTimeout(35);
+          };
+          const state=()=>page.evaluate(()=>window.duckHeistEngine.state);
+          const assertState=async expected=>{const got=await state();if(got!==expected)throw new Error('state expected '+expected+' got '+got);};
+          const menuReset=async()=>{
+            await page.evaluate(()=>{const e=window.duckHeistEngine;e.state='MENU';e.menuIndex=0;e.pendingMode='heist';e.onStateChange?.(e.state);});
+            await page.waitForTimeout(50);
+          };
+          const noOverflow=async label=>{
+            const v=await page.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth,y:document.documentElement.scrollHeight>innerHeight}));
+            if(v.x||v.y)throw new Error(label+' overflow '+JSON.stringify(v));
+          };
+
+          // Menu principal: teclado no mueve ni abre; hover sí; las ocho opciones abren su pantalla correcta.
+          await menuReset();
+          await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await page.waitForTimeout(50);
+          const keyboard=await page.evaluate(()=>({state:window.duckHeistEngine.state,index:window.duckHeistEngine.menuIndex}));
+          if(keyboard.state!=='MENU'||keyboard.index!==0)throw new Error('keyboard still navigates main menu '+JSON.stringify(keyboard));
+          await move(117,145); // option 2 hover (daily)
+          const hoverIndex=await page.evaluate(()=>window.duckHeistEngine.menuIndex);
+          if(hoverIndex!==2)throw new Error('mouse hover did not select daily: '+hoverIndex);
+          await noOverflow('main');
+
+          const expected=['DIFFICULTY','DIFFICULTY','DAILY_BRIEF','UPGRADES','WARDROBE','COLLECTION','HOW_TO_PLAY','SETTINGS'];
+          for(let i=0;i<8;i++){
+            await menuReset();
+            await click(117,87.5+i*29);
+            await assertState(expected[i]);
+          }
+
+          // Main info CTA opens the currently hovered choice.
+          await menuReset();await move(117,174); // upgrades
+          await click(336,284);await assertState('UPGRADES');
+          await click(74,329);await assertState('MENU');
+
+          // Difficulty: card only selects; explicit start starts; explicit back returns.
+          await click(117,87.5);await assertState('DIFFICULTY');
+          await click(339,121);
+          let diff=await page.evaluate(()=>({state:window.duckHeistEngine.state,index:window.duckHeistEngine.difficultyIndex}));
+          if(diff.state!=='DIFFICULTY'||diff.index!==1)throw new Error('difficulty card should select only '+JSON.stringify(diff));
+          await page.keyboard.press('Enter');await page.waitForTimeout(40);await assertState('DIFFICULTY');
+          await click(74,329);await assertState('MENU');
+
+          // Daily brief: random click does nothing; back exact works.
+          await click(117,145.5);await assertState('DAILY_BRIEF');
+          await click(240,305);await assertState('DAILY_BRIEF');
+          await click(74,329);await assertState('MENU');
+
+          // Upgrades: card selects only; action buys; outside click stays; back works.
+          await click(117,174.5);await assertState('UPGRADES');
+          await page.evaluate(()=>{window.duckHeistEngine.totalGoldenCrumbs=999;window.duckHeistEngine.metaLevels.hp=0;});
+          const coins0=await page.evaluate(()=>window.duckHeistEngine.totalGoldenCrumbs);
+          await click(120,101);
+          const afterCard=await page.evaluate(()=>({coins:window.duckHeistEngine.totalGoldenCrumbs,lvl:window.duckHeistEngine.metaLevels.hp,state:window.duckHeistEngine.state}));
+          if(afterCard.coins!==coins0||afterCard.lvl!==0||afterCard.state!=='UPGRADES')throw new Error('upgrade card purchased unexpectedly '+JSON.stringify(afterCard));
+          await click(376,101);
+          const afterBuy=await page.evaluate(()=>({coins:window.duckHeistEngine.totalGoldenCrumbs,lvl:window.duckHeistEngine.metaLevels.hp}));
+          if(afterBuy.coins>=coins0||afterBuy.lvl!==1)throw new Error('upgrade action failed '+JSON.stringify(afterBuy));
+          await click(465,250);await assertState('UPGRADES');
+          await click(74,329);await assertState('MENU');
+
+          // Wardrobe: card selection and explicit action/back.
+          await click(117,203.5);await assertState('WARDROBE');
+          await click(323,116);
+          const wardrobeIndex=await page.evaluate(()=>window.duckHeistEngine.wardrobeIndex);
+          if(wardrobeIndex!==1)throw new Error('wardrobe card not selectable '+wardrobeIndex);
+          await page.evaluate(()=>window.duckHeistEngine.totalGoldenCrumbs=999);
+          await click(110,287);
+          const skinState=await page.evaluate(()=>({equipped:window.duckHeistEngine.equippedSkin,idx:window.duckHeistEngine.wardrobeIndex}));
+          if(!skinState.equipped)throw new Error('wardrobe action failed');
+          await click(74,329);await assertState('MENU');
+
+          // Collection: filter/sort bug fixed, tabs clickable, Carrera opens and returns, back works.
+          await click(117,232.5);await assertState('COLLECTION');
+          const filter0=await page.evaluate(()=>window.duckHeistEngine.collectionFilter);
+          await click(235,91);
+          const filter1=await page.evaluate(()=>window.duckHeistEngine.collectionFilter);
+          if(filter0===filter1)throw new Error('collection filter click still broken');
+          const sort0=await page.evaluate(()=>window.duckHeistEngine.collectionSort);
+          await click(318,91);
+          const sort1=await page.evaluate(()=>window.duckHeistEngine.collectionSort);
+          if(sort0===sort1)throw new Error('collection sort click still broken');
+          await click(134,68);
+          const tab=await page.evaluate(()=>window.duckHeistEngine.collectionTab);
+          if(tab!=='weapons')throw new Error('collection tab click failed '+tab);
+          await click(407,91);await assertState('CAREER');
+          await click(200,80);
+          const careerTab=await page.evaluate(()=>window.duckHeistEngine.careerTab);
+          if(careerTab!==2)throw new Error('career tab click failed '+careerTab);
+          await click(90,329);await assertState('COLLECTION');
+          await click(74,329);await assertState('MENU');
+
+          // How-to: arbitrary click no longer exits. Only visible back does.
+          await click(117,261.5);await assertState('HOW_TO_PLAY');
+          await click(240,180);await assertState('HOW_TO_PLAY');
+          await click(74,329);await assertState('MENU');
+
+          // Settings: outside click no longer exits; +/- visible controls; toggle; Controls screen mouse navigation/reset/back.
+          await click(117,290.5);await assertState('SETTINGS');
+          await click(470,180);await assertState('SETTINGS');
+          const master0=await page.evaluate(()=>window.duckHeistEngine.settings.master);
+          await click(169,88); // master minus
+          const master1=await page.evaluate(()=>window.duckHeistEngine.settings.master);
+          if(!(master1<master0))throw new Error('settings minus failed '+master0+' -> '+master1);
+          await click(223,88); // plus
+          const master2=await page.evaluate(()=>window.duckHeistEngine.settings.master);
+          if(!(master2>master1))throw new Error('settings plus failed');
+          const contrast0=await page.evaluate(()=>window.duckHeistEngine.settings.highContrast);
+          await click(190,274); // index 6 action
+          const contrast1=await page.evaluate(()=>window.duckHeistEngine.settings.highContrast);
+          if(contrast0===contrast1)throw new Error('settings toggle failed');
+          await click(400,119); // controls index 8 action
+          await assertState('CONTROLS');
+          await click(100,89); // row 0 -> capture
+          const cap=await page.evaluate(()=>window.duckHeistEngine.controlCapture);
+          if(!cap)throw new Error('control row did not enter capture');
+          await page.keyboard.press('z');
+          const remap=await page.evaluate(()=>({cap:window.duckHeistEngine.controlCapture,key:window.duckHeistEngine.bindings.moveUp}));
+          if(remap.cap||remap.key!=='z')throw new Error('key capture failed '+JSON.stringify(remap));
+          await click(389,329); // reset
+          const reset=await page.evaluate(()=>window.duckHeistEngine.bindings.moveUp);
+          if(reset==='z')throw new Error('mouse reset failed');
+          await click(74,329);await assertState('SETTINGS');
+          await click(74,329);await assertState('MENU');
+
+          // Start a real run with mouse only.
+          await click(117,87.5);await assertState('DIFFICULTY');
+          await click(339,121); // normal
+          await click(370,329);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING',{timeout:7000});
+          await noOverflow('playing');
+
+          // HUD MENÚ opens pause without firing.
+          await page.evaluate(()=>window.duckHeistEngine.projectiles=[]);
+          await click(374,14);
+          await assertState('PAUSED');
+          const projectiles=await page.evaluate(()=>window.duckHeistEngine.projectiles.length);
+          if(projectiles!==0)throw new Error('HUD menu click fired a projectile');
+
+          // Pause MAP card, map ignores random bottom click, explicit close returns.
+          await click(338,91);await assertState('MAP');
+          await click(210,329);await assertState('MAP');
+          await click(404,329);await assertState('PAUSED');
+
+          // Pause run info: both tabs and back.
+          await click(138,134);await assertState('RUN_INFO');
+          await click(343,82);
+          const runTab=await page.evaluate(()=>window.duckHeistEngine.runInfoTab);
+          if(runTab!==1)throw new Error('run info second tab failed');
+          await click(90,329);await assertState('PAUSED');
+
+          // Pause How To and Settings return to pause through visible Back.
+          await click(138,177);await assertState('HOW_TO_PLAY');
+          await click(74,329);await assertState('PAUSED');
+          await click(338,177);await assertState('SETTINGS');
+          await click(74,329);await assertState('PAUSED');
+
+          // Destructive pause actions go to confirmation; cancel is explicit.
+          await click(338,134);await assertState('CONFIRM');
+          await click(155,247);await assertState('PAUSED');
+          await click(138,220);await assertState('CONFIRM');
+          await click(155,247);await assertState('PAUSED');
+
+          // Resume.
+          await click(138,91);await assertState('PLAYING');
+
+          // Held fire + dash regression remains intact.
+          const b=await canvas.boundingBox();if(!b)throw new Error('canvas missing for combat regression');
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.player.dashCooldown=0;e.player.dashTimer=0;e.player.fireCooldown=0;e.projectiles=[];});
+          await page.mouse.move(b.x+b.width*.72,b.y+b.height*.52);
+          await page.mouse.down({button:'left'});await page.waitForTimeout(100);
+          const shotsBefore=await page.evaluate(()=>window.duckHeistEngine.projectiles.length);
+          await page.evaluate(()=>{
+            const canvas=document.querySelector('canvas[role="application"]'),r=canvas.getBoundingClientRect();
+            canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,buttons:3,bubbles:true,cancelable:true,clientX:r.left+r.width*.72,clientY:r.top+r.height*.52}));
+          });
+          await page.waitForTimeout(70);
+          const combat=await page.evaluate(()=>({mouseDown:window.duckHeistEngine.mouseDown,dash:window.duckHeistEngine.player.dashTimer,shots:window.duckHeistEngine.projectiles.length}));
+          await page.mouse.up({button:'left'});
+          if(!combat.mouseDown||combat.dash<=0||combat.shots<shotsBefore)throw new Error('fire/dash regression '+JSON.stringify({shotsBefore,...combat}));
+
+          // Game over actions are mouse buttons with no key labels.
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.player.hp=0;});
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='GAME_OVER',{timeout:4000});
+          await click(240,327);await assertState('MENU');
+
+          // Endless resume screen: second option leads to confirm, back works.
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.state='ENDLESS_RESUME';e.endlessCheckpointRound=10;e.endlessCheckpointDifficulty='normal';e.endlessResumeIndex=0;e.onStateChange?.(e.state);});
+          await click(240,213);await assertState('CONFIRM');
+          await click(155,247);await assertState('ENDLESS_RESUME');
+          await click(74,329);await assertState('MENU');
+
+          // Endless reward cards and secondary recycle are clickable with mouse.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.gameMode='endless';e.state='ENDLESS_REWARD';e.endless.marketOpen=false;e.endless.awaitingReward=true;
+            e.endless.alert=2;e.endless.rewardIndex=0;e.endless.rewardOptions=[{kind:'crumbs',label:'MIGAJAS QA',description:'Prueba de clic',amount:7}];e.player.crumbs=0;e.onStateChange?.(e.state);
+          });
+          await click(106,174);
+          const reward=await page.evaluate(()=>({crumbs:window.duckHeistEngine.player.crumbs,state:window.duckHeistEngine.state}));
+          if(reward.crumbs<7)throw new Error('endless reward card click failed '+JSON.stringify(reward));
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.state='ENDLESS_REWARD';e.endless.marketOpen=false;e.endless.awaitingReward=true;e.endless.alert=2;e.endless.rewardOptions=[{kind:'crumbs',label:'QA',description:'QA',amount:1}];e.onStateChange?.(e.state);
+          });
+          const crumbsBeforeRecycle=await page.evaluate(()=>window.duckHeistEngine.player.crumbs);
+          await click(240,282);
+          const crumbsAfterRecycle=await page.evaluate(()=>window.duckHeistEngine.player.crumbs);
+          if(!(crumbsAfterRecycle>crumbsBeforeRecycle))throw new Error('endless recycle button failed');
+
+          // Weapon replacement modal now has an explicit cancel button.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.gameMode='heist';e.state='PLAYING';e.player.weapons[1]={...e.player.weapons[0]};e.swap={itemId:'breadcrumb_shotgun',slot:0,from:'floor',srcIndex:0,worldX:240,worldY:180,roomKey:e.currentKey};e.onStateChange?.(e.state);
+          });
+          await click(240,321);
+          const swap=await page.evaluate(()=>window.duckHeistEngine.swap);
+          if(swap!==null)throw new Error('weapon swap cancel failed');
+
+          await noOverflow('final');
+          if(errors.length)throw new Error('Runtime errors: '+errors.join(' | '));
+          console.log(JSON.stringify({
+            mainKeyboardBlocked:keyboard,
+            allMainRoutes:true,
+            collectionFilterFixed:[filter0,filter1],
+            collectionSortFixed:[sort0,sort1],
+            settingsMouse:true,
+            controlsMouse:true,
+            pauseMouse:true,
+            mapCloseMouse:true,
+            endlessRewardMouse:true,
+            heldFireDash:combat
+          },null,2));
+          await browser.close();
+          JS
+      - name: Cleanup workflow and commit build
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/v080-mouse-menu-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh v0.8.0 mouse-first menu bundle'
+            git push origin HEAD:feature/v080-mouse-first-menu-redesign
+          fi
