@@ -230,7 +230,7 @@ export interface Settings {
 export interface KeyBindings {
   moveUp:string; moveDown:string; moveLeft:string; moveRight:string;
   shootUp:string; shootDown:string; shootLeft:string; shootRight:string;
-  interact:string; dash:string; active:string; map:string; pause:string;
+  interact:string; dash:string; active:string; map:string; pause:string; recycle:string;
   weapon1:string; weapon2:string;
 }
 
