@@ -20,7 +20,7 @@ const REWARD:Record<DailyMedal,number>={NONE:0,BRONZE:8,SILVER:16,GOLD:28,PLATIN
 export function dailyKey(d=new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-export function dailySeed(key=dailyKey()) { return 'DAILY-'+key.replaceAll('-',''); }
+export function dailySeed(key=dailyKey()) { return 'DAILY-'+key.split('-').join(''); }
 
 function hash(s:string){
   let h=2166136261>>>0;
