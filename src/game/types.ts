@@ -252,7 +252,7 @@ export interface RunHistoryEntry {
   id:string; mode:GameMode; difficulty:DifficultyMode; outcome:'victory'|'death'|'abandoned';
   floor:number; round:number; time:number; enemies:number; bosses:number; damage:number;
   damageTaken:number; items:number; weapons:number; golden:number; seed:string;
-  weaponIds:string[]; itemIds:string[]; activeItemId:string|null; synergyIds:string[];
+  weaponIds:string[]; itemIds:string[]; activeItemId:string|null; synergyIds:string[]; dailyScore:number;
 }
 
 export type ContractMetric='runs'|'wins'|'enemies'|'bosses'|'damage'|'rooms'|'endlessRuns';
