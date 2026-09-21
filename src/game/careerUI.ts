@@ -1,7 +1,8 @@
 import { careerAchievements, contractDefinitions, contractProgress } from './career';
 import { ACTIVE_ITEMS, ITEMS, WEAPONS } from './data';
 import { drawItemIcon } from './itemArt';
-import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel, text, wrappedText, titleText, drawBar } from './ui';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, text, wrappedText, titleText, drawBar } from './ui';
+import { BACK_BUTTON, inside } from './layout';
 import type { DifficultyMode, GameEngine, RunHistoryEntry } from './types';
 
 const fmt=(frames:number)=>{
@@ -171,5 +172,6 @@ export function renderCareer(e:GameEngine){
   else if(e.careerTab===4)renderContracts(e);
   else renderAchievements(e);
 
-  drawMenuFooter(c,e.lastInput==='gamepad'?'LB / RB · CAMBIAR VISTA   B · COLECCIÓN':'A / D o TAB · CAMBIAR VISTA   ESC · COLECCIÓN','DATOS GUARDADOS LOCALMENTE','#79b9d2');
+  drawMouseButton(c,'← VOLVER A COLECCIÓN',BACK_BUTTON.x,BACK_BUTTON.y,136,BACK_BUTTON.h,inside(e.mouseX,e.mouseY,{...BACK_BUTTON,w:136}),'#79b9d2');
+  text(c,'DATOS GUARDADOS LOCALMENTE',452,332,4.7,'#71878b','right',true,false);
 }
