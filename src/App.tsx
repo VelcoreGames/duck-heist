@@ -585,7 +585,7 @@ export default function App() {
           if(row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness'){
             if(inside(x,y,settingsMinusRect(hit)))adjustSetting(engine,hit,-1);
             else if(inside(x,y,settingsPlusRect(hit)))adjustSetting(engine,hit,1);
-          }else if(inside(x,y,settingsActionRect(hit))||inside(x,y,settingsRect(hit))){
+          }else if(inside(x,y,settingsActionRect(hit))){
             if(row.key==='fullscreen')toggleFullscreen(engine,applySize);
             else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;playUiSelect();goTo(GameState.CONTROLS);}
             else adjustSetting(engine,hit,1);
