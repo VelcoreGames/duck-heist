@@ -4,7 +4,7 @@ import type { GameEngine, Settings } from './types';
 import { normalizeBindings } from './controls';
 
 export const DEFAULT_SETTINGS:Settings = {master:.8,music:.35,sfx:.85,shake:.7,damageNumbers:true,uiScale:2,fullscreen:false,brightness:1,reduceMotion:false,highContrast:false};
-export const emptyDiscoveries = ():Record<CollectionCategory,string[]> => ({items:[],weapons:['quack_blaster'],bosses:[],enemies:[],skins:['robber']});
+export const emptyDiscoveries = ():Record<CollectionCategory,string[]> => ({items:[],weapons:['quack_blaster'],bosses:[],enemies:[],skins:['robber'],synergies:[]});
 const finite=(v:unknown,fallback:number,min=0,max=1e9)=>typeof v==='number' && Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 export function normalizeProgress(raw:Record<string,unknown>={}) {
   if(!raw||typeof raw!=='object'||Array.isArray(raw))raw={};
@@ -35,6 +35,6 @@ export function normalizeProgress(raw:Record<string,unknown>={}) {
 }
 export function permanentSnapshot(e:GameEngine) {
   // Explicit whitelist: neither loadout nor temporary migajas enter the save.
-  return {version:5,locale:'es-MX',totalGoldenCrumbs:e.totalGoldenCrumbs,metaLevels:e.metaLevels,settings:e.settings,bindings:e.bindings,
+  return {version:6,locale:'es-MX',totalGoldenCrumbs:e.totalGoldenCrumbs,metaLevels:e.metaLevels,settings:e.settings,bindings:e.bindings,
     unlockedSkins:e.unlockedSkins,equippedSkin:e.equippedSkin,discovered:e.discovered,bestFloor:e.bestFloor,tutorial:e.tutorial};
 }
