@@ -77,7 +77,9 @@ jobs:
           await page.mouse.down({button:'left'});
           await page.waitForTimeout(120);
           const beforeDash=await page.evaluate(()=>window.duckHeistEngine.projectiles.length);
-          await page.keyboard.press('Shift');
+          await page.mouse.down({button:'right'});
+          await page.waitForTimeout(30);
+          await page.mouse.up({button:'right'});
           await page.waitForTimeout(120);
           const dashShoot=await page.evaluate(()=>({
             mouseDown:window.duckHeistEngine.mouseDown,
