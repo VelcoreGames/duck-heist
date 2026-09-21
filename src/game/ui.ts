@@ -173,6 +173,117 @@ export function drawBar(ctx: Ctx, x: number, y: number, w: number, value: number
   for (let i = 1; i < 10; i++) ctx.fillRect(x + (w / 10) * i, y + 1, 1, 6);
 }
 
+export const MENU_THEME = {
+  ink:'#071015',
+  panel:'#0d1a21',
+  panel2:'#12252d',
+  line:'#35515a',
+  muted:'#789097',
+  text:'#dce8df',
+  gold:'#e6c56f',
+  gold2:'#9d7932',
+  paper:'#eadfb9',
+  cyan:'#73c7c8',
+  red:'#d85d58',
+  green:'#6fc18d',
+};
+
+/** Fondo común para pantallas de menú: oscurece el mundo sin borrar su contexto. */
+export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_THEME.gold) {
+  ctx.save();
+  ctx.fillStyle=`rgba(3,8,12,${opacity})`;
+  ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  const sweep=(frame*.55)%(CANVAS_WIDTH+120)-60;
+  const g=ctx.createLinearGradient(sweep-70,0,sweep+70,0);
+  g.addColorStop(0,'rgba(255,255,255,0)');
+  g.addColorStop(.5,'rgba(255,255,255,.025)');
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  ctx.globalAlpha=.12;ctx.fillStyle=accent;
+  ctx.fillRect(18,18,2,CANVAS_HEIGHT-36);
+  ctx.fillRect(CANVAS_WIDTH-20,18,2,CANVAS_HEIGHT-36);
+  ctx.restore();
+}
+
+/** Encabezado tipo expediente bancario para todos los menús. */
+export function drawMenuHeader(
+  ctx:Ctx,title:string,subtitle:string,frame:number,
+  accent=MENU_THEME.gold,eyebrow='EXPEDIENTE DEL ATRACO',
+) {
+  ctx.save();
+  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,18,CANVAS_WIDTH-44,40);
+  ctx.fillStyle=accent;ctx.fillRect(22,18,5,40);
+  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(31,22,CANVAS_WIDTH-58,1);
+  text(ctx,eyebrow,34,30,5.4,accent,'left',true,false);
+  titleText(ctx,title,34,48,15,MENU_THEME.paper,'left',false);
+  text(ctx,subtitle,CANVAS_WIDTH-34,46,5.8,MENU_THEME.muted,'right',false,false);
+  const pulse=.3+.25*Math.sin(frame*.08);
+  ctx.globalAlpha=pulse;ctx.fillStyle=accent;ctx.fillRect(CANVAS_WIDTH-48,25,11,2);
+  ctx.restore();
+}
+
+/** Tarjeta de menú coherente con bordes recortados y jerarquía fuerte. */
+export function drawMenuCard(
+  ctx:Ctx,x:number,y:number,w:number,h:number,
+  selected=false,accent=MENU_THEME.gold,fill='rgba(12,25,32,.93)',
+) {
+  ctx.save();
+  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=10;}
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(x+3,y+3,w,h);
+  ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=selected?accent:MENU_THEME.line;ctx.fillRect(x,y,3,h);
+  ctx.fillStyle=selected?'rgba(255,255,255,.08)':'rgba(255,255,255,.025)';ctx.fillRect(x+3,y,w-3,2);
+  ctx.strokeStyle=selected?accent:'#243b43';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  // cortes de esquina tipo ficha/placa
+  ctx.fillStyle=MENU_THEME.ink;
+  ctx.fillRect(x+w-6,y,6,3);ctx.fillRect(x+w-3,y,3,6);
+  ctx.fillRect(x,y+h-3,6,3);ctx.fillRect(x,y+h-6,3,6);
+  ctx.restore();
+}
+
+/** Opción navegable con número, título y descripción breve. */
+export function drawMenuChoice(
+  ctx:Ctx,index:number,label:string,description:string,
+  x:number,y:number,w:number,h:number,selected:boolean,frame:number,
+  accent=MENU_THEME.gold,
+) {
+  drawMenuCard(ctx,x,y,w,h,selected,accent,selected?'rgba(36,39,29,.96)':'rgba(11,25,31,.93)');
+  text(ctx,String(index+1).padStart(2,'0'),x+12,y+15,5.2,selected?accent:'#526970','left',true,false);
+  text(ctx,label,x+34,y+16,8.2,selected?'#fff3c4':MENU_THEME.text,'left',true,false);
+  if(description) text(ctx,description,x+34,y+h-7,5.1,selected?'#c9b978':MENU_THEME.muted,'left',false,false);
+  if(selected){
+    const sx=x+w-14+Math.sin(frame*.12)*1.5;
+    text(ctx,'›',sx,y+h/2+4,13,accent,'center',true,false);
+  }
+}
+
+/** Pie consistente de controles. */
+export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.gold) {
+  ctx.save();
+  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,CANVAS_HEIGHT-28,CANVAS_WIDTH-44,18);
+  ctx.fillStyle=accent;ctx.fillRect(22,CANVAS_HEIGHT-28,3,18);
+  text(ctx,left,32,CANVAS_HEIGHT-16,5.7,'#91a7a5','left',true,false);
+  if(right) text(ctx,right,CANVAS_WIDTH-32,CANVAS_HEIGHT-16,5.7,accent,'right',true,false);
+  ctx.restore();
+}
+
+/** Etiqueta de sección tipo sello. */
+export function drawSectionLabel(ctx:Ctx,label:string,x:number,y:number,accent=MENU_THEME.gold) {
+  ctx.save();
+  text(ctx,label,x,y,5.3,accent,'left',true,false);
+  ctx.fillStyle=accent;ctx.globalAlpha=.45;ctx.fillRect(x,y+4,70,1);
+  ctx.restore();
+}
+
+/** Chip de control para teclas/botones. */
+export function drawKeyChip(ctx:Ctx,key:string,x:number,y:number,w=34,active=true) {
+  ctx.save();
+  ctx.fillStyle=active?'#1d343b':'#17242a';ctx.fillRect(x,y,w,14);
+  ctx.strokeStyle=active?MENU_THEME.gold:'#33464d';ctx.strokeRect(x+.5,y+.5,w-1,13);
+  text(ctx,key,x+w/2,y+10,5.6,active?'#f2dea1':'#7d8d91','center',true,false);
+  ctx.restore();
+}
+
 // ---------------------------------------------------------------------------
 // ESCENA DEL MENÚ PRINCIPAL (se dibuja en la capa de mundo pixelada)
 // ---------------------------------------------------------------------------

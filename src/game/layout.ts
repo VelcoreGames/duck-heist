@@ -1,5 +1,5 @@
 // Shared drawing and hit-test geometry. No duplicated menu rectangles.
-export const MAIN_MENU = { x:31, y:126, w:164, h:22, gap:4, count:7 };
+export const MAIN_MENU = { x:30, y:103, w:172, h:29, gap:2, count:7 };
 export const PAUSE_MENU={y:66,h:20,gap:4,w:202,count:6};
 export const SWAP_LAYOUT = { x:35, y:51, w:410, h:250, cardsY:171, cardW:185, cardH:84, gap:8 };
 export const WARDROBE = { x:203,y:70,w:252,h:228,cols:3,cellW:76,cellH:94,gap:6 };
