@@ -18,7 +18,11 @@ import {
   RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS,
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
-import { text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar } from './ui';
+import {
+  text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar,
+  MENU_THEME, drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice,
+  drawMenuFooter, drawSectionLabel, drawKeyChip,
+} from './ui';
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
@@ -1358,6 +1362,16 @@ export const MENU_ITEMS = [
   { label: T.menuStart }, { label: 'ATRACO SIN FIN' }, { label: T.menuUpgrades }, { label: T.menuWardrobe },
   { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
 ];
+
+const MENU_META = [
+  {eyebrow:'ATRACO PRINCIPAL',title:'EL BANCO DEL PAN',desc:'Entra, arma tu build y roba los seis pisos antes de que la seguridad te cierre el paso.',tag:'6 PISOS · ROGUELITE',accent:'#e6c56f'},
+  {eyebrow:'MODO SUPERVIVENCIA',title:'ATRACO SIN FIN',desc:'La misma arena. Rondas cada vez más duras, jefes periódicos y presión que no deja de subir.',tag:'RÉCORD · PRESIÓN · JEFES',accent:'#d86b58'},
+  {eyebrow:'PROGRESIÓN PERMANENTE',title:'MEJORAS',desc:'Invierte monedas doradas en ventajas persistentes para futuras incursiones.',tag:'META · PERMANENTE',accent:'#78c99a'},
+  {eyebrow:'IDENTIDAD DEL PATO',title:'ARMARIO',desc:'Compra y equipa aspectos desbloqueables sin alterar las reglas del atraco.',tag:'COSMÉTICOS · ASPECTOS',accent:'#79b9d2'},
+  {eyebrow:'ARCHIVO DEL BANCO',title:'COLECCIÓN',desc:'Consulta armas, objetos, enemigos, jefes y aspectos descubiertos durante tus runs.',tag:'DESCUBRIMIENTOS · FICHAS',accent:'#9abf9f'},
+  {eyebrow:'MANUAL DEL LADRÓN',title:'CÓMO JUGAR',desc:'Controles esenciales y reglas de supervivencia en una sola vista.',tag:'CONTROLES · OBJETIVO',accent:'#d7b56c'},
+  {eyebrow:'SISTEMA',title:'AJUSTES',desc:'Audio, imagen, vibración, accesibilidad visual y comportamiento de pantalla.',tag:'AUDIO · VIDEO · ACCESO',accent:'#8fb7c8'},
+] as const;
 
 function drawDifficultySkull(ctx:CanvasRenderingContext2D,x:number,y:number,color:string) {
   ctx.save();ctx.fillStyle=color;ctx.fillRect(x+1,y,6,1);ctx.fillRect(x,y+1,8,4);ctx.fillRect(x+2,y+5,4,2);
