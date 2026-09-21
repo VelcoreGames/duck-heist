@@ -1,0 +1,99 @@
+name: v0.8.0 Escape navigation final QA
+on:
+  push:
+    branches: [ui/v080-escape-back-compact-main-menu]
+    paths:
+      - '.github/workflows/v080-escape-menu-final.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/v080-escape-back-compact-main-menu
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Version guard
+        run: node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser and Escape navigation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-menu-final.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistAudit && window.duckHeistEngine);
+          const audit=await page.evaluate(()=>window.duckHeistAudit);
+          if(audit.failures.length)throw new Error('self audit: '+audit.failures.join(' | '));
+
+          const results=await page.evaluate(async()=>{
+            const e=window.duckHeistEngine;
+            const fire=()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+            const wait=()=>new Promise(r=>requestAnimationFrame(()=>r()));
+            const cases=[];
+            const test=async(name,state,expected,setup)=>{
+              if(setup)setup(e);
+              e.state=state;e.onStateChange?.(state);await wait();fire();await wait();
+              cases.push({name,actual:e.state,expected,ok:e.state===expected});
+            };
+            await test('pause resumes','PAUSED','PLAYING');
+            await test('settings returns','SETTINGS','MENU');
+            await test('controls returns settings','CONTROLS','SETTINGS');
+            await test('collection returns','COLLECTION','MENU');
+            await test('career returns collection','CAREER','COLLECTION');
+            await test('how-to returns','HOW_TO_PLAY','MENU');
+            await test('wardrobe returns','WARDROBE','MENU');
+            await test('upgrades returns','UPGRADES','MENU');
+            await test('difficulty returns','DIFFICULTY','MENU');
+            await test('endless resume returns','ENDLESS_RESUME','MENU');
+            await test('run info returns pause','RUN_INFO','PAUSED');
+            await test('map returns previous','MAP','PLAYING',eng=>{eng.mapView.returnState='PLAYING';});
+            await test('confirm cancels','CONFIRM','PAUSED',eng=>{eng.confirmReturnState='PAUSED';eng.confirmKind='quit';});
+            await test('playing pauses','PLAYING','PAUSED');
+            const overflow={x:document.documentElement.scrollWidth>innerWidth,y:document.documentElement.scrollHeight>innerHeight};
+            return {cases,overflow};
+          });
+
+          const failed=results.cases.filter(x=>!x.ok);
+          if(failed.length)throw new Error('escape cases: '+JSON.stringify(failed));
+          if(results.overflow.x||results.overflow.y)throw new Error('overflow '+JSON.stringify(results.overflow));
+          if(errors.length)throw new Error('runtime '+errors.join(' | '));
+          console.log(JSON.stringify({auditPassed:audit.passed,escapeCases:results.cases.length,failures:[],overflow:results.overflow},null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and cleanup
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-escape-menu-final.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh final Escape navigation bundle'
+            git push origin HEAD:ui/v080-escape-back-compact-main-menu
+          fi
