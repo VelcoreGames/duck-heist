@@ -148,10 +148,10 @@ export default function App() {
       }
     };
     const openConfirm=(kind:GameEngine['confirmKind'])=>{
-      engine.confirmKind=kind;engine.confirmIndex=1;playUiSelect();goTo(GameState.CONFIRM);
+      engine.confirmKind=kind;engine.confirmIndex=1;engine.confirmReturnState=engine.state;playUiSelect();goTo(GameState.CONFIRM);
     };
     const cancelConfirm=()=>{
-      const back=engine.confirmKind==='new_endless'?GameState.ENDLESS_RESUME:GameState.PAUSED;
+      const back=engine.confirmReturnState;
       engine.confirmKind=null;engine.confirmIndex=1;playUiBack();goTo(back);
     };
     const executeConfirm=()=>{
@@ -193,7 +193,7 @@ export default function App() {
         e.preventDefault();
       }
       if (e.repeat) return;
-      if(k==='m') {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
+      if(k==='m' && (engine.state===GameState.PLAYING||engine.state===GameState.PAUSED)) {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
       if(engine.state===GameState.MAP) {
         if(k==='escape') closeFloorMap(engine);
         else if(k==='w'||k==='arrowup') inspectMapDirection(engine,'N');
@@ -308,7 +308,7 @@ export default function App() {
           else if(right || down) moveEndlessReward(engine,1);
           else if(k==='r') recycleEndlessRewards(engine);
           else if(yes) confirmEndlessReward(engine);
-          else if(k==='escape'){playUiBack();engine.menuIndex=1;setMusic('menu');goTo(GameState.MENU);}
+          else if(k==='escape'){openConfirm('quit');}
           break;
         case GameState.PLAYING:
           if (k === 'escape') { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
