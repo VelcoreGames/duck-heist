@@ -743,7 +743,9 @@ function hintFor(engine: GameEngine): string {
     case GameState.DIFFICULTY:return 'W / S dificultad · ENTER confirmar · ESC volver';
     case GameState.PLAYING: return 'WASD mover · MOUSE / FLECHAS disparar · RUEDA cambiar arma · SHIFT esquivar · E interactuar · M mapa';
     case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · M / ESC cerrar';
-    case GameState.PAUSED: return 'ESC continuar · flechas navegar';
+    case GameState.PAUSED: return 'ESC continuar · flechas navegar · TAB info de run';
+    case GameState.RUN_INFO:return 'A / D cambiar vista · ESC volver a pausa';
+    case GameState.CONFIRM:return 'W / S elegir · ENTER confirmar · ESC cancelar';
     default: return 'ENTER confirmar · ESC volver';
   }
 }
