@@ -935,8 +935,13 @@ export function startEndlessGame(engine:GameEngine) {
 }
 
 export function restartCurrentMode(engine:GameEngine) {
+  recordRun(engine,'abandoned');
   if(engine.gameMode==='endless'||engine.pendingMode==='endless') startEndlessGame(engine);
   else startGame(engine);
+}
+
+export function abandonCurrentRun(engine:GameEngine) {
+  recordRun(engine,'abandoned');
 }
 
 export function moveEndlessReward(engine:GameEngine,dir:number) {
