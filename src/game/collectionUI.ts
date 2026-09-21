@@ -90,9 +90,9 @@ export function renderCollection(e:GameEngine) {
   text(c,'DESCUBIERTOS · '+discovered+' / '+all.length,444,63,5.8,'#91a9a6','right',true,false);
   const tabW=68,tabGap=3,tabX=29;
   COLLECTION_TABS.forEach((tab,i)=>{
-    const on=tab.id===e.collectionTab,x=tabX+i*(tabW+tabGap);
-    drawMenuCard(c,x,57,tabW,22,on,'#9abf9f',on?'rgba(35,47,35,.98)':'rgba(10,24,30,.9)');
-    text(c,tab.name,x+tabW/2,72,5.7,on?'#eff0ce':'#9fb1ae','center',true,false);
+    const on=tab.id===e.collectionTab,x=tabX+i*(tabW+tabGap),hover=inside(e.mouseX,e.mouseY,{x,y:57,w:tabW,h:22});
+    drawMenuCard(c,x,57,tabW,22,on||hover,'#9abf9f',on?'rgba(35,47,35,.98)':hover?'rgba(20,36,34,.98)':'rgba(10,24,30,.9)');
+    text(c,tab.name,x+tabW/2,72,5.7,on?'#eff0ce':hover?'#d8e4df':'#9fb1ae','center',true,false);
   });
   const filterLabel=e.collectionFilter==='all'?'TODOS':e.collectionFilter==='known'?'DESCUBIERTOS':'PENDIENTES';
   const sortLabel=e.collectionSort==='default'?'ORDEN BASE':e.collectionSort==='name'?'A–Z':'RAREZA';
@@ -112,8 +112,8 @@ export function renderCollection(e:GameEngine) {
   list.forEach((entry,i)=>{
     const x=COLLECTION.x+(i%4)*61,y=COLLECTION.y+Math.floor(i/4)*64-e.collectionScroll;
     if(y+56<COLLECTION.y || y>COLLECTION.y+COLLECTION.h) return;
-    const k=known(e,entry),on=i===e.collectionIndex;
-    drawMenuCard(c,x,y,53,56,on,on?'#9abf9f':'#3a5359',on?'rgba(29,44,35,.98)':'rgba(10,24,30,.9)');
+    const k=known(e,entry),on=i===e.collectionIndex,hover=inside(e.mouseX,e.mouseY,{x,y,w:53,h:56});
+    drawMenuCard(c,x,y,53,56,on||hover,on?'#9abf9f':'#3a5359',on?'rgba(29,44,35,.98)':hover?'rgba(17,34,38,.98)':'rgba(10,24,30,.9)');
     drawCatalogSprite(e,entry,x+11,y+5,32,!k);
     if(k) { c.fillStyle=RARITY_COLORS[entry.rarity];c.fillRect(x+18,y+45,17,2); }
     else text(c,'???',x+26,y+47,8,'#6a8184');
