@@ -3,7 +3,7 @@ import { RARITY_COLORS, RARITY_NAMES } from './data';
 import { COLLECTION, inside } from './layout';
 import { drawItemIcon } from './itemArt';
 import { drawBoss, drawDuckSkin, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
-import { text, titleText, drawPanel, wrappedText } from './ui';
+import { text, titleText, drawPanel, wrappedText, drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel } from './ui';
 import type { GameEngine } from './types';
 import { SPECIAL_ENEMIES,drawTacticalEnemy } from './tacticalSprites';
 
@@ -54,15 +54,17 @@ export function drawCatalogSprite(e:GameEngine,entry:CatalogEntry,x:number,y:num
 export function renderCollection(e:GameEngine) {
   const c=e.ui!, list=collectionEntries(e.collectionTab),selected=list[e.collectionIndex] ?? list[0];
   const discovered=list.filter(i=>known(e,i)).length;
-  drawPanel(c,18,15,444,320,'rgba(10,21,29,.97)','#647c76');
-  titleText(c,'COLECCIÓN',34,40,19,'#f2d68c','left');
-  text(c,`DESCUBIERTOS · ${discovered} / ${list.length}`,444,39,8,'#91a9a6','right');
+  drawMenuBackdrop(c,e.frame,.93,'#9abf9f');
+  drawMenuHeader(c,'COLECCIÓN','Todo lo que el banco ya te dejó descubrir.',e.frame,'#9abf9f','ARCHIVO DEL BANCO');
+  text(c,'DESCUBIERTOS · '+discovered+' / '+list.length,444,63,5.8,'#91a9a6','right',true,false);
   COLLECTION_TABS.forEach((tab,i)=>{
-    c.fillStyle=tab.id===e.collectionTab?'#d2b66f':'#1a3038';c.fillRect(29+i*86,57,82,22);
-    text(c,tab.name,70+i*86,72,8,tab.id===e.collectionTab?'#14252c':'#a4b7b2','center',true,false);
+    const on=tab.id===e.collectionTab,x=29+i*86;
+    drawMenuCard(c,x,57,82,22,on,'#9abf9f',on?'rgba(35,47,35,.98)':'rgba(10,24,30,.9)');
+    text(c,tab.name,70+i*86,72,7,on?'#eff0ce':'#9fb1ae','center',true,false);
   });
   const unlocked=known(e,selected);
-  c.fillStyle='#11232d';c.fillRect(30,89,156,217);
+  drawMenuCard(c,30,89,156,217,true,'#9abf9f','rgba(8,20,26,.96)');
+  drawSectionLabel(c,'FICHA ACTIVA',42,108,'#9abf9f');
   drawCatalogSprite(e,selected,72,101,72,!unlocked);
   wrappedText(c,unlocked?selected.name:'???',42,188,132,11,14,2,'#f6dfa1',true);
   text(c,unlocked?RARITY_NAMES[selected.rarity]:'POR DESCUBRIR',42,221,7,unlocked?RARITY_COLORS[selected.rarity]:'#6c8285','left');
@@ -73,13 +75,17 @@ export function renderCollection(e:GameEngine) {
     const x=COLLECTION.x+(i%4)*61,y=COLLECTION.y+Math.floor(i/4)*64-e.collectionScroll;
     if(y+56<COLLECTION.y || y>COLLECTION.y+COLLECTION.h) return;
     const k=known(e,entry),on=i===e.collectionIndex;
-    c.fillStyle=on?'#31443a':'#162b33';c.fillRect(x,y,53,56);
-    c.strokeStyle=on?'#f4d28a':'#2a4247';c.lineWidth=on?1.5:1;c.strokeRect(x+.5,y+.5,52,55);
+    drawMenuCard(c,x,y,53,56,on,on?'#9abf9f':'#3a5359',on?'rgba(29,44,35,.98)':'rgba(10,24,30,.9)');
     drawCatalogSprite(e,entry,x+11,y+5,32,!k);
     if(k) { c.fillStyle=RARITY_COLORS[entry.rarity];c.fillRect(x+18,y+45,17,2); }
     else text(c,'???',x+26,y+47,8,'#6a8184');
   });c.restore();
   const totalH=Math.ceil(list.length/4)*64-8,max=Math.max(1,totalH-COLLECTION.h);
   if(totalH>COLLECTION.h) { c.fillStyle='#284149';c.fillRect(452,89,3,217);c.fillStyle='#afad79';c.fillRect(452,89+e.collectionScroll/max*169,3,48); }
-  text(c,e.lastInput==='gamepad'?'LB / RB · CATEGORÍA     CRUCETA · EXPLORAR     B · VOLVER':'A / D · CATEGORÍA     FLECHAS · EXPLORAR     RUEDA DEL MOUSE · DESPLAZAR     ESC · VOLVER',240,322,6.2,'#879f9f');
+  drawMenuFooter(
+    c,
+    e.lastInput==='gamepad'?'LB / RB · CATEGORÍA   CRUCETA · EXPLORAR   B · VOLVER':'A / D · CATEGORÍA   FLECHAS · EXPLORAR   RUEDA · DESPLAZAR   ESC · VOLVER',
+    unlocked?'FICHA DESBLOQUEADA':'POR DESCUBRIR',
+    '#9abf9f',
+  );
 }
