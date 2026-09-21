@@ -1544,8 +1544,8 @@ function renderSettingsUI(engine: GameEngine) {
   });
 
   const selected=SETTING_ROWS[engine.settingsIndex]??SETTING_ROWS[0];
-  drawMenuCard(ctx,126,294,326,20,false,'#526b72','rgba(7,18,24,.96)');
-  text(ctx,selected.group+' · '+selected.description,138,307,4.6,'#9fb1b0','left',false,false);
+  drawMenuCard(ctx,126,292,326,23,false,'#526b72','rgba(7,18,24,.96)');
+  wrappedText(ctx,selected.group+' · '+selected.description,138,303,300,4.35,5.2,2,'#9fb1b0');
   drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#8fb7c8');
 }
 
