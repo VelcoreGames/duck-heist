@@ -27,7 +27,7 @@ import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
-  MAIN_MENU, mainMenuRect, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  MAIN_MENU, mainMenuRect, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   SETTINGS, settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   UPGRADE_CARD, upgradeRect, upgradeActionRect, ENDLESS_RESUME, endlessResumeRect,
@@ -1486,7 +1486,7 @@ function renderMenuUI(engine: GameEngine) {
     text(ctx,'ESTADO',px+16,py+166,5.2,'#71878b','left',false,false);
     text(ctx,'LISTO',px+104,py+166,7.2,meta.accent,'left',true,false);
   }
-  drawMouseButton(ctx,'CLIC PARA ABRIR',px+16,py+198,pw-32,20,true,meta.accent);
+  drawMouseButton(ctx,'CLIC PARA ABRIR',MAIN_OPEN.x,MAIN_OPEN.y,MAIN_OPEN.w,MAIN_OPEN.h,inside(engine.mouseX,engine.mouseY,MAIN_OPEN),meta.accent);
   text(ctx,T.tagline,240,329,7.5,'#dbc486','center',true,false);
 }
 
@@ -1610,7 +1610,7 @@ function renderWardrobeUI(engine: GameEngine) {
     ctx.fillStyle = '#f4d03f';
     ctx.fillRect(bx - 56, by - 14, 112, 1);
     ctx.fillRect(bx - 56, by + 9, 112, 1);
-    text(ctx,engine.lastInput==='gamepad'?'A · EQUIPAR ASPECTO':'EQUIPAR ASPECTO',bx,by+4,8,'#f4d03f','center',true);
+    text(ctx,'EQUIPAR ASPECTO',bx,by+4,8,'#f4d03f','center',true);
     ctx.restore();
   } else {
     ctx.fillStyle = affordable ? 'rgba(244,208,63,0.12)' : 'rgba(255,255,255,0.03)';
@@ -1618,7 +1618,7 @@ function renderWardrobeUI(engine: GameEngine) {
     ctx.fillStyle = affordable ? '#f4d03f' : '#4a5262';
     ctx.fillRect(bx - 56, by - 14, 112, 1);
     ctx.fillRect(bx - 56, by + 9, 112, 1);
-    text(ctx,`${engine.lastInput==='gamepad'?'A · ':''}COMPRAR ASPECTO · ${skin.cost}`,bx,by+4,6.8,affordable?'#f4d03f':'#ff5b4f','center',true);
+    text(ctx,`COMPRAR ASPECTO · ${skin.cost}`,bx,by+4,6.8,affordable?'#f4d03f':'#ff5b4f','center',true);
   }
 
   // --- PANEL DERECHO: CUADRÍCULA SCROLLABLE (3 COLUMNAS X MÚLTIPLES FILAS) ---
@@ -1770,7 +1770,7 @@ function renderPausedUI(engine: GameEngine) {
   drawMenuBackdrop(ctx,mf,.86,'#e6c56f');
   drawMenuHeader(ctx,'ATRACO EN PAUSA','Todo lo necesario está a un clic.',mf,'#e6c56f','ESTADO DE LA OPERACIÓN');
   const items=[
-    T.resume,engine.gameMode==='endless'?'INFO DE ARENA':'MAPA','INFO DE RUN',T.restartRun,
+    T.resume,engine.gameMode==='endless'?'RENDIMIENTO':'MAPA',engine.gameMode==='endless'?'BUILD ACTUAL':'INFO DE RUN',T.restartRun,
     T.menuHowTo,T.menuSettings,T.backToMenu,
   ];
   items.forEach((label,i)=>{
