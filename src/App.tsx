@@ -760,7 +760,7 @@ export default function App() {
         <span className="duck-responsive-hint hidden text-[#6a817f] md:block">{hint}</span>
         <button onClick={toggleFs}
           className="duck-responsive-fullscreen pointer-events-auto text-[#7c8494] hover:text-[#f4d03f] transition-colors border border-transparent hover:border-[#f4d03f]/40 px-2 py-0.5">
-          Pantalla completa · F
+          Pantalla completa
         </button>
       </div>
       {audit && <details className="fixed bottom-2 left-2 z-50 max-h-[40vh] max-w-[94vw] overflow-auto border border-[#5b7b72] bg-[#0c1b22] p-3 text-xs">
@@ -794,13 +794,13 @@ function toggleFullscreen(engine: GameEngine, after: () => void) {
 }
 
 function hintFor(engine: GameEngine): string {
-  if(engine.lastInput==='gamepad')return 'PALANCA IZQUIERDA · MOVER  RT · DISPARAR  B · ESQUIVAR  A · INTERACTUAR  Y · OBJETO  VIEW · MAPA  START · PAUSA';
+  if(engine.state===GameState.PLAYING&&engine.lastInput==='gamepad')return 'PALANCA IZQUIERDA · MOVER  RT · DISPARAR  B · ESQUIVAR  A · INTERACTUAR  Y · OBJETO  VIEW · MAPA  START · PAUSA';
   switch (engine.state) {
     case GameState.MENU:return 'Mueve el ratón sobre una opción y haz clic para abrirla';
     case GameState.DIFFICULTY:return 'Haz clic en una dificultad y luego en INICIAR';
     case GameState.DAILY_BRIEF:return 'Haz clic en COMENZAR DESAFÍO o VOLVER';
     case GameState.PLAYING: return keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight)+' mover · MOUSE / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' disparar · '+keyLabel(engine.bindings.dash)+' esquivar · '+keyLabel(engine.bindings.interact)+' interactuar';
-    case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · '+keyLabel(engine.bindings.map)+' / ESC cerrar';
+    case GameState.MAP:return 'MAPA · Haz clic en una sala para inspeccionarla y usa CERRAR MAPA para volver';
     case GameState.PAUSED:return 'Elige una acción con el ratón';
     case GameState.RUN_INFO:return 'Haz clic en BUILD, RENDIMIENTO o VOLVER A PAUSA';
     case GameState.COLLECTION:return 'Haz clic en categorías, filtros, fichas o Carrera';
