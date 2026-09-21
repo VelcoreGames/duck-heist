@@ -41,6 +41,8 @@ import { actionPrompt } from './gamepad';
 import { keyLabel } from './controls';
 import { renderControls } from './controlsUI';
 import { renderCareer } from './careerUI';
+import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChallengeUI';
+import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
@@ -893,6 +895,7 @@ export function renderUI(engine: GameEngine) {
   switch (s) {
     case GameState.MENU: renderMenuUI(engine); break;
     case GameState.DIFFICULTY: renderDifficultyUI(engine); break;
+    case GameState.DAILY_BRIEF: renderDailyBrief(engine); break;
     case GameState.MAP:renderFloorMap(engine);break;
     case GameState.COLLECTION:renderCollection(engine);break;
     case GameState.HEIST_INTRO: {
@@ -1290,6 +1293,7 @@ function drawHUD(engine: GameEngine) {
     if(e.compositionLabel&&e.roundActive&&e.roundKind!=='boss'&&e.roundKind!=='subboss'&&e.roundKind!=='miniboss')text(ctx,e.compositionLabel,12,96,4.8,'#8ea9a2','left',true);
     if(e.milestone)text(ctx,e.milestone,240,31,6.4,e.round>=100?'#ff6c66':'#f4d03f','center',true);
   }
+  renderDailyHUD(engine);
 }
 
 function drawBossBar(engine: GameEngine) {
@@ -1372,13 +1376,14 @@ function drawMinimap(engine: GameEngine) {
 // PANTALLAS (sólo UI)
 // ---------------------------------------------------------------------------
 export const MENU_ITEMS = [
-  { label: T.menuStart }, { label: 'ATRACO SIN FIN' }, { label: T.menuUpgrades }, { label: T.menuWardrobe },
-  { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
+  { label: T.menuStart }, { label: 'ATRACO SIN FIN' }, { label: 'DESAFÍO DIARIO' }, { label: T.menuUpgrades },
+  { label: T.menuWardrobe }, { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
 ];
 
 const MENU_META = [
   {eyebrow:'ATRACO PRINCIPAL',title:'EL BANCO DEL PAN',desc:'Entra, arma tu build y roba los seis pisos antes de que la seguridad te cierre el paso.',tag:'6 PISOS · ROGUELITE',accent:'#e6c56f'},
   {eyebrow:'MODO SUPERVIVENCIA',title:'ATRACO SIN FIN',desc:'La misma arena. Rondas cada vez más duras, jefes periódicos y presión que no deja de subir.',tag:'RÉCORD · PRESIÓN · JEFES',accent:'#d86b58'},
+  {eyebrow:'EXPEDIENTE DEL DÍA',title:'DESAFÍO DIARIO',desc:'Una seed compartida por día, tres modificadores y reglas estandarizadas sin mejoras permanentes.',tag:'SEED FIJA · SCORE · MEDALLAS',accent:'#c98cff'},
   {eyebrow:'PROGRESIÓN PERMANENTE',title:'MEJORAS',desc:'Invierte monedas doradas en ventajas persistentes para futuras incursiones.',tag:'META · PERMANENTE',accent:'#78c99a'},
   {eyebrow:'IDENTIDAD DEL PATO',title:'ARMARIO',desc:'Compra y equipa aspectos desbloqueables sin alterar las reglas del atraco.',tag:'COSMÉTICOS · ASPECTOS',accent:'#79b9d2'},
   {eyebrow:'ARCHIVO DEL BANCO',title:'COLECCIÓN',desc:'Consulta armas, objetos, enemigos, jefes y aspectos descubiertos durante tus runs.',tag:'DESCUBRIMIENTOS · FICHAS',accent:'#9abf9f'},
@@ -1445,7 +1450,7 @@ function renderMenuUI(engine: GameEngine) {
     const x=MAIN_MENU.x,y=MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap);
     const hasCheckpoint=i===1&&engine.endlessCheckpointRound>0;
     const label=hasCheckpoint?'CONTINUAR SIN FIN':item.label;
-    const desc=hasCheckpoint?'R'+engine.endlessCheckpointRound+' guardada':['Campaña','Supervivencia','Meta','Aspectos','Archivo','Controles','Sistema'][i] ?? '';
+    const desc=hasCheckpoint?'R'+engine.endlessCheckpointRound+' guardada':['Campaña','Supervivencia','Hoy','Meta','Aspectos','Archivo','Controles','Sistema'][i] ?? '';
     drawMenuChoice(ctx,i,label,desc,x,y,MAIN_MENU.w,MAIN_MENU.h,on,mf,meta.accent);
     if(hasCheckpoint){
       ctx.fillStyle='#d86b58';ctx.fillRect(x+MAIN_MENU.w-34,y+4,24,7);
@@ -1472,11 +1477,17 @@ function renderMenuUI(engine: GameEngine) {
     text(ctx,'RONDA '+rec.round,px+100,py+158,7.5,'#e7d79e','left',true,false);
     text(ctx,'CHECKPOINT',px+16,py+174,5.2,'#71878b','left',false,false);
     text(ctx,engine.endlessCheckpointRound>0?'RONDA '+engine.endlessCheckpointRound:'SIN GUARDADO',px+100,py+174,7.2,engine.endlessCheckpointRound>0?'#d86b58':'#6f8185','left',true,false);
-  } else if(engine.menuIndex===2 || engine.menuIndex===3){
+  } else if(engine.menuIndex===2){
+    const rec=engine.dailyProfile.current;
+    text(ctx,'MEJOR HOY',px+16,py+158,5.2,'#71878b','left',false,false);
+    text(ctx,String(rec.bestScore),px+100,py+158,7.5,'#efe3bc','left',true,false);
+    text(ctx,'MEDALLA',px+16,py+174,5.2,'#71878b','left',false,false);
+    text(ctx,rec.bestMedal,px+100,py+174,7.2,dailyMedalColor(rec.bestMedal),'left',true,false);
+  } else if(engine.menuIndex===3 || engine.menuIndex===4){
     text(ctx,'MONEDAS',px+16,py+158,5.2,'#71878b','left',false,false);
     drawItemIcon(ctx,px+97,py+146,'golden_crumb',14);
     text(ctx,String(engine.totalGoldenCrumbs),px+118,py+158,8,meta.accent,'left',true,false);
-  } else if(engine.menuIndex===4){
+  } else if(engine.menuIndex===5){
     const found=Object.values(engine.discovered).reduce((a,list)=>a+list.length,0);
     text(ctx,'REGISTROS ABIERTOS',px+16,py+158,5.2,'#71878b','left',false,false);
     text(ctx,String(found),px+150,py+158,8,meta.accent,'left',true,false);
@@ -2099,6 +2110,7 @@ function renderEndlessRewardUI(engine:GameEngine) {
 
 function renderGameOverUI(engine: GameEngine) {
   const ctx=engine.ui!;
+  if(engine.gameMode==='daily'){renderDailyResult(engine);return;}
   if(engine.gameMode==='endless'){
     const e=engine.endless,rec=engine.endlessRecords[engine.difficulty];
     drawMenuBackdrop(ctx,menuFrame(engine),.96,'#d85d58');
@@ -2161,6 +2173,7 @@ function renderGameOverUI(engine: GameEngine) {
 
 function renderVictoryUI(engine: GameEngine) {
   const ctx=engine.ui!;
+  if(engine.gameMode==='daily'){renderDailyResult(engine);return;}
   drawMenuBackdrop(ctx,menuFrame(engine),.94,'#78c99a');
   drawMenuHeader(ctx,T.victory,T.victorySub,engine.frame,'#78c99a','OPERACIÓN COMPLETADA');
 
