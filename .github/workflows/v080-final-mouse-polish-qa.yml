@@ -142,14 +142,14 @@ jobs:
           await page.evaluate(()=>{
             const e=window.duckHeistEngine;e.gameMode='endless';e.state='GAME_OVER';e.pauseIndex=1;e.endless.round=3;e.onStateChange?.('GAME_OVER');
           });
-          await clickWorld(240,312);
+          await clickWorld(240,323);
           if((await state())!=='MENU') throw new Error('endless result menu button failed');
 
           // Resultado diario comparte la misma geometría.
           await page.evaluate(()=>{
             const e=window.duckHeistEngine;e.gameMode='daily';e.state='GAME_OVER';e.pauseIndex=1;e.onStateChange?.('GAME_OVER');
           });
-          await clickWorld(240,312);
+          await clickWorld(240,323);
           if((await state())!=='MENU') throw new Error('daily result menu button failed');
 
           // Mercado de Respiro: conservar migas avanza sin gastarlas.
