@@ -157,7 +157,7 @@ function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:n
 export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
   const s = engine.state;
-  if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.HEIST_INTRO) {
+  if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.DAILY_BRIEF || s===GameState.HEIST_INTRO) {
     const opening=s===GameState.HEIST_INTRO?Math.max(0,(90-engine.heistIntroTimer-15)/75):0;
     drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176);
     return;
