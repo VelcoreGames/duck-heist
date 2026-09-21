@@ -1930,54 +1930,79 @@ function renderSwapUI(engine: GameEngine) {
 
 function renderEndlessResumeUI(engine:GameEngine) {
   const ctx=engine.ui!,diff=engine.endlessCheckpointDifficulty?DIFFICULTIES[engine.endlessCheckpointDifficulty].label:'';
-  ctx.fillStyle='rgba(3,7,12,.9)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-  drawPanel(ctx,56,52,368,238,'rgba(7,13,19,.98)','#8d6f23');
-  titleText(ctx,'ATRACO SIN FIN',240,84,18,'#f4d03f');
-  text(ctx,`PARTIDA GUARDADA · RONDA ${engine.endlessCheckpointRound}`,240,108,8,'#e7d79e','center',true);
-  text(ctx,diff,240,124,6,'#899da2','center');
-  const buttons=[{label:'CONTINUAR ATRACO'},{label:'NUEVO ATRACO'}];
-  drawButtons(ctx,buttons,engine.endlessResumeIndex,240,154,engine.frame,238,30,10);
-  text(ctx,'El guardado se actualiza entre rondas.',240,250,6,'#829294','center');
-  text(ctx,'ESC · VOLVER',240,271,6.5,'#a58d61','center',true);
+  drawMenuBackdrop(ctx,engine.frame,.94,'#d86b58');
+  drawMenuHeader(ctx,'ATRACO SIN FIN','Hay una operación guardada.',engine.frame,'#d86b58','PUNTO DE REINGRESO');
+
+  drawMenuCard(ctx,72,80,336,62,false,'#d86b58','rgba(10,22,28,.95)');
+  drawSectionLabel(ctx,'PARTIDA GUARDADA',88,99,'#d86b58');
+  titleText(ctx,'RONDA '+engine.endlessCheckpointRound,88,126,14,'#f0dfb0','left',false);
+  text(ctx,diff,390,124,6.2,'#8ea1a5','right',true,false);
+
+  const labels=['CONTINUAR ATRACO','NUEVO ATRACO'];
+  labels.forEach((label,i)=>{
+    const x=121,y=154+i*40,on=i===engine.endlessResumeIndex;
+    drawMenuCard(ctx,x,y,238,30,on,'#d86b58',on?'rgba(54,31,29,.98)':'rgba(9,22,28,.94)');
+    text(ctx,String(i+1).padStart(2,'0'),x+14,y+19,5,on?'#d86b58':'#53676e','left',true,false);
+    text(ctx,label,x+42,y+19,8,on?'#fff0d4':'#c7d3cd','left',true,false);
+    if(on) text(ctx,'›',x+220,y+19,12,'#d86b58','center',true,false);
+  });
+
+  drawMenuCard(ctx,92,246,296,40,false,'#4e656c','rgba(7,18,24,.94)');
+  text(ctx,'El guardado se actualiza entre rondas.',240,263,6.1,'#93a4a3','center',false,false);
+  text(ctx,'Empezar de nuevo reemplaza la partida guardada.',240,277,5.2,'#6f8387','center',false,false);
+  drawMenuFooter(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   B · VOLVER':'W / S · ELEGIR   ENTER · CONFIRMAR   ESC · VOLVER','CHECKPOINT ENTRE RONDAS','#d86b58');
 }
 
 function renderEndlessRewardUI(engine:GameEngine) {
   const ctx=engine.ui!,e=engine.endless;
-  ctx.fillStyle='rgba(3,7,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-  drawPanel(ctx,24,24,432,300,'rgba(7,13,19,.97)','#8d6f23');
-  titleText(ctx,'ATRACO SIN FIN',240,50,16,'#f4d03f');
-  text(ctx,`RONDA ${Math.max(1,e.round)} · ALERTA ${e.alert}`,240,69,8,'#e9dfbd','center',true);
-  text(ctx,endlessStage(Math.max(1,e.round)),240,84,6.5,'#8fa7a8','center');
+  const accent=e.marketOpen?'#78c99a':'#e6c56f';
+  drawMenuBackdrop(ctx,engine.frame,.9,accent);
+  drawMenuHeader(
+    ctx,
+    e.marketOpen?'MERCADO DE RESPIRO':'RECOMPENSA DE RONDA',
+    'RONDA '+Math.max(1,e.round)+' · ALERTA '+e.alert+' · '+endlessStage(Math.max(1,e.round)),
+    engine.frame,
+    accent,
+    'ATRACO SIN FIN',
+  );
+
   if(e.marketOpen){
-    text(ctx,'MERCADO DE RESPIRO · UNA COMPRA',240,103,8,'#d7c789','center',true);
     const opts=endlessMarketOptions(engine);
     opts.forEach((opt,i)=>{
       const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.marketIndex;
-      drawPanel(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on?'rgba(57,48,22,.96)':'rgba(15,23,30,.96)',on?'#f4d03f':'#45515a');
-      text(ctx,`${opt.cost} MIGAS`,x+ENDLESS_REWARD_LAYOUT.w/2,y+18,5.5,on?'#f4d03f':'#9c916d','center',true);
-      wrappedText(ctx,opt.label,x+10,y+40,ENDLESS_REWARD_LAYOUT.w-20,7.2,9,2,on?'#fff2b3':'#dce5dc',true);
-      wrappedText(ctx,opt.description,x+10,y+70,ENDLESS_REWARD_LAYOUT.w-20,5.4,6.7,3,'#9babad');
-      if(on){text(ctx,'›',x-7,y+59,12,'#f4d03f');text(ctx,'‹',x+ENDLESS_REWARD_LAYOUT.w+7,y+59,12,'#f4d03f');}
+      drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(25,45,35,.98)':'rgba(10,23,29,.95)');
+      text(ctx,'0'+String(i+1),x+10,y+15,4.8,on?accent:'#536a70','left',true,false);
+      text(ctx,String(opt.cost)+' MIGAS',x+ENDLESS_REWARD_LAYOUT.w-10,y+15,5,on?accent:'#8f9279','right',true,false);
+      wrappedText(ctx,opt.label,x+10,y+38,ENDLESS_REWARD_LAYOUT.w-20,7.2,9,2,on?'#eff8e9':'#d5dfd8',true);
+      wrappedText(ctx,opt.description,x+10,y+69,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,3,'#8ba09f');
+      if(on) text(ctx,'COMPRAR',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,5.2,accent,'center',true,false);
     });
-    text(ctx,`MIGAJAS DISPONIBLES · ${Math.floor(engine.player.crumbs)}`,240,252,6.5,'#e7cf82','center',true);
-    text(ctx,'A / D · ELEGIR    ENTER · COMPRAR',240,270,6,'#a3b5b4','center');
-    text(ctx,'R · GUARDAR MIGAJAS Y SEGUIR',240,286,5.8,'#c9a96b','center',true);
+    drawMenuCard(ctx,116,250,248,38,false,accent,'rgba(7,18,24,.95)');
+    text(ctx,'MIGAJAS DISPONIBLES',132,265,5,'#6f8588','left',false,false);
+    text(ctx,String(Math.floor(engine.player.crumbs)),348,266,7.5,accent,'right',true,false);
+    text(ctx,'R · GUARDAR MIGAJAS Y SEGUIR',240,284,5.4,'#9bb0aa','center',true,false);
   } else if(e.awaitingReward&&e.rewardOptions.length){
-    text(ctx,'ELIGE UNA RECOMPENSA',240,103,8,'#d7c789','center',true);
     e.rewardOptions.forEach((opt,i)=>{
       const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.rewardIndex;
-      drawPanel(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on?'rgba(69,54,20,.95)':'rgba(15,23,30,.96)',on?'#f4d03f':'#45515a');
-      text(ctx,opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN',x+ENDLESS_REWARD_LAYOUT.w/2,y+17,5.5,on?'#f4d03f':'#81949a','center',true);
-      wrappedText(ctx,opt.label,x+10,y+37,ENDLESS_REWARD_LAYOUT.w-20,7.5,9,2,on?'#fff2b3':'#dce5dc',true);
-      wrappedText(ctx,opt.description,x+10,y+65,ENDLESS_REWARD_LAYOUT.w-20,5.5,6.7,4,'#9babad');
-      if(on){text(ctx,'›',x-7,y+59,12,'#f4d03f');text(ctx,'‹',x+ENDLESS_REWARD_LAYOUT.w+7,y+59,12,'#f4d03f');}
+      const kind=opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN';
+      drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(48,41,24,.98)':'rgba(10,23,29,.95)');
+      text(ctx,'0'+String(i+1),x+10,y+15,4.8,on?accent:'#536a70','left',true,false);
+      text(ctx,kind,x+ENDLESS_REWARD_LAYOUT.w-10,y+15,4.8,on?accent:'#71868a','right',true,false);
+      wrappedText(ctx,opt.label,x+10,y+40,ENDLESS_REWARD_LAYOUT.w-20,7.3,9,2,on?'#fff1bc':'#d5dfd8',true);
+      wrappedText(ctx,opt.description,x+10,y+70,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,4,'#8ba09f');
+      if(on) text(ctx,'TOMAR',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,5.2,accent,'center',true,false);
     });
-    text(ctx,'A / D · ELEGIR    ENTER · TOMAR',240,255,6.2,'#a3b5b4','center');
-    text(ctx,'R · RECICLAR TODO',240,276,6.2,'#c9a96b','center',true);
-  } else {
-    // Flujo automático: este caso se resuelve arriba como aviso breve.
+    text(ctx,'R · RECICLAR TODO',240,274,5.8,'#b6a36d','center',true,false);
   }
-  text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${e.threatRank}`,240,303,5.8,'#7f919a','center');
+
+  drawMenuCard(ctx,128,294,224,22,false,'#586d72','rgba(7,18,24,.92)');
+  text(ctx,'PRESIÓN '+Math.round(e.pressure)+'% · '+e.threatRank,240,309,5.4,e.pressure>=75?'#d86b58':'#81969a','center',true,false);
+  drawMenuFooter(
+    ctx,
+    e.marketOpen?'A / D · ELEGIR   ENTER · COMPRAR':'A / D · ELEGIR   ENTER · TOMAR',
+    e.marketOpen?'UNA COMPRA':'UNA ELECCIÓN',
+    accent,
+  );
 }
 
 function renderGameOverUI(engine: GameEngine) {
