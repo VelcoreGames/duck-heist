@@ -14,7 +14,7 @@ import {
 import { generateMap, key, freeTiles, type MapRoom } from './mapgen';
 import {
   createEndlessMap, endlessRoundKind, endlessScale, endlessSpecial, endlessStage,
-  endlessThreatRank, makeEndlessEnemyPlan, rewardRounds, specialLabel,
+  endlessThreatRank, endlessComposition, endlessMilestone, endlessBossMutation, rewardRounds, specialLabel,
 } from './endless';
 import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
@@ -29,7 +29,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -65,6 +65,7 @@ function emptyEndlessState():EndlessState {
     awaitingReward:true,bossBag:[],subbossBag:[],minibossBag:[],enemiesThisRound:0,killedThisRound:0,
     threatRank:'NORMAL',damageBySource:{contact:0,projectile:0},lastHitSource:null,
     marketOpen:false,marketIndex:0,marketDoneRound:0,nextRewardBoost:0,nextRoundTimer:0,
+    compositionLabel:'',hazardKind:null,hazardWarning:0,hazardCooldown:0,milestone:null,
   };
 }
 function queueNextEndlessRound(engine:GameEngine,frames=42) {
