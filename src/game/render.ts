@@ -1548,20 +1548,19 @@ function renderSettingsUI(engine: GameEngine) {
 
 function renderWardrobeUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 14, 12, CANVAS_WIDTH - 28, CANVAS_HEIGHT - 24);
-  titleText(ctx, T.wardrobeTitle, CANVAS_WIDTH / 2, 34, 18, '#f4d03f');
-  text(ctx,`ASPECTOS ${engine.unlockedSkins.length} / ${SKINS.length}`,450,33,6,'#96b1aa','right');
-
-  // Monedas doradas permanentes
-  drawCoin(ctx, CANVAS_WIDTH / 2 - 80, 48, engine.frame, true);
-  text(ctx, `${T.permCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2, 52, 11, '#f4d03f', 'center', true);
+  drawMenuBackdrop(ctx,engine.frame,.93,'#79b9d2');
+  drawMenuHeader(ctx,'ARMARIO','Aspectos del ladrón. Cero ventajas ocultas.',engine.frame,'#79b9d2','IDENTIDAD DEL PATO');
+  text(ctx,'ASPECTOS '+engine.unlockedSkins.length+' / '+SKINS.length,446,64,5.6,'#8aa2a4','right',true,false);
+  drawItemIcon(ctx,334,51,'golden_crumb',13);
+  text(ctx,String(engine.totalGoldenCrumbs)+' MONEDAS',354,63,5.8,'#ddc77f','left',true,false);
 
   // --- PANEL IZQUIERDO (PREVIEW GRANDE FIJO) ---
   const sel = engine.wardrobeIndex;
   const skin = SKINS[sel] ?? SKINS[0];
   const pvx = 26, pvy = 62, pw = 164, ph = 240;
 
-  drawPanel(ctx, pvx, pvy, pw, ph, 'rgba(14,18,30,0.85)', '#2f3644');
+  drawMenuCard(ctx,pvx,pvy,pw,ph,true,'#79b9d2','rgba(8,20,27,.96)');
+  drawSectionLabel(ctx,'VISTA PREVIA',pvx+12,pvy+18,'#79b9d2');
 
   // Escaparate iluminado del pato
   ctx.fillStyle = 'rgba(244,208,63,0.06)';
@@ -1626,7 +1625,7 @@ function renderWardrobeUI(engine: GameEngine) {
   const scroll=engine.wardrobeScroll;
 
   // Marco de la cuadrícula
-  ctx.fillStyle='rgba(10,25,31,.72)';ctx.fillRect(gridX-4,gridY-3,WARDROBE.w+2,WARDROBE.h+6);
+  drawMenuCard(ctx,gridX-5,gridY-4,WARDROBE.w+4,WARDROBE.h+8,false,'#486671','rgba(7,18,24,.94)');
 
   // Scrollbar sutil
   if (maxScroll>0) {
@@ -1649,19 +1648,7 @@ function renderWardrobeUI(engine: GameEngine) {
     const isUnlocked = engine.unlockedSkins.includes(s.id);
     const isEq = engine.equippedSkin === s.id;
 
-    ctx.save();
-    if (on) {
-      ctx.shadowColor = '#f4d03f';
-      ctx.shadowBlur = 8;
-    }
-    ctx.fillStyle = on ? 'rgba(244,208,63,0.18)' : 'rgba(255,255,255,0.03)';
-    ctx.fillRect(cx, cy, cellW, cellH);
-    ctx.fillStyle = on ? '#f4d03f' : '#2f3644';
-    ctx.fillRect(cx, cy, cellW, on ? 2 : 1);
-    ctx.fillRect(cx, cy + cellH - 1, cellW, 1);
-    ctx.fillRect(cx, cy, 1, cellH);
-    ctx.fillRect(cx + cellW - 1, cy, 1, cellH);
-    ctx.restore();
+    drawMenuCard(ctx,cx,cy,cellW,cellH,on,on?'#79b9d2':'#405960',on?'rgba(18,37,45,.98)':'rgba(10,24,30,.9)');
 
     // Pato pequeño animado
     ctx.save();
@@ -1686,7 +1673,12 @@ function renderWardrobeUI(engine: GameEngine) {
   });
   ctx.restore();
 
-  text(ctx,engine.lastInput==='gamepad'?'ASPECTOS · CRUCETA PARA EXPLORAR     A · COMPRAR / EQUIPAR     B · VOLVER':'ASPECTOS · RUEDA DEL MOUSE PARA EXPLORAR     ENTER · COMPRAR / EQUIPAR     ESC · VOLVER',240,331,6.2,'#7c9492');
+  drawMenuFooter(
+    ctx,
+    engine.lastInput==='gamepad'?'CRUCETA · EXPLORAR   A · COMPRAR / EQUIPAR   B · VOLVER':'RUEDA · EXPLORAR   ENTER · COMPRAR / EQUIPAR   ESC · VOLVER',
+    equipped?'ASPECTO EQUIPADO':unlocked?'LISTO PARA EQUIPAR':affordable?'COMPRA DISPONIBLE':'FALTAN MONEDAS',
+    '#79b9d2',
+  );
 }
 
 function renderUpgradesUI(engine: GameEngine) {
