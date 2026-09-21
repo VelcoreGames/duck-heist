@@ -597,6 +597,46 @@ function applyEndlessBossRank(engine:GameEngine,boss:Enemy) {
   boss.attackCooldown=Math.max(28,boss.attackCooldown*mult.cool);
 }
 
+function applyEndlessBossMutation(engine:GameEngine,boss:Enemy,ordinal=0) {
+  if(engine.gameMode!=='endless')return;
+  const mutation=endlessBossMutation(engine.endless.round,boss.bossType,ordinal);
+  boss.mutation=mutation;
+  boss.mutationCounter=0;
+  if(!mutation)return;
+  if(mutation==='FRENÉTICO'){
+    boss.speed*=1.07;
+    boss.attackCooldown=Math.max(26,boss.attackCooldown*.84);
+  } else if(mutation==='BLINDADO'){
+    boss.hp=Math.round(boss.hp*1.18);
+    boss.maxHp=boss.hp;
+  } else if(mutation==='CAZADOR'){
+    boss.speed*=1.05;
+    boss.attackCooldown=Math.max(28,boss.attackCooldown*.94);
+  } else if(mutation==='REFUERZOS'){
+    boss.hp=Math.round(boss.hp*1.08);
+    boss.maxHp=boss.hp;
+  } else if(mutation==='TORMENTA'){
+    boss.attackCooldown=Math.max(28,boss.attackCooldown*.91);
+  }
+}
+
+function applyBossMutationAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,ang:number,tier:'mini'|'sub'|'boss') {
+  if(engine.gameMode!=='endless'||!boss.mutation)return;
+  boss.mutationCounter=(boss.mutationCounter??0)+1;
+  const n=boss.mutationCounter;
+  if(boss.mutation==='CAZADOR'&&n%2===0){
+    bossFan(engine,boss,ang,3,tier==='boss'?.18:.22,3.55,'enemy_bullet');
+  } else if(boss.mutation==='REFUERZOS'&&n%3===0){
+    const pool=tier==='boss'?['policia_rapido','dron_policial','policia_escopeta']:['policia_pato','policia_rapido'];
+    bossSupport(engine,room,content,pool,tier==='boss'?7:5);
+  } else if(boss.mutation==='TORMENTA'&&n%2===0){
+    bossRing(engine,boss,tier==='boss'?12:8,tier==='boss'?2.8:2.45,'drone_shot',engine.frame*.045);
+  } else if(boss.mutation==='FRENÉTICO'&&n%3===0){
+    boss.moveAngle=ang;
+    boss.moveTimer=Math.max(boss.moveTimer,tier==='boss'?18:14);
+  }
+}
+
 function resetEndlessArena(engine:GameEngine) {
   const room=engine.map.rooms.get(engine.currentKey)!;
   const content=getContent(engine);
@@ -647,11 +687,12 @@ function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
       boss.y=CANVAS_HEIGHT*.25;
     }
     applyEndlessBossRank(engine,boss);
+    applyEndlessBossMutation(engine,boss,i);
     if(doubleThreat){
       boss.hp=Math.round(boss.hp*.76);boss.maxHp=boss.hp;
       boss.dmgMul*=.9;boss.damage*=.9;boss.speed*=.96;boss.attackCooldown*=1.15;
     }
-    content.enemies.push(boss);names.push(def.name);
+    content.enemies.push(boss);names.push(def.name+(boss.mutation?` · ${boss.mutation}`:''));
     discover(engine,'bosses',id);
   });
   engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
