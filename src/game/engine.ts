@@ -3379,8 +3379,6 @@ export const SETTING_ROWS = [
   { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const, group:'VIDEO', description:'Aumenta o reduce el tamaño visual de la interfaz.' },
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
   { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const, group:'VIDEO', description:'Ajusta el brillo del canvas del juego.' },
-  { key: 'testQuack', label: 'PROBAR CUAC', kind: 'action' as const, group:'PRUEBAS', description:'Reproduce el sonido del objeto activo CUAC.' },
-  { key: 'testDash', label: 'PROBAR ESQUIVE', kind: 'action' as const, group:'PRUEBAS', description:'Reproduce el sonido del esquive.' },
 ];
 
 export function settingValue(engine: GameEngine, i: number) {
@@ -3398,14 +3396,6 @@ export function adjustSetting(engine: GameEngine, i: number, dir: number) {
     engine.settings.uiScale=3;engine.settings.brightness=1.1;playUiSelect();saveSettings(engine);return;
   }
   if (row.key === 'controls') return;
-  if (row.key === 'testQuack') {
-    playQuack();
-    return;
-  }
-  if (row.key === 'testDash') {
-    playDash();
-    return;
-  }
   const s = engine.settings as unknown as Record<string, number | boolean>;
   if (row.kind === 'bool') {
     s[row.key] = !s[row.key];

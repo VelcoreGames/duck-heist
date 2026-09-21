@@ -1,7 +1,8 @@
 import { careerAchievements, contractDefinitions, contractProgress } from './career';
 import { ACTIVE_ITEMS, ITEMS, WEAPONS } from './data';
 import { drawItemIcon } from './itemArt';
-import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel, text, wrappedText, titleText, drawBar } from './ui';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, text, wrappedText, titleText, drawBar } from './ui';
+import { BACK_BUTTON, inside } from './layout';
 import type { DifficultyMode, GameEngine, RunHistoryEntry } from './types';
 
 const fmt=(frames:number)=>{
@@ -159,9 +160,9 @@ export function renderCareer(e:GameEngine){
 
   const w=65,gap=5,start=28;
   TABS.forEach((label,i)=>{
-    const x=start+i*(w+gap),on=e.careerTab===i;
-    drawMenuCard(c,x,68,w,24,on,on?'#79b9d2':'#536970',on?'rgba(22,39,46,.98)':'rgba(8,21,27,.94)');
-    text(c,label,x+w/2,84,4.6,on?'#edf7f3':'#8fa1a2','center',true,false);
+    const x=start+i*(w+gap),on=e.careerTab===i,hover=e.mouseX>=x&&e.mouseX<=x+w&&e.mouseY>=68&&e.mouseY<=92;
+    drawMenuCard(c,x,68,w,24,on||hover,on?'#79b9d2':'#536970',on?'rgba(22,39,46,.98)':hover?'rgba(15,31,37,.98)':'rgba(8,21,27,.94)');
+    text(c,label,x+w/2,84,4.6,on?'#edf7f3':hover?'#cad8d5':'#8fa1a2','center',true,false);
   });
 
   if(e.careerTab===0)renderSummary(e);
@@ -171,5 +172,6 @@ export function renderCareer(e:GameEngine){
   else if(e.careerTab===4)renderContracts(e);
   else renderAchievements(e);
 
-  drawMenuFooter(c,e.lastInput==='gamepad'?'LB / RB · CAMBIAR VISTA   B · COLECCIÓN':'A / D o TAB · CAMBIAR VISTA   ESC · COLECCIÓN','DATOS GUARDADOS LOCALMENTE','#79b9d2');
+  drawMouseButton(c,'← VOLVER A COLECCIÓN',BACK_BUTTON.x,BACK_BUTTON.y,136,BACK_BUTTON.h,inside(e.mouseX,e.mouseY,{...BACK_BUTTON,w:136}),'#79b9d2');
+  text(c,'DATOS GUARDADOS LOCALMENTE',452,332,4.7,'#71878b','right',true,false);
 }

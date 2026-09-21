@@ -1,5 +1,6 @@
 import { DAILY_MODIFIERS, dailyMedalColor, medalForScore } from './dailyChallenge';
-import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel, drawButtons, drawBar, text, titleText, wrappedText } from './ui';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, drawButtons, drawBar, text, titleText, wrappedText } from './ui';
+import { BACK_BUTTON, PRIMARY_BUTTON, inside } from './layout';
 import type { GameEngine } from './types';
 
 const fmt=(frames:number)=>{
@@ -22,8 +23,7 @@ export function renderDailyBrief(e:GameEngine){
   e.daily.modifiers.forEach((id,i)=>{
     const d=DAILY_MODIFIERS[id],x=30+i*142;
     drawMenuCard(c,x,149,134,68,false,d.accent,'rgba(9,22,28,.95)');
-    text(c,'0'+String(i+1),x+10,164,4.6,d.accent,'left',true,false);
-    wrappedText(c,d.name,x+10,181,114,6.1,7.3,2,'#e8e8e0',true);
+    wrappedText(c,d.name,x+10,174,114,6.1,7.3,2,'#e8e8e0',true);
     wrappedText(c,d.description,x+10,201,114,4.6,5.7,3,'#82979a');
   });
 
@@ -36,9 +36,8 @@ export function renderDailyBrief(e:GameEngine){
   text(c,rec.completed?'COMPLETADO HOY':'PENDIENTE',44,285,5.1,rec.completed?'#78c99a':'#d8b46e','left',true,false);
   text(c,'SIN MEJORAS PERMANENTES · DIFICULTAD NORMAL ESTANDARIZADA',438,285,4.4,'#74898c','right',true,false);
 
-  drawMenuCard(c,170,298,140,20,true,'#c98cff','rgba(36,25,45,.98)');
-  text(c,'COMENZAR DESAFÍO',240,312,6.1,'#f2e6fa','center',true,false);
-  drawMenuFooter(c,e.lastInput==='gamepad'?'A · COMENZAR   B · VOLVER':'ENTER · COMENZAR   ESC · VOLVER','RÉCORD DIARIO LOCAL','#c98cff');
+  drawMouseButton(c,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(e.mouseX,e.mouseY,BACK_BUTTON),'#c98cff');
+  drawMouseButton(c,'COMENZAR DESAFÍO',PRIMARY_BUTTON.x,PRIMARY_BUTTON.y,PRIMARY_BUTTON.w,PRIMARY_BUTTON.h,inside(e.mouseX,e.mouseY,PRIMARY_BUTTON),'#c98cff');
 }
 
 export function renderDailyResult(e:GameEngine){
@@ -70,7 +69,7 @@ export function renderDailyResult(e:GameEngine){
   text(c,'BONOS',240,246,4.4,'#63787d','left',false,false);
   text(c,'VICTORIA +6000 · DAÑO RECIBIDO Y TIEMPO RESTAN',240,256,4.1,'#839699','left',false,false);
 
-  drawButtons(c,[{label:'OTRO INTENTO  ['+(e.lastInput==='gamepad'?'A':'ENTER')+']'},{label:'MENÚ  ['+(e.lastInput==='gamepad'?'B':'ESC')+']'}],
+  drawButtons(c,[{label:'OTRO INTENTO'},{label:'MENÚ PRINCIPAL'}],
     e.pauseIndex,240,286,e.frame,200,22,4);
 }
 

@@ -241,20 +241,25 @@ export function drawMenuCard(
   ctx.restore();
 }
 
-/** Opción navegable con número, título y descripción breve. */
+/** Opción principal pensada para hover + clic. Sin numeración decorativa. */
 export function drawMenuChoice(
-  ctx:Ctx,index:number,label:string,description:string,
+  ctx:Ctx,_index:number,label:string,description:string,
   x:number,y:number,w:number,h:number,selected:boolean,frame:number,
   accent=MENU_THEME.gold,
 ) {
   drawMenuCard(ctx,x,y,w,h,selected,accent,selected?'rgba(36,39,29,.96)':'rgba(11,25,31,.93)');
-  text(ctx,String(index+1).padStart(2,'0'),x+12,y+15,5.2,selected?accent:'#526970','left',true,false);
-  text(ctx,label,x+34,y+16,8.2,selected?'#fff3c4':MENU_THEME.text,'left',true,false);
-  if(description) text(ctx,description,x+34,y+h-7,5.1,selected?'#c9b978':MENU_THEME.muted,'left',false,false);
+  text(ctx,label,x+13,y+13,7.5,selected?'#fff3c4':MENU_THEME.text,'left',true,false);
+  if(description) text(ctx,description,x+13,y+h-5,4.6,selected?'#c9b978':MENU_THEME.muted,'left',false,false);
   if(selected){
-    const sx=x+w-14+Math.sin(frame*.12)*1.5;
-    text(ctx,'›',sx,y+h/2+4,13,accent,'center',true,false);
+    const sx=x+w-13+Math.sin(frame*.12)*1.2;
+    text(ctx,'›',sx,y+h/2+4,12,accent,'center',true,false);
   }
+}
+
+export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,h:number,hover=false,accent=MENU_THEME.gold,danger=false,disabled=false){
+  const col=disabled?'#536067':danger?'#d85d58':accent;
+  drawMenuCard(ctx,x,y,w,h,hover&&!disabled,col,disabled?'rgba(12,19,22,.84)':hover?(danger?'rgba(54,26,30,.98)':'rgba(30,40,34,.98)'):'rgba(9,22,28,.96)');
+  text(ctx,label,x+w/2,y+h/2+4,6.2,disabled?'#66767a':hover?'#fff3d2':'#cbd6d0','center',true,false);
 }
 
 /** Pie consistente de controles. */

@@ -20,13 +20,19 @@ import {
 import { T, FLOOR_NAMES_ES } from './i18n';
 import {
   text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar,
-  drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice,
-  drawMenuFooter, drawSectionLabel, drawKeyChip,
+  drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice, drawMouseButton,
+  drawSectionLabel, drawKeyChip,
 } from './ui';
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
-import { MAIN_MENU, PAUSE_MENU, WARDROBE, WARDROBE_ACTION, SETTINGS, ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT } from './layout';
+import {
+  mainMenuRect, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
+  pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
+  settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
+  upgradeRect, upgradeActionRect, endlessResumeRect,
+  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, HUD_MENU, inside,
+} from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
 import { getBuild, FOODS } from './itemRules';
@@ -1165,8 +1171,8 @@ function renderActiveSwapUI(engine: GameEngine) {
 
   drawMenuCard(ctx,box.confirm.x,box.confirm.y,box.confirm.w,box.confirm.h,true,'#c98cff','rgba(38,26,47,.98)');
   drawMenuCard(ctx,box.cancel.x,box.cancel.y,box.cancel.w,box.cancel.h,false,'#566a72','rgba(10,22,28,.95)');
-  text(ctx,(engine.lastInput==='gamepad'?'A':'E')+' · CAMBIAR',box.confirm.x+box.confirm.w/2,box.confirm.y+18,7.2,'#f0ddff','center',true,false);
-  text(ctx,(engine.lastInput==='gamepad'?'B':'ESC')+' · CANCELAR',box.cancel.x+box.cancel.w/2,box.cancel.y+18,7.2,'#9db0ae','center',true,false);
+  text(ctx,'CAMBIAR',box.confirm.x+box.confirm.w/2,box.confirm.y+18,7.2,'#f0ddff','center',true,false);
+  text(ctx,'CANCELAR',box.cancel.x+box.cancel.w/2,box.cancel.y+18,7.2,'#9db0ae','center',true,false);
 }
 
 const isFull = (p: GameEngine['player']) => p.weapons.every(w => w !== null);
@@ -1218,6 +1224,7 @@ function drawHUD(engine: GameEngine) {
   }
   if(p.shield>0||p.helmetShield||p.contactShield>0)text(ctx,`ESCUDO ${p.shield+p.contactShield+(p.helmetShield?1:0)}`,6,31,5.5,'#9fdae0','left');
 
+  drawMouseButton(ctx,'MENÚ',HUD_MENU.x,HUD_MENU.y,HUD_MENU.w,HUD_MENU.h,inside(engine.mouseX,engine.mouseY,HUD_MENU),'#8fb7c8');
   const cx=CANVAS_WIDTH-80;
   drawPanel(ctx,cx,4,76,28,'rgba(5,12,18,.52)','rgba(115,133,146,.24)','rgba(31,48,57,.38)');
   drawItemIcon(ctx,cx+4,5,'crumb',12);text(ctx,'MIGAJAS',cx+19,12,5.2,'#899f98','left');
@@ -1402,190 +1409,145 @@ function drawDifficultyLock(ctx:CanvasRenderingContext2D,x:number,y:number,color
 }
 
 function renderDifficultyUI(engine:GameEngine) {
-  const ctx=engine.ui!;
-  const left=58,width=364,top=72,rowH=51,gap=5;
-  drawMenuBackdrop(ctx,menuFrame(engine),.9,engine.pendingMode==='endless'?'#d86b58':'#e6c56f');
+  const ctx=engine.ui!,accent=engine.pendingMode==='endless'?'#d86b58':'#e6c56f';
+  drawMenuBackdrop(ctx,menuFrame(engine),.9,accent);
   drawMenuHeader(
     ctx,
     engine.pendingMode==='endless'?'DIFICULTAD · SIN FIN':'NIVEL DE SEGURIDAD',
-    engine.pendingMode==='endless'?'El banco no se acaba. La presión sí sube.':'Elige el nivel antes de entrar.',
-    engine.frame,
-    engine.pendingMode==='endless'?'#d86b58':'#e6c56f',
-    'PLANIFICACIÓN DEL ATRACO',
+    'Elige una opción y después inicia la partida.',
+    engine.frame,accent,'PLANIFICACIÓN DEL ATRACO',
   );
   DIFFICULTY_MODES.forEach((mode,i)=>{
-    const def=DIFFICULTIES[mode],y=top+i*(rowH+gap),selected=engine.difficultyIndex===i,locked=mode==='mad'&&!engine.madUnlocked;
+    const def=DIFFICULTIES[mode],box=difficultyRect(i),selected=engine.difficultyIndex===i,hover=inside(engine.mouseX,engine.mouseY,box),locked=mode==='mad'&&!engine.madUnlocked;
     const color=locked?'#8f6671':mode==='easy'?'#78c99a':mode==='normal'?'#e6c56f':mode==='hard'?'#e89a58':'#e55f59';
-    drawMenuCard(ctx,left,y,width,rowH,selected,color,selected?'rgba(31,31,25,.97)':'rgba(10,22,28,.94)');
-    text(ctx,String(i+1).padStart(2,'0'),left+12,y+17,5.2,selected?color:'#536970','left',true,false);
-    if(locked) drawDifficultyLock(ctx,left+34,y+10,color);
-    titleText(ctx,def.label,left+(locked?50:34),y+20,9,color,'left',false);
-    const skullX=left+185;
-    for(let n=0;n<i+1;n++) drawDifficultySkull(ctx,skullX+n*12,y+11,color);
-    wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,left+34,y+32,width-54,5.4,6.4,2,locked?'#8a6870':'#8ea1a5');
-    text(ctx,locked?'BLOQUEADO':selected?'SELECCIONADO':'DISPONIBLE',left+width-14,y+18,5.2,locked?'#a76f79':selected?color:'#60747b','right',true,false);
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,selected||hover,color,selected?'rgba(31,31,25,.97)':hover?'rgba(23,31,31,.97)':'rgba(10,22,28,.94)');
+    if(locked) drawDifficultyLock(ctx,box.x+14,box.y+13,color);
+    titleText(ctx,def.label,box.x+(locked?32:14),box.y+24,9,color,'left',false);
+    for(let n=0;n<i+1;n++) drawDifficultySkull(ctx,box.x+14+n*12,box.y+34,color);
+    wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,box.x+14,box.y+53,box.w-28,5.1,6.2,2,locked?'#8a6870':'#9cafaf');
+    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?'CLIC PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected||hover?color:'#60747b','right',true,false);
   });
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   B · VOLVER':'W / S · ELEGIR   ENTER · CONFIRMAR   ESC · VOLVER',
-    engine.pendingMode==='endless'?'ARENA ÚNICA':'NUEVA PARTIDA',
-    engine.pendingMode==='endless'?'#d86b58':'#e6c56f',
-  );
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),accent);
+  const locked=engine.difficulty==='mad'&&!engine.madUnlocked;
+  drawMouseButton(ctx,engine.pendingMode==='endless'?'INICIAR SIN FIN':'INICIAR ATRACO',DIFFICULTY_START.x,DIFFICULTY_START.y,DIFFICULTY_START.w,DIFFICULTY_START.h,inside(engine.mouseX,engine.mouseY,DIFFICULTY_START),accent,false,locked);
 }
 
 function renderMenuUI(engine: GameEngine) {
-  const ctx = engine.ui!;
-  const meta=MENU_META[engine.menuIndex] ?? MENU_META[0];
-  const mf=menuFrame(engine);
-  ctx.save();
-  ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-  ctx.restore();
-
+  const ctx=engine.ui!,meta=MENU_META[engine.menuIndex]??MENU_META[0],mf=menuFrame(engine);
+  ctx.save();ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);ctx.restore();
   text(ctx,'v0.8.0',10,12,5.3,'#d8ca9c','left',true,false);
-  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 58, mf);
-  text(ctx,'EXPEDIENTE 08-HEIST',30,88,5.1,'#8aa09d','left',true,false);
+  drawTitleLogo(ctx,CANVAS_WIDTH/2,58,mf);
+  text(ctx,'ELIGE CON EL RATÓN',26,67,5,'#8aa09d','left',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex;
-    const x=MAIN_MENU.x,y=MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap);
-    const hasCheckpoint=i===1&&engine.endlessCheckpointRound>0;
+    const on=i===engine.menuIndex,box=mainMenuRect(i),hasCheckpoint=i===1&&engine.endlessCheckpointRound>0;
     const label=hasCheckpoint?'CONTINUAR SIN FIN':item.label;
-    const desc=hasCheckpoint?'R'+engine.endlessCheckpointRound+' guardada':['Campaña','Supervivencia','Hoy','Meta','Aspectos','Archivo','Controles','Sistema'][i] ?? '';
-    drawMenuChoice(ctx,i,label,desc,x,y,MAIN_MENU.w,MAIN_MENU.h,on,mf,meta.accent);
+    const desc=hasCheckpoint?'R'+engine.endlessCheckpointRound+' GUARDADA':['Campaña','Supervivencia','Reto de hoy','Progresión','Aspectos','Archivo','Guía','Sistema'][i]??'';
+    drawMenuChoice(ctx,i,label,desc,box.x,box.y,box.w,box.h,on,mf,meta.accent);
     if(hasCheckpoint){
-      ctx.fillStyle='#d86b58';ctx.fillRect(x+MAIN_MENU.w-34,y+4,24,7);
-      text(ctx,'SAVE',x+MAIN_MENU.w-22,y+10,4,'#fff2d5','center',true,false);
+      ctx.fillStyle='#d86b58';ctx.fillRect(box.x+box.w-37,box.y+4,27,7);
+      text(ctx,'GUARD.',box.x+box.w-23,box.y+10,3.8,'#fff2d5','center',true,false);
     }
   });
 
-  const px=216,py=104,pw=234,ph=204;
+  const px=218,py=76,pw=236,ph=228;
   drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.95)');
   drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
   titleText(ctx,meta.title,px+16,py+47,13,'#efe3bc','left',false);
-  wrappedText(ctx,meta.desc,px+16,py+66,pw-32,7,10,4,'#9db0ad');
-  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+116,pw-32,1);
-  text(ctx,meta.tag,px+16,py+134,5.3,meta.accent,'left',true,false);
+  wrappedText(ctx,meta.desc,px+16,py+68,pw-32,7,10,4,'#9db0ad');
+  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+120,pw-32,1);
+  text(ctx,meta.tag,px+16,py+138,5.3,meta.accent,'left',true,false);
 
   if(engine.menuIndex===0){
-    text(ctx,'MEJOR PISO',px+16,py+158,5.2,'#71878b','left',false,false);
-    text(ctx,String(engine.bestFloor)+'/6',px+100,py+158,7.5,'#e7d79e','left',true,false);
-    text(ctx,'DIFICULTAD',px+16,py+174,5.2,'#71878b','left',false,false);
-    text(ctx,DIFFICULTIES[engine.difficulty].label,px+100,py+174,7.2,meta.accent,'left',true,false);
+    text(ctx,'MEJOR PISO',px+16,py+166,5.2,'#71878b','left',false,false);
+    text(ctx,String(engine.bestFloor)+'/6',px+104,py+166,7.5,'#e7d79e','left',true,false);
+    text(ctx,'DIFICULTAD',px+16,py+184,5.2,'#71878b','left',false,false);
+    text(ctx,DIFFICULTIES[engine.difficulty].label,px+104,py+184,7.2,meta.accent,'left',true,false);
   } else if(engine.menuIndex===1){
     const rec=engine.endlessRecords[engine.difficulty];
-    text(ctx,'RÉCORD',px+16,py+158,5.2,'#71878b','left',false,false);
-    text(ctx,'RONDA '+rec.round,px+100,py+158,7.5,'#e7d79e','left',true,false);
-    text(ctx,'CHECKPOINT',px+16,py+174,5.2,'#71878b','left',false,false);
-    text(ctx,engine.endlessCheckpointRound>0?'RONDA '+engine.endlessCheckpointRound:'SIN GUARDADO',px+100,py+174,7.2,engine.endlessCheckpointRound>0?'#d86b58':'#6f8185','left',true,false);
+    text(ctx,'RÉCORD',px+16,py+166,5.2,'#71878b','left',false,false);
+    text(ctx,'RONDA '+rec.round,px+104,py+166,7.5,'#e7d79e','left',true,false);
+    text(ctx,'CHECKPOINT',px+16,py+184,5.2,'#71878b','left',false,false);
+    text(ctx,engine.endlessCheckpointRound>0?'RONDA '+engine.endlessCheckpointRound:'SIN GUARDADO',px+104,py+184,7.2,engine.endlessCheckpointRound>0?'#d86b58':'#6f8185','left',true,false);
   } else if(engine.menuIndex===2){
     const rec=engine.dailyProfile.current;
-    text(ctx,'MEJOR HOY',px+16,py+158,5.2,'#71878b','left',false,false);
-    text(ctx,String(rec.bestScore),px+100,py+158,7.5,'#efe3bc','left',true,false);
-    text(ctx,'MEDALLA',px+16,py+174,5.2,'#71878b','left',false,false);
-    text(ctx,rec.bestMedal,px+100,py+174,7.2,dailyMedalColor(rec.bestMedal),'left',true,false);
-  } else if(engine.menuIndex===3 || engine.menuIndex===4){
-    text(ctx,'MONEDAS',px+16,py+158,5.2,'#71878b','left',false,false);
-    drawItemIcon(ctx,px+97,py+146,'golden_crumb',14);
-    text(ctx,String(engine.totalGoldenCrumbs),px+118,py+158,8,meta.accent,'left',true,false);
+    text(ctx,'MEJOR HOY',px+16,py+166,5.2,'#71878b','left',false,false);
+    text(ctx,String(rec.bestScore),px+104,py+166,7.5,'#efe3bc','left',true,false);
+    text(ctx,'MEDALLA',px+16,py+184,5.2,'#71878b','left',false,false);
+    text(ctx,rec.bestMedal,px+104,py+184,7.2,dailyMedalColor(rec.bestMedal),'left',true,false);
+  } else if(engine.menuIndex===3||engine.menuIndex===4){
+    text(ctx,'MONEDAS',px+16,py+166,5.2,'#71878b','left',false,false);
+    drawItemIcon(ctx,px+101,py+154,'golden_crumb',14);
+    text(ctx,String(engine.totalGoldenCrumbs),px+122,py+166,8,meta.accent,'left',true,false);
   } else if(engine.menuIndex===5){
     const found=Object.values(engine.discovered).reduce((a,list)=>a+list.length,0);
-    text(ctx,'REGISTROS ABIERTOS',px+16,py+158,5.2,'#71878b','left',false,false);
-    text(ctx,String(found),px+150,py+158,8,meta.accent,'left',true,false);
+    text(ctx,'REGISTROS ABIERTOS',px+16,py+166,5.2,'#71878b','left',false,false);
+    text(ctx,String(found),px+154,py+166,8,meta.accent,'left',true,false);
   } else {
-    text(ctx,'ESTADO',px+16,py+158,5.2,'#71878b','left',false,false);
-    text(ctx,'LISTO',px+100,py+158,7.2,meta.accent,'left',true,false);
+    text(ctx,'ESTADO',px+16,py+166,5.2,'#71878b','left',false,false);
+    text(ctx,'LISTO',px+104,py+166,7.2,meta.accent,'left',true,false);
   }
-
-  text(ctx,T.tagline,240,326,8,'#dbc486','center',true,false);
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · ABRIR':'W / S · ELEGIR   ENTER · ABRIR',
-    engine.endlessCheckpointRound>0?'CHECKPOINT SIN FIN · R'+engine.endlessCheckpointRound:String(engine.totalGoldenCrumbs)+' MONEDAS',
-    meta.accent,
-  );
+  drawMouseButton(ctx,'CLIC PARA ABRIR',MAIN_OPEN.x,MAIN_OPEN.y,MAIN_OPEN.w,MAIN_OPEN.h,inside(engine.mouseX,engine.mouseY,MAIN_OPEN),meta.accent);
+  text(ctx,T.tagline,240,329,7.5,'#dbc486','center',true,false);
 }
 
 function renderHowToPlayUI(engine: GameEngine) {
-  const ctx = engine.ui!;
-  const gamepad=engine.lastInput==='gamepad';
+  const ctx=engine.ui!;
   drawMenuBackdrop(ctx,menuFrame(engine),.92,'#d7b56c');
-  drawMenuHeader(ctx,'MANUAL DEL LADRÓN','Lo necesario para sobrevivir al primer atraco.',menuFrame(engine),'#d7b56c','PROTOCOLO DE CAMPO');
+  drawMenuHeader(ctx,'MANUAL DEL LADRÓN','Controles del atraco y reglas que sí importan.',menuFrame(engine),'#d7b56c','PROTOCOLO DE CAMPO');
 
-  const rows:[string,string][] = gamepad?[
-    ['PALANCA IZQ.','Moverse'],['PALANCA DER. + RT','Apuntar / disparar'],['B','Esquivar'],['A','Interactuar'],
-    ['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Mapa'],['START','Pausa'],
-  ]:[
+  const rows:[string,string][]=[
     [keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight),'Moverse'],
-    [keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' / CLIC','Disparar'],
-    [keyLabel(engine.bindings.dash)+' / CLIC DER.','Esquivar'],[keyLabel(engine.bindings.interact),'Interactuar'],
+    ['CLIC IZQ. / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight),'Disparar'],
+    ['CLIC DER. / '+keyLabel(engine.bindings.dash),'Esquivar'],[keyLabel(engine.bindings.interact),'Interactuar'],
     [keyLabel(engine.bindings.active),'Objeto activo'],['RUEDA / '+keyLabel(engine.bindings.weapon1)+' / '+keyLabel(engine.bindings.weapon2),'Cambiar arma'],
     [keyLabel(engine.bindings.map),'Mapa'],[keyLabel(engine.bindings.pause),'Pausa'],
   ];
+  drawMenuCard(ctx,28,72,226,238,false,'#d7b56c','rgba(8,20,26,.95)');
+  drawSectionLabel(ctx,'CONTROLES DE JUEGO',44,92,'#d7b56c');
+  rows.forEach(([k,v],i)=>{const y=107+i*22;drawKeyChip(ctx,k,43,y,92,true);text(ctx,v,143,y+10,6.3,'#c8d5cf','left',i<4,false);});
 
-  drawMenuCard(ctx,28,72,226,240,false,'#d7b56c','rgba(8,20,26,.95)');
-  drawSectionLabel(ctx,'CONTROLES',44,92,'#d7b56c');
-  rows.forEach(([k,v],i)=>{
-    const y=107+i*22;
-    drawKeyChip(ctx,k,43,y,gamepad?76:92,true);
-    text(ctx,v,gamepad?128:143,y+10,6.5,'#c8d5cf','left',i<4,false);
-  });
-
-  drawMenuCard(ctx,266,72,186,240,false,'#78c99a','rgba(8,20,26,.95)');
+  drawMenuCard(ctx,266,72,186,238,false,'#78c99a','rgba(8,20,26,.95)');
   drawSectionLabel(ctx,'PLAN DEL ATRACO',282,92,'#78c99a');
   const tips=[
-    ['01','LIMPIA LA SALA','Derrota enemigos para abrir puertas.'],
-    ['02','ARMA LA BUILD','Combina dos armas, objetos y sinergias.'],
-    ['03','CUIDA LA VIDA','El pan cura. No todas las peleas lo sueltan.'],
-    ['04','ROBA Y BAJA','Jefe, botín y siguiente piso.'],
-    ['05','LEE EL MAPA','Pausa el combate; no teletransporta.'],
+    ['LIMPIA LA SALA','Derrota enemigos para abrir puertas.'],
+    ['ARMA LA BUILD','Combina dos armas, objetos y sinergias.'],
+    ['CUIDA LA VIDA','El pan cura. No todas las peleas lo sueltan.'],
+    ['ROBA Y BAJA','Jefe, botín y siguiente piso.'],
+    ['LEE EL MAPA','Pausa el combate; no teletransporta.'],
   ];
-  tips.forEach(([n,t,d],i)=>{
-    const y=108+i*37;
-    text(ctx,n,282,y+9,5,'#78c99a','left',true,false);
-    text(ctx,t,306,y+9,6.3,'#e2e8dd','left',true,false);
-    wrappedText(ctx,d,306,y+20,132,5.4,6.5,2,'#82989a');
-  });
-  drawMenuFooter(ctx,gamepad?'B · VOLVER':'ESC · VOLVER','NO NECESITAS MEMORIZAR TODO','#d7b56c');
+  tips.forEach(([t,d],i)=>{const y=108+i*37;text(ctx,'•',282,y+9,7,'#78c99a','left',true,false);text(ctx,t,296,y+9,6.3,'#e2e8dd','left',true,false);wrappedText(ctx,d,296,y+20,142,5.4,6.5,2,'#82989a');});
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#d7b56c');
 }
 
 function renderSettingsUI(engine: GameEngine) {
-  const ctx = engine.ui!,mf=menuFrame(engine);
+  const ctx=engine.ui!,mf=menuFrame(engine);
   drawMenuBackdrop(ctx,mf,.93,'#8fb7c8');
-  drawMenuHeader(ctx,'AJUSTES','Cada opción explica qué cambia antes de tocarla.',mf,'#8fb7c8','SISTEMA DEL ATRACO');
+  drawMenuHeader(ctx,'AJUSTES','Controles grandes y directos. Los cambios se guardan al instante.',mf,'#8fb7c8','SISTEMA DEL ATRACO');
 
-  drawMenuCard(ctx,48,64,CANVAS_WIDTH-96,196,false,'#8fb7c8','rgba(8,20,26,.95)');
-  SETTING_ROWS.forEach((row, i) => {
-    const y = SETTINGS.y + i * (SETTINGS.h+SETTINGS.gap);
-    const on = i === engine.settingsIndex;
-    const groupColor=row.group==='AUDIO'?'#d4b96e':row.group==='FEEDBACK'?'#d98069':row.group==='ACCESIBILIDAD'?'#b992d8':row.group==='VIDEO'?'#8fb7c8':'#78c99a';
-    drawMenuCard(ctx,SETTINGS.x,y,SETTINGS.w,SETTINGS.h,on,groupColor,on?'rgba(25,40,47,.98)':'rgba(10,24,30,.88)');
-    ctx.fillStyle=groupColor;ctx.globalAlpha=on?1:.55;ctx.fillRect(SETTINGS.x+4,y+4,2,SETTINGS.h-8);ctx.globalAlpha=1;
-    text(ctx,String(i+1).padStart(2,'0'),SETTINGS.x+12,y+10,4.1,on?groupColor:'#50666d','left',true,false);
-    text(ctx,row.label,SETTINGS.x+32,y+10,5.4,on?'#eef6f2':'#a9b7b6','left',on,false);
-    const v = settingValue(engine, i);
-    if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind==='brightness') {
-      const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind==='brightness'?1.4:3;
-      drawBar(ctx,305,y+4,68,v/max,on?groupColor:'#52656b');
-      text(ctx,row.kind==='vol'?String(Math.round(v*100))+'%':String(v),405,y+10,5.0,on?'#dbeef1':'#7d9296','right',true,false);
-    } else {
-      const label=row.kind==='action'?'PROBAR':v>.5?T.on:T.off;
-      const col=row.kind==='action'?'#d8c57d':v>.5?'#78c99a':'#879699';
-      ctx.fillStyle=on?'rgba(255,255,255,.055)':'rgba(255,255,255,.025)';ctx.fillRect(348,y+2,61,12);
-      text(ctx,label,401,y+11,5.1,col,'right',true,false);
+  SETTING_ROWS.forEach((row,i)=>{
+    const box=settingsRect(i),on=i===engine.settingsIndex;
+    const groupColor=row.group==='AUDIO'?'#d4b96e':row.group==='FEEDBACK'?'#d98069':row.group==='ACCESIBILIDAD'?'#b992d8':row.group==='VIDEO'?'#8fb7c8':row.group==='CONTROLES'?'#79b9d2':'#78c99a';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,groupColor,on?'rgba(25,40,47,.98)':'rgba(10,24,30,.9)');
+    text(ctx,row.label,box.x+10,box.y+16,5.1,on?'#eef6f2':'#a9b7b6','left',on,false);
+    const v=settingValue(engine,i);
+    if(row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness'){
+      const minus=settingsMinusRect(i),plus=settingsPlusRect(i);
+      drawMouseButton(ctx,'−',minus.x,minus.y,minus.w,minus.h,inside(engine.mouseX,engine.mouseY,minus),groupColor);
+      drawMouseButton(ctx,'+',plus.x,plus.y,plus.w,plus.h,inside(engine.mouseX,engine.mouseY,plus),groupColor);
+      const label=row.kind==='vol'?Math.round(v*100)+'%':String(v);
+      text(ctx,label,box.x+box.w-39,box.y+17,5.4,on?'#dbeef1':'#8da0a3','center',true,false);
+    }else{
+      const action=settingsActionRect(i);
+      const label=row.key==='controls'?'ABRIR':row.key==='accessPreset'?'APLICAR':v>.5?'ACTIVO':'APAGADO';
+      drawMouseButton(ctx,label,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),groupColor,false,false);
     }
   });
 
-  const selected=SETTING_ROWS[engine.settingsIndex] ?? SETTING_ROWS[0];
-  drawMenuCard(ctx,62,268,356,49,false,'#526b72','rgba(7,18,24,.96)');
-  text(ctx,selected.group,74,282,4.6,'#8fb7c8','left',true,false);
-  wrappedText(ctx,selected.description,74,294,332,5.4,6.4,3,'#aab9b7');
-
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · AJUSTAR   A · CAMBIAR   B · VOLVER':'FLECHAS · AJUSTAR   ENTER · CAMBIAR   ESC · VOLVER',
-    'CAMBIOS GUARDADOS AUTOMÁTICAMENTE',
-    '#8fb7c8',
-  );
+  const selected=SETTING_ROWS[engine.settingsIndex]??SETTING_ROWS[0];
+  drawMenuCard(ctx,126,292,326,23,false,'#526b72','rgba(7,18,24,.96)');
+  wrappedText(ctx,selected.group+' · '+selected.description,138,303,300,4.35,5.2,2,'#9fb1b0');
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#8fb7c8');
 }
 
 function renderWardrobeUI(engine: GameEngine) {
@@ -1649,7 +1611,7 @@ function renderWardrobeUI(engine: GameEngine) {
     ctx.fillStyle = '#f4d03f';
     ctx.fillRect(bx - 56, by - 14, 112, 1);
     ctx.fillRect(bx - 56, by + 9, 112, 1);
-    text(ctx,engine.lastInput==='gamepad'?'A · EQUIPAR ASPECTO':'EQUIPAR ASPECTO',bx,by+4,8,'#f4d03f','center',true);
+    text(ctx,'EQUIPAR ASPECTO',bx,by+4,8,'#f4d03f','center',true);
     ctx.restore();
   } else {
     ctx.fillStyle = affordable ? 'rgba(244,208,63,0.12)' : 'rgba(255,255,255,0.03)';
@@ -1657,7 +1619,7 @@ function renderWardrobeUI(engine: GameEngine) {
     ctx.fillStyle = affordable ? '#f4d03f' : '#4a5262';
     ctx.fillRect(bx - 56, by - 14, 112, 1);
     ctx.fillRect(bx - 56, by + 9, 112, 1);
-    text(ctx,`${engine.lastInput==='gamepad'?'A · ':''}COMPRAR ASPECTO · ${skin.cost}`,bx,by+4,6.8,affordable?'#f4d03f':'#ff5b4f','center',true);
+    text(ctx,`COMPRAR ASPECTO · ${skin.cost}`,bx,by+4,6.8,affordable?'#f4d03f':'#ff5b4f','center',true);
   }
 
   // --- PANEL DERECHO: CUADRÍCULA SCROLLABLE (3 COLUMNAS X MÚLTIPLES FILAS) ---
@@ -1715,41 +1677,28 @@ function renderWardrobeUI(engine: GameEngine) {
   });
   ctx.restore();
 
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · EXPLORAR   A · COMPRAR / EQUIPAR   B · VOLVER':'RUEDA · EXPLORAR   ENTER · COMPRAR / EQUIPAR   ESC · VOLVER',
-    equipped?'ASPECTO EQUIPADO':unlocked?'LISTO PARA EQUIPAR':affordable?'COMPRA DISPONIBLE':'FALTAN MONEDAS',
-    '#79b9d2',
-  );
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#79b9d2');
+  text(ctx,equipped?'ASPECTO EQUIPADO':unlocked?'LISTO PARA EQUIPAR':affordable?'COMPRA DISPONIBLE':'FALTAN MONEDAS',452,332,4.8,equipped?'#78c99a':'#8ba0a2','right',true,false);
 }
 
 function renderUpgradesUI(engine: GameEngine) {
-  const ctx = engine.ui!;
+  const ctx=engine.ui!;
   drawMenuBackdrop(ctx,menuFrame(engine),.93,'#78c99a');
-  drawMenuHeader(ctx,'MEJORAS PERMANENTES','Invierte una vez. Conserva la ventaja.',menuFrame(engine),'#78c99a','TALLER CLANDESTINO');
+  drawMenuHeader(ctx,'MEJORAS PERMANENTES','Selecciona una mejora y compra desde su botón.',menuFrame(engine),'#78c99a','TALLER CLANDESTINO');
+  drawItemIcon(ctx,352,29,'golden_crumb',14);text(ctx,String(engine.totalGoldenCrumbs)+' MONEDAS',372,41,6.2,'#e4cf88','left',true,false);
 
-  drawItemIcon(ctx,352,29,'golden_crumb',14);
-  text(ctx,String(engine.totalGoldenCrumbs)+' MONEDAS',372,41,6.2,'#e4cf88','left',true,false);
-
-  META_UPGRADES.forEach((up, i) => {
-    const y = 76 + i * 54;
-    const lvl = engine.metaLevels[up.id] ?? 0;
-    const maxed = lvl >= up.maxLevel;
-    const cost = up.cost * (lvl + 1);
-    const sel = i === engine.upgradeIndex;
-    const accent=maxed?'#78c99a':sel?'#e6c56f':'#5d7277';
-    drawMenuCard(ctx,38,y,404,46,sel,accent,sel?'rgba(32,36,28,.97)':'rgba(9,22,28,.94)');
-    text(ctx,String(i+1).padStart(2,'0'),50,y+17,5,'#5d7277','left',true,false);
-    titleText(ctx,up.name,78,y+18,9,maxed?'#8ed3a6':sel?'#f3dfaa':'#d0dad4','left',false);
-    wrappedText(ctx,up.description,78,y+31,235,5.4,6.4,2,'#81969a');
-    for (let l = 0; l < up.maxLevel; l++) {
-      ctx.fillStyle = l < lvl ? '#78c99a' : '#263b42';
-      ctx.fillRect(326 + l * 14, y + 10, 10, 7);
-      if(l<lvl){ctx.fillStyle='#b8e2c7';ctx.fillRect(328+l*14,y+11,6,1);}
-    }
-    text(ctx,maxed?'COMPLETO':String(cost)+' MONEDAS',426,y+34,6,maxed?'#78c99a':engine.totalGoldenCrumbs>=cost?'#e6c56f':'#d9645c','right',true,false);
+  META_UPGRADES.forEach((up,i)=>{
+    const box=upgradeRect(i),lvl=engine.metaLevels[up.id]??0,maxed=lvl>=up.maxLevel,cost=up.cost*(lvl+1),sel=i===engine.upgradeIndex;
+    const affordable=engine.totalGoldenCrumbs>=cost,accent=maxed?'#78c99a':sel?'#e6c56f':'#5d7277';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,sel,accent,sel?'rgba(32,36,28,.97)':'rgba(9,22,28,.94)');
+    titleText(ctx,up.name,box.x+14,box.y+20,8.5,maxed?'#8ed3a6':sel?'#f3dfaa':'#d0dad4','left',false);
+    wrappedText(ctx,up.description,box.x+14,box.y+35,230,5.2,6.2,2,'#81969a');
+    for(let l=0;l<up.maxLevel;l++){ctx.fillStyle=l<lvl?'#78c99a':'#263b42';ctx.fillRect(box.x+248+l*13,box.y+12,9,6);}
+    const action=upgradeActionRect(i);
+    drawMouseButton(ctx,maxed?'AL MÁXIMO':'MEJORAR · '+cost,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),maxed?'#78c99a':'#e6c56f',false,maxed||!affordable);
   });
-  drawMenuFooter(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · COMPRAR   B · VOLVER':'W / S · ELEGIR   ENTER · COMPRAR   ESC · VOLVER','PROGRESIÓN PERMANENTE','#78c99a');
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#78c99a');
+  text(ctx,'Las mejoras se aplican a Atraco y Sin Fin. El Desafío Diario usa reglas estandarizadas.',136,332,4.4,'#72888a','left',false,false);
 }
 
 function renderFloorIntroUI(engine: GameEngine) {
@@ -1818,158 +1767,65 @@ function renderFloorClearUI(engine: GameEngine) {
 }
 
 function renderPausedUI(engine: GameEngine) {
-  const ctx = engine.ui!,mf=menuFrame(engine);
+  const ctx=engine.ui!,mf=menuFrame(engine);
   drawMenuBackdrop(ctx,mf,.86,'#e6c56f');
-  drawMenuHeader(
-    ctx,
-    'ATRACO EN PAUSA',
-    engine.gameMode==='endless'?'La arena espera. Consulta la build antes de seguir.':'Mapa, build y ajustes a un paso.',
-    mf,
-    '#e6c56f',
-    'ESTADO DE LA OPERACIÓN',
-  );
-
-  const items = [
-    T.resume,
-    engine.gameMode==='endless'?'INFO DE ARENA':'MAPA',
-    'INFO DE RUN',
-    T.restartRun,
-    T.menuHowTo,
-    T.menuSettings,
-    T.backToMenu,
+  drawMenuHeader(ctx,'ATRACO EN PAUSA','Todo lo necesario está a un clic.',mf,'#e6c56f','ESTADO DE LA OPERACIÓN');
+  const items=[
+    T.resume,engine.gameMode==='endless'?'RENDIMIENTO':'MAPA',engine.gameMode==='endless'?'BUILD ACTUAL':'INFO DE RUN',T.restartRun,
+    T.menuHowTo,T.menuSettings,T.backToMenu,
   ];
   items.forEach((label,i)=>{
-    const x=CANVAS_WIDTH/2-PAUSE_MENU.w/2;
-    const y=PAUSE_MENU.y+i*(PAUSE_MENU.h+PAUSE_MENU.gap);
-    const on=i===engine.pauseIndex;
-    const dangerous=i===3||i===6;
-    const accent=dangerous?'#d85d58':'#e6c56f';
-    drawMenuCard(ctx,x,y,PAUSE_MENU.w,PAUSE_MENU.h,on,accent,on?(dangerous?'rgba(48,25,27,.97)':'rgba(36,34,25,.97)'):'rgba(9,22,28,.94)');
-    text(ctx,String(i+1).padStart(2,'0'),x+12,y+14,4.7,on?accent:'#4f666c','left',true,false);
-    text(ctx,label,x+34,y+14,7.1,on?(dangerous?'#ffd5d1':'#fff0bc'):'#c7d3ce','left',true,false);
-    if(on) text(ctx,'›',x+PAUSE_MENU.w-12,y+14,11,accent,'center',true,false);
+    const box=pauseRect(i),on=i===engine.pauseIndex,dangerous=i===3||i===6,accent=dangerous?'#d85d58':'#e6c56f';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,accent,on?(dangerous?'rgba(48,25,27,.97)':'rgba(36,34,25,.97)'):'rgba(9,22,28,.94)');
+    text(ctx,label,box.x+14,box.y+22,7,on?(dangerous?'#ffd5d1':'#fff0bc'):'#c7d3ce','left',true,false);
+    text(ctx,dangerous?'REQUIERE CONFIRMACIÓN':'CLIC PARA ABRIR',box.x+box.w-12,box.y+22,4.1,on?accent:'#61757a','right',false,false);
   });
-
-  drawMenuCard(ctx,42,242,396,54,false,'#52666d','rgba(7,17,23,.95)');
-  drawSectionLabel(ctx,'RESUMEN RÁPIDO',56,258,'#8fa8a7');
-  text(ctx,'DIFICULTAD',64,275,4.5,'#61777c','left',false,false);
-  text(ctx,difficultyLabel(engine),64,288,6.5,'#e6c56f','left',true,false);
-  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',194,275,4.5,'#61777c','left',false,false);
-  text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',194,288,6.5,'#d8e1db','left',true,false);
-  text(ctx,'OBJETOS',326,275,4.5,'#61777c','left',false,false);
-  text(ctx,String(engine.player.items.length),326,288,6.5,'#d8c57d','left',true,false);
-
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   Y/TAB · INFO':'W / S · ELEGIR   ENTER · CONFIRMAR   TAB · INFO',
-    engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,
-    '#e6c56f',
-  );
+  drawMenuCard(ctx,44,251,388,55,false,'#52666d','rgba(7,17,23,.95)');
+  drawSectionLabel(ctx,'RESUMEN RÁPIDO',58,266,'#8fa8a7');
+  text(ctx,'DIFICULTAD',62,284,4.5,'#61777c','left',false,false);text(ctx,difficultyLabel(engine),62,298,6.3,'#e6c56f','left',true,false);
+  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',188,284,4.5,'#61777c','left',false,false);text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',188,298,6.3,'#d8e1db','left',true,false);
+  text(ctx,'OBJETOS',310,284,4.5,'#61777c','left',false,false);text(ctx,String(engine.player.items.length),310,298,6.3,'#d8c57d','left',true,false);
+  text(ctx,engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,428,298,4.3,'#75898d','right',true,false);
 }
 
 function renderRunInfoUI(engine:GameEngine) {
-  const ctx=engine.ui!,mf=menuFrame(engine),p=engine.player,r=engine.run,s=engine.stats;
+  const ctx=engine.ui!,mf=menuFrame(engine),p=engine.player,r=engine.run,s2=engine.stats;
   drawMenuBackdrop(ctx,mf,.95,'#79b9d2');
-  drawMenuHeader(ctx,'INFO DE RUN','Consulta la operación sin depender de memoria.',mf,'#79b9d2','DOSSIER EN CURSO');
-
-  const tabs=[
-    {label:'BUILD',x:42,w:190},
-    {label:engine.gameMode==='endless'?'ARENA / RENDIMIENTO':'RENDIMIENTO',x:248,w:190},
-  ];
-  tabs.forEach((tab,i)=>{
-    const on=engine.runInfoTab===i;
-    drawMenuCard(ctx,tab.x,70,tab.w,24,on,on?'#79b9d2':'#52676e',on?'rgba(22,39,46,.98)':'rgba(8,21,27,.94)');
-    text(ctx,tab.label,tab.x+tab.w/2,86,6.6,on?'#eaf7f5':'#8ca0a1','center',true,false);
-  });
+  drawMenuHeader(ctx,'INFO DE RUN','Haz clic en una pestaña para cambiar de vista.',mf,'#79b9d2','DOSSIER EN CURSO');
+  const tabs=[{label:'BUILD',x:42,w:190},{label:engine.gameMode==='endless'?'ARENA / RENDIMIENTO':'RENDIMIENTO',x:248,w:190}];
+  tabs.forEach((tab,i)=>{const on=engine.runInfoTab===i,hover=inside(engine.mouseX,engine.mouseY,{x:tab.x,y:70,w:tab.w,h:24});drawMenuCard(ctx,tab.x,70,tab.w,24,on||hover,on?'#79b9d2':'#52676e',on?'rgba(22,39,46,.98)':hover?'rgba(16,30,36,.98)':'rgba(8,21,27,.94)');text(ctx,tab.label,tab.x+tab.w/2,86,6.6,on?'#eaf7f5':hover?'#cad9d7':'#8ca0a1','center',true,false);});
 
   if(engine.runInfoTab===0){
-    drawMenuCard(ctx,34,106,202,190,false,'#e6c56f','rgba(8,20,26,.96)');
-    drawSectionLabel(ctx,'ARMAS',50,125,'#e6c56f');
-    p.weapons.forEach((w,i)=>{
-      const y=140+i*58;
-      if(!w){text(ctx,'SLOT '+(i+1)+' · VACÍO',50,y+20,6,'#65777c','left',true,false);return;}
-      drawItemIcon(ctx,52,y+4,w.id,24);
-      text(ctx,'SLOT '+(i+1),84,y+13,4.6,'#6d8185','left',true,false);
-      wrappedText(ctx,w.name,84,y+27,130,7,8,1,RARITY_COLORS[w.rarity],true);
-      wrappedText(ctx,w.special,50,y+43,166,5.2,6.2,2,'#8fa1a2');
-    });
-    const active=p.activeItem?ACTIVE_ITEMS[p.activeItem]:null;
-    text(ctx,'OBJETO ACTIVO',50,267,4.8,'#6d8185','left',true,false);
-    if(active){drawItemIcon(ctx,52,274,active.id,18);text(ctx,active.name,78,286,6,'#cfa7e8','left',true,false);}
-    else text(ctx,'NINGUNO',50,286,6,'#6d8185','left',true,false);
-
-    drawMenuCard(ctx,248,106,198,190,false,'#78c99a','rgba(8,20,26,.96)');
-    drawSectionLabel(ctx,'OBJETOS PASIVOS',264,125,'#78c99a');
-    const shown=p.items.slice(0,12);
-    shown.forEach((id,i)=>{
-      const def=ITEMS[id],col=i%4,row=Math.floor(i/4),x=270+col*41,y=139+row*45;
-      drawMenuCard(ctx,x,y,34,38,false,def?RARITY_COLORS[def.rarity]:'#4d6268','rgba(10,25,30,.94)');
-      drawItemIcon(ctx,x+8,y+5,id,18);
-      text(ctx,String(i+1).padStart(2,'0'),x+17,y+34,4.2,'#829394','center',false,false);
-    });
-    if(!shown.length) text(ctx,'AÚN NO HAY OBJETOS',347,174,6,'#71868a','center',true,false);
-    text(ctx,'TOTAL · '+p.items.length,264,286,5.2,'#8ca39e','left',true,false);
-    if(p.items.length>12) text(ctx,'+'+(p.items.length-12)+' MÁS',430,286,5.2,'#78c99a','right',true,false);
-  } else {
+    drawMenuCard(ctx,34,106,202,190,false,'#e6c56f','rgba(8,20,26,.96)');drawSectionLabel(ctx,'ARMAS',50,125,'#e6c56f');
+    p.weapons.forEach((w,i)=>{const y=140+i*58;if(!w){text(ctx,'SLOT '+(i+1)+' · VACÍO',50,y+20,6,'#65777c','left',true,false);return;}drawItemIcon(ctx,52,y+4,w.id,24);text(ctx,'SLOT '+(i+1),84,y+13,4.6,'#6d8185','left',true,false);wrappedText(ctx,w.name,84,y+27,130,7,8,1,RARITY_COLORS[w.rarity],true);wrappedText(ctx,w.special,50,y+43,166,5.2,6.2,2,'#8fa1a2');});
+    const active=p.activeItem?ACTIVE_ITEMS[p.activeItem]:null;text(ctx,'OBJETO ACTIVO',50,267,4.8,'#6d8185','left',true,false);if(active){drawItemIcon(ctx,52,274,active.id,18);text(ctx,active.name,78,286,6,'#cfa7e8','left',true,false);}else text(ctx,'NINGUNO',50,286,6,'#6d8185','left',true,false);
+    drawMenuCard(ctx,248,106,198,190,false,'#78c99a','rgba(8,20,26,.96)');drawSectionLabel(ctx,'OBJETOS PASIVOS',264,125,'#78c99a');
+    const shown=p.items.slice(0,12);shown.forEach((id,i)=>{const def=ITEMS[id],col=i%4,row=Math.floor(i/4),x=270+col*41,y=139+row*45;drawMenuCard(ctx,x,y,34,38,false,def?RARITY_COLORS[def.rarity]:'#4d6268','rgba(10,25,30,.94)');drawItemIcon(ctx,x+8,y+7,id,18);});
+    if(!shown.length)text(ctx,'AÚN NO HAY OBJETOS',347,174,6,'#71868a','center',true,false);text(ctx,'TOTAL · '+p.items.length,264,286,5.2,'#8ca39e','left',true,false);if(p.items.length>12)text(ctx,'+'+(p.items.length-12)+' MÁS',430,286,5.2,'#78c99a','right',true,false);
+  }else{
     drawMenuCard(ctx,34,106,412,190,false,'#79b9d2','rgba(8,20,26,.96)');
     const metrics:[string,string,string][]=[
       [engine.gameMode==='endless'?'RONDA':'PISO',engine.gameMode==='endless'?String(engine.endless.round):String(r.floorReached)+'/'+TOTAL_FLOORS,'#e6c56f'],
-      ['SALAS',String(s.roomsCleared),'#dce5de'],
-      ['ENEMIGOS',String(s.enemiesDefeated),'#dce5de'],
-      ['JEFES',String(r.bosses),'#dce5de'],
-      ['DAÑO HECHO',String(Math.round(r.dmgDealt)),'#78c99a'],
-      ['DAÑO RECIBIDO',String(Math.round(r.dmgTaken*10)/10),'#d85d58'],
-      ['MIGAJAS',String(Math.floor(p.crumbs)),'#d8c57d'],
-      ['PAN ROBADO',String(s.breadStolen),'#d8c57d'],
-      ['TIEMPO',fmtTime(r.time),'#79b9d2'],
+      ['SALAS',String(s2.roomsCleared),'#dce5de'],['ENEMIGOS',String(s2.enemiesDefeated),'#dce5de'],['JEFES',String(r.bosses),'#dce5de'],
+      ['DAÑO HECHO',String(Math.round(r.dmgDealt)),'#78c99a'],['DAÑO RECIBIDO',String(Math.round(r.dmgTaken*10)/10),'#d85d58'],['MIGAJAS',String(Math.floor(p.crumbs)),'#d8c57d'],['PAN ROBADO',String(s2.breadStolen),'#d8c57d'],['TIEMPO',fmtTime(r.time),'#79b9d2'],
     ];
-    metrics.forEach(([k,v,c],i)=>{
-      const col=i%3,row=Math.floor(i/3),x=56+col*132,y=137+row*53;
-      text(ctx,k,x,y,4.7,'#64797d','left',false,false);
-      text(ctx,v,x,y+18,9,c,'left',true,false);
-    });
-    if(engine.gameMode==='endless'){
-      ctx.fillStyle='rgba(216,93,88,.13)';ctx.fillRect(50,264,380,22);
-      text(ctx,'ALERTA '+engine.endless.alert+' · PRESIÓN '+Math.round(engine.endless.pressure)+'% · '+engine.endless.threatRank,240,279,5.5,engine.endless.pressure>=75?'#e0766f':'#a9b8b3','center',true,false);
-    } else {
-      text(ctx,'SEMILLA · '+r.seed,240,279,5.2,'#71888c','center',true,false);
-    }
+    metrics.forEach(([k,v,col],i)=>{const x=56+(i%3)*132,y=137+Math.floor(i/3)*53;text(ctx,k,x,y,4.7,'#64797d','left',false,false);text(ctx,v,x,y+18,9,col,'left',true,false);});
+    if(engine.gameMode==='endless'){ctx.fillStyle='rgba(216,93,88,.13)';ctx.fillRect(50,264,380,22);text(ctx,'ALERTA '+engine.endless.alert+' · PRESIÓN '+Math.round(engine.endless.pressure)+'% · '+engine.endless.threatRank,240,279,5.5,engine.endless.pressure>=75?'#e0766f':'#a9b8b3','center',true,false);}else text(ctx,'SEMILLA · '+r.seed,240,279,5.2,'#71888c','center',true,false);
   }
-
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'LB / RB · CAMBIAR VISTA   B · VOLVER':'A / D o TAB · CAMBIAR VISTA   ESC · VOLVER',
-    engine.runInfoTab===0?'BUILD ACTUAL':'DATOS DE LA OPERACIÓN',
-    '#79b9d2',
-  );
+  drawMouseButton(ctx,'← VOLVER A PAUSA',BACK_BUTTON.x,BACK_BUTTON.y,126,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,{...BACK_BUTTON,w:126}),'#79b9d2');
 }
 
 function renderConfirmUI(engine:GameEngine) {
-  const ctx=engine.ui!,mf=menuFrame(engine);
-  const kind=engine.confirmKind;
+  const ctx=engine.ui!,mf=menuFrame(engine),kind=engine.confirmKind;
   const title=kind==='restart'?'¿REINICIAR ATRACO?':kind==='new_endless'?'¿NUEVO ATRACO SIN FIN?':'¿ABANDONAR ATRACO?';
-  const body=kind==='restart'
-    ?'Se perderá el progreso no guardado de esta run y comenzarás de nuevo.'
-    :kind==='new_endless'
-      ?'El checkpoint actual será reemplazado cuando comience la nueva partida.'
-      :'Volverás al menú principal y la run actual terminará.';
+  const body=kind==='restart'?'Se perderá el progreso no guardado de esta run y comenzarás de nuevo.':kind==='new_endless'?'El checkpoint actual será reemplazado cuando comience la nueva partida.':'Volverás al menú principal y la run actual terminará.';
   const detail=kind==='new_endless'&&engine.endlessCheckpointRound>0?'CHECKPOINT ACTUAL · RONDA '+engine.endlessCheckpointRound:'ESTA ACCIÓN NO SE PUEDE DESHACER';
-  drawMenuBackdrop(ctx,mf,.97,'#d85d58');
-  drawMenuHeader(ctx,title,'Confirmación requerida para una acción destructiva.',mf,'#d85d58','PROTOCOLO DE SEGURIDAD');
-
-  drawMenuCard(ctx,78,91,324,112,true,'#d85d58','rgba(27,16,20,.98)');
-  text(ctx,'!',104,126,24,'#d85d58','center',true,false);
-  wrappedText(ctx,body,134,116,242,7.2,10,4,'#d8ded8',true);
-  text(ctx,detail,240,185,5.2,'#b27b76','center',true,false);
-
-  const labels=['SÍ, CONFIRMAR','CANCELAR'];
-  labels.forEach((label,i)=>{
-    const x=CANVAS_WIDTH/2-105,y=225+i*36,on=engine.confirmIndex===i;
-    const accent=i===0?'#d85d58':'#78c99a';
-    drawMenuCard(ctx,x,y,210,28,on,accent,on?(i===0?'rgba(56,25,29,.98)':'rgba(22,43,32,.98)'):'rgba(9,22,28,.95)');
-    text(ctx,label,240,y+18,7.2,on?(i===0?'#ffd8d4':'#dff3e3'):'#a4b3af','center',true,false);
-  });
-  drawMenuFooter(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   B · CANCELAR':'W / S · ELEGIR   ENTER · CONFIRMAR   ESC · CANCELAR','CANCELAR ES LA OPCIÓN PREDETERMINADA','#d85d58');
+  drawMenuBackdrop(ctx,mf,.97,'#d85d58');drawMenuHeader(ctx,title,'Revisa la acción antes de continuar.',mf,'#d85d58','PROTOCOLO DE SEGURIDAD');
+  drawMenuCard(ctx,78,91,324,112,true,'#d85d58','rgba(27,16,20,.98)');text(ctx,'!',104,126,24,'#d85d58','center',true,false);wrappedText(ctx,body,134,116,242,7.2,10,4,'#d8ded8',true);text(ctx,detail,240,185,5.2,'#b27b76','center',true,false);
+  const confirm=CONFIRM_RECTS[0],cancel=CONFIRM_RECTS[1];
+  drawMouseButton(ctx,'CANCELAR',cancel.x,cancel.y,cancel.w,cancel.h,inside(engine.mouseX,engine.mouseY,cancel),'#78c99a');
+  drawMouseButton(ctx,'SÍ, CONFIRMAR',confirm.x,confirm.y,confirm.w,confirm.h,inside(engine.mouseX,engine.mouseY,confirm),'#d85d58',true);
+  text(ctx,'Las acciones destructivas siempre requieren este segundo clic.',240,289,4.9,'#77898a','center',false,false);
 }
 
 function renderSwapUI(engine: GameEngine) {
@@ -2023,89 +1879,32 @@ function renderSwapUI(engine: GameEngine) {
 
   const old=p.weapons[engine.swapSel];
   text(ctx,'ACTUAL · '+(old?.description ?? ''),240,271,5.4,'#839799','center',false,false);
-  drawMenuFooter(
-    ctx,
-    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · REEMPLAZAR   B · CANCELAR':'1 / 2 · ELEGIR   ENTER / '+keyLabel(engine.bindings.interact)+' · REEMPLAZAR   ESC · CANCELAR',
-    'EL ARMA DESCARTADA QUEDA EN EL SUELO',
-    '#ff9f43',
-  );
+  text(ctx,'Haz clic en el arma que quieres reemplazar.',240,292,5.1,'#9aa9a5','center',false,false);
+  drawMouseButton(ctx,'CANCELAR',SWAP_CANCEL.x,SWAP_CANCEL.y,SWAP_CANCEL.w,SWAP_CANCEL.h,inside(engine.mouseX,engine.mouseY,SWAP_CANCEL),'#ff9f43');
 }
 
 function renderEndlessResumeUI(engine:GameEngine) {
   const ctx=engine.ui!,diff=engine.endlessCheckpointDifficulty?DIFFICULTIES[engine.endlessCheckpointDifficulty].label:'';
-  drawMenuBackdrop(ctx,menuFrame(engine),.94,'#d86b58');
-  drawMenuHeader(ctx,'ATRACO SIN FIN','Hay una operación guardada.',menuFrame(engine),'#d86b58','PUNTO DE REINGRESO');
-
-  drawMenuCard(ctx,72,80,336,62,false,'#d86b58','rgba(10,22,28,.95)');
-  drawSectionLabel(ctx,'PARTIDA GUARDADA',88,99,'#d86b58');
-  titleText(ctx,'RONDA '+engine.endlessCheckpointRound,88,126,14,'#f0dfb0','left',false);
-  text(ctx,diff,390,124,6.2,'#8ea1a5','right',true,false);
-
-  const labels=['CONTINUAR ATRACO','NUEVO ATRACO'];
-  labels.forEach((label,i)=>{
-    const x=121,y=154+i*40,on=i===engine.endlessResumeIndex;
-    drawMenuCard(ctx,x,y,238,30,on,'#d86b58',on?'rgba(54,31,29,.98)':'rgba(9,22,28,.94)');
-    text(ctx,String(i+1).padStart(2,'0'),x+14,y+19,5,on?'#d86b58':'#53676e','left',true,false);
-    text(ctx,label,x+42,y+19,8,on?'#fff0d4':'#c7d3cd','left',true,false);
-    if(on) text(ctx,'›',x+220,y+19,12,'#d86b58','center',true,false);
-  });
-
-  drawMenuCard(ctx,92,246,296,40,false,'#4e656c','rgba(7,18,24,.94)');
-  text(ctx,'El guardado se actualiza entre rondas.',240,263,6.1,'#93a4a3','center',false,false);
-  text(ctx,'Empezar de nuevo reemplaza la partida guardada.',240,277,5.2,'#6f8387','center',false,false);
-  drawMenuFooter(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   B · VOLVER':'W / S · ELEGIR   ENTER · CONFIRMAR   ESC · VOLVER','CHECKPOINT ENTRE RONDAS','#d86b58');
+  drawMenuBackdrop(ctx,menuFrame(engine),.94,'#d86b58');drawMenuHeader(ctx,'ATRACO SIN FIN','Hay una operación guardada.',menuFrame(engine),'#d86b58','PUNTO DE REINGRESO');
+  drawMenuCard(ctx,72,78,336,60,false,'#d86b58','rgba(10,22,28,.95)');drawSectionLabel(ctx,'PARTIDA GUARDADA',88,97,'#d86b58');titleText(ctx,'RONDA '+engine.endlessCheckpointRound,88,124,14,'#f0dfb0','left',false);text(ctx,diff,390,122,6.2,'#8ea1a5','right',true,false);
+  ['CONTINUAR ATRACO','EMPEZAR DE NUEVO'].forEach((label,i)=>{const box=endlessResumeRect(i),on=i===engine.endlessResumeIndex;drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,'#d86b58',on?'rgba(54,31,29,.98)':'rgba(9,22,28,.94)');text(ctx,label,box.x+16,box.y+25,8,on?'#fff0d4':'#c7d3cd','left',true,false);text(ctx,i===0?'RETOMAR CHECKPOINT':'REEMPLAZAR GUARDADO',box.x+box.w-14,box.y+25,4.4,on?'#d86b58':'#64787c','right',true,false);});
+  drawMenuCard(ctx,92,260,296,38,false,'#4e656c','rgba(7,18,24,.94)');text(ctx,'El guardado se actualiza entre rondas.',240,276,5.8,'#93a4a3','center',false,false);text(ctx,'Empezar de nuevo pedirá confirmación.',240,289,5,'#6f8387','center',false,false);
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#d86b58');
 }
 
 function renderEndlessRewardUI(engine:GameEngine) {
-  const ctx=engine.ui!,e=engine.endless;
-  const accent=e.marketOpen?'#78c99a':'#e6c56f';
-  drawMenuBackdrop(ctx,menuFrame(engine),.9,accent);
-  drawMenuHeader(
-    ctx,
-    e.marketOpen?'MERCADO DE RESPIRO':'RECOMPENSA DE RONDA',
-    'RONDA '+Math.max(1,e.round)+' · ALERTA '+e.alert+' · '+endlessStage(Math.max(1,e.round)),
-    engine.frame,
-    accent,
-    'ATRACO SIN FIN',
-  );
-
+  const ctx=engine.ui!,e=engine.endless,accent=e.marketOpen?'#78c99a':'#e6c56f';
+  drawMenuBackdrop(ctx,menuFrame(engine),.9,accent);drawMenuHeader(ctx,e.marketOpen?'MERCADO DE RESPIRO':'RECOMPENSA DE RONDA','RONDA '+Math.max(1,e.round)+' · ALERTA '+e.alert+' · '+endlessStage(Math.max(1,e.round)),engine.frame,accent,'ATRACO SIN FIN');
   if(e.marketOpen){
     const opts=endlessMarketOptions(engine);
-    opts.forEach((opt,i)=>{
-      const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.marketIndex;
-      drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(25,45,35,.98)':'rgba(10,23,29,.95)');
-      text(ctx,'0'+String(i+1),x+10,y+15,4.8,on?accent:'#536a70','left',true,false);
-      text(ctx,String(opt.cost)+' MIGAS',x+ENDLESS_REWARD_LAYOUT.w-10,y+15,5,on?accent:'#8f9279','right',true,false);
-      wrappedText(ctx,opt.label,x+10,y+38,ENDLESS_REWARD_LAYOUT.w-20,7.2,9,2,on?'#eff8e9':'#d5dfd8',true);
-      wrappedText(ctx,opt.description,x+10,y+69,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,3,'#8ba09f');
-      if(on) text(ctx,'COMPRAR',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,5.2,accent,'center',true,false);
-    });
-    drawMenuCard(ctx,116,250,248,38,false,accent,'rgba(7,18,24,.95)');
-    text(ctx,'MIGAJAS DISPONIBLES',132,265,5,'#6f8588','left',false,false);
-    text(ctx,String(Math.floor(engine.player.crumbs)),348,266,7.5,accent,'right',true,false);
-    text(ctx,'R · GUARDAR MIGAJAS Y SEGUIR',240,284,5.4,'#9bb0aa','center',true,false);
-  } else if(e.awaitingReward&&e.rewardOptions.length){
-    e.rewardOptions.forEach((opt,i)=>{
-      const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.rewardIndex;
-      const kind=opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN';
-      drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(48,41,24,.98)':'rgba(10,23,29,.95)');
-      text(ctx,'0'+String(i+1),x+10,y+15,4.8,on?accent:'#536a70','left',true,false);
-      text(ctx,kind,x+ENDLESS_REWARD_LAYOUT.w-10,y+15,4.8,on?accent:'#71868a','right',true,false);
-      wrappedText(ctx,opt.label,x+10,y+40,ENDLESS_REWARD_LAYOUT.w-20,7.3,9,2,on?'#fff1bc':'#d5dfd8',true);
-      wrappedText(ctx,opt.description,x+10,y+70,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,4,'#8ba09f');
-      if(on) text(ctx,'TOMAR',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,5.2,accent,'center',true,false);
-    });
-    text(ctx,'R · RECICLAR TODO',240,274,5.8,'#b6a36d','center',true,false);
+    opts.forEach((opt,i)=>{const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.marketIndex;drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(25,45,35,.98)':'rgba(10,23,29,.95)');text(ctx,String(opt.cost)+' MIGAS',x+ENDLESS_REWARD_LAYOUT.w-10,y+15,5,on?accent:'#8f9279','right',true,false);wrappedText(ctx,opt.label,x+10,y+38,ENDLESS_REWARD_LAYOUT.w-20,7.2,9,2,on?'#eff8e9':'#d5dfd8',true);wrappedText(ctx,opt.description,x+10,y+69,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,3,'#8ba09f');text(ctx,on?'CLIC PARA COMPRAR':'',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,4.6,accent,'center',true,false);});
+    drawMenuCard(ctx,116,241,248,24,false,accent,'rgba(7,18,24,.95)');text(ctx,'MIGAJAS DISPONIBLES',132,256,4.8,'#6f8588','left',false,false);text(ctx,String(Math.floor(engine.player.crumbs)),348,257,7.2,accent,'right',true,false);
+    drawMouseButton(ctx,'GUARDAR MIGAJAS Y SEGUIR',ENDLESS_SECONDARY.x,ENDLESS_SECONDARY.y,ENDLESS_SECONDARY.w,ENDLESS_SECONDARY.h,inside(engine.mouseX,engine.mouseY,ENDLESS_SECONDARY),accent);
+  }else if(e.awaitingReward&&e.rewardOptions.length){
+    e.rewardOptions.forEach((opt,i)=>{const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.rewardIndex;const kind=opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN';drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(48,41,24,.98)':'rgba(10,23,29,.95)');text(ctx,kind,x+ENDLESS_REWARD_LAYOUT.w-10,y+15,4.8,on?accent:'#71868a','right',true,false);wrappedText(ctx,opt.label,x+10,y+40,ENDLESS_REWARD_LAYOUT.w-20,7.3,9,2,on?'#fff1bc':'#d5dfd8',true);wrappedText(ctx,opt.description,x+10,y+70,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,4,'#8ba09f');text(ctx,on?'CLIC PARA TOMAR':'',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,4.6,accent,'center',true,false);});
+    const amount=10+e.alert*4;drawMouseButton(ctx,'RECICLAR TODO · +'+amount+' MIGAS',ENDLESS_SECONDARY.x,ENDLESS_SECONDARY.y,ENDLESS_SECONDARY.w,ENDLESS_SECONDARY.h,inside(engine.mouseX,engine.mouseY,ENDLESS_SECONDARY),'#b6a36d');
   }
-
-  drawMenuCard(ctx,128,294,224,22,false,'#586d72','rgba(7,18,24,.92)');
-  text(ctx,'PRESIÓN '+Math.round(e.pressure)+'% · '+e.threatRank,240,309,5.4,e.pressure>=75?'#d86b58':'#81969a','center',true,false);
-  drawMenuFooter(
-    ctx,
-    e.marketOpen?'A / D · ELEGIR   ENTER · COMPRAR':'A / D · ELEGIR   ENTER · TOMAR',
-    e.marketOpen?'UNA COMPRA':'UNA ELECCIÓN',
-    accent,
-  );
+  drawMenuCard(ctx,128,302,224,18,false,'#586d72','rgba(7,18,24,.92)');text(ctx,'PRESIÓN '+Math.round(e.pressure)+'% · '+e.threatRank,240,314,5.2,e.pressure>=75?'#d86b58':'#81969a','center',true,false);
 }
 
 function renderGameOverUI(engine: GameEngine) {
@@ -2135,7 +1934,7 @@ function renderGameOverUI(engine: GameEngine) {
     });
     const threat=e.damageBySource.projectile>=e.damageBySource.contact?'PROYECTILES':'CONTACTO';
     text(ctx,'MAYOR AMENAZA · '+threat,240,250,5.4,'#c9857d','center',true,false);
-    drawButtons(ctx,[{label:'OTRO INTENTO  [ENTER]'},{label:'MENÚ  [ESC]'}],engine.pauseIndex,240,286,engine.frame,200,22,4);
+    drawButtons(ctx,[{label:'OTRO INTENTO'},{label:'MENÚ PRINCIPAL'}],engine.pauseIndex,240,286,engine.frame,200,22,4);
     return;
   }
 
@@ -2167,7 +1966,7 @@ function renderGameOverUI(engine: GameEngine) {
   const tally=Math.min(1,(engine.frame-engine.endFrame)/70);
   text(ctx,'+'+Math.floor(r.goldenEarned*tally)+' MONEDAS GUARDADAS · TOTAL '+engine.totalGoldenCrumbs,315,249,5.4,'#d4bd73','center',true,false);
 
-  drawButtons(ctx,[{label:T.tryAgain+'  ['+(engine.lastInput==='gamepad'?'A':'ENTER')+']'},{label:T.backToMenu+'  ['+(engine.lastInput==='gamepad'?'B':'ESC')+']'}],
+  drawButtons(ctx,[{label:T.tryAgain},{label:T.backToMenu}],
     engine.pauseIndex,CANVAS_WIDTH/2,CANVAS_HEIGHT-62,engine.frame,200,22,4);
 }
 
@@ -2199,7 +1998,7 @@ function renderVictoryUI(engine: GameEngine) {
   });
   text(ctx,'ATRACO COMPLETADO',321,242,6.1,'#78c99a','center',true,false);
 
-  drawButtons(ctx,[{label:T.playAgain+'  ['+(engine.lastInput==='gamepad'?'A':'ENTER')+']'},{label:T.backToMenu+'  ['+(engine.lastInput==='gamepad'?'B':'ESC')+']'}],
+  drawButtons(ctx,[{label:T.playAgain},{label:T.backToMenu}],
     engine.pauseIndex,CANVAS_WIDTH/2,CANVAS_HEIGHT-66,engine.frame,200,22,4);
 }
 
