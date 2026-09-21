@@ -1136,21 +1136,24 @@ function renderActiveSwapUI(engine: GameEngine) {
   const current = ACTIVE_ITEMS[engine.player.activeItem ?? ''] ?? ACTIVE_ITEMS.emergency_quack;
   const next = ACTIVE_ITEMS[req.itemId] ?? current;
   const box = ACTIVE_SWAP;
-  ctx.fillStyle = 'rgba(4,5,12,.88)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  drawPanel(ctx, box.x, box.y, box.w, box.h, 'rgba(9,12,22,.98)', '#f4d03f');
-  titleText(ctx, 'OBJETO ACTIVO ENCONTRADO', CANVAS_WIDTH / 2, box.y + 28, 14, '#ff9f43');
-  text(ctx, 'El objeto actual se soltará al suelo.', CANVAS_WIDTH / 2, box.y + 46, 9, '#c3cbd9');
-  drawItemIcon(ctx, box.x + 42, box.y + 62, next.id, 32);
-  wrappedText(ctx, next.name, box.x + 82, box.y + 78, 170, 10, 12, 2, '#fff6c9', true);
-  wrappedText(ctx, next.description, box.x + 42, box.y + 108, 210, 8, 11, 2, '#d8cfe8');
-  text(ctx, 'ACTUAL', box.x + 42, box.y + 142, 8, '#8792a5', 'left', true);
-  drawItemIcon(ctx, box.x + 42, box.y + 148, current.id, 24);
-  wrappedText(ctx, current.name, box.x + 74, box.y + 164, 180, 9, 11, 1, '#e8c99b', true);
-  ctx.fillStyle = 'rgba(244,208,63,.18)'; ctx.fillRect(box.confirm.x, box.confirm.y, box.confirm.w, box.confirm.h);
-  ctx.fillStyle = 'rgba(255,255,255,.05)'; ctx.fillRect(box.cancel.x, box.cancel.y, box.cancel.w, box.cancel.h);
-  text(ctx, `${actionPrompt(engine,'interact')} · CAMBIAR`, box.confirm.x + box.confirm.w / 2, box.confirm.y + 18, 8, '#f4d03f');
-  text(ctx, `${engine.lastInput === 'gamepad' ? 'B' : 'ESC'} · CANCELAR`, box.cancel.x + box.cancel.w / 2, box.cancel.y + 18, 8, '#a9b3c4');
+  drawMenuBackdrop(ctx,engine.frame,.92,'#c98cff');
+  drawMenuHeader(ctx,'OBJETO ACTIVO','El actual volverá al suelo.',engine.frame,'#c98cff','CAMBIO DE EQUIPO');
+
+  drawMenuCard(ctx,box.x,78,box.w,132,true,'#c98cff','rgba(12,20,30,.97)');
+  drawSectionLabel(ctx,'ENCONTRADO',box.x+18,98,'#c98cff');
+  drawItemIcon(ctx,box.x+28,box.y+56,next.id,36);
+  wrappedText(ctx,next.name,box.x+78,box.y+72,184,11,13,2,'#f3e7ff',true);
+  wrappedText(ctx,next.description,box.x+78,box.y+103,184,7.2,9.5,3,'#a99fbc');
+
+  drawMenuCard(ctx,box.x+18,box.y+132,box.w-36,54,false,'#6c7d87','rgba(8,18,24,.95)');
+  text(ctx,'ACTUAL',box.x+32,box.y+149,5,'#72858c','left',true,false);
+  drawItemIcon(ctx,box.x+32,box.y+154,current.id,24);
+  wrappedText(ctx,current.name,box.x+68,box.y+171,180,8,'#dfcf9f' as any,1,'#dfcf9f',true);
+
+  drawMenuCard(ctx,box.confirm.x,box.confirm.y,box.confirm.w,box.confirm.h,true,'#c98cff','rgba(38,26,47,.98)');
+  drawMenuCard(ctx,box.cancel.x,box.cancel.y,box.cancel.w,box.cancel.h,false,'#566a72','rgba(10,22,28,.95)');
+  text(ctx,(engine.lastInput==='gamepad'?'A':'E')+' · CAMBIAR',box.confirm.x+box.confirm.w/2,box.confirm.y+18,7.2,'#f0ddff','center',true,false);
+  text(ctx,(engine.lastInput==='gamepad'?'B':'ESC')+' · CANCELAR',box.cancel.x+box.cancel.w/2,box.cancel.y+18,7.2,'#9db0ae','center',true,false);
 }
 
 const isFull = (p: GameEngine['player']) => p.weapons.every(w => w !== null);
