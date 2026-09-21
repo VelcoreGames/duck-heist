@@ -1,0 +1,189 @@
+name: v0.8.0 daily challenge QA
+on:
+  push:
+    branches: [feature/v080-daily-challenge]
+    paths:
+      - '.github/workflows/v080-daily-challenge-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v080-daily-challenge
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Feature invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "0.8.0"
+          grep -Fq '"version": "0.8.0"' package.json
+          grep -Fq "const VERSION = 'v0.8.0';" dist/index.html
+          grep -Fq "DESAFÍO DIARIO" src/game/render.ts
+          grep -Fq "DAILY_BRIEF" src/game/constants.ts
+          grep -Fq "seededRandom(current.seed+':run')" src/game/engine.ts
+          grep -Fq "gameRandom()" src/game/loot.ts
+          grep -Fq "gameRandom()" src/game/mapgen.ts
+          grep -Fq "SIN MEJORAS PERMANENTES" src/game/dailyChallengeUI.ts
+          grep -Fq "PLATINUM" src/game/dailyChallenge.ts
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Functional browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-daily.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine && document.querySelectorAll('canvas').length>=2);
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.testing=false;
+            localStorage.clear();
+            e.metaLevels={hp:3,damage:3,crumbs:3,dash:3};
+            e.bestFloor=2;e.madUnlocked=false;e.menuIndex=2;
+          });
+          const overflow=async label=>{
+            await page.waitForTimeout(80);
+            const v=await page.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth,y:document.documentElement.scrollHeight>innerHeight,state:window.duckHeistEngine.state}));
+            if(v.x||v.y)throw new Error(label+' overflow');
+          };
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='DAILY_BRIEF');
+          await overflow('daily brief');
+          const brief=await page.evaluate(()=>({
+            seed:window.duckHeistEngine.daily.seed,
+            mods:[...window.duckHeistEngine.daily.modifiers],
+            key:window.duckHeistEngine.daily.key,
+            count:window.duckHeistEngine.daily.modifiers.length
+          }));
+          if(!brief.seed.startsWith('DAILY-')||brief.count!==3)throw new Error('invalid daily briefing '+JSON.stringify(brief));
+
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='HEIST_INTRO');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING',{timeout:6000});
+          const first=await page.evaluate(()=>({
+            mode:window.duckHeistEngine.gameMode,
+            difficulty:window.duckHeistEngine.difficulty,
+            seed:window.duckHeistEngine.run.seed,
+            mods:[...window.duckHeistEngine.daily.modifiers],
+            hp:window.duckHeistEngine.player.maxHp,
+            dmg:window.duckHeistEngine.player.damageMultiplier,
+            alert:window.duckHeistEngine.alert,
+            map:[...window.duckHeistEngine.map.rooms.values()].map(r=>[r.gx,r.gy,r.type,r.template,r.modifier??'',r.layout.flat().join('')]).sort((a,b)=>String(a).localeCompare(String(b)))
+          }));
+          if(first.mode!=='daily'||first.difficulty!=='normal'||first.seed!==brief.seed)throw new Error('daily start mode mismatch');
+          const glass=first.mods.includes('GLASS_BEAK');
+          if(first.hp!==(glass?3:5))throw new Error('meta HP leaked into daily: '+first.hp);
+          if(glass&&first.dmg<1.24)throw new Error('glass beak damage modifier missing');
+          if(!glass&&first.dmg!==1)throw new Error('meta damage leaked into daily');
+          if(first.alert!==(first.mods.includes('HOT_START')?25:0))throw new Error('hot start mismatch');
+
+          // Replay from pause and verify same date seed, modifiers and generated map.
+          await page.keyboard.press('Escape');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='PAUSED');
+          await page.evaluate(()=>window.duckHeistEngine.pauseIndex=3);
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='CONFIRM');
+          await page.keyboard.press('ArrowUp');
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='FLOOR_INTRO');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING',{timeout:4000});
+          const second=await page.evaluate(()=>({
+            seed:window.duckHeistEngine.run.seed,
+            mods:[...window.duckHeistEngine.daily.modifiers],
+            attempts:window.duckHeistEngine.dailyProfile.current.attempts,
+            map:[...window.duckHeistEngine.map.rooms.values()].map(r=>[r.gx,r.gy,r.type,r.template,r.modifier??'',r.layout.flat().join('')]).sort((a,b)=>String(a).localeCompare(String(b)))
+          }));
+          if(second.seed!==first.seed||JSON.stringify(second.mods)!==JSON.stringify(first.mods)||JSON.stringify(second.map)!==JSON.stringify(first.map))throw new Error('daily replay is not deterministic');
+          if(second.attempts!==1)throw new Error('abandoned first attempt not recorded once');
+
+          // Reset today's record for isolated medal/reward assertions while keeping this live run.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine,rec=e.dailyProfile.current;
+            rec.attempts=0;rec.bestScore=0;rec.bestMedal='NONE';rec.bestFloor=0;rec.bestTime=0;rec.completed=false;rec.rewardGranted=0;
+            e.dailyProfile.goldCount=0;e.dailyProfile.currentStreak=0;e.dailyProfile.bestStreak=0;e.dailyProfile.totalCompleted=0;e.dailyProfile.lastCompletedKey='';
+            e.runRecorded=false;e.run.time=6000;e.run.floorReached=6;e.stats.floorsCleared=5;e.stats.enemiesDefeated=100;e.stats.roomsCleared=50;
+            e.run.bosses=5;e.run.dmgDealt=10000;e.run.dmgTaken=1;e.run.goldenEarned=0;e.player.hp=0;
+          });
+          const coinsBefore=await page.evaluate(()=>window.duckHeistEngine.totalGoldenCrumbs);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='GAME_OVER',{timeout:4000});
+          await overflow('daily result');
+          const result=await page.evaluate(()=>({
+            result:{...window.duckHeistEngine.dailyResult},
+            record:{...window.duckHeistEngine.dailyProfile.current},
+            coins:window.duckHeistEngine.totalGoldenCrumbs,
+            bestFloor:window.duckHeistEngine.bestFloor,
+            mad:window.duckHeistEngine.madUnlocked,
+            history:{...window.duckHeistEngine.runHistory[0]},
+            saved:JSON.parse(localStorage.getItem('duckheist_daily')||'{}')
+          }));
+          if(result.result.medal!=='PLATINUM'||result.result.score<16000)throw new Error('expected platinum result '+JSON.stringify(result.result));
+          if(result.record.attempts!==1||result.record.bestScore!==result.result.score||result.record.bestMedal!=='PLATINUM')throw new Error('daily record mismatch');
+          if(result.coins<=coinsBefore||result.result.reward!==45)throw new Error('daily reward mismatch');
+          if(result.bestFloor!==2||result.mad!==false)throw new Error('daily polluted campaign progression');
+          if(result.history.mode!=='daily'||result.history.dailyScore!==result.result.score)throw new Error('daily history missing score');
+          if(result.saved.current?.bestScore!==result.result.score)throw new Error('daily profile not persisted');
+
+          // Enter = replay. Already-recorded result must not finalize twice.
+          const attemptsBeforeReplay=result.record.attempts;
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='FLOOR_INTRO',{timeout:3000});
+          const afterReplay=await page.evaluate(()=>({attempts:window.duckHeistEngine.dailyProfile.current.attempts,seed:window.duckHeistEngine.run.seed}));
+          if(afterReplay.attempts!==attemptsBeforeReplay||afterReplay.seed!==brief.seed)throw new Error('replay double-finalized or changed seed');
+
+          // Same platinum performance a second time grants no duplicate medal reward.
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING',{timeout:4000});
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.run.time=6000;e.run.floorReached=6;e.stats.floorsCleared=5;e.stats.enemiesDefeated=100;e.stats.roomsCleared=50;
+            e.run.bosses=5;e.run.dmgDealt=10000;e.run.dmgTaken=1;e.run.goldenEarned=0;e.player.hp=0;
+          });
+          const coins1=await page.evaluate(()=>window.duckHeistEngine.totalGoldenCrumbs);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='GAME_OVER',{timeout:4000});
+          const secondResult=await page.evaluate(()=>({
+            attempts:window.duckHeistEngine.dailyProfile.current.attempts,
+            reward:window.duckHeistEngine.dailyResult?.reward,
+            coins:window.duckHeistEngine.totalGoldenCrumbs,
+            goldCount:window.duckHeistEngine.dailyProfile.goldCount
+          }));
+          if(secondResult.attempts!==2||secondResult.reward!==0||secondResult.coins!==coins1||secondResult.goldCount!==1)throw new Error('duplicate daily reward/accounting '+JSON.stringify(secondResult));
+
+          if(errors.length)throw new Error('Runtime errors: '+errors.join(' | '));
+          console.log(JSON.stringify({brief,first:{mode:first.mode,difficulty:first.difficulty,hp:first.hp,dmg:first.dmg,alert:first.alert},result:result.result,secondResult},null,2));
+          await browser.close();
+          JS
+      - name: Cleanup temporary QA
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/v080-daily-challenge-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: remove temporary v0.8.0 daily challenge QA'
+            git push origin HEAD:feature/v080-daily-challenge
+          fi
