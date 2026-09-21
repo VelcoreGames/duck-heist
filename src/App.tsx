@@ -12,7 +12,7 @@ import {
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
-  mainMenuHit, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  mainMenuHit, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
@@ -206,6 +206,45 @@ export default function App() {
         const row=CONTROL_ROWS[engine.controlIndex];
         if(row){remapBinding(engine.bindings,row.id,k);engine.controlCapture=false;saveSettings(engine);playUiSelect();force(n=>n+1);}
         return;
+      }
+
+      // ESC es la navegación universal de regreso. Se procesa antes de los menús
+      // mouse-first para que funcione en todas las pantallas y también despause.
+      if(k==='escape'){
+        if(engine.activeSwap || inSwap()){cancelSwap(engine);return;}
+        if(engine.state===GameState.MAP){closeFloorMap(engine);return;}
+        if(engine.state===GameState.CONFIRM){cancelConfirm();return;}
+        if(engine.state===GameState.ENDLESS_REWARD){openConfirm('quit');return;}
+        switch(engine.state){
+          case GameState.PLAYING:
+            engine.pauseIndex=0;playUiBack();goTo(GameState.PAUSED);setMusic('menu');return;
+          case GameState.PAUSED:
+            playUiBack();goTo(GameState.PLAYING);return;
+          case GameState.DAILY_BRIEF:
+            playUiBack();engine.pendingMode='heist';goTo(GameState.MENU);return;
+          case GameState.DIFFICULTY:
+          case GameState.ENDLESS_RESUME:
+            playUiBack();goTo(GameState.MENU);return;
+          case GameState.COLLECTION:
+            playUiBack();goTo(subReturn);return;
+          case GameState.CAREER:
+            playUiBack();goTo(GameState.COLLECTION);return;
+          case GameState.HOW_TO_PLAY:
+          case GameState.WARDROBE:
+          case GameState.SETTINGS:
+          case GameState.UPGRADES:
+            playUiBack();goTo(subReturn);return;
+          case GameState.CONTROLS:
+            playUiBack();goTo(GameState.SETTINGS);return;
+          case GameState.RUN_INFO:
+            playUiBack();goTo(GameState.PAUSED);return;
+          case GameState.GAME_OVER:
+          case GameState.VICTORY:
+            playUiBack();engine.menuIndex=0;setMusic('menu');goTo(GameState.MENU);return;
+          case GameState.MENU:
+          default:
+            return;
+        }
       }
 
       const mouseOnlyMenu = [
@@ -508,7 +547,6 @@ export default function App() {
         case GameState.MENU: {
           setMusic('menu');const i=mainMenuHit(x,y);
           if(i>=0){engine.menuIndex=i;activateMenu();}
-          else if(inside(x,y,MAIN_OPEN))activateMenu();
           break;
         }
         case GameState.DAILY_BRIEF:
