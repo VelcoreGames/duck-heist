@@ -200,6 +200,7 @@ export interface EndlessState {
   marketIndex:number;
   marketDoneRound:number;
   nextRewardBoost:number;
+  nextRoundTimer:number;
 }
 
 export interface Settings {

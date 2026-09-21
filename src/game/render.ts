@@ -1091,7 +1091,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.6.2',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.6.3',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
@@ -1531,6 +1531,19 @@ function renderEndlessResumeUI(engine:GameEngine) {
 
 function renderEndlessRewardUI(engine:GameEngine) {
   const ctx=engine.ui!,e=engine.endless;
+  if(!e.marketOpen&&!e.awaitingReward){
+    const initial=e.round===0;
+    const w=286,h=72,x=(CANVAS_WIDTH-w)/2,y=132;
+    ctx.fillStyle='rgba(3,7,12,.42)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    drawPanel(ctx,x,y,w,h,'rgba(8,15,21,.94)','rgba(213,184,103,.72)');
+    titleText(ctx,initial?'ATRACO SIN FIN':`RONDA ${e.round} SUPERADA`,240,y+25,initial?14:12,'#f4d03f');
+    text(ctx,initial?'PREPÁRATE · RONDA 1':`SIGUIENTE · RONDA ${e.round+1}`,240,y+44,7,'#d5dfd8','center',true);
+    const max=e.round===0?54:e.nextRoundTimer>42?48:42;
+    const progress=1-clamp(e.nextRoundTimer/Math.max(1,max),0,1);
+    ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(x+28,y+56,w-56,3);
+    ctx.fillStyle='#d8bc70';ctx.fillRect(x+28,y+56,(w-56)*progress,3);
+    return;
+  }
   ctx.fillStyle='rgba(3,7,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   drawPanel(ctx,24,24,432,300,'rgba(7,13,19,.97)','#8d6f23');
   titleText(ctx,'ATRACO SIN FIN',240,50,16,'#f4d03f');
@@ -1563,11 +1576,7 @@ function renderEndlessRewardUI(engine:GameEngine) {
     text(ctx,'A / D · ELEGIR    ENTER · TOMAR',240,255,6.2,'#a3b5b4','center');
     text(ctx,'R · RECICLAR TODO',240,276,6.2,'#c9a96b','center',true);
   } else {
-    text(ctx,'RONDA SUPERADA',240,135,14,'#9fd2a9','center',true);
-    text(ctx,`PUNTUACIÓN  ${Math.round(e.score)}`,240,165,8,'#d8c789','center');
-    text(ctx,`PERFECTAS ${e.perfectRounds} · RACHA MÁX. ${e.maxPerfectStreak}`,240,188,6.5,'#9eafb2','center');
-    text(ctx,`SIGUIENTE: RONDA ${e.round+1}`,240,216,8,'#e4d29a','center',true);
-    text(ctx,'ENTER · SIGUIENTE RONDA',240,258,8,'#f4d03f','center',true);
+    // Flujo automático: este caso se resuelve arriba como aviso breve.
   }
   text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${e.threatRank}`,240,303,5.8,'#7f919a','center');
 }
