@@ -1,5 +1,5 @@
 // Shared drawing and hit-test geometry. No duplicated menu rectangles.
-export const MAIN_MENU = { x:30, y:103, w:172, h:29, gap:2, count:7 };
+export const MAIN_MENU = { x:30, y:94, w:172, h:25, gap:2, count:8 };
 export const PAUSE_MENU={y:66,h:20,gap:4,w:202,count:7};
 export const CONFIRM_MENU={y:225,h:28,gap:8,w:210,count:2};
 export const SWAP_LAYOUT = { x:35, y:51, w:410, h:250, cardsY:171, cardW:185, cardH:84, gap:8 };
