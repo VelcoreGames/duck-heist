@@ -20,14 +20,14 @@ import {
 import { T, FLOOR_NAMES_ES } from './i18n';
 import {
   text, titleText, drawPanel, drawMenuScene, drawTitleLogo, drawBar,
-  drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice, drawMouseButton,
+  drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton,
   drawSectionLabel, drawKeyChip,
 } from './ui';
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
-  mainMenuRect, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
+  mainMenuRect, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
   pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect,
@@ -1435,20 +1435,23 @@ function renderMenuUI(engine: GameEngine) {
   ctx.save();ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);ctx.restore();
   text(ctx,'v0.8.0',10,12,5.3,'#d8ca9c','left',true,false);
   drawTitleLogo(ctx,CANVAS_WIDTH/2,58,mf);
-  text(ctx,'ELIGE CON EL RATÓN',26,67,5,'#8aa09d','left',true,false);
+  text(ctx,'ELIGE UNA OPERACIÓN',26,70,4.7,'#8aa09d','left',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex,box=mainMenuRect(i),hasCheckpoint=i===1&&engine.endlessCheckpointRound>0;
+    const on=i===engine.menuIndex,box=mainMenuRect(i),hover=inside(engine.mouseX,engine.mouseY,box),hasCheckpoint=i===1&&engine.endlessCheckpointRound>0;
     const label=hasCheckpoint?'CONTINUAR SIN FIN':item.label;
     const desc=hasCheckpoint?'R'+engine.endlessCheckpointRound+' GUARDADA':['Campaña','Supervivencia','Reto de hoy','Progresión','Aspectos','Archivo','Guía','Sistema'][i]??'';
-    drawMenuChoice(ctx,i,label,desc,box.x,box.y,box.w,box.h,on,mf,meta.accent);
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on||hover,meta.accent,on?'rgba(31,35,28,.94)':hover?'rgba(18,31,33,.95)':'rgba(9,22,28,.88)');
+    text(ctx,label,box.x+10,box.y+10,6.35,on?'#fff0bd':hover?'#dde7df':'#c5d2ce','left',true,false);
+    text(ctx,desc,box.x+10,box.y+19,4.05,on?'#bcae75':'#647a7d','left',false,false);
+    if(on) text(ctx,'›',box.x+box.w-10,box.y+15,8.5,meta.accent,'center',true,false);
     if(hasCheckpoint){
-      ctx.fillStyle='#d86b58';ctx.fillRect(box.x+box.w-37,box.y+4,27,7);
-      text(ctx,'GUARD.',box.x+box.w-23,box.y+10,3.8,'#fff2d5','center',true,false);
+      ctx.fillStyle='#d86b58';ctx.fillRect(box.x+box.w-31,box.y+3,23,6);
+      text(ctx,'GUARD.',box.x+box.w-19,box.y+8,3.3,'#fff2d5','center',true,false);
     }
   });
 
-  const px=218,py=76,pw=236,ph=228;
+  const px=183,py=76,pw=271,ph=232;
   drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.95)');
   drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
   titleText(ctx,meta.title,px+16,py+47,13,'#efe3bc','left',false);
@@ -1485,7 +1488,8 @@ function renderMenuUI(engine: GameEngine) {
     text(ctx,'ESTADO',px+16,py+166,5.2,'#71878b','left',false,false);
     text(ctx,'LISTO',px+104,py+166,7.2,meta.accent,'left',true,false);
   }
-  drawMouseButton(ctx,'CLIC PARA ABRIR',MAIN_OPEN.x,MAIN_OPEN.y,MAIN_OPEN.w,MAIN_OPEN.h,inside(engine.mouseX,engine.mouseY,MAIN_OPEN),meta.accent);
+  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+208,pw-32,1);
+  text(ctx,'SELECCIONA UNA OPCIÓN PARA CONTINUAR',px+16,py+220,4.4,'#6f8587','left',true,false);
   text(ctx,T.tagline,240,329,7.5,'#dbc486','center',true,false);
 }
 

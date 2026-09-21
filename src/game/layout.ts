@@ -2,9 +2,8 @@
 export type Rect={x:number;y:number;w:number;h:number};
 export const inside = (x:number,y:number,r:Rect) => x>=r.x && y>=r.y && x<=r.x+r.w && y<=r.y+r.h;
 
-export const MAIN_MENU={x:26,y:74,w:182,h:27,gap:2,count:8};
+export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
 export const mainMenuRect=(i:number):Rect=>({...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)});
-export const MAIN_OPEN:Rect={x:234,y:274,w:204,h:20};
 export function mainMenuHit(x:number,y:number){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i)))return i;return -1;}
 
 export const DIFFICULTY_GRID={x:46,y:82,w:186,h:78,gapX:14,gapY:12,cols:2,count:4};

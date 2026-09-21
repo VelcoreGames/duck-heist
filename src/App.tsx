@@ -12,7 +12,7 @@ import {
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
-  mainMenuHit, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  mainMenuHit, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
@@ -206,6 +206,45 @@ export default function App() {
         const row=CONTROL_ROWS[engine.controlIndex];
         if(row){remapBinding(engine.bindings,row.id,k);engine.controlCapture=false;saveSettings(engine);playUiSelect();force(n=>n+1);}
         return;
+      }
+
+      // ESC es la navegación universal de regreso. Se procesa antes de los menús
+      // mouse-first para que funcione en todas las pantallas y también despause.
+      if(k==='escape'){
+        if(engine.activeSwap || inSwap()){cancelSwap(engine);return;}
+        if(engine.state===GameState.MAP){closeFloorMap(engine);return;}
+        if(engine.state===GameState.CONFIRM){cancelConfirm();return;}
+        if(engine.state===GameState.ENDLESS_REWARD){openConfirm('quit');return;}
+        switch(engine.state){
+          case GameState.PLAYING:
+            engine.pauseIndex=0;playUiBack();goTo(GameState.PAUSED);setMusic('menu');return;
+          case GameState.PAUSED:
+            playUiBack();goTo(GameState.PLAYING);return;
+          case GameState.DAILY_BRIEF:
+            playUiBack();engine.pendingMode='heist';goTo(GameState.MENU);return;
+          case GameState.DIFFICULTY:
+          case GameState.ENDLESS_RESUME:
+            playUiBack();goTo(GameState.MENU);return;
+          case GameState.COLLECTION:
+            playUiBack();goTo(subReturn);return;
+          case GameState.CAREER:
+            playUiBack();goTo(GameState.COLLECTION);return;
+          case GameState.HOW_TO_PLAY:
+          case GameState.WARDROBE:
+          case GameState.SETTINGS:
+          case GameState.UPGRADES:
+            playUiBack();goTo(subReturn);return;
+          case GameState.CONTROLS:
+            playUiBack();goTo(GameState.SETTINGS);return;
+          case GameState.RUN_INFO:
+            playUiBack();goTo(GameState.PAUSED);return;
+          case GameState.GAME_OVER:
+          case GameState.VICTORY:
+            playUiBack();engine.menuIndex=0;setMusic('menu');goTo(GameState.MENU);return;
+          case GameState.MENU:
+          default:
+            return;
+        }
       }
 
       const mouseOnlyMenu = [
@@ -508,7 +547,6 @@ export default function App() {
         case GameState.MENU: {
           setMusic('menu');const i=mainMenuHit(x,y);
           if(i>=0){engine.menuIndex=i;activateMenu();}
-          else if(inside(x,y,MAIN_OPEN))activateMenu();
           break;
         }
         case GameState.DAILY_BRIEF:
@@ -740,7 +778,7 @@ export default function App() {
         style={{ width: CANVAS_WIDTH * 2, height: CANVAS_HEIGHT * 2, cursor }}>
         <canvas ref={worldRef} aria-hidden="true" className="absolute inset-0 h-full w-full"
           style={{ imageRendering: 'pixelated' }} />
-        <canvas ref={uiRef} role="application" aria-label="Duck Heist. Usa WASD para moverte, flechas o clic izquierdo para disparar, clic derecho o Shift para esquivar, E para interactuar, M para el mapa y Escape para pausar." tabIndex={0} className="absolute inset-0 h-full w-full"
+        <canvas ref={uiRef} role="application" aria-label="Duck Heist. Usa WASD para moverte, flechas o clic izquierdo para disparar, clic derecho o Shift para esquivar, E para interactuar, M para el mapa y Escape para pausar, reanudar o volver." tabIndex={0} className="absolute inset-0 h-full w-full"
           style={{ imageRendering: 'auto',outline:'none' }} />
         <div className="duck-responsive-frame duck-frame-near pointer-events-none absolute -inset-3 rounded-[2px] border border-[#2f3644]" />
         <div className="duck-responsive-frame duck-frame-far pointer-events-none absolute -inset-6 rounded-[3px] border border-[#161c2a]" />
@@ -786,17 +824,22 @@ function hintFor(engine: GameEngine): string {
   if(engine.state===GameState.PLAYING&&engine.lastInput==='gamepad')return 'PALANCA IZQUIERDA · MOVER  RT · DISPARAR  B · ESQUIVAR  A · INTERACTUAR  Y · OBJETO  VIEW · MAPA  START · PAUSA';
   switch (engine.state) {
     case GameState.MENU:return 'Mueve el ratón sobre una opción y haz clic para abrirla';
-    case GameState.DIFFICULTY:return 'Haz clic en una dificultad y luego en INICIAR';
-    case GameState.DAILY_BRIEF:return 'Haz clic en COMENZAR DESAFÍO o VOLVER';
-    case GameState.PLAYING: return keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight)+' mover · MOUSE / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' disparar · '+keyLabel(engine.bindings.dash)+' esquivar · '+keyLabel(engine.bindings.interact)+' interactuar';
-    case GameState.MAP:return 'MAPA · Haz clic en una sala para inspeccionarla y usa CERRAR MAPA para volver';
-    case GameState.PAUSED:return 'Elige una acción con el ratón';
-    case GameState.RUN_INFO:return 'Haz clic en BUILD, RENDIMIENTO o VOLVER A PAUSA';
-    case GameState.COLLECTION:return 'Haz clic en categorías, filtros, fichas o Carrera';
-    case GameState.CAREER:return 'Haz clic en una pestaña para cambiar de vista';
-    case GameState.CONTROLS:return engine.controlCapture?'Pulsa la tecla que quieres asignar':'Haz clic en una acción para remapearla';
-    case GameState.CONFIRM:return 'Haz clic en CANCELAR o SÍ, CONFIRMAR';
-    default:return 'Usa el ratón para navegar';
+    case GameState.DIFFICULTY:return 'Haz clic en una dificultad y luego en INICIAR · ESC volver';
+    case GameState.DAILY_BRIEF:return 'Haz clic en COMENZAR DESAFÍO · ESC volver';
+    case GameState.PLAYING: return keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight)+' mover · MOUSE / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' disparar · '+keyLabel(engine.bindings.dash)+' esquivar · ESC pausa';
+    case GameState.MAP:return 'MAPA · Haz clic en una sala para inspeccionarla · ESC cerrar';
+    case GameState.PAUSED:return 'Elige una acción con el ratón · ESC reanudar';
+    case GameState.RUN_INFO:return 'Haz clic en BUILD o RENDIMIENTO · ESC volver a pausa';
+    case GameState.COLLECTION:return 'Haz clic en categorías, filtros o fichas · ESC volver';
+    case GameState.CAREER:return 'Haz clic en una pestaña · ESC volver a Colección';
+    case GameState.CONTROLS:return engine.controlCapture?'Pulsa una tecla · ESC cancela la captura':'Haz clic en una acción para remapearla · ESC volver';
+    case GameState.SETTINGS:return 'Ajusta con el ratón · ESC volver';
+    case GameState.WARDROBE:return 'Elige un aspecto · ESC volver';
+    case GameState.UPGRADES:return 'Elige una mejora · ESC volver';
+    case GameState.HOW_TO_PLAY:return 'ESC volver';
+    case GameState.ENDLESS_RESUME:return 'Elige cómo continuar · ESC volver';
+    case GameState.CONFIRM:return 'Haz clic en CANCELAR o CONFIRMAR · ESC cancelar';
+    default:return 'Usa el ratón para navegar · ESC volver';
   }
 }
 
