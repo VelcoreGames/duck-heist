@@ -34,7 +34,7 @@ import type {
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
   playDoorLock, playDoorUnlock, playUiMove, playUiSelect, playUiBack,
-  playEquip, playWeaponSwap, playBossRoar, playStairs, playDeny,
+  playEquip, playWeaponSwap, playBossRoar, playBossPhase, playStairs, playDeny,
   playQuack, playQuackReady, playDashReady,
   playCoin,playHeal,playRarityPickup,playRoomClear,playCritical,playEnemyDeath,playBossWin,playReturn,playBounce,playFootstep,playDoorStyle,
   playDanger,
@@ -2804,7 +2804,7 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,name:string,phase:numb
   const cx=boss.x+boss.size/2,cy=boss.y+boss.size/2;
   spawn(engine,cx,cy,'spark',tier==='boss'?28:tier==='sub'?20:12,tier==='boss'?'#ff6b5b':tier==='sub'?'#f0a36f':'#f4d03f');
   spawn(engine,cx,cy,'smoke',tier==='boss'?16:10,'#6c7684');
-  playBossRoar();
+  playBossPhase(tier);
 }
 
 function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: RoomContent) {
