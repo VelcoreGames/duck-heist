@@ -454,6 +454,9 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   try { madUnlocked=localStorage.getItem('duckheist_mad_bread_unlocked')==='1'||unlockedSkins.includes('golden'); }
   catch { madUnlocked=unlockedSkins.includes('golden'); }
 
+  careerData.career.bestFloor=Math.max(careerData.career.bestFloor,bestFloor);
+  careerData.career.bestEndlessRound=Math.max(careerData.career.bestEndlessRound,...Object.values(endlessRecords).map(r=>r.round||0));
+
   setVolumes(settings.master, settings.music, settings.sfx);
 
   return {
