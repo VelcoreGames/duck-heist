@@ -1386,7 +1386,7 @@ const MENU_META = [
   {eyebrow:'EXPEDIENTE DEL DÍA',title:'DESAFÍO DIARIO',desc:'Una seed compartida por día, tres modificadores y reglas estandarizadas sin mejoras permanentes.',tag:'SEED FIJA · SCORE · MEDALLAS',accent:'#c98cff'},
   {eyebrow:'PROGRESIÓN PERMANENTE',title:'MEJORAS',desc:'Invierte monedas doradas en ventajas persistentes para futuras incursiones.',tag:'META · PERMANENTE',accent:'#78c99a'},
   {eyebrow:'IDENTIDAD DEL PATO',title:'ARMARIO',desc:'Compra y equipa aspectos desbloqueables sin alterar las reglas del atraco.',tag:'COSMÉTICOS · ASPECTOS',accent:'#79b9d2'},
-  {eyebrow:'ARCHIVO DEL BANCO',title:'COLECCIÓN',desc:'Consulta armas, objetos, enemigos, jefes y aspectos descubiertos durante tus runs.',tag:'DESCUBRIMIENTOS · FICHAS',accent:'#9abf9f'},
+  {eyebrow:'ARCHIVO DEL BANCO',title:'COLECCIÓN',desc:'Consulta armas, objetos, enemigos, jefes, aspectos y sinergias descubiertos durante tus runs.',tag:'DESCUBRIMIENTOS · FICHAS',accent:'#9abf9f'},
   {eyebrow:'MANUAL DEL LADRÓN',title:'CÓMO JUGAR',desc:'Controles esenciales y reglas de supervivencia en una sola vista.',tag:'CONTROLES · OBJETIVO',accent:'#d7b56c'},
   {eyebrow:'SISTEMA',title:'AJUSTES',desc:'Audio, imagen, vibración, accesibilidad visual y comportamiento de pantalla.',tag:'AUDIO · VIDEO · ACCESO',accent:'#8fb7c8'},
 ] as const;
@@ -1443,7 +1443,7 @@ function renderMenuUI(engine: GameEngine) {
 
   text(ctx,'v0.8.0',10,12,5.3,'#d8ca9c','left',true,false);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 58, mf);
-  text(ctx,'EXPEDIENTE 08-HEIST',30,108,5.1,'#8aa09d','left',true,false);
+  text(ctx,'EXPEDIENTE 08-HEIST',30,88,5.1,'#8aa09d','left',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
     const on=i===engine.menuIndex;
