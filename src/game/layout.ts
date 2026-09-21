@@ -41,7 +41,11 @@ export const endlessResumeRect=(i:number):Rect=>({x:ENDLESS_RESUME.x,y:ENDLESS_R
 
 export const ENDLESS_REWARD={y:118,h:112,w:122,gap:12,startX:45};
 export function endlessRewardHit(x:number,y:number,count:number){for(let i=0;i<count;i++)if(inside(x,y,{x:ENDLESS_REWARD.startX+i*(ENDLESS_REWARD.w+ENDLESS_REWARD.gap),y:ENDLESS_REWARD.y,w:ENDLESS_REWARD.w,h:ENDLESS_REWARD.h}))return i;return -1;}
-export const ENDLESS_SECONDARY:Rect={x:148,y:268,w:184,h:28};
+export const ENDLESS_SECONDARY:Rect={x:120,y:280,w:240,h:28};
+
+export const END_ACTIONS={x:140,y:290,w:200,h:22,gap:4,count:2};
+export const endActionRect=(i:number):Rect=>({x:END_ACTIONS.x,y:END_ACTIONS.y+i*(END_ACTIONS.h+END_ACTIONS.gap),w:END_ACTIONS.w,h:END_ACTIONS.h});
+export function endActionHit(x:number,y:number){for(let i=0;i<END_ACTIONS.count;i++)if(inside(x,y,endActionRect(i)))return i;return -1;}
 
 export const SWAP_LAYOUT={x:35,y:51,w:410,h:250,cardsY:171,cardW:185,cardH:84,gap:8};
 export function swapHit(x:number,y:number){for(let i=0;i<2;i++)if(inside(x,y,{x:SWAP_LAYOUT.x+16+i*(SWAP_LAYOUT.cardW+SWAP_LAYOUT.gap),y:SWAP_LAYOUT.cardsY,w:SWAP_LAYOUT.cardW,h:SWAP_LAYOUT.cardH}))return i;return -1;}

@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, HUD_MENU, activeSwapHit, endlessRewardHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, HUD_MENU, activeSwapHit, endlessRewardHit, endActionHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -30,7 +30,6 @@ import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
 
-const OVER_TOP=CANVAS_HEIGHT-62,OVER_H=22,OVER_GAP=4,OVER_W=200;
 
 export default function App() {
   const worldRef = useRef<HTMLCanvasElement>(null);
@@ -442,7 +441,7 @@ export default function App() {
       }else if(st===GameState.CONFIRM){
         CONFIRM_RECTS.forEach((box,i)=>{if(inside(p.x,p.y,box)&&engine.confirmIndex!==i){engine.confirmIndex=i;softMove();}});
       }else if(st===GameState.GAME_OVER||st===GameState.VICTORY){
-        const i=hitList(p.x,p.y,OVER_TOP,2,OVER_H,OVER_GAP,OVER_W);if(i>=0&&engine.pauseIndex!==i){engine.pauseIndex=i;softMove();}
+        const i=endActionHit(p.x,p.y);if(i>=0&&engine.pauseIndex!==i){engine.pauseIndex=i;softMove();}
       } else if(st===GameState.CAREER){
         // Las pestañas cambian con clic, no con hover.
       } else if(st===GameState.CONTROLS){
@@ -502,7 +501,7 @@ export default function App() {
       if (engine.activeSwap) {
         const hit = activeSwapHit(x, y);
         if (hit === 'confirm') confirmActiveSwap(engine);
-        else if (hit === 'cancel' || hit === -1) cancelSwap(engine);
+        else if (hit === 'cancel') cancelSwap(engine);
         return;
       }
       if(inSwap()){
@@ -573,7 +572,7 @@ export default function App() {
           break;
         case GameState.GAME_OVER:
         case GameState.VICTORY: {
-          const i = hitList(x, y, OVER_TOP, 2, OVER_H, OVER_GAP, OVER_W);
+          const i=endActionHit(x,y);
           if (i >= 0) { engine.pauseIndex = i; activateEnd(); }
           break;
         }

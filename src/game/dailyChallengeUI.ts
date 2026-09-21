@@ -1,6 +1,6 @@
 import { DAILY_MODIFIERS, dailyMedalColor, medalForScore } from './dailyChallenge';
-import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, drawButtons, drawBar, text, titleText, wrappedText } from './ui';
-import { BACK_BUTTON, PRIMARY_BUTTON, inside } from './layout';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, drawBar, text, titleText, wrappedText } from './ui';
+import { BACK_BUTTON, PRIMARY_BUTTON, endActionRect, inside } from './layout';
 import type { GameEngine } from './types';
 
 const fmt=(frames:number)=>{
@@ -69,8 +69,10 @@ export function renderDailyResult(e:GameEngine){
   text(c,'BONOS',240,246,4.4,'#63787d','left',false,false);
   text(c,'VICTORIA +6000 · DAÑO RECIBIDO Y TIEMPO RESTAN',240,256,4.1,'#839699','left',false,false);
 
-  drawButtons(c,[{label:'OTRO INTENTO'},{label:'MENÚ PRINCIPAL'}],
-    e.pauseIndex,240,286,e.frame,200,22,4);
+  ['OTRO INTENTO','MENÚ PRINCIPAL'].forEach((label,i)=>{
+    const box=endActionRect(i);
+    drawMouseButton(c,label,box.x,box.y,box.w,box.h,inside(e.mouseX,e.mouseY,box),accent);
+  });
 }
 
 export function renderDailyHUD(e:GameEngine){
