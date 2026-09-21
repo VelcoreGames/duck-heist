@@ -56,7 +56,9 @@ export function runSelfChecks():CheckReport {
       assert(keys.length>0 && keys.some(k=>b[k as keyof typeof b]!==BASE_EFFECTS[k as keyof typeof b]),'no modifier');
     });
     for(const id of Object.keys(ACTIVE_ITEMS)) check(`Active ${id}`,()=>{
-      const e=setup();e.player.activeItem=id;handleActiveItem(e);
+      const e=setup();e.player.activeItem=id;
+      if(id==='emergency_bread')e.player.hp=Math.max(.5,e.player.maxHp-2);
+      handleActiveItem(e);
       assert(e.player.activeItemCooldown===ACTIVE_RULES[id].cooldown,'inactive or incorrect cooldown');
     });
     check('Two weapon slots and cyclic wheel',()=>{
@@ -206,6 +208,16 @@ export function runSelfChecks():CheckReport {
       assert(!e.player.dashReadyFlash&&!e.player.quackReadyFlash,'aviso repetido');
     });
     check('Credencial falsa modera la alerta',()=>{const e=setup();e.alert=0;e.player.items=['fake_id'];changeAlert(e,10);assert(e.alert===8,'crecimiento incorrecto');});
+    check('Los cuatro activos añadidos ejecutan su mecánica',()=>{
+      const butter=setup(),bc=butter.contents.get(butter.currentKey)!;butter.player.activeItem='butter_sprayer';handleActiveItem(butter);
+      assert(bc.puddles.length>=5&&bc.puddles.every(p=>p.kind==='water'),'aspersor sin zona de mantequilla');
+      const drone=setup();drone.player.activeItem='crumb_drone';handleActiveItem(drone);assert(drone.drone?.life===600,'dron no desplegado');
+      const bread=setup();bread.player.activeItem='emergency_bread';bread.player.hp=bread.player.maxHp-2;handleActiveItem(bread);assert(bread.player.hp===bread.player.maxHp,'pan no curó 2');
+      const alarm=setup();alarm.player.activeItem='fake_alarm';handleActiveItem(alarm);assert(alarm.decoy?.stunOnExpire===150&&alarm.decoy.life===240,'alarma falsa incompleta');
+    });
+    check('Pan de emergencia no gasta recarga con vida completa',()=>{
+      const e=setup();e.player.activeItem='emergency_bread';e.player.activeItemCooldown=0;handleActiveItem(e);assert(e.player.activeItemCooldown===0,'gastó recarga sin curar');
+    });
     check('Controles antiguos reciben reciclaje de Sin Fin',()=>{
       const bindings=normalizeBindings({moveUp:'i'});assert(bindings.moveUp==='i'&&bindings.recycle===DEFAULT_BINDINGS.recycle,'migración de controles incompleta');
       remapBinding(bindings,'recycle','q');assert(bindings.recycle==='q','reciclaje no remapeable');
