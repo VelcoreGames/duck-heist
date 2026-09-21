@@ -48,7 +48,7 @@ function normalizeHistory(raw:unknown):RunHistoryEntry[]{
   if(!Array.isArray(raw))return [];
   return raw.filter(x=>x&&typeof x==='object').slice(0,12).map((x,i)=>{
     const r=x as Record<string,unknown>;
-    const mode=r.mode==='endless'?'endless':'heist';
+    const mode=r.mode==='endless'?'endless':r.mode==='daily'?'daily':'heist';
     const difficulty=DIFFICULTIES.includes(r.difficulty as DifficultyMode)?r.difficulty as DifficultyMode:'normal';
     const outcome=r.outcome==='victory'||r.outcome==='abandoned'?''+r.outcome:'death';
     return {
@@ -185,10 +185,12 @@ export function recordRun(engine:GameEngine,outcome:RunHistoryEntry['outcome']) 
   c.totalRooms+=engine.stats.roomsCleared;c.totalPlayFrames+=entry.time;c.bestFloor=Math.max(c.bestFloor,entry.floor);
   c.bestEndlessRound=Math.max(c.bestEndlessRound,entry.round);
 
-  const dr=c.difficulty[engine.difficulty]??(c.difficulty[engine.difficulty]=emptyDifficulty());
-  dr.runs++;dr.bestFloor=Math.max(dr.bestFloor,entry.floor);
-  if(outcome==='victory'&&engine.gameMode==='heist'){dr.wins++;dr.bestTime=dr.bestTime?Math.min(dr.bestTime,entry.time):entry.time;}
-  if(engine.gameMode==='endless'){dr.bestEndlessRound=Math.max(dr.bestEndlessRound,entry.round);dr.bestEndlessScore=Math.max(dr.bestEndlessScore,Math.round(engine.endless.score));}
+  if(engine.gameMode!=='daily'){
+    const dr=c.difficulty[engine.difficulty]??(c.difficulty[engine.difficulty]=emptyDifficulty());
+    dr.runs++;dr.bestFloor=Math.max(dr.bestFloor,entry.floor);
+    if(outcome==='victory'&&engine.gameMode==='heist'){dr.wins++;dr.bestTime=dr.bestTime?Math.min(dr.bestTime,entry.time):entry.time;}
+    if(engine.gameMode==='endless'){dr.bestEndlessRound=Math.max(dr.bestEndlessRound,entry.round);dr.bestEndlessScore=Math.max(dr.bestEndlessScore,Math.round(engine.endless.score));}
+  }
 
   for(const id of weaponIds){
     const stat=c.weapons[id]??(c.weapons[id]={runs:0,wins:0,shots:0,damage:0,kills:0});
