@@ -1,0 +1,140 @@
+name: v0.8.0 game feel and boss readability QA
+on:
+  push:
+    branches: [polish/v080-gamefeel-boss-readability-2]
+    paths:
+      - '.github/workflows/v080-gamefeel-boss-readability-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: polish/v080-gamefeel-boss-readability-2
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Version and regression invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "0.8.0"
+          grep -Fq '"version": "0.8.0"' package.json
+          grep -Fq "const VERSION = 'v0.8.0';" dist/index.html
+          grep -Fq "boss.mutation==='BLINDADO'&&n%3===0" src/game/engine.ts
+          grep -Fq "if(dmg>=10) engine.hitStop" src/game/engine.ts
+          grep -Fq "function drawBossMutationOverlay" src/game/render.ts
+          grep -Fq "damageTier=e.round>=100?3:e.round>=50?2:e.round>=21?1:0" src/game/render.ts
+          grep -Fq "El botín del suelo permanece exactamente donde cayó." src/game/engine.ts
+          grep -Fq "if (engine.mouseDown && !sx && !sy)" src/game/engine.ts
+          grep -Fq "if (player.dashTimer > 0)" src/game/engine.ts
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser regression and visual smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine && document.querySelectorAll('canvas').length>=2);
+          await page.keyboard.press('ArrowDown');
+          await page.keyboard.press('Enter');
+          await page.waitForTimeout(150);
+          await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine?.gameMode==='endless'&&window.duckHeistEngine?.state==='PLAYING',{timeout:5000});
+          await page.waitForTimeout(850);
+
+          const canvas=page.locator('canvas[role="application"]');
+          const box=await canvas.boundingBox();
+          if(!box)throw new Error('No game canvas');
+
+          await page.keyboard.down('d');
+          await page.waitForTimeout(180);
+          await page.keyboard.up('d');
+          await page.mouse.move(box.x+box.width*.72,box.y+box.height*.52);
+          await page.mouse.down({button:'left'});
+          await page.waitForTimeout(120);
+          const beforeDash=await page.evaluate(()=>window.duckHeistEngine.projectiles.length);
+          await page.keyboard.press('Shift');
+          await page.waitForTimeout(120);
+          const dashShoot=await page.evaluate(()=>({
+            mouseDown:window.duckHeistEngine.mouseDown,
+            dash:window.duckHeistEngine.player.dashTimer,
+            shootFlash:window.duckHeistEngine.player.shootFlash,
+            projectiles:window.duckHeistEngine.projectiles.length,
+            frame:window.duckHeistEngine.frame
+          }));
+          await page.mouse.up({button:'left'});
+
+          if(!dashShoot.mouseDown)throw new Error('Dash cancelled held fire input');
+          if(dashShoot.dash<=0)throw new Error('Dash did not activate during held fire');
+          if(dashShoot.projectiles<=beforeDash && dashShoot.shootFlash<=0)throw new Error('Held fire did not continue through dash');
+
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;
+            e.endless.round=100;
+            e.endless.alert=9;
+            e.endless.pressure=88;
+            e.endless.milestone='DOBLE AMENAZA';
+            const room=e.contents.get(e.currentKey);
+            const boss=room?.enemies?.[0];
+            if(boss){
+              boss.isBoss=true;
+              boss.bossType='captain_honk';
+              boss.bossPhase=2;
+              boss.mutation='TORMENTA';
+              boss.phaseTransition=30;
+              boss.telegraph=.8;
+              boss.size=36;
+              boss.hp=Math.max(100,boss.hp);
+              boss.maxHp=Math.max(100,boss.maxHp);
+            }
+          });
+          await page.waitForTimeout(240);
+
+          const state=await page.evaluate(()=>({
+            version:document.documentElement.innerHTML.includes('v0.8.0'),
+            state:window.duckHeistEngine.state,
+            mode:window.duckHeistEngine.gameMode,
+            round:window.duckHeistEngine.endless.round,
+            overflowX:document.documentElement.scrollWidth>innerWidth,
+            overflowY:document.documentElement.scrollHeight>innerHeight
+          }));
+          if(errors.length)throw new Error('Runtime errors: '+errors.join(' | '));
+          if(state.overflowX||state.overflowY)throw new Error('Page overflow');
+          if(!state.version||state.mode!=='endless'||state.state!=='PLAYING'||state.round!==100)throw new Error('Unexpected runtime state '+JSON.stringify(state));
+          console.log(JSON.stringify({dashShoot,state},null,2));
+          await browser.close();
+          JS
+      - name: Cleanup temporary QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/v080-gamefeel-boss-readability-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: remove temporary v0.8.0 game feel QA'
+          git push origin HEAD:polish/v080-gamefeel-boss-readability-2
