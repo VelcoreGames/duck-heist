@@ -28,6 +28,9 @@ jobs:
         run: |
           node -e "const p=require('./package.json'); if(p.version!=='0.8.0') process.exit(1);"
           grep -q "v0.8.0" src/game/render.ts
+          grep -q "MIGAS · MONEDA TEMPORAL DE ESTA PARTIDA" src/game/render.ts
+          grep -q "CONSERVAR MIGAS · SIGUIENTE RONDA" src/game/render.ts
+          ! grep -q "GUARDAR MIGAJAS Y SEGUIR" src/game/render.ts
       - name: Install Chromium
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
@@ -55,24 +58,82 @@ jobs:
           const clickWorld=async(x,y)=>{const p=await pt(x,y);await page.mouse.click(p.x,p.y);await page.waitForTimeout(90);};
           const state=()=>page.evaluate(()=>window.duckHeistEngine.state);
 
-          // Overlay de objeto activo: clic fuera NO cancela.
+          await page.evaluate(()=>{window.duckHeistEngine.testing=true;});
+
+          // Armario: selección, compra, equipar, rueda y Volver.
           await page.evaluate(()=>{
             const e=window.duckHeistEngine;
-            e.testing=true;e.state='PLAYING';
-            e.activeSwap={itemId:'emergency_bread',from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};
-            e.onStateChange?.('PLAYING');
+            e.state='WARDROBE';e.wardrobeIndex=0;e.wardrobeScroll=0;e.wardrobeScrollTarget=0;
+            e.totalGoldenCrumbs=9999;e.unlockedSkins=['robber'];e.equippedSkin='robber';e.onStateChange?.('WARDROBE');
+          });
+          await clickWorld(310,110);
+          if((await page.evaluate(()=>window.duckHeistEngine.wardrobeIndex))!==1) throw new Error('wardrobe card selection failed');
+          const beforeCoins=await page.evaluate(()=>window.duckHeistEngine.totalGoldenCrumbs);
+          await clickWorld(110,287);
+          const bought=await page.evaluate(()=>({n:window.duckHeistEngine.unlockedSkins.length,coins:window.duckHeistEngine.totalGoldenCrumbs}));
+          if(bought.n<2||bought.coins>=beforeCoins) throw new Error('wardrobe buy failed '+JSON.stringify(bought));
+          await clickWorld(110,287);
+          if((await page.evaluate(()=>window.duckHeistEngine.equippedSkin))==='robber') throw new Error('wardrobe equip failed');
+          const wp=await pt(330,220);await page.mouse.move(wp.x,wp.y);await page.mouse.wheel(0,450);await page.waitForTimeout(100);
+          if((await page.evaluate(()=>window.duckHeistEngine.wardrobeScrollTarget))<=0) throw new Error('wardrobe wheel failed');
+          await clickWorld(70,329);
+          if((await state())!=='MENU') throw new Error('wardrobe back failed');
+
+          // Mejoras: cuerpo de tarjeta no compra; insuficiente y máximo tampoco.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.state='UPGRADES';e.metaLevels.hp=0;e.totalGoldenCrumbs=0;e.onStateChange?.('UPGRADES');
+          });
+          await clickWorld(90,101);
+          if((await page.evaluate(()=>window.duckHeistEngine.metaLevels.hp))!==0) throw new Error('upgrade body purchased');
+          await clickWorld(376,101);
+          if((await page.evaluate(()=>window.duckHeistEngine.metaLevels.hp))!==0) throw new Error('upgrade bought without funds');
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.metaLevels.hp=99;e.totalGoldenCrumbs=99999;});
+          await clickWorld(376,101);
+          if((await page.evaluate(()=>window.duckHeistEngine.metaLevels.hp))!==99) throw new Error('upgrade max guard failed');
+          await clickWorld(70,329);
+
+          // Cambio de arma: ambos slots y cancelar.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.state='PLAYING';e.player.weapons[1]={...e.player.weapons[0]};
+            const content=e.contents.get(e.currentKey);content.items=[{x:220,y:160,itemId:'breadcrumb_shotgun',isWeapon:true,isActive:false}];
+            e.swap={itemId:'breadcrumb_shotgun',slot:0,from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};e.swapSel=0;e.onStateChange?.('PLAYING');
+          });
+          await clickWorld(143,213);
+          if((await page.evaluate(()=>window.duckHeistEngine.player.weapons[0]?.id))!=='breadcrumb_shotgun') throw new Error('weapon swap slot 1 failed');
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;const content=e.contents.get(e.currentKey);
+            content.items.unshift({x:220,y:160,itemId:'feather_gun',isWeapon:true,isActive:false});
+            e.swap={itemId:'feather_gun',slot:1,from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};e.swapSel=0;
+          });
+          await clickWorld(336,213);
+          if((await page.evaluate(()=>window.duckHeistEngine.player.weapons[1]?.id))!=='feather_gun') throw new Error('weapon swap slot 2 failed');
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.swap={itemId:'breadcrumb_shotgun',slot:0,from:'endless',srcIndex:0,worldX:220,worldY:160};});
+          await clickWorld(240,321);
+          if(await page.evaluate(()=>!!window.duckHeistEngine.swap)) throw new Error('weapon swap cancel failed');
+
+          // Cambio de activo: confirmar funciona y clic fuera no actúa.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.player.activeItem='emergency_quack';
+            const content=e.contents.get(e.currentKey);content.items.unshift({x:220,y:160,itemId:'bread_bomb',isWeapon:false,isActive:true});
+            e.activeSwap={itemId:'bread_bomb',from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};
           });
           await clickWorld(20,60);
           if(!(await page.evaluate(()=>!!window.duckHeistEngine.activeSwap))) throw new Error('active swap cancelled by outside click');
+          await clickWorld(173,242);
+          const active=await page.evaluate(()=>({swap:!!window.duckHeistEngine.activeSwap,id:window.duckHeistEngine.player.activeItem}));
+          if(active.swap||active.id!=='bread_bomb') throw new Error('active swap confirm failed '+JSON.stringify(active));
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.activeSwap={itemId:'emergency_quack',from:'endless',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};
+          });
           await clickWorld(307,242);
           if(await page.evaluate(()=>!!window.duckHeistEngine.activeSwap)) throw new Error('active swap cancel button failed');
 
-          // Resultado: borde superior visible del botón debe ser realmente clicable.
+          // Resultado: la geometría visible y clicable comparte el mismo layout.
           await page.evaluate(()=>{
             const e=window.duckHeistEngine;e.gameMode='heist';e.pendingMode='heist';e.state='GAME_OVER';e.pauseIndex=0;e.onStateChange?.('GAME_OVER');
           });
-          await clickWorld(240,286);
-          if((await state())==='GAME_OVER') throw new Error('result first button visual edge is dead');
+          await clickWorld(240,297);
+          if((await state())==='GAME_OVER') throw new Error('result first button failed');
 
           // Menú principal desde resultado, usando geometría compartida.
           await page.evaluate(()=>{
