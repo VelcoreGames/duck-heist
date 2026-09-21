@@ -772,9 +772,10 @@ function renderPrompts(engine: GameEngine) {
   // etiqueta de sala
   if (engine.roomLabelTimer > 0) {
     const t = engine.roomLabelTimer;
-    const a = t > 75 ? (95 - t) / 20 : Math.min(1, t / 25);
+    const endless=engine.gameMode==='endless';
+    const a=endless?Math.min(1,t/14):(t > 75 ? (95 - t) / 20 : Math.min(1, t / 25));
     ctx.globalAlpha = clamp(a, 0, 1);
-    text(ctx,engine.roomLabel,240,55,10,'#e3c989','center',true);
+    text(ctx,engine.roomLabel,240,endless?42:55,endless?6.5:10,endless?'#a9a17d':'#e3c989','center',!endless);
     ctx.globalAlpha = 1;
   }
 
@@ -824,9 +825,10 @@ function renderPrompts(engine: GameEngine) {
 
   // mensaje flotante
   if (engine.toastTimer > 0 && !engine.pickupCard) {
-    const a = Math.min(1, engine.toastTimer / 30);
-    ctx.globalAlpha = a;
-    text(ctx, engine.toast, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 70, 9, '#fff6c9');
+    const betweenRounds=engine.gameMode==='endless'&&!engine.endless.roundActive&&engine.endless.nextRoundTimer>0;
+    const a = Math.min(1, engine.toastTimer / (betweenRounds?12:30));
+    ctx.globalAlpha = betweenRounds?Math.min(.78,a):a;
+    text(ctx, engine.toast, CANVAS_WIDTH / 2, betweenRounds?CANVAS_HEIGHT-52:CANVAS_HEIGHT-70, betweenRounds?6.2:9, betweenRounds?'#9aa8a0':'#fff6c9', 'center', !betweenRounds);
     ctx.globalAlpha = 1;
   }
 
@@ -900,7 +902,7 @@ function renderDangerEventHUD(engine: GameEngine) {
 
 function drawHUD(engine: GameEngine) {
   const ctx=engine.ui!;
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.6.4',8,8);ctx.restore();
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.6.5',8,8);ctx.restore();
   const p=engine.player;
   const heartW=Math.min(p.maxHp,10)*13+7;
   ctx.fillStyle='rgba(5,12,18,.48)';ctx.fillRect(4,4,heartW,18);
@@ -1095,7 +1097,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.6.4',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.6.5',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
@@ -1535,19 +1537,6 @@ function renderEndlessResumeUI(engine:GameEngine) {
 
 function renderEndlessRewardUI(engine:GameEngine) {
   const ctx=engine.ui!,e=engine.endless;
-  if(!e.marketOpen&&!e.awaitingReward){
-    const initial=e.round===0;
-    const w=286,h=72,x=(CANVAS_WIDTH-w)/2,y=132;
-    ctx.fillStyle='rgba(3,7,12,.18)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-    drawPanel(ctx,x,y,w,h,'rgba(8,15,21,.94)','rgba(213,184,103,.72)');
-    titleText(ctx,initial?'ATRACO SIN FIN':`RONDA ${e.round} SUPERADA`,240,y+25,initial?14:12,'#f4d03f');
-    text(ctx,initial?'PREPÁRATE · RONDA 1':`SIGUIENTE · RONDA ${e.round+1}`,240,y+44,7,'#d5dfd8','center',true);
-    const max=e.round===0?54:e.nextRoundTimer>42?48:42;
-    const progress=1-clamp(e.nextRoundTimer/Math.max(1,max),0,1);
-    ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(x+28,y+56,w-56,3);
-    ctx.fillStyle='#d8bc70';ctx.fillRect(x+28,y+56,(w-56)*progress,3);
-    return;
-  }
   ctx.fillStyle='rgba(3,7,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   drawPanel(ctx,24,24,432,300,'rgba(7,13,19,.97)','#8d6f23');
   titleText(ctx,'ATRACO SIN FIN',240,50,16,'#f4d03f');
