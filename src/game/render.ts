@@ -21,16 +21,16 @@ import { T, FLOOR_NAMES_ES } from './i18n';
 import {
   text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar,
   drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice, drawMouseButton,
-  drawMenuFooter, drawSectionLabel, drawKeyChip,
+  drawSectionLabel, drawKeyChip,
 } from './ui';
 import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
-  MAIN_MENU, mainMenuRect, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
-  PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
-  SETTINGS, settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
-  UPGRADE_CARD, upgradeRect, upgradeActionRect, ENDLESS_RESUME, endlessResumeRect,
+  mainMenuRect, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
+  pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
+  settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
+  upgradeRect, upgradeActionRect, endlessResumeRect,
   ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, HUD_MENU, inside,
 } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
