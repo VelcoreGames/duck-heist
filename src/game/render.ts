@@ -1476,43 +1476,74 @@ function renderMenuUI(engine: GameEngine) {
 
 function renderHowToPlayUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 20, 14, CANVAS_WIDTH - 40, CANVAS_HEIGHT - 34);
-  titleText(ctx, T.howToTitle, CANVAS_WIDTH / 2, 40, 18, '#f4d03f');
-
   const gamepad=engine.lastInput==='gamepad';
+  drawMenuBackdrop(ctx,engine.frame,.92,'#d7b56c');
+  drawMenuHeader(ctx,'MANUAL DEL LADRÓN','Lo necesario para sobrevivir al primer atraco.',engine.frame,'#d7b56c','PROTOCOLO DE CAMPO');
+
   const rows:[string,string][] = gamepad?[
-    ['PALANCA IZQUIERDA','Moverse'],['PALANCA DERECHA + RT','Apuntar y disparar'],['B','Esquivar'],['A','Interactuar / recoger'],['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Abrir mapa'],['START','Pausa'],
+    ['PALANCA IZQ.','Moverse'],['PALANCA DER. + RT','Apuntar / disparar'],['B','Esquivar'],['A','Interactuar'],
+    ['Y','Objeto activo'],['LB / RB','Cambiar arma'],['VIEW','Mapa'],['START','Pausa'],
   ]:[
-    ['WASD','Moverse'],['FLECHAS / CLIC IZQUIERDO','Disparar'],['SHIFT / CLIC DERECHO','Esquivar'],['E','Interactuar / recoger'],['ESPACIO','Objeto activo'],['RUEDA DEL MOUSE','Cambiar arma'],['M','Abrir mapa'],['R · MANTENER','Reiniciar partida'],['ESC','Pausa'],
+    ['WASD','Moverse'],['FLECHAS / CLIC IZQ.','Disparar'],['SHIFT / CLIC DER.','Esquivar'],['E','Interactuar'],
+    ['ESPACIO','Objeto activo'],['RUEDA','Cambiar arma'],['M','Mapa'],['ESC','Pausa'],
   ];
-  rows.forEach(([k,v],i)=>{const y=60+i*17;ctx.fillStyle='#1c343d';ctx.fillRect(37,y-9,158,14);text(ctx,k,44,y,7.5,'#d9cb92','left',true);text(ctx,v,207,y,8,'#d1ded4','left');});
-  const instructions=['Explora salas y derrota enemigos para abrir las puertas.','El pan recupera vida. Las monedas se guardan.','Elige dos armas, encuentra objetos y crea sinergias.','Derrota al jefe, recoge el botín y baja al siguiente piso.','El mapa pausa el combate. No permite transportarte.'];
-  instructions.forEach((line,i)=>text(ctx,line,240,228+i*14,7.8,'#a4bcb9'));
-  text(ctx,gamepad?'B · VOLVER':'ESC · VOLVER',240,322,9,'#dfc582','center',true);
+
+  drawMenuCard(ctx,28,72,226,240,false,'#d7b56c','rgba(8,20,26,.95)');
+  drawSectionLabel(ctx,'CONTROLES',44,92,'#d7b56c');
+  rows.forEach(([k,v],i)=>{
+    const y=107+i*22;
+    drawKeyChip(ctx,k,43,y,gamepad?76:92,true);
+    text(ctx,v,gamepad?128:143,y+10,6.5,'#c8d5cf','left',i<4,false);
+  });
+
+  drawMenuCard(ctx,266,72,186,240,false,'#78c99a','rgba(8,20,26,.95)');
+  drawSectionLabel(ctx,'PLAN DEL ATRACO',282,92,'#78c99a');
+  const tips=[
+    ['01','LIMPIA LA SALA','Derrota enemigos para abrir puertas.'],
+    ['02','ARMA LA BUILD','Combina dos armas, objetos y sinergias.'],
+    ['03','CUIDA LA VIDA','El pan cura. No todas las peleas lo sueltan.'],
+    ['04','ROBA Y BAJA','Jefe, botín y siguiente piso.'],
+    ['05','LEE EL MAPA','Pausa el combate; no teletransporta.'],
+  ];
+  tips.forEach(([n,t,d],i)=>{
+    const y=108+i*37;
+    text(ctx,n,282,y+9,5,'#78c99a','left',true,false);
+    text(ctx,t,306,y+9,6.3,'#e2e8dd','left',true,false);
+    wrappedText(ctx,d,306,y+20,132,5.4,6.5,2,'#82989a');
+  });
+  drawMenuFooter(ctx,gamepad?'B · VOLVER':'ESC · VOLVER','NO NECESITAS MEMORIZAR TODO','#d7b56c');
 }
 
 function renderSettingsUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 50, 26, CANVAS_WIDTH - 100, CANVAS_HEIGHT - 56);
-  titleText(ctx, T.settingsTitle, CANVAS_WIDTH / 2, 54, 18, '#f4d03f');
+  drawMenuBackdrop(ctx,engine.frame,.93,'#8fb7c8');
+  drawMenuHeader(ctx,'AJUSTES','Cambios inmediatos. Sin menús escondidos.',engine.frame,'#8fb7c8','SISTEMA DEL ATRACO');
 
+  drawMenuCard(ctx,48,68,CANVAS_WIDTH-96,232,false,'#8fb7c8','rgba(8,20,26,.95)');
   SETTING_ROWS.forEach((row, i) => {
     const y = SETTINGS.y + i * (SETTINGS.h+SETTINGS.gap);
     const on = i === engine.settingsIndex;
-    ctx.fillStyle = on ? 'rgba(244,208,63,0.14)' : 'rgba(255,255,255,0.03)';
-    ctx.fillRect(SETTINGS.x,y,SETTINGS.w,SETTINGS.h);
-    text(ctx,row.label,SETTINGS.x+10,y+13,8,on?'#fff6c9':'#a9b3c4','left',on);
+    drawMenuCard(ctx,SETTINGS.x,y,SETTINGS.w,SETTINGS.h,on,'#8fb7c8',on?'rgba(25,40,47,.98)':'rgba(10,24,30,.88)');
+    text(ctx,String(i+1).padStart(2,'0'),SETTINGS.x+10,y+13,4.8,on?'#8fb7c8':'#50666d','left',true,false);
+    text(ctx,row.label,SETTINGS.x+34,y+13,7.2,on?'#eef6f2':'#a9b7b6','left',on,false);
     const v = settingValue(engine, i);
     if (row.kind === 'vol' || row.kind === 'shake' || row.kind === 'scale' || row.kind==='brightness') {
       const max = row.kind === 'vol' ? 1 : row.kind === 'shake' ? 2 : row.kind==='brightness'?1.4:3;
-      drawBar(ctx,320,y+6,60,v/max,on?'#f4d03f':'#5c6472');
-      text(ctx,row.kind==='vol'?`${Math.round(v*100)}%`:`${v}`,405,y+13,8,on?'#fff6c9':'#8792a5','right');
+      drawBar(ctx,305,y+6,68,v/max,on?'#8fb7c8':'#52656b');
+      text(ctx,row.kind==='vol'?String(Math.round(v*100))+'%':String(v),405,y+13,6.2,on?'#dbeef1':'#7d9296','right',true,false);
     } else {
-      text(ctx,row.kind==='action'?'REPRODUCIR':v>.5?T.on:T.off,405,y+13,8,v>.5?'#39d353':'#b5c2b7','right',true);
+      const label=row.kind==='action'?'PROBAR':v>.5?T.on:T.off;
+      const col=row.kind==='action'?'#d8c57d':v>.5?'#78c99a':'#879699';
+      ctx.fillStyle=on?'rgba(255,255,255,.055)':'rgba(255,255,255,.025)';ctx.fillRect(345,y+4,64,12);
+      text(ctx,label,401,y+13,5.8,col,'right',true,false);
     }
   });
-
-  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · AJUSTAR     A · PROBAR     B · VOLVER':'FLECHAS · AJUSTAR     ENTER · PROBAR     ESC · VOLVER',240,321,7,'#91aaa6');
+  drawMenuFooter(
+    ctx,
+    engine.lastInput==='gamepad'?'CRUCETA · AJUSTAR   A · PROBAR   B · VOLVER':'FLECHAS · AJUSTAR   ENTER · PROBAR   ESC · VOLVER',
+    'CAMBIOS GUARDADOS AUTOMÁTICAMENTE',
+    '#8fb7c8',
+  );
 }
 
 function renderWardrobeUI(engine: GameEngine) {
@@ -1660,31 +1691,31 @@ function renderWardrobeUI(engine: GameEngine) {
 
 function renderUpgradesUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  drawPanel(ctx, 26, 16, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
-  titleText(ctx, T.upgradesTitle, CANVAS_WIDTH / 2, 40, 17, '#f4d03f');
-  drawCoin(ctx, CANVAS_WIDTH / 2 - 52, 58, engine.frame, true);
-  text(ctx, `${T.upgradesCurrency}: ${engine.totalGoldenCrumbs}`, CANVAS_WIDTH / 2 + 4, 62, 12, '#f4d03f', 'center', true);
+  drawMenuBackdrop(ctx,engine.frame,.93,'#78c99a');
+  drawMenuHeader(ctx,'MEJORAS PERMANENTES','Invierte una vez. Conserva la ventaja.',engine.frame,'#78c99a','TALLER CLANDESTINO');
+
+  drawItemIcon(ctx,352,29,'golden_crumb',14);
+  text(ctx,String(engine.totalGoldenCrumbs)+' MONEDAS',372,41,6.2,'#e4cf88','left',true,false);
 
   META_UPGRADES.forEach((up, i) => {
-    const y = 82 + i * 44;
+    const y = 76 + i * 54;
     const lvl = engine.metaLevels[up.id] ?? 0;
     const maxed = lvl >= up.maxLevel;
     const cost = up.cost * (lvl + 1);
     const sel = i === engine.upgradeIndex;
-    ctx.fillStyle = sel ? 'rgba(244,208,63,0.14)' : 'rgba(255,255,255,0.03)';
-    ctx.fillRect(40, y - 12, CANVAS_WIDTH - 80, 40);
-    titleText(ctx, up.name, 50, y + 4, 13, maxed ? '#39d353' : sel ? '#fff6c9' : '#c3cbd9', 'left');
-    text(ctx, up.description, 50, y + 20, 10, '#8792a5', 'left', false);
+    const accent=maxed?'#78c99a':sel?'#e6c56f':'#5d7277';
+    drawMenuCard(ctx,38,y,404,46,sel,accent,sel?'rgba(32,36,28,.97)':'rgba(9,22,28,.94)');
+    text(ctx,String(i+1).padStart(2,'0'),50,y+17,5,'#5d7277','left',true,false);
+    titleText(ctx,up.name,78,y+18,9,maxed?'#8ed3a6':sel?'#f3dfaa':'#d0dad4','left',false);
+    wrappedText(ctx,up.description,78,y+31,235,5.4,6.4,2,'#81969a');
     for (let l = 0; l < up.maxLevel; l++) {
-      ctx.fillStyle = l < lvl ? '#f4d03f' : '#2f3644';
-      ctx.fillRect(CANVAS_WIDTH - 150 + l * 12, y - 4, 9, 9);
+      ctx.fillStyle = l < lvl ? '#78c99a' : '#263b42';
+      ctx.fillRect(326 + l * 14, y + 10, 10, 7);
+      if(l<lvl){ctx.fillStyle='#b8e2c7';ctx.fillRect(328+l*14,y+11,6,1);}
     }
-    text(ctx, maxed ? T.upgradeBought : `${cost}`, CANVAS_WIDTH - 48, y + 16,
-      9, maxed ? '#39d353' : engine.totalGoldenCrumbs >= cost ? '#f4d03f' : '#ff5b4f', 'right', true);
+    text(ctx,maxed?'COMPLETO':String(cost)+' MONEDAS',426,y+34,6,maxed?'#78c99a':engine.totalGoldenCrumbs>=cost?'#e6c56f':'#d9645c','right',true,false);
   });
-
-  text(ctx,engine.lastInput==='gamepad'?'A · COMPRAR':'ENTER · COMPRAR',240,308,9,'#a9b3c4');
-  text(ctx,engine.lastInput==='gamepad'?'B · VOLVER':'ESC · VOLVER',240,324,9,'#f4d03f','center',true);
+  drawMenuFooter(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · COMPRAR   B · VOLVER':'W / S · ELEGIR   ENTER · COMPRAR   ESC · VOLVER','PROGRESIÓN PERMANENTE','#78c99a');
 }
 
 function renderFloorIntroUI(engine: GameEngine) {
