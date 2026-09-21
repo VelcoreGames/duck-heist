@@ -20,7 +20,7 @@ import {
 import { T, FLOOR_NAMES_ES } from './i18n';
 import {
   text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar,
-  MENU_THEME, drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice,
+  drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice,
   drawMenuFooter, drawSectionLabel, drawKeyChip,
 } from './ui';
 import { wrappedText } from './ui';
@@ -1840,7 +1840,7 @@ function renderSwapUI(engine: GameEngine) {
   const req = engine.swap!;
   const p = engine.player;
   const newW = WEAPONS[req.itemId];
-  const x=35,y=51,w=410,h=250;
+  const x=35,y=51,w=410;
 
   drawMenuBackdrop(ctx,engine.frame,.92,'#ff9f43');
   drawMenuHeader(ctx,'INVENTARIO LLENO','Compara antes de soltar un arma.',engine.frame,'#ff9f43','CAMBIO DE EQUIPO');
