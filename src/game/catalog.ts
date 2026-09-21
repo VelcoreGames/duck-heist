@@ -29,7 +29,7 @@ const enemyInfo: Record<string,string> = {
 export const CATALOG: CatalogEntry[] = [
   ...Object.values({...ITEMS,...ACTIVE_ITEMS}).map(i=>({
     id:i.id,name:i.name,description:i.description,flavor:i.flavor ?? FLAVOR[i.id] ?? '',rarity:i.rarity,
-    category:'items' as const,sprite:i.id,mechanic:i.passive?'PASIVO · Se aplica al recoger':'ACTIVO · ESPACIO para usar',
+    category:'items' as const,sprite:i.id,mechanic:i.passive?'PASIVO · Se aplica al recoger':'ACTIVO · Usa el control de objeto activo',
   })),
   ...Object.entries(FOODS).map(([id,f])=>({id,name:f.name,description:f.description,flavor:f.flavor,rarity:f.rarity,
     category:'items' as const,sprite:id,mechanic:'COMIDA · Recupera corazones al recoger'})),
