@@ -11,7 +11,13 @@ import {
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
-import { MAIN_MENU, PAUSE_MENU, CONFIRM_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit, endlessRewardHit } from './game/layout';
+import {
+  MAIN_MENU, mainMenuHit, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
+  settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
+  upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, activeSwapHit, endlessRewardHit,
+} from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
@@ -24,12 +30,7 @@ import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
 
-const MENU_TOP=MAIN_MENU.y,MENU_H=MAIN_MENU.h,MENU_GAP=MAIN_MENU.gap,MENU_W=MAIN_MENU.w;
-const PAUSE_TOP=PAUSE_MENU.y,PAUSE_H=PAUSE_MENU.h,PAUSE_GAP=PAUSE_MENU.gap,PAUSE_W=PAUSE_MENU.w;
-const OVER_TOP = CANVAS_HEIGHT - 62, OVER_H = 22, OVER_GAP = 4, OVER_W = 200;
-const DIFF_TOP=72,DIFF_H=51,DIFF_GAP=5,DIFF_W=364;
-const RESUME_TOP=154,RESUME_H=30,RESUME_GAP=10,RESUME_W=238;
-const CONFIRM_TOP=CONFIRM_MENU.y,CONFIRM_H=CONFIRM_MENU.h,CONFIRM_GAP=CONFIRM_MENU.gap,CONFIRM_W=CONFIRM_MENU.w;
+const OVER_TOP=CANVAS_HEIGHT-62,OVER_H=22,OVER_GAP=4,OVER_W=200;
 
 export default function App() {
   const worldRef = useRef<HTMLCanvasElement>(null);
@@ -39,7 +40,7 @@ export default function App() {
   const rafRef = useRef<number>(0);
   const [, force] = useState(0);
   const [hint, setHint] = useState('');
-  const [cursor, setCursor] = useState<'crosshair' | 'default'>('default');
+  const [cursor, setCursor] = useState<'crosshair' | 'default' | 'pointer'>('pointer');
   const [audit,setAudit]=useState<CheckReport|null>(null);
 
   /** Escala responsive exacta del release aprobado v0.4.3. */
@@ -89,7 +90,7 @@ export default function App() {
     engine.onStateChange = () => {
       force(n => n + 1);
       setHint(hintFor(engine));
-      setCursor(engine.state === GameState.PLAYING ? 'crosshair' : 'default');
+      setCursor(engine.state === GameState.PLAYING ? 'crosshair' : 'pointer');
     };
 
     const applySize = () => {
@@ -207,6 +208,13 @@ export default function App() {
         if(row){remapBinding(engine.bindings,row.id,k);engine.controlCapture=false;saveSettings(engine);playUiSelect();force(n=>n+1);}
         return;
       }
+
+      const mouseOnlyMenu = [
+        GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.COLLECTION,GameState.CAREER,
+        GameState.HOW_TO_PLAY,GameState.WARDROBE,GameState.SETTINGS,GameState.UPGRADES,GameState.ENDLESS_RESUME,
+        GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
+      ].includes(engine.state);
+      if(mouseOnlyMenu)return;
 
       if(k===engine.bindings.map && (engine.state===GameState.PLAYING||engine.state===GameState.PAUSED)) {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
       if(engine.state===GameState.MAP) {
@@ -392,10 +400,6 @@ export default function App() {
       engine.lastInput='keyboard';
       e.preventDefault();
       if (inSwap()) { selectSwapSlot(engine, engine.swapSel === 0 ? 1 : 0); return; }
-      if (engine.state === GameState.MENU) {
-        menuMove(engine, e.deltaY > 0 ? 1 : -1, 7, 'menu');
-        return;
-      }
       if (engine.state === GameState.WARDROBE) {
         const max=Math.ceil(SKINS.length/3)*(WARDROBE.cellH+WARDROBE.gap)-WARDROBE.gap-WARDROBE.h;
         engine.wardrobeScrollTarget=Math.max(0,Math.min(max,engine.wardrobeScrollTarget+e.deltaY/engine.scale));
@@ -424,23 +428,20 @@ export default function App() {
       if(Math.abs(ev.movementX)+Math.abs(ev.movementY)>1)engine.lastInput='keyboard';
       if(engine.state===GameState.MAP) {mapHit(engine,p.x,p.y);return;}
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
-      // micro-interacción: el puntero también navega las listas
-      const st = engine.state;
-      if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.ENDLESS_RESUME || st === GameState.PAUSED || st === GameState.CONFIRM || st === GameState.GAME_OVER || st === GameState.VICTORY) {
-        const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st===GameState.ENDLESS_RESUME?RESUME_TOP:st===GameState.CONFIRM?CONFIRM_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
-        const cnt = st === GameState.MENU ? MAIN_MENU.count : st===GameState.DIFFICULTY?4:st===GameState.ENDLESS_RESUME?2:st===GameState.CONFIRM?2:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
-        const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st===GameState.ENDLESS_RESUME?RESUME_H:st===GameState.CONFIRM?CONFIRM_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
-        const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st===GameState.ENDLESS_RESUME?RESUME_GAP:st===GameState.CONFIRM?CONFIRM_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
-        const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st===GameState.ENDLESS_RESUME?RESUME_W:st===GameState.CONFIRM?CONFIRM_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
-        const i=st===GameState.MENU?mainMenuHit(p.x,p.y):hitList(p.x,p.y,top,cnt,h,g,w);
-        if (i >= 0) {
-          if (st === GameState.MENU) { if (engine.menuIndex !== i) { engine.menuIndex = i; softMove(); } }
-          else if(st===GameState.DIFFICULTY){if(engine.difficultyIndex!==i){engine.difficultyIndex=i;softMove();}}
-          else if(st===GameState.ENDLESS_RESUME){if(engine.endlessResumeIndex!==i){engine.endlessResumeIndex=i;softMove();}}
-          else if (st === GameState.PAUSED) { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
-          else if (st === GameState.CONFIRM) { if (engine.confirmIndex !== i) { engine.confirmIndex = i; softMove(); } }
-          else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
-        }
+      // Hover real: la selección visual sigue exactamente a la geometría clicable.
+      const st=engine.state;
+      if(st===GameState.MENU){
+        const i=mainMenuHit(p.x,p.y);if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
+      }else if(st===GameState.DIFFICULTY){
+        for(let i=0;i<4;i++)if(inside(p.x,p.y,difficultyRect(i))&&engine.difficultyIndex!==i){engine.difficultyIndex=i;softMove();}
+      }else if(st===GameState.ENDLESS_RESUME){
+        for(let i=0;i<2;i++)if(inside(p.x,p.y,endlessResumeRect(i))&&engine.endlessResumeIndex!==i){engine.endlessResumeIndex=i;softMove();}
+      }else if(st===GameState.PAUSED){
+        for(let i=0;i<PAUSE_MENU.count;i++)if(inside(p.x,p.y,pauseRect(i))&&engine.pauseIndex!==i){engine.pauseIndex=i;softMove();}
+      }else if(st===GameState.CONFIRM){
+        CONFIRM_RECTS.forEach((box,i)=>{if(inside(p.x,p.y,box)&&engine.confirmIndex!==i){engine.confirmIndex=i;softMove();}});
+      }else if(st===GameState.GAME_OVER||st===GameState.VICTORY){
+        const i=hitList(p.x,p.y,OVER_TOP,2,OVER_H,OVER_GAP,OVER_W);if(i>=0&&engine.pauseIndex!==i){engine.pauseIndex=i;softMove();}
       } else if(st===GameState.CAREER){
         const w=65,gap=5,start=28;
         for(let i=0;i<6;i++) if(inside(p.x,p.y,{x:start+i*(w+gap),y:68,w,h:24})&&engine.careerTab!==i){engine.careerTab=i;softMove();}
@@ -459,19 +460,10 @@ export default function App() {
           if(engine.endless.marketOpen&&engine.endless.marketIndex!==hit){engine.endless.marketIndex=hit;softMove();}
           else if(!engine.endless.marketOpen&&engine.endless.rewardIndex!==hit){engine.endless.rewardIndex=hit;softMove();}
         }
-      } else if (st === GameState.SETTINGS) {
-        let hit = -1;
-        SETTING_ROWS.forEach((_, i) => {
-          if(inside(p.x,p.y,{...SETTINGS,y:SETTINGS.y+i*(SETTINGS.h+SETTINGS.gap)})) hit=i;
-        });
-        if (hit >= 0 && engine.settingsIndex !== hit) { engine.settingsIndex = hit; softMove(); }
-      } else if (st === GameState.UPGRADES) {
-        let hit = -1;
-        for (let i = 0; i < 4; i++) {
-          const by = 82 + i * 44;
-          if (p.y > by - 12 && p.y < by + 28) hit = i;
-        }
-        if (hit >= 0 && engine.upgradeIndex !== hit) { engine.upgradeIndex = hit; softMove(); }
+      } else if(st===GameState.SETTINGS){
+        for(let i=0;i<SETTING_ROWS.length;i++)if(inside(p.x,p.y,settingsRect(i))&&engine.settingsIndex!==i){engine.settingsIndex=i;softMove();}
+      } else if(st===GameState.UPGRADES){
+        for(let i=0;i<4;i++)if(inside(p.x,p.y,upgradeRect(i))&&engine.upgradeIndex!==i){engine.upgradeIndex=i;softMove();}
       }
     };
     let lastMoveSound = 0;
@@ -507,17 +499,16 @@ export default function App() {
 
       const { x, y } = toWorld(ev);
       engine.mouseX=x;engine.mouseY=y;
-      if(engine.state===GameState.MAP) {if(y>316) closeFloorMap(engine);else mapClick(engine,x,y);return;}
+      if(engine.state===GameState.MAP){if(inside(x,y,MAP_CLOSE))closeFloorMap(engine);else mapClick(engine,x,y);return;}
       if (engine.activeSwap) {
         const hit = activeSwapHit(x, y);
         if (hit === 'confirm') confirmActiveSwap(engine);
         else if (hit === 'cancel' || hit === -1) cancelSwap(engine);
         return;
       }
-      if (inSwap()) {
-        const hit=swapHit(x,y);
-        if(hit>=0) {selectSwapSlot(engine,hit);confirmSwap(engine);}
-        return;
+      if(inSwap()){
+        if(inside(x,y,SWAP_CANCEL)){cancelSwap(engine);return;}
+        const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
       if (engine.state === GameState.PLAYING) { engine.mouseDown = true; return; }
       switch (engine.state) {
@@ -527,54 +518,56 @@ export default function App() {
           break;
         }
         case GameState.DAILY_BRIEF:
-          if(y>=298){playUiSelect();beginHeist(engine);}else if(y<60){playUiBack();engine.pendingMode='heist';goTo(GameState.MENU);}
+          if(inside(x,y,PRIMARY_BUTTON)){playUiSelect();beginHeist(engine);}
+          else if(inside(x,y,BACK_BUTTON)){playUiBack();engine.pendingMode='heist';goTo(GameState.MENU);}
           break;
         case GameState.ENDLESS_RESUME: {
-          const i=hitList(x,y,RESUME_TOP,2,RESUME_H,RESUME_GAP,RESUME_W);
-          if(i>=0){
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(GameState.MENU);break;}
+          for(let i=0;i<2;i++)if(inside(x,y,endlessResumeRect(i))){
             engine.endlessResumeIndex=i;
-            if(i===0){if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}}
-            else {openConfirm('new_endless');}
+            if(i===0){playUiSelect();if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}}
+            else openConfirm('new_endless');
+            break;
           }
           break;
         }
         case GameState.ENDLESS_REWARD: {
-          const count=engine.endless.marketOpen?3:engine.endless.rewardOptions.length;
-          const hit=endlessRewardHit(x,y,count);
-          if(hit>=0){
-            if(engine.endless.marketOpen)engine.endless.marketIndex=hit;else engine.endless.rewardIndex=hit;
-            confirmEndlessReward(engine);
-          } else if(!engine.endless.awaitingReward&&!engine.endless.marketOpen) confirmEndlessReward(engine);
+          if(inside(x,y,ENDLESS_SECONDARY)){recycleEndlessRewards(engine);break;}
+          const count=engine.endless.marketOpen?3:engine.endless.rewardOptions.length,hit=endlessRewardHit(x,y,count);
+          if(hit>=0){if(engine.endless.marketOpen)engine.endless.marketIndex=hit;else engine.endless.rewardIndex=hit;confirmEndlessReward(engine);}
           break;
         }
         case GameState.DIFFICULTY: {
-          const i=hitList(x,y,DIFF_TOP,4,DIFF_H,DIFF_GAP,DIFF_W);
-          if(i>=0){engine.difficultyIndex=i;activateDifficulty();}else{playUiBack();goTo(GameState.MENU);}
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(GameState.MENU);break;}
+          if(inside(x,y,DIFFICULTY_START)){activateDifficulty();break;}
+          for(let i=0;i<4;i++)if(inside(x,y,difficultyRect(i))){engine.difficultyIndex=i;playUiMove();force(n=>n+1);break;}
           break;
         }
         case GameState.COLLECTION:
-          if(inside(x,y,{x:356,y:81,w:95,h:18})){engine.careerTab=0;playUiSelect();goTo(GameState.CAREER);}
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(subReturn);}
+          else if(inside(x,y,COLLECTION_CAREER)){engine.careerTab=0;playUiSelect();goTo(GameState.CAREER);}
           else collectionClick(engine,x,y);
           break;
-        case GameState.CAREER:careerClick(engine,x,y);break;
+        case GameState.CAREER:
+          if(inside(x,y,{...BACK_BUTTON,w:136})){playUiBack();goTo(GameState.COLLECTION);}else careerClick(engine,x,y);
+          break;
         case GameState.CONTROLS:
-          if(!controlsHit(engine,x,y)&&y>325){playUiBack();goTo(GameState.SETTINGS);}
+          if(inside(x,y,BACK_BUTTON)){engine.controlCapture=false;playUiBack();goTo(GameState.SETTINGS);}
+          else if(inside(x,y,CONTROLS_RESET)){resetControls(engine);saveSettings(engine);playUiSelect();force(n=>n+1);}
+          else controlsHit(engine,x,y);
           break;
-        case GameState.PAUSED: {
-          const i = hitList(x, y, PAUSE_TOP, PAUSE_MENU.count, PAUSE_H, PAUSE_GAP, PAUSE_W);
-          if (i >= 0) { engine.pauseIndex = i; activatePause(); }
+        case GameState.PAUSED:
+          for(let i=0;i<PAUSE_MENU.count;i++)if(inside(x,y,pauseRect(i))){engine.pauseIndex=i;activatePause();break;}
           break;
-        }
         case GameState.RUN_INFO:
-          if(inside(x,y,{x:42,y:70,w:190,h:24})){engine.runInfoTab=0;playUiMove();}
+          if(inside(x,y,{...BACK_BUTTON,w:126})){playUiBack();goTo(GameState.PAUSED);}
+          else if(inside(x,y,{x:42,y:70,w:190,h:24})){engine.runInfoTab=0;playUiMove();}
           else if(inside(x,y,{x:248,y:70,w:190,h:24})){engine.runInfoTab=1;playUiMove();}
-          else if(y>315){playUiBack();goTo(GameState.PAUSED);}
           break;
-        case GameState.CONFIRM: {
-          const i=hitList(x,y,CONFIRM_TOP,2,CONFIRM_H,CONFIRM_GAP,CONFIRM_W);
-          if(i>=0){engine.confirmIndex=i;if(i===0)executeConfirm();else cancelConfirm();}
+        case GameState.CONFIRM:
+          if(inside(x,y,CONFIRM_RECTS[0])){engine.confirmIndex=0;executeConfirm();}
+          else if(inside(x,y,CONFIRM_RECTS[1])){engine.confirmIndex=1;cancelConfirm();}
           break;
-        }
         case GameState.GAME_OVER:
         case GameState.VICTORY: {
           const i = hitList(x, y, OVER_TOP, 2, OVER_H, OVER_GAP, OVER_W);
@@ -582,41 +575,38 @@ export default function App() {
           break;
         }
         case GameState.SETTINGS: {
-          let hit = -1;
-          SETTING_ROWS.forEach((_, i) => {
-            if(inside(x,y,{...SETTINGS,y:SETTINGS.y+i*(SETTINGS.h+SETTINGS.gap)})) hit=i;
-          });
-          if (hit >= 0) {
-            engine.settingsIndex = hit;
-            const row = SETTING_ROWS[hit];
-            if (row.key === 'fullscreen') toggleFullscreen(engine, applySize);
-            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;goTo(GameState.CONTROLS);}
-            else adjustSetting(engine, hit, x > CANVAS_WIDTH / 2 ? 1 : -1);
-          } else { playUiBack(); goTo(subReturn); }
-          break;
-        }
-        case GameState.UPGRADES: {
-          let hit = -1;
-          for (let i = 0; i < 4; i++) {
-            const by = 82 + i * 44;
-            if (y > by - 12 && y < by + 28) hit = i;
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(subReturn);break;}
+          let hit=-1;for(let i=0;i<SETTING_ROWS.length;i++)if(inside(x,y,settingsRect(i))){hit=i;break;}
+          if(hit<0)break;
+          engine.settingsIndex=hit;const row=SETTING_ROWS[hit];
+          if(row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness'){
+            if(inside(x,y,settingsMinusRect(hit)))adjustSetting(engine,hit,-1);
+            else if(inside(x,y,settingsPlusRect(hit)))adjustSetting(engine,hit,1);
+          }else if(inside(x,y,settingsActionRect(hit))||inside(x,y,settingsRect(hit))){
+            if(row.key==='fullscreen')toggleFullscreen(engine,applySize);
+            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;playUiSelect();goTo(GameState.CONTROLS);}
+            else adjustSetting(engine,hit,1);
           }
-          if (hit >= 0) { engine.upgradeIndex = hit; buyUpgrade(engine, hit); }
-          else { playUiBack(); goTo(subReturn); }
           break;
         }
+        case GameState.UPGRADES:
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(subReturn);break;}
+          for(let i=0;i<4;i++)if(inside(x,y,upgradeRect(i))){
+            engine.upgradeIndex=i;if(inside(x,y,upgradeActionRect(i)))buyUpgrade(engine,i);else softMove();break;
+          }
+          break;
         case GameState.WARDROBE: {
           if (inside(x,y,WARDROBE_ACTION)) {
             wardrobeAction(engine);
             return;
           }
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(subReturn);break;}
           const hit=wardrobeHit(x,y,engine.wardrobeScroll,SKINS.length);
-          if(hit>=0) {engine.wardrobeIndex=hit;softMove();}
-          if(y>318) {playUiBack();goTo(subReturn);}
+          if(hit>=0){engine.wardrobeIndex=hit;softMove();}
           break;
         }
         case GameState.HOW_TO_PLAY:
-          playUiBack(); goTo(subReturn);
+          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(subReturn);}
           break;
         default: break;
       }
@@ -807,18 +797,18 @@ function toggleFullscreen(engine: GameEngine, after: () => void) {
 function hintFor(engine: GameEngine): string {
   if(engine.lastInput==='gamepad')return 'PALANCA IZQUIERDA · MOVER  RT · DISPARAR  B · ESQUIVAR  A · INTERACTUAR  Y · OBJETO  VIEW · MAPA  START · PAUSA';
   switch (engine.state) {
-    case GameState.MENU: return 'W / S elegir · ENTER confirmar · rueda también vale';
-    case GameState.DIFFICULTY:return 'W / S dificultad · ENTER confirmar · ESC volver';
-    case GameState.DAILY_BRIEF:return 'ENTER comenzar desafío · ESC volver';
+    case GameState.MENU:return 'Mueve el ratón sobre una opción y haz clic para abrirla';
+    case GameState.DIFFICULTY:return 'Haz clic en una dificultad y luego en INICIAR';
+    case GameState.DAILY_BRIEF:return 'Haz clic en COMENZAR DESAFÍO o VOLVER';
     case GameState.PLAYING: return keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight)+' mover · MOUSE / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' disparar · '+keyLabel(engine.bindings.dash)+' esquivar · '+keyLabel(engine.bindings.interact)+' interactuar';
     case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · '+keyLabel(engine.bindings.map)+' / ESC cerrar';
-    case GameState.PAUSED: return 'ESC continuar · flechas navegar · TAB info de run';
-    case GameState.RUN_INFO:return 'A / D cambiar vista · ESC volver a pausa';
-    case GameState.COLLECTION:return 'A / D categoría · Q filtro · E ordenar · P carrera · ESC volver';
-    case GameState.CAREER:return 'A / D cambiar vista · ESC colección';
-    case GameState.CONTROLS:return engine.controlCapture?'PULSA UNA TECLA · ESC cancelar':'FLECHAS elegir · ENTER remapear · R restaurar · ESC ajustes';
-    case GameState.CONFIRM:return 'W / S elegir · ENTER confirmar · ESC cancelar';
-    default: return 'ENTER confirmar · ESC volver';
+    case GameState.PAUSED:return 'Elige una acción con el ratón';
+    case GameState.RUN_INFO:return 'Haz clic en BUILD, RENDIMIENTO o VOLVER A PAUSA';
+    case GameState.COLLECTION:return 'Haz clic en categorías, filtros, fichas o Carrera';
+    case GameState.CAREER:return 'Haz clic en una pestaña para cambiar de vista';
+    case GameState.CONTROLS:return engine.controlCapture?'Pulsa la tecla que quieres asignar':'Haz clic en una acción para remapearla';
+    case GameState.CONFIRM:return 'Haz clic en CANCELAR o SÍ, CONFIRMAR';
+    default:return 'Usa el ratón para navegar';
   }
 }
 
