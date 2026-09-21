@@ -91,7 +91,7 @@ export interface ShopItem {
   isFood?:boolean;
 }
 
-export interface Puddle { x: number; y: number; life: number; kind?:'water'|'fire'|'smoke'|'radiation'; radius?:number; }
+export interface Puddle { x: number; y: number; life: number; kind?:'water'|'butter'|'fire'|'smoke'|'radiation'; radius?:number; }
 
 export interface Pedestal {
   x: number; y: number; itemId: string; isWeapon: boolean; taken: boolean; bossLoot?: boolean;
