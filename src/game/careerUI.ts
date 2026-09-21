@@ -160,9 +160,9 @@ export function renderCareer(e:GameEngine){
 
   const w=65,gap=5,start=28;
   TABS.forEach((label,i)=>{
-    const x=start+i*(w+gap),on=e.careerTab===i;
-    drawMenuCard(c,x,68,w,24,on,on?'#79b9d2':'#536970',on?'rgba(22,39,46,.98)':'rgba(8,21,27,.94)');
-    text(c,label,x+w/2,84,4.6,on?'#edf7f3':'#8fa1a2','center',true,false);
+    const x=start+i*(w+gap),on=e.careerTab===i,hover=e.mouseX>=x&&e.mouseX<=x+w&&e.mouseY>=68&&e.mouseY<=92;
+    drawMenuCard(c,x,68,w,24,on||hover,on?'#79b9d2':'#536970',on?'rgba(22,39,46,.98)':hover?'rgba(15,31,37,.98)':'rgba(8,21,27,.94)');
+    text(c,label,x+w/2,84,4.6,on?'#edf7f3':hover?'#cad8d5':'#8fa1a2','center',true,false);
   });
 
   if(e.careerTab===0)renderSummary(e);
