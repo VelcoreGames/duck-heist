@@ -1,5 +1,5 @@
 import { auditContent, CATALOG, COLLECTION_TABS } from './catalog';
-import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES } from './data';
+import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENEMIES, FLOOR_BOSS_POOL, FLOOR_MINIBOSS_POOL, FLOOR_SUBBOSS_POOL, FINAL_BOSS_ID } from './data';
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
@@ -14,6 +14,7 @@ import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
+import { drawBoss } from './sprites';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -259,6 +260,62 @@ export function runSelfChecks():CheckReport {
       assert(c.items.length===0&&c.pickups.length===0,'drops persistieron');
       assert(result.recycledItems===2&&result.discardedHealing===1,'limpieza incompleta');
       assert(e.player.crumbs>=5+result.recycledMigas&&e.totalGoldenCrumbs===2,'monedas perdidas');
+    });
+    check('Los 145 encuentros de jerarquía renderizan sin excepción',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      assert(all.length===145,'conteo total inesperado');
+      for(const b of all) for(let phase=0;phase<b.phases;phase++) drawBoss(ctx,40,40,b.id,120+phase*7,b.hp,b.hp,false,phase);
+    });
+    check('El roster completo utiliza las doce familias de ataque',()=>{
+      const expected=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
+      for(const group of [Object.values(MINIBOSSES),Object.values(SUBBOSSES),Object.values(BOSSES).filter(b=>!b.finalBoss)]){
+        const attacks=new Set(group.flatMap(b=>b.pattern.sequence));
+        assert(expected.every(a=>attacks.has(a as never)),'familia de ataque ausente');
+      }
+    });
+    check('Plantilla masiva contiene al menos 40 por jerarquía',()=>{
+      assert(Object.keys(MINIBOSSES).length>=48,'faltan minijefes');
+      assert(Object.keys(SUBBOSSES).length>=48,'faltan subjefes');
+      assert(Object.values(BOSSES).filter(b=>!b.finalBoss).length>=48,'faltan jefes de piso rotativos');
+    });
+    check('Cada jefe data-driven tiene firma de combate única y válida',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      const signatures=all.map(b=>b.pattern.signature);
+      assert(new Set(signatures).size===signatures.length,'firmas de combate repetidas');
+      assert(all.every(b=>b.pattern.sequence.length>=4&&new Set(b.pattern.sequence).size===b.pattern.sequence.length),'secuencia de ataques pobre o duplicada');
+      const miniSeq=Object.values(MINIBOSSES).map(b=>b.pattern.sequence.join('>'));
+      const subSeq=Object.values(SUBBOSSES).map(b=>b.pattern.sequence.join('>'));
+      const bossSeq=Object.values(BOSSES).filter(b=>!b.finalBoss).map(b=>b.pattern.sequence.join('>'));
+      assert(new Set(miniSeq).size===miniSeq.length,'minijefes con secuencia base repetida');
+      assert(new Set(subSeq).size===subSeq.length,'subjefes con secuencia base repetida');
+      assert(new Set(bossSeq).size===bossSeq.length,'jefes rotativos con secuencia base repetida');
+      assert(all.every(b=>b.pattern.support.length>=3&&b.pattern.tempo>0&&b.pattern.speed>0),'firma incompleta');
+    });
+    check('Todos los apoyos de las firmas de jefe existen',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      assert(all.every(b=>b.pattern.support.every(id=>!!ENEMIES[id])),'firma invoca un enemigo inexistente');
+    });
+    check('Los 121 jefes pueden dibujarse sin excepción',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      all.forEach(b=>drawBoss(ctx,80,80,b.id,120,b.hp,b.hp,false,b.phases-1));
+      assert(all.length>=121,'catálogo de jefes incompleto');
+    });
+    check('Pisos 1 a 5 rotan ocho jefes y piso 6 fija al Gran Jefe',()=>{
+      assert(FLOOR_BOSS_POOL.length===6,'cantidad de pisos incorrecta');
+      assert(FLOOR_BOSS_POOL.slice(0,5).every(pool=>pool.length>=8),'cada piso previo debe tener al menos ocho jefes');
+      const rotating=Object.values(BOSSES).filter(b=>!b.finalBoss).map(b=>b.id);
+      const accessible=new Set(FLOOR_BOSS_POOL.slice(0,5).flat());
+      assert(rotating.every(id=>accessible.has(id)),'jefe rotativo inaccesible');
+      assert(FLOOR_BOSS_POOL[5].length===1&&FLOOR_BOSS_POOL[5][0]===FINAL_BOSS_ID,'jefe final no está fijado');
+      assert(!FLOOR_BOSS_POOL.slice(0,5).flat().includes(FINAL_BOSS_ID),'el Gran Jefe apareció antes del piso 6');
+      assert(BOSSES[FINAL_BOSS_ID]?.finalBoss===true&&BOSSES[FINAL_BOSS_ID]?.name==='EL GRAN JEFE DEL BANCO','identidad del jefe final incorrecta');
+    });
+    check('Pools de minijefes y subjefes cubren todo el catálogo',()=>{
+      const mini=new Set(FLOOR_MINIBOSS_POOL.flat()),sub=new Set(FLOOR_SUBBOSS_POOL.flat());
+      assert(Object.keys(MINIBOSSES).every(id=>mini.has(id)),'minijefe inaccesible');
+      assert(Object.keys(SUBBOSSES).every(id=>sub.has(id)),'subjefe inaccesible');
+      assert(FLOOR_MINIBOSS_POOL.slice(0,5).every(p=>p.length>=8),'pool de minijefes desbalanceado');
+      assert(FLOOR_SUBBOSS_POOL.slice(0,5).every(p=>p.length>=8),'pool de subjefes desbalanceado');
     });
     check('Jerarquía de jefes conserva fases previstas',()=>{
       assert(Object.values(MINIBOSSES).every(b=>b.phases===1),'minijefe con fases inesperadas');

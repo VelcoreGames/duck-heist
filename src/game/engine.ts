@@ -184,16 +184,16 @@ function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss'
   const hp = Math.round(def.hp * hpMult * (1 + (sc.hp - 1) * 0.78));
   const tierSpeed = tier === 'boss' ? 1.04 : tier === 'sub' ? 1.08 : 1.12;
   const tierDamage = tier === 'boss' ? 1.2 : tier === 'sub' ? 1.1 : 1;
-  const isMoney = bossType === 'tax_collector' || bossType === 'el_auditor' || bossType === 'cajero_3000' || bossType === 'bread_banker';
-  const isTech = bossType === 'dron_centinela' || bossType === 'director_seguridad' || bossType === 'cajero_3000';
+  const legacyMoney = bossType === 'tax_collector' || bossType === 'el_auditor' || bossType === 'cajero_3000' || bossType === 'bread_banker';
+  const legacyTech = bossType === 'dron_centinela' || bossType === 'director_seguridad' || bossType === 'cajero_3000';
   return {
     id: nextEnemyId++, type: bossType,
     x: CANVAS_WIDTH / 2 - def.size / 2, y: CANVAS_HEIGHT * 0.28,
     vx: 0, vy: 0, hp, maxHp: hp,
     speed: def.speed * sc.speed * tierSpeed, damage: tierDamage, size: def.size, score: tier === 'boss' ? 180 : tier === 'sub' ? 100 : 60,
-    behavior: 'chaser', flying: bossType === 'dron_centinela',
+    behavior: 'chaser', flying: def.family === 'tech',
     fireRate: Math.round((tier === 'boss' ? 52 : tier === 'sub' ? 58 : 64) * sc.fire), fireCooldown: 45,
-    projectileType: isMoney ? 'coin_proj' : isTech ? 'drone_shot' : (bossType.includes('panadero') || bossType === 'don_levadura' ? 'dough_ball' : 'enemy_bullet'),
+    projectileType: def.pattern?.projectile ?? (legacyMoney ? 'coin_proj' : legacyTech ? 'drone_shot' : (bossType.includes('panadero') || bossType === 'don_levadura' ? 'dough_ball' : 'enemy_bullet')),
     hurtTimer: 0, moveAngle: 0, moveTimer: 0,
     telegraph: 0, chargeTimer: 0, burst: 0, burstDelay: 0, slowTimer: 0, burn: 0, elite: false,
     isBoss: true, bossType, bossPhase: 0,
@@ -627,7 +627,7 @@ function endlessBagPick(engine:GameEngine,tier:'mini'|'sub'|'boss'):string {
   const state=engine.endless;
   const keyName=tier==='mini'?'minibossBag':tier==='sub'?'subbossBag':'bossBag';
   let bag=state[keyName];
-  const source=tier==='mini'?Object.keys(MINIBOSSES):tier==='sub'?Object.keys(SUBBOSSES):Object.keys(BOSSES);
+  const source=tier==='mini'?Object.keys(MINIBOSSES):tier==='sub'?Object.keys(SUBBOSSES):Object.keys(BOSSES).filter(id=>id!=='bread_banker');
   if(!bag.length) {
     bag=[...source];
     for(let i=bag.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}
@@ -698,8 +698,8 @@ function applyBossMutationAttack(engine:GameEngine,boss:Enemy,room:MapRoom,conte
 function resetEndlessArena(engine:GameEngine) {
   const room=engine.map.rooms.get(engine.currentKey)!;
   const content=getContent(engine);
-  // La arena y todo el botín recogible persisten entre rondas.
-  // Solo se limpia combate temporal.
+  // La arena persiste; el botín sobrante ya se resuelve al cerrar cada ronda.
+  // Aquí solo se limpia combate temporal.
   content.enemies=[];content.puddles=[];content.choices=undefined;
   content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
   content.damaged=false;content.clearCounted=false;content.perfectAwarded=false;content.combatTimer=0;
@@ -2924,6 +2924,111 @@ function bossSupport(engine:GameEngine,room:MapRoom,content:RoomContent,pool:str
   const spot=freeTiles(room.layout,2).find(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>95);
   if(spot) content.enemies.push(makeEnemy(pick(pool),floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
 }
+
+function bossPatternAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,ang:number,phase:number,tier:'mini'|'sub'|'boss',def:BossDef) {
+  const p=def.pattern;
+  const step=boss.bossAttackIndex??0;
+  const attack=p.sequence[(step+phase*p.phaseShift)%p.sequence.length];
+  boss.bossAttackIndex=step+1;
+  const projectile=(phase>0&&step%2===1)?p.altProjectile:p.projectile;
+  const count=Math.max(2,p.count+phase*(tier==='boss'?3:tier==='sub'?2:1));
+  const speed=p.speed+phase*(tier==='boss'?.22:.16);
+  const spread=Math.max(.045,p.spread-phase*.006);
+  const bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
+  const px=engine.player.x+7,py=engine.player.y+8;
+  const hazardLife=tier==='boss'?190:tier==='sub'?170:150;
+  const ringCount=Math.max(6,count+2);
+
+  if(attack==='fan') {
+    bossFan(engine,boss,ang,count,spread,speed,projectile);
+  } else if(attack==='ring') {
+    bossRing(engine,boss,ringCount,speed*.82,projectile,engine.frame*.022+p.orbitBias);
+  } else if(attack==='spiral') {
+    const n=Math.max(5,Math.ceil(ringCount*.65));
+    bossRing(engine,boss,n,speed*.84,projectile,engine.frame*(.026+p.orbitBias*.03));
+    bossRing(engine,boss,n,speed*.64,p.altProjectile,-engine.frame*(.019-p.orbitBias*.02)+Math.PI/n);
+  } else if(attack==='crossfire') {
+    bossFan(engine,boss,ang-.48,Math.max(3,Math.ceil(count*.65)),spread*.8,speed,projectile);
+    bossFan(engine,boss,ang+.48,Math.max(3,Math.ceil(count*.65)),spread*.8,speed,p.altProjectile);
+    if(phase>=2) bossFan(engine,boss,ang+Math.PI/2,3,.11,speed*.9,projectile);
+  } else if(attack==='cage') {
+    const n=6+phase*2+(tier==='boss'?2:0),radius=58+phase*10;
+    for(let i=0;i<n;i++){
+      const a=i/n*Math.PI*2+(step%2)*Math.PI/n;
+      content.puddles.push({x:clamp(px+Math.cos(a)*radius,42,CANVAS_WIDTH-42),y:clamp(py+Math.sin(a)*radius,42,CANVAS_HEIGHT-42),life:hazardLife,kind:'fire',radius:p.hazardRadius});
+    }
+    bossFan(engine,boss,ang,Math.max(3,Math.ceil(count*.45)),spread,speed*.95,projectile);
+  } else if(attack==='mines') {
+    const n=4+phase*2+(tier==='boss'?2:0);
+    for(let i=0;i<n;i++){
+      const a=engine.frame*.017+i/n*Math.PI*2;
+      const radius=44+(i%3)*24+phase*6;
+      content.puddles.push({x:clamp(px+Math.cos(a)*radius,45,CANVAS_WIDTH-45),y:clamp(py+Math.sin(a)*radius,45,CANVAS_HEIGHT-45),life:hazardLife+20,kind:'fire',radius:Math.max(13,p.hazardRadius-2)});
+    }
+    bossRing(engine,boss,Math.max(6,Math.ceil(count*.7)),speed*.68,p.altProjectile,engine.frame*.018);
+  } else if(attack==='lanes') {
+    const horizontal=(step+phase)%2===0;
+    const laneOffset=((step%3)-1)*38;
+    const max=horizontal?CANVAS_WIDTH:CANVAS_HEIGHT;
+    for(let v=58;v<max-48;v+=36){
+      const x=horizontal?v:CANVAS_WIDTH/2+laneOffset,y=horizontal?CANVAS_HEIGHT/2+laneOffset:v;
+      if(dist(x,y,px,py)<32)continue;
+      content.puddles.push({x,y,life:hazardLife,kind:'fire',radius:Math.max(12,p.hazardRadius-3)});
+    }
+    bossFan(engine,boss,ang,Math.max(3,Math.ceil(count*.55)),spread*.75,speed,projectile);
+  } else if(attack==='rush') {
+    boss.moveAngle=ang;
+    boss.moveTimer=(tier==='boss'?26:tier==='sub'?22:18)+phase*7;
+    playDanger('charge');
+    bossFan(engine,boss,ang,Math.max(3,Math.ceil(count*.5)),spread*1.35,speed*.9,p.altProjectile);
+  } else if(attack==='summon') {
+    const cap=tier==='boss'?7+phase*2:tier==='sub'?6+phase:5+phase;
+    bossSupport(engine,room,content,p.support,cap);
+    if(phase>0)bossSupport(engine,room,content,p.support,cap);
+    bossRing(engine,boss,Math.max(6,Math.ceil(count*.6)),speed*.7,projectile,engine.frame*.016);
+  } else if(attack==='sniper') {
+    bossFan(engine,boss,ang,Math.max(1,2+phase),.028,speed*1.42,p.altProjectile);
+    if(phase>=1)bossFan(engine,boss,ang+.16,2,.022,speed*1.22,projectile);
+  } else if(attack==='nova') {
+    bossRing(engine,boss,ringCount+phase*2,speed*.9,projectile,engine.frame*.035);
+    bossHazardRing(content,bx,by,6+phase*2,48+phase*16,hazardLife);
+  } else if(attack==='warp') {
+    const spots=freeTiles(room.layout,2).filter(s=>{
+      const x=s.x*TILE_SIZE+TILE_SIZE/2,y=s.y*TILE_SIZE+TILE_SIZE/2;
+      return dist(x,y,px,py)>135&&dist(x,y,bx,by)>90;
+    });
+    const spot=spots[(step*7+phase*3)%Math.max(1,spots.length)];
+    if(spot){
+      spawn(engine,bx,by,'smoke',8,def.accent);
+      boss.x=spot.x*TILE_SIZE+(TILE_SIZE-boss.size)/2;
+      boss.y=spot.y*TILE_SIZE+(TILE_SIZE-boss.size)/2;
+      spawn(engine,boss.x+boss.size/2,boss.y+boss.size/2,'spark',12,def.secondary);
+    }
+    const na=Math.atan2(py-(boss.y+boss.size/2),px-(boss.x+boss.size/2));
+    bossFan(engine,boss,na,Math.max(5,Math.ceil(count*.75)),spread*.75,speed,projectile);
+  }
+
+  if(def.finalBoss&&phase>=1&&step%2===0){
+    bossRing(engine,boss,8+phase*4,2.1+phase*.25,'coin_proj',-engine.frame*.028);
+    if(phase>=2)bossSupport(engine,room,content,p.support,8);
+  }
+}
+
+function bossPatternMove(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,ang:number,spd:number) {
+  const p=def.pattern;
+  const px=engine.player.x+7,py=engine.player.y+8,bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
+  const d=dist(px,py,bx,by);
+  let forward=.28,lateral=.18+p.orbitBias;
+  if(p.mobility==='hunter'){forward=d>58?.48:.12;lateral=.08+p.orbitBias;}
+  else if(p.mobility==='orbit'){forward=d>150?.24:d<92?-.2:.04;lateral=.48+p.orbitBias;}
+  else if(p.mobility==='skirmish'){forward=d>165?.34:d<92?-.38:.02;lateral=.27+p.orbitBias;}
+  else if(p.mobility==='fortress'){forward=d>195?.18:d<105?-.12:0;lateral=.08+p.orbitBias*.5;}
+  else if(p.mobility==='ambush'){forward=d>125?.38:d<66?-.18:.1;lateral=.32+p.orbitBias;}
+  const wobble=Math.sin(engine.frame*(.018+Math.abs(p.orbitBias)*.02)+boss.id)*lateral;
+  moveEnemy(boss,room,
+    Math.cos(ang)*spd*forward+Math.cos(ang+Math.PI/2)*spd*wobble,
+    Math.sin(ang)*spd*forward+Math.sin(ang+Math.PI/2)*spd*wobble);
+}
 function bossPhaseTransition(engine:GameEngine,boss:Enemy,name:string,phase:number,tier:'mini'|'sub'|'boss') {
   boss.bossPhase=phase;
   boss.attackTimer=tier==='boss'?78:tier==='sub'?62:38;
@@ -2972,7 +3077,12 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
     boss.telegraph=0;
     const atk=rngInt(0,tier==='boss'?2+phase:tier==='sub'?2+phase:2+(phase>0?1:0));
 
-    if(tier==='mini') {
+    if(def.pattern&&!def.legacy) {
+      bossPatternAttack(engine,boss,room,content,ang,phase,tier,def);
+      const min=tier==='boss'?30:tier==='sub'?36:32;
+      const phaseAccel=tier==='boss'?.14:tier==='sub'?.12:.09;
+      boss.attackTimer=Math.max(min,boss.attackCooldown*def.pattern.tempo*(1-phase*phaseAccel));
+    } else if(tier==='mini') {
       if(type==='tax_collector') {
         if(atk===0) bossFan(engine,boss,ang,phase?5:3,.17,3.1,'briefcase');
         else if(atk===1) {boss.moveAngle=ang;boss.moveTimer=phase?28:22;playDanger('charge');}
@@ -3090,6 +3200,8 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   if(boss.moveTimer>0) {
     boss.moveTimer--;
     moveEnemy(boss,room,Math.cos(boss.moveAngle)*spd*(tier==='mini'?2.8:2.45),Math.sin(boss.moveAngle)*spd*(tier==='mini'?2.8:2.45));
+  } else if(def.pattern&&!def.legacy) {
+    bossPatternMove(engine,boss,room,def,ang,spd);
   } else {
     const orbit=tier==='boss'?Math.sin(engine.frame*.018+boss.id)*.28:Math.sin(engine.frame*.026+boss.id)*.2;
     moveEnemy(boss,room,
