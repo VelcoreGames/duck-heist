@@ -2,7 +2,7 @@
 // All sprites are drawn procedurally - no external assets needed
 
 import { COLORS, TILE_SIZE } from './constants';
-import { getSkin, type DuckPalette } from './data';
+import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette } from './data';
 import { drawItemIcon } from './itemArt';
 
 type Ctx = CanvasRenderingContext2D;
@@ -826,7 +826,8 @@ export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame
   }
 }
 
-const BOSS_VISUAL:Record<string,{accent:string;secondary:string;family:'command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth';bob:number}> = {
+type BossVisual={accent:string;secondary:string;family:'command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth'|'vault';bob:number};
+const BOSS_VISUAL:Record<string,BossVisual> = {
   captain_honk:{accent:'#4f7ad4',secondary:'#f05c55',family:'command',bob:.7},
   comisario_pico_duro:{accent:'#9db7df',secondary:'#d69c4c',family:'command',bob:.45},
   toaster_9000:{accent:'#ff7043',secondary:'#ffd166',family:'tech',bob:.18},
@@ -844,8 +845,67 @@ const BOSS_VISUAL:Record<string,{accent:string;secondary:string;family:'command'
   cajero_3000:{accent:'#65d3a8',secondary:'#ffd166',family:'finance',bob:.22},
 };
 
+function bossVisual(bossType:string):BossVisual|undefined {
+  const legacy=BOSS_VISUAL[bossType];
+  if(legacy)return legacy;
+  const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
+  if(!def)return undefined;
+  const hash=[...bossType].reduce((a,ch)=>(a*33+ch.charCodeAt(0))>>>0,5381);
+  return {accent:def.accent,secondary:def.secondary,family:def.family,bob:.2+(hash%13)/10};
+}
+
+function bossVisualHash(id:string){
+  return [...id].reduce((a,ch)=>(Math.imul(a,31)+ch.charCodeAt(0))>>>0,2166136261>>>0);
+}
+
+function drawGeneratedBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean) {
+  const h=bossVisualHash(bossType),wide=22+(h%8),tall=17+((h>>>3)%7),cx=18;
+  const dark=v.family==='vault'?'#24213b':v.family==='tech'?'#25343c':v.family==='bakery'?'#6d4934':v.family==='finance'||v.family==='wealth'?'#26292f':'#36414e';
+  const light=v.family==='bakery'?'#e7c392':v.family==='finance'||v.family==='wealth'?'#f0e8d4':'#e3e8e8';
+  ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(bx+cx,by+38,13+(h%4),4+(h%2),0,0,Math.PI*2);ctx.fill();
+
+  if(v.family==='tech'||v.family==='vault'){
+    rect(ctx,bx+cx-wide/2,by+11,wide,tall,dark);
+    rect(ctx,bx+cx-wide/2+3,by+14,wide-6,tall-7,v.family==='vault'?'#332d55':'#38505b');
+    rect(ctx,bx+cx-7,by+16,5,4,v.secondary);rect(ctx,bx+cx+2,by+16,5,4,v.accent);
+    const wing=5+((h>>>6)%5);rect(ctx,bx+cx-wide/2-wing,by+16,wing,3,v.accent);rect(ctx,bx+cx+wide/2,by+16,wing,3,v.accent);
+    if((h>>>9)%2) {rect(ctx,bx+cx-2,by+4,4,8,'#83949d');px(ctx,bx+cx-1,by+2,v.secondary,2);}
+  } else {
+    rect(ctx,bx+cx-wide/2,by+15,wide,tall,dark);
+    rect(ctx,bx+cx-wide/2+3,by+18,wide-6,tall-6,v.accent);
+    const headW=14+((h>>>5)%5),headX=bx+cx-headW/2;
+    rect(ctx,headX,by+3,headW,13,light);
+    rect(ctx,headX+headW-1,by+8,8,4,'#e67e22');
+    px(ctx,headX+4,by+7,(h>>>8)%2?'#e44f4f':'#111827',2);
+    if(v.family==='bakery'){
+      rect(ctx,headX-2,by-3,headW+4,5,'#f3f1e9');
+      rect(ctx,headX+2,by-8,headW-4,6,'#fffdf7');
+    } else if(v.family==='finance'||v.family==='wealth'){
+      rect(ctx,bx+cx-2,by+19,4,12,v.secondary);
+      if((h>>>10)%2) {ctx.strokeStyle=v.secondary;ctx.beginPath();ctx.arc(headX+headW-4,by+8,3,0,Math.PI*2);ctx.stroke();}
+    } else {
+      rect(ctx,headX-2,by,headW+4,4,dark);
+      if(v.family==='riot')rect(ctx,bx+cx+wide/2-2,by+13,8,20,'#687887');
+    }
+  }
+
+  const marks=2+(h%4);
+  for(let i=0;i<marks;i++){
+    const dx=bx+5+((h>>>(i*3+2))%27),dy=by+27+((i%2)*4);
+    rect(ctx,dx,dy,2+(i%2),3,i%2?v.secondary:v.accent);
+  }
+  if((h>>>13)%2){rect(ctx,bx-3,by+18,5,12,v.secondary);}
+  if((h>>>14)%2){rect(ctx,bx+34,by+18,5,12,v.accent);}
+  if(floorBoss&&phase>=2){
+    ctx.globalAlpha=.4+.25*Math.sin(frame*.2);ctx.strokeStyle=v.secondary;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(bx+18,by+20,27+(h%5),0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+  } else if(subBoss&&phase>=1){
+    ctx.globalAlpha=.45;ctx.strokeStyle=v.accent;ctx.beginPath();ctx.arc(bx+18,by+20,22,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+  }
+}
+
 function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number) {
-  const v=BOSS_VISUAL[bossType];
+  const v=bossVisual(bossType);
   if(!v)return;
   const pulse=.55+.45*Math.sin(frame*.12);
   const phaseGlow=phase>0?1:0;
@@ -876,6 +936,10 @@ function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:numb
     // Corona y lluvia de monedas.
     rect(ctx,bx+7,by-17,22,3,'#3b3020');rect(ctx,bx+9,by-20,4,4,v.accent);rect(ctx,bx+16,by-22,4,6,v.accent);rect(ctx,bx+23,by-20,4,4,v.accent);
     if(frame%18<4){px(ctx,bx-2,by+6,v.accent,2);px(ctx,bx+38,by+14,v.accent,2);}
+  } else if(v.family==='vault'){
+    rect(ctx,bx-4,by+13,5,14,'#3d365f');rect(ctx,bx+33,by+13,5,14,'#3d365f');
+    ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.secondary;ctx.beginPath();ctx.arc(bx+18,by+17,13+phase*3,0,Math.PI*2);ctx.stroke();
+    px(ctx,bx+17,by+16,v.accent,3);ctx.globalAlpha=1;
   }
 
   // Accesorio único por individuo.
@@ -922,13 +986,13 @@ function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:numb
 }
 
 export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean, phase = 0) {
-  const visual=BOSS_VISUAL[bossType];
+  const visual=bossVisual(bossType);
   const bob=visual ? Math.sin(frame*.075 + bossType.length)*visual.bob : 0;
   const finalRage=phase>=2 ? Math.sin(frame*.65)*.7 : 0;
   const bx = Math.floor(x + finalRage);
   const by = Math.floor(y + bob);
-  const floorBoss = ['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','bread_banker'].includes(bossType);
-  const subBoss = ['head_baker','el_auditor','ganso_antidisturbios','cajero_3000'].includes(bossType);
+  const floorBoss = !!BOSSES[bossType];
+  const subBoss = !!SUBBOSSES[bossType];
   if (phase > 0) {
     const pulse=.18+.08*Math.sin(frame*.16);
     ctx.save();
@@ -1167,6 +1231,8 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
     ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(bx + 16, by + 34, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
     rect(ctx, bx + 4, by + 10, 24, 20, '#4a5c68'); rect(ctx, bx + 8, by + 14, 16, 8, '#8cc9b0');
     rect(ctx, bx + 10, by + 16, 12, 4, '#c5ad6d'); rect(ctx, bx + 20, by + 20, 10, 8, '#5d4037');
+  } else {
+    drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,visual??{accent:'#8aa0aa',secondary:'#e1c06b',family:'command',bob:.4},floorBoss,subBoss);
   }
   
   drawBossIdentity(ctx,bx,by,bossType,frame,phase);
