@@ -203,7 +203,7 @@ export function renderWorld(engine: GameEngine) {
   for (const p of content.puddles) {
     ctx.globalAlpha = Math.min(0.55, p.life / 200);
     const fire = p.kind === 'fire';
-    ctx.fillStyle = p.kind==='radiation'?'#9dbf57':fire?'#ec8c42':p.kind==='smoke'?'#879994':p.life < 80 ? '#3d7fb8' : '#2d6fa8';
+    ctx.fillStyle = p.kind==='radiation'?'#9dbf57':fire?'#ec8c42':p.kind==='smoke'?'#879994':p.kind==='butter'?'#e7c95d':p.life < 80 ? '#3d7fb8' : '#2d6fa8';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, p.radius ?? 16, (p.radius ?? 16) * .45, 0, 0, Math.PI * 2); ctx.fill();
     if (fire) { ctx.fillStyle = `rgba(255,210,80,${.25 + Math.sin(f * .2) * .1})`; ctx.beginPath(); ctx.ellipse(p.x, p.y - 2, 8, 4, 0, 0, Math.PI * 2); ctx.fill(); }
     ctx.globalAlpha = 1;
