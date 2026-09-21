@@ -793,7 +793,9 @@ export function resumeEndlessGame(engine:GameEngine):boolean {
     engine.gameMode='endless';engine.pendingMode='endless';
     engine.player=cp.player;
     engine.endless={...emptyEndlessState(),...cp.endless,roundActive:false,pendingEnemies:[],spawnCooldown:0,pressure:0};
-    engine.run=cp.run??newRunStats();
+    const freshRun=newRunStats(),savedRun=cp.run??{};
+    engine.run={...freshRun,...savedRun,weaponIds:Array.isArray(savedRun.weaponIds)?savedRun.weaponIds:['quack_blaster'],
+      itemIds:Array.isArray(savedRun.itemIds)?savedRun.itemIds:[],weaponStats:savedRun.weaponStats&&typeof savedRun.weaponStats==='object'?savedRun.weaponStats:{}};
     engine.stats=cp.stats??{breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
     engine.offeredItems=cp.offeredItems??[];
     engine.knownSynergies=cp.knownSynergies??[];
