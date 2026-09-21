@@ -1,0 +1,140 @@
+name: Endless v0.7.0 depth QA
+on:
+  push:
+    branches: [feature/endless-depth-v070]
+    paths:
+      - '.github/workflows/endless-depth-v070-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/endless-depth-v070
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Systems assertions
+        run: |
+          npx --yes tsx@4.20.5 <<'TS'
+          import { endlessComposition,endlessMilestone,endlessBossMutation,endlessRoundKind } from './src/game/endless.ts';
+          const assert=(v:boolean,m:string)=>{if(!v)throw new Error(m)};
+          for(const r of [1,11,21,31,41,61,81,101]){
+            const c=endlessComposition(r,null,'normal');
+            assert(!!c.label,'composition label '+r);
+            assert(c.enemies.length>0,'composition enemies '+r);
+          }
+          assert(endlessMilestone(50)==='ATRACO CRÍTICO','R50 milestone');
+          assert(endlessMilestone(100)==='DOBLE AMENAZA','R100 milestone');
+          assert(endlessMilestone(150)==='PROTOCOLO SIN REGLAS','R150 milestone');
+          assert(endlessBossMutation(30,'captain_honk')!==null,'veteran mutation');
+          assert(endlessBossMutation(60,'captain_honk')!==null,'elite mutation');
+          assert(endlessBossMutation(90,'captain_honk')!==null,'nemesis mutation');
+          assert(endlessRoundKind(50)==='boss'&&endlessRoundKind(100)==='boss','milestones are boss rounds');
+          console.log('systems PASS');
+          TS
+      - name: Static feature assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "0.7.0"
+          grep -Fq "applyBossMutationAttack(engine,boss,room,content,ang,tier)" src/game/engine.ts
+          grep -Fq "recycleNearestEndlessFloorItem" src/game/engine.ts
+          grep -Fq "R · RECICLAR" src/game/render.ts
+          grep -Fq "MUTACIÓN ·" src/game/render.ts
+          grep -Fq "hazardWarning" src/game/render.ts
+          grep -Fq "compositionLabel" src/game/render.ts
+          grep -Fq "const VERSION = 'v0.7.0';" dist/index.html
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Runtime systems smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine&&document.querySelectorAll('canvas').length>=2);
+          await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await page.waitForTimeout(150);await page.keyboard.press('Enter');
+          await page.waitForFunction(()=>window.duckHeistEngine?.gameMode==='endless'&&window.duckHeistEngine?.state==='PLAYING',{timeout:5000});
+
+          // R21: tactical composition must be active.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);
+            c.enemies=[];e.endless.pendingEnemies=[];e.endless.round=20;e.endless.roundActive=false;e.endless.nextRoundTimer=1;e.state='PLAYING';
+          });
+          await page.waitForFunction(()=>window.duckHeistEngine?.endless?.round===21,{timeout:1500});
+          const r21=await page.evaluate(()=>({label:window.duckHeistEngine.endless.compositionLabel,pending:window.duckHeistEngine.endless.pendingEnemies.length}));
+          if(!r21.label||r21.pending<1)throw new Error('R21 tactical composition failed '+JSON.stringify(r21));
+
+          // Floor recycling: real world item remains optional, R converts it to crumbs.
+          const injected=await page.evaluate(()=>{
+            const e=window.duckHeistEngine,c=e.contents.get(e.currentKey),p=e.player;
+            c.items.push({x:p.x+5,y:p.y+5,itemId:'quack_blaster',isWeapon:true,isActive:false});
+            return {items:c.items.length,crumbs:p.crumbs};
+          });
+          await page.keyboard.press('r');await page.waitForTimeout(100);
+          const recycled=await page.evaluate(()=>{const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);return {items:c.items.length,crumbs:e.player.crumbs};});
+          if(recycled.items>=injected.items||recycled.crumbs<=injected.crumbs)throw new Error('Floor recycling failed '+JSON.stringify({injected,recycled}));
+
+          // R50: critical milestone, nemesis mutation.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);
+            c.enemies=[];e.endless.pendingEnemies=[];e.endless.round=49;e.endless.roundActive=false;e.endless.nextRoundTimer=1;e.state='PLAYING';
+          });
+          await page.waitForFunction(()=>window.duckHeistEngine?.endless?.round===50,{timeout:1500});
+          const r50=await page.evaluate(()=>{const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);return {milestone:e.endless.milestone,rank:e.endless.threatRank,bosses:c.enemies.filter(x=>x.isBoss).map(x=>({type:x.bossType,mutation:x.mutation}))};});
+          if(r50.milestone!=='ATRACO CRÍTICO'||r50.rank!=='NÉMESIS'||r50.bosses.length!==1||!r50.bosses[0].mutation)throw new Error('R50 failed '+JSON.stringify(r50));
+
+          // Allow boss intro to end, force hazard scheduler and confirm warning.
+          await page.evaluate(()=>{const e=window.duckHeistEngine;e.bossIntroTimer=1;});
+          await page.waitForFunction(()=>window.duckHeistEngine?.state==='PLAYING',{timeout:1200});
+          await page.evaluate(()=>{window.duckHeistEngine.endless.hazardCooldown=0;});
+          await page.waitForFunction(()=>window.duckHeistEngine?.endless?.hazardWarning>0,{timeout:1200});
+          const hazard=await page.evaluate(()=>({kind:window.duckHeistEngine.endless.hazardKind,warning:window.duckHeistEngine.endless.hazardWarning}));
+          if(!hazard.kind||hazard.warning<=0)throw new Error('Hazard telegraph failed '+JSON.stringify(hazard));
+
+          // R100: two compatible bosses and milestone.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);
+            c.enemies=[];e.projectiles=[];c.puddles=[];e.endless.pendingEnemies=[];e.endless.round=99;e.endless.roundActive=false;e.endless.nextRoundTimer=1;e.state='PLAYING';
+          });
+          await page.waitForFunction(()=>window.duckHeistEngine?.endless?.round===100,{timeout:1500});
+          const r100=await page.evaluate(()=>{const e=window.duckHeistEngine,c=e.contents.get(e.currentKey);return {milestone:e.endless.milestone,bosses:c.enemies.filter(x=>x.isBoss).map(x=>({type:x.bossType,mutation:x.mutation}))};});
+          if(r100.milestone!=='DOBLE AMENAZA'||r100.bosses.length!==2||r100.bosses.some(x=>!x.mutation))throw new Error('R100 failed '+JSON.stringify(r100));
+
+          if(errors.length)throw new Error('Runtime errors: '+errors.join(' | '));
+          console.log(JSON.stringify({r21,recycled,r50,hazard,r100},null,2));
+          await browser.close();
+          JS
+      - name: Cleanup temporary QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/endless-depth-v070-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: remove temporary v0.7.0 endless QA'
+          git push origin HEAD:feature/endless-depth-v070
