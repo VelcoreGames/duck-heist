@@ -992,7 +992,7 @@ function renderDangerEventHUD(engine: GameEngine) {
 
 function drawHUD(engine: GameEngine) {
   const ctx=engine.ui!;
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.7.0',8,8);ctx.restore();
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.8.0',8,8);ctx.restore();
   const p=engine.player;
   const heartW=Math.min(p.maxHp,10)*13+7;
   ctx.fillStyle='rgba(5,12,18,.48)';ctx.fillRect(4,4,heartW,18);
@@ -1199,7 +1199,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.7.0',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.8.0',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
