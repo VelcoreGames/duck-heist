@@ -257,14 +257,14 @@ export function runSelfChecks():CheckReport {
       e.player.crumbs=0;e.player.goldenCrumbs=0;e.totalGoldenCrumbs=0;e.player.hp=e.player.maxHp;
       c.items=[{x:70,y:70,itemId:'feather_gun',isWeapon:true,isActive:false}];
       c.pickups=[{x:390,y:75,type:'crumb',value:5,lifetime:99999},{x:390,y:250,type:'golden_crumb',value:2,lifetime:99999},{x:80,y:250,type:'hp',value:1,lifetime:99999}];
-      const beforeItem=dist(c.items[0].x+8,c.items[0].y+8,e.player.x+7,e.player.y+8);
-      const beforeCoin=dist(c.pickups[0].x,c.pickups[0].y,e.player.x+7,e.player.y+8);
+      const beforeItem=Math.hypot(c.items[0].x+8-(e.player.x+7),c.items[0].y+8-(e.player.y+8));
+      const beforeCoin=Math.hypot(c.pickups[0].x-(e.player.x+7),c.pickups[0].y-(e.player.y+8));
       beginEndlessFloorSweep(e,c);
       assert(e.player.crumbs===0&&e.totalGoldenCrumbs===0,'el botín se cobró antes de animarse');
       assert(c.items[0].vacuuming&&c.pickups.every(p=>p.forceMagnet),'el barrido no marcó todo el botín');
       tick(e,5);
-      assert(c.items.length===0||dist(c.items[0].x+8,c.items[0].y+8,e.player.x+7,e.player.y+8)<beforeItem,'el objeto no viajó al pato');
-      assert(c.pickups.length<3||dist(c.pickups[0].x,c.pickups[0].y,e.player.x+7,e.player.y+8)<beforeCoin,'las monedas no viajaron al pato');
+      assert(c.items.length===0||Math.hypot(c.items[0].x+8-(e.player.x+7),c.items[0].y+8-(e.player.y+8))<beforeItem,'el objeto no viajó al pato');
+      assert(c.pickups.length<3||Math.hypot(c.pickups[0].x-(e.player.x+7),c.pickups[0].y-(e.player.y+8))<beforeCoin,'las monedas no viajaron al pato');
       tick(e,120);
       assert(e.player.crumbs>=5&&e.totalGoldenCrumbs===2,'el botín visual no se acreditó al llegar');
     });
