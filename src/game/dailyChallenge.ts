@@ -4,7 +4,7 @@ import type {
 } from './types';
 
 export const DAILY_MODIFIERS:Record<DailyModifier,{name:string;description:string;accent:string}> = {
-  SECURITY_SURGE:{name:'SEGURIDAD REFORZADA',description:'+18% vida y +12% daño enemigo.','#accent':'#d85d58'} as any,
+  SECURITY_SURGE:{name:'SEGURIDAD REFORZADA',description:'+18% vida y +12% daño enemigo.',accent:'#d85d58'},
   ELITE_AUDIT:{name:'AUDITORÍA ÉLITE',description:'Más enemigos élite en salas de combate.',accent:'#e6c56f'},
   SPEED_CHECK:{name:'RESPUESTA RÁPIDA',description:'Enemigos ligeramente más veloces y disparan antes.',accent:'#79b9d2'},
   GLASS_BEAK:{name:'PICO DE CRISTAL',description:'Empiezas con 3 corazones, pero haces +25% de daño.',accent:'#c98cff'},
@@ -12,8 +12,6 @@ export const DAILY_MODIFIERS:Record<DailyModifier,{name:string;description:strin
   HOT_START:{name:'ALARMA PREVIA',description:'El atraco comienza con 25 puntos de alerta.',accent:'#d86b58'},
 };
 
-const fixSecurity=DAILY_MODIFIERS.SECURITY_SURGE as any;
-if(fixSecurity['#accent']) {fixSecurity.accent=fixSecurity['#accent'];delete fixSecurity['#accent'];}
 
 const POOL=Object.keys(DAILY_MODIFIERS) as DailyModifier[];
 const RANK:DailyMedal[]=['NONE','BRONZE','SILVER','GOLD','PLATINUM'];
@@ -114,10 +112,8 @@ export function finalizeDaily(e:GameEngine,outcome:DailyChallengeResult['outcome
       e.dailyProfile.lastCompletedKey=record.key;
     }
   }
-  if(RANK.indexOf(medal)>=RANK.indexOf('GOLD') && RANK.indexOf(record.bestMedal)>=RANK.indexOf('GOLD') && newBest && RANK.indexOf(medal)>RANK.indexOf('SILVER')){
-    if(medal==='GOLD' && record.rewardGranted<REWARD.GOLD)e.dailyProfile.goldCount++;
-    if(medal==='PLATINUM' && record.rewardGranted<REWARD.GOLD)e.dailyProfile.goldCount++;
-  }
+  const reachedGold=RANK.indexOf(record.bestMedal)>=RANK.indexOf('GOLD');
+  if(reachedGold && record.rewardGranted<REWARD.GOLD)e.dailyProfile.goldCount++;
   const desired=REWARD[record.bestMedal],reward=Math.max(0,desired-record.rewardGranted);
   if(reward){record.rewardGranted+=reward;e.totalGoldenCrumbs+=reward;}
   persistDaily(e.dailyProfile);
