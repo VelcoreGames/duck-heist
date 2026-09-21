@@ -328,7 +328,7 @@ export function renderWorld(engine: GameEngine) {
     const it=nearestEndlessItem;
     const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
     text(ctx,it.isWeapon?'ARMA':it.isActive?'ACTIVO':'OBJETO',it.x+8,it.y-15,5.2,it.isWeapon?'#7fd6ff':it.isActive?'#d4a6ff':'#e7d48a','center',true);
-    text(ctx,actionPrompt(engine,'interact')+' · TOMAR   R · RECICLAR',it.x+8,it.y+34,4.8,'#d4d9d2','center');
+    text(ctx,actionPrompt(engine,'interact')+' · TOMAR   '+actionPrompt(engine,'recycle')+' · RECICLAR',it.x+8,it.y+34,4.8,'#d4d9d2','center');
     if(def?.name) text(ctx,def.name,it.x+8,it.y-7,4.8,'#c8d0cc','center');
   }
 
