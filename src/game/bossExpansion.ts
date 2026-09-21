@@ -97,7 +97,8 @@ const LEGACY_STATS:Record<string,Partial<BossDef>>={
 
 function build(seed:Seed,index:number,tier:BossTier):BossDef {
   const [id,name,family,subtitle,legacy]=seed;
-  const band=Math.min(4,Math.floor(index/8)),slot=index%8;
+  // 48 encuentros por jerarquía: 10/10/10/10/8 entre los cinco primeros pisos.
+  const band=Math.min(4,Math.floor(index/10)),slot=index%10;
   const style=BOSS_FAMILY_STYLE[family];
   const hp=tier==='mini'?122+band*13+slot*4:tier==='sub'?184+band*20+slot*6:255+band*34+slot*9;
   const speed=tier==='mini'?1.22+(slot%5)*.12:tier==='sub'?1.02+(slot%5)*.09:.92+(slot%5)*.085;
@@ -354,6 +355,54 @@ const MINI_SEEDS:Seed[]=[
     "VIGILANTE LEVADURA",
     "bakery",
     "Fermentación rápida · minas vivas · espiral final"
+  ],
+  [
+    "verdugo_del_ticket",
+    "VERDUGO DEL TICKET",
+    "finance",
+    "Recibos cortantes · jaula de deuda · salto fiscal"
+  ],
+  [
+    "centinela_termico",
+    "CENTINELA TÉRMICO",
+    "tech",
+    "Barrido de calor · órbita rápida · mina de reactor"
+  ],
+  [
+    "brigadier_baguette",
+    "BRIGADIER BAGUETTE",
+    "war",
+    "Lanzas de pan · carga oblicua · fuego de cobertura"
+  ],
+  [
+    "cazador_de_claves",
+    "CAZADOR DE CLAVES",
+    "vault",
+    "Cerrojos móviles · disparo espejo · emboscada de bóveda"
+  ],
+  [
+    "ganso_de_reserva",
+    "GANSO DE RESERVA",
+    "riot",
+    "Ariete corto · bloqueo lateral · nova defensiva"
+  ],
+  [
+    "operador_central",
+    "OPERADOR CENTRAL",
+    "command",
+    "Órdenes remotas · refuerzo medido · fuego triangular"
+  ],
+  [
+    "pastelero_de_choque",
+    "PASTELERO DE CHOQUE",
+    "bakery",
+    "Bombas dulces · suelo pegajoso · espiral de horno"
+  ],
+  [
+    "corredor_platino",
+    "CORREDOR PLATINO",
+    "wealth",
+    "Órbitas de capital · teletransporte · disparo bursátil"
   ]
 ];
 const SUB_SEEDS:Seed[]=[
@@ -600,6 +649,54 @@ const SUB_SEEDS:Seed[]=[
     "CUSTODIO UMBRA",
     "vault",
     "Sombras de bóveda · teleport · nova oscura"
+  ],
+  [
+    "magistrado_del_pan",
+    "MAGISTRADO DEL PAN",
+    "finance",
+    "Sentencia de área · sellos orbitales · persecución legal"
+  ],
+  [
+    "arquitecta_de_boveda",
+    "ARQUITECTA DE BÓVEDA",
+    "vault",
+    "Muros temporales · saltos geométricos · jaula de seguridad"
+  ],
+  [
+    "mariscal_de_harina",
+    "MARISCAL DE HARINA",
+    "war",
+    "Nube de harina · cargas dobles · artillería de masa"
+  ],
+  [
+    "nucleo_cajero",
+    "NÚCLEO CAJERO",
+    "tech",
+    "Reactor de monedas · espiral láser · teleport de emergencia"
+  ],
+  [
+    "prefecta_antidisturbios",
+    "PREFECTA ANTIDISTURBIOS",
+    "riot",
+    "Escudos rotativos · ariete · corredor de presión"
+  ],
+  [
+    "tesorera_real",
+    "TESORERA REAL",
+    "wealth",
+    "Anillos de oro · lluvia de capital · emboscada brillante"
+  ],
+  [
+    "maestro_de_turno_negro",
+    "MAESTRO DE TURNO NEGRO",
+    "command",
+    "Fuego por sectores · refuerzos élite · cerco sincronizado"
+  ],
+  [
+    "abadesa_levadura",
+    "ABADESA LEVADURA",
+    "bakery",
+    "Fermentación ritual · minas vivas · corona de fuego"
   ]
 ];
 const BOSS_SEEDS:Seed[]=[
@@ -848,6 +945,54 @@ const BOSS_SEEDS:Seed[]=[
     "REY DE LAS MIGAJAS",
     "wealth",
     "Corona de botín · jaulas doradas · ejecución radial"
+  ],
+  [
+    "gran_mariscal_honk",
+    "GRAN MARISCAL HONK",
+    "war",
+    "Doctrina total · cargas encadenadas · artillería circular"
+  ],
+  [
+    "madre_de_la_boveda",
+    "MADRE DE LA BÓVEDA",
+    "vault",
+    "Geometría imposible · jaulas móviles · salto de núcleo"
+  ],
+  [
+    "zar_del_capital",
+    "ZAR DEL CAPITAL",
+    "wealth",
+    "Tormenta bursátil · anillos dorados · embargo imperial"
+  ],
+  [
+    "rector_del_horno",
+    "RECTOR DEL HORNO",
+    "bakery",
+    "Horno absoluto · corredores de fuego · masa en espiral"
+  ],
+  [
+    "primer_auditor",
+    "PRIMER AUDITOR",
+    "finance",
+    "Auditoría suprema · sentencias cruzadas · cero margen"
+  ],
+  [
+    "centurion_omega",
+    "CENTURIÓN OMEGA",
+    "tech",
+    "Red de seguridad · teleport táctico · tormenta de pulsos"
+  ],
+  [
+    "gran_comisaria",
+    "GRAN COMISARIA",
+    "command",
+    "Cerco maestro · escuadras sincronizadas · fuego de ejecución"
+  ],
+  [
+    "bastion_imperial",
+    "BASTIÓN IMPERIAL",
+    "riot",
+    "Fortaleza móvil · ondas de choque · muro final"
   ]
 ];
 
