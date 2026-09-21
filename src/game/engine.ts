@@ -1429,7 +1429,12 @@ export function updateEngine(engine: GameEngine) {
   if(engine.state===GameState.MAP) return;
   engine.frame++;
   if(engine.state===GameState.HEIST_INTRO) {
-    if(--engine.heistIntroTimer<=0) { engine.heistIntroSeen=true;if(engine.pendingMode==='endless')startEndlessGame(engine);else startGame(engine); }
+    if(--engine.heistIntroTimer<=0) {
+      engine.heistIntroSeen=true;
+      if(engine.pendingMode==='endless')startEndlessGame(engine);
+      else if(engine.pendingMode==='daily')startDailyChallenge(engine);
+      else startGame(engine);
+    }
     return;
   }
   if (engine.roomLabelTimer > 0) engine.roomLabelTimer--;
