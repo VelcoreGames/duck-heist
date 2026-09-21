@@ -1,11 +1,11 @@
-import { ITEMS, ACTIVE_ITEMS, WEAPONS, ENEMIES, BOSSES, SUBBOSSES, MINIBOSSES, SKINS, FLAVOR } from './data';
+import { ITEMS, ACTIVE_ITEMS, WEAPONS, ENEMIES, BOSSES, SUBBOSSES, MINIBOSSES, SKINS, FLAVOR, SYNERGIES } from './data';
 import { ITEM_ART, getIconPixels } from './itemArt';
 import { ACTIVE_RULES, FOODS, PASSIVE_RULES } from './itemRules';
 
-export type CollectionCategory = 'items' | 'weapons' | 'bosses' | 'enemies' | 'skins';
+export type CollectionCategory = 'items' | 'weapons' | 'bosses' | 'enemies' | 'skins' | 'synergies';
 export const COLLECTION_TABS: { id:CollectionCategory; name:string }[] = [
   {id:'items',name:'OBJETOS'}, {id:'weapons',name:'ARMAS'}, {id:'enemies',name:'ENEMIGOS'},
-  {id:'bosses',name:'JEFES'}, {id:'skins',name:'ASPECTOS'},
+  {id:'bosses',name:'JEFES'}, {id:'skins',name:'ASPECTOS'}, {id:'synergies',name:'SINERGIAS'},
 ];
 export interface CatalogEntry {
   id:string; name:string; description:string; flavor:string; rarity:number;
@@ -37,6 +37,7 @@ export const CATALOG: CatalogEntry[] = [
   ...Object.values({...BOSSES,...SUBBOSSES,...MINIBOSSES}).map(b=>({id:b.id,name:b.name,description:b.subtitle,flavor:BOSSES[b.id]?'El banco tiene un problema contigo.':'Un problema menor. Con peor humor.',rarity:BOSSES[b.id]?4:SUBBOSSES[b.id]?3:2,category:'bosses' as const,sprite:b.id,mechanic:BOSSES[b.id]?'JEFE DE PISO · 3 fases · Botín garantizado':SUBBOSSES[b.id]?'SUBJEFE · 2 fases · Encuentro de alto riesgo':'MINIJEFE · Enrage · Riesgo y recompensa'})),
   ...Object.values(ENEMIES).map(e=>({id:e.id,name:e.name,description:enemyInfo[e.behavior],flavor:'Empleado del mes. En detenciones.',rarity:0,category:'enemies' as const,sprite:e.id,mechanic:'SEGURIDAD DEL BANCO'})),
   ...SKINS.map(s=>({id:s.id,name:s.name,description:s.description,flavor:'Solo cambia tu estilo, nunca tus estadísticas.',rarity:s.cost>=500?4:1,category:'skins' as const,sprite:s.id,mechanic:`COSMÉTICO · ${s.cost} monedas doradas`})),
+  ...SYNERGIES.map(s=>({id:s.id,name:s.name,description:s.flavor,flavor:'Combina piezas concretas durante una run para activarla.',rarity:3,category:'synergies' as const,sprite:s.requires[0] ?? 'mystery',mechanic:'SINERGIA · '+s.requires.join(' + ')})),
 ];
 
 export function collectionEntries(category:CollectionCategory) { return CATALOG.filter(c=>c.category===category); }
