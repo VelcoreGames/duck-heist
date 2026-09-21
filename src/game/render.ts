@@ -2006,107 +2006,96 @@ function renderEndlessRewardUI(engine:GameEngine) {
 }
 
 function renderGameOverUI(engine: GameEngine) {
+  const ctx=engine.ui!;
   if(engine.gameMode==='endless'){
-    const ctx=engine.ui!,e=engine.endless,rec=engine.endlessRecords[engine.difficulty];
-    ctx.fillStyle='rgba(8,6,12,.94)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-    drawPanel(ctx,42,30,396,294,'rgba(10,14,21,.97)','#9a3f46');
-    titleText(ctx,'ATRACO TERMINADO',240,59,20,'#ff6258');
-    text(ctx,`RONDA ${e.round} · ALERTA ${e.alert}`,240,83,10,'#f0d27d','center',true);
-    text(ctx,endlessStage(Math.max(1,e.round)),240,99,6.5,'#8fa1a8','center');
+    const e=engine.endless,rec=engine.endlessRecords[engine.difficulty];
+    drawMenuBackdrop(ctx,engine.frame,.96,'#d85d58');
+    drawMenuHeader(ctx,'ATRACO TERMINADO','La arena ganó esta vez.',engine.frame,'#d85d58','INFORME · ATRACO SIN FIN');
+
+    drawMenuCard(ctx,36,74,408,190,false,'#d85d58','rgba(12,18,23,.96)');
+    titleText(ctx,'RONDA '+e.round,56,105,17,'#f0d7a6','left',false);
+    text(ctx,'ALERTA '+e.alert+' · '+endlessStage(Math.max(1,e.round)),56,122,6,'#a8917e','left',true,false);
+    text(ctx,'RÉCORD · RONDA '+rec.round,420,103,6.2,rec.round<=e.round?'#e6c56f':'#8aa0a0','right',true,false);
+
     const rows:[string,string][]=[
-      ['RÉCORD',`RONDA ${rec.round}`],['PUNTUACIÓN',Math.round(e.score).toString()],
-      ['ENEMIGOS',engine.stats.enemiesDefeated.toString()],['JEFES',engine.run.bosses.toString()],
-      ['RONDAS PERFECTAS',e.perfectRounds.toString()],['MEJOR RACHA',e.maxPerfectStreak.toString()],
-      ['DAÑO HECHO',Math.round(engine.run.dmgDealt).toString()],['DAÑO RECIBIDO',(Math.round(engine.run.dmgTaken*10)/10).toString()],
-      ['PROYECTILES',Math.round(e.damageBySource.projectile).toString()],['CONTACTO',Math.round(e.damageBySource.contact).toString()],
+      ['PUNTUACIÓN',String(Math.round(e.score))],['ENEMIGOS',String(engine.stats.enemiesDefeated)],
+      ['JEFES',String(engine.run.bosses)],['RONDAS PERFECTAS',String(e.perfectRounds)],
+      ['MEJOR RACHA',String(e.maxPerfectStreak)],['DAÑO HECHO',String(Math.round(engine.run.dmgDealt))],
+      ['DAÑO RECIBIDO',String(Math.round(engine.run.dmgTaken*10)/10)],['PROYECTILES',String(Math.round(e.damageBySource.projectile))],
+      ['CONTACTO',String(Math.round(e.damageBySource.contact))],
     ];
-    rows.forEach(([k,v],i)=>{const y=120+i*14;text(ctx,k,74,y,7,'#8792a5','left');text(ctx,v,406,y,8,'#fff6c9','right',true);});
-    text(ctx,`MAYOR AMENAZA: ${e.damageBySource.projectile>=e.damageBySource.contact?'PROYECTILES':'CONTACTO'}`,240,268,6.5,'#d49991','center',true);
+    rows.forEach(([k,v],i)=>{
+      const col=i%3,row=Math.floor(i/3),x=56+col*127,y=145+row*34;
+      text(ctx,k,x,y,4.7,'#64787e','left',false,false);
+      text(ctx,v,x,y+13,8.2,'#e1e8df','left',true,false);
+    });
+    const threat=e.damageBySource.projectile>=e.damageBySource.contact?'PROYECTILES':'CONTACTO';
+    text(ctx,'MAYOR AMENAZA · '+threat,240,250,5.4,'#c9857d','center',true,false);
     drawButtons(ctx,[{label:'OTRO INTENTO  [ENTER]'},{label:'MENÚ  [ESC]'}],engine.pauseIndex,240,286,engine.frame,200,22,4);
     return;
   }
-  const ctx = engine.ui!;
-  const f = engine.frame;
-  ctx.fillStyle = 'rgba(8,6,12,0.9)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.fillStyle = 'rgba(43,74,139,0.22)';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, 30);
-  ctx.fillStyle = (f % 60) < 30 ? '#4f7ad4' : '#8a2c2c';
-  ctx.fillRect(0, 30, CANVAS_WIDTH, 2);
 
-  drawPanel(ctx, 40, 40, CANVAS_WIDTH - 80, CANVAS_HEIGHT - 66);
-  titleText(ctx, T.gameOver, CANVAS_WIDTH / 2, 74, 24, '#ff5b4f');
+  drawMenuBackdrop(ctx,engine.frame,.96,'#d85d58');
+  drawMenuHeader(ctx,T.gameOver,'El banco conserva lo que no pudiste robar.',engine.frame,'#d85d58','INFORME DE OPERACIÓN');
 
-  ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2 - 24, 84);
-  ctx.scale(1.5, 1.5);
-  drawDuckSkin(ctx,0,Math.sin(f*.05)*1.5,f,engine.equippedSkin,'down',false,false,false,false,true);
-  ctx.restore();
+  const r=engine.run,s2=engine.stats;
+  drawMenuCard(ctx,34,74,138,190,false,'#d85d58','rgba(12,18,23,.96)');
+  ctx.save();ctx.translate(103,104);ctx.scale(2.4,2.4);
+  drawDuckSkin(ctx,-8,-8,engine.frame,engine.equippedSkin,'down',false,false,false,false,true);ctx.restore();
+  text(ctx,engine.newRecord?'NUEVO RÉCORD':'MEJOR PISO',103,160,5.2,engine.newRecord?'#e6c56f':'#7f9195','center',true,false);
+  text(ctx,engine.newRecord?'PISO '+r.floorReached+'/6':'PISO '+engine.bestFloor+'/6',103,178,10,engine.newRecord?'#e6c56f':'#e2e7df','center',true,false);
+  text(ctx,'DIFICULTAD',103,205,4.8,'#5f747a','center',false,false);
+  text(ctx,difficultyLabel(engine),103,219,6.4,'#d8c27d','center',true,false);
 
-  const r = engine.run, s = engine.stats;
-  text(ctx,engine.newRecord?'NUEVO RÉCORD':`MEJOR PARTIDA: PISO ${engine.bestFloor}/6`,240,121,8,'#e3bd6b','center',true);
-  const lines: [string, string][] = [
-    [T.statFloor, `${r.floorReached}/6`],
-    [T.statRooms, `${s.roomsCleared}`],
-    [T.statEnemies, `${s.enemiesDefeated}`],
-    [T.statBosses, `${r.bosses}`],
-    [T.statItems, `${r.items}`],
-    [T.statWeapons, `${r.weaponsFound}`],
-    [T.statDealt, `${Math.round(r.dmgDealt)}`],
-    [T.statTaken, `${Math.round(r.dmgTaken*10)/10}`],
-    [T.statBread, `${s.breadStolen}`],
-    [T.statGolden, `${s.goldenCrumbs}`],
-    [T.statTime, fmtTime(r.time)],
+  drawMenuCard(ctx,184,74,262,190,false,'#52666d','rgba(9,21,27,.96)');
+  drawSectionLabel(ctx,'RESUMEN',200,94,'#7e9598');
+  const lines:[string,string][]=[
+    [T.statRooms,String(s2.roomsCleared)],[T.statEnemies,String(s2.enemiesDefeated)],[T.statBosses,String(r.bosses)],
+    [T.statItems,String(r.items)],[T.statWeapons,String(r.weaponsFound)],[T.statDealt,String(Math.round(r.dmgDealt))],
+    [T.statTaken,String(Math.round(r.dmgTaken*10)/10)],[T.statBread,String(s2.breadStolen)],[T.statGolden,String(s2.goldenCrumbs)],
+    [T.statTime,fmtTime(r.time)],
   ];
-  lines.forEach(([k, v], i) => {
-    const y = 132 + i * 13;
-    text(ctx, k, 66, y, 10, '#8792a5', 'left', false);
-    text(ctx, v, CANVAS_WIDTH - 66, y, 11, '#fff6c9', 'right', true);
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    ctx.fillRect(66, y + 3, CANVAS_WIDTH - 132, 1);
+  lines.forEach(([k,v],i)=>{
+    const col=i%2,row=Math.floor(i/2),x=202+col*116,y=116+row*26;
+    text(ctx,k,x,y,4.6,'#62777c','left',false,false);
+    text(ctx,v,x,y+11,7.2,'#dce5de','left',true,false);
   });
   const tally=Math.min(1,(engine.frame-engine.endFrame)/70);
-  text(ctx,`+${Math.floor(r.goldenEarned*tally)} MONEDAS GUARDADAS · TOTAL ${engine.totalGoldenCrumbs}`,240,280,7,'#d9c280');
+  text(ctx,'+'+Math.floor(r.goldenEarned*tally)+' MONEDAS GUARDADAS · TOTAL '+engine.totalGoldenCrumbs,315,249,5.4,'#d4bd73','center',true,false);
 
-  drawButtons(ctx, [{ label: `${T.tryAgain}  [${engine.lastInput==='gamepad'?'A':'ENTER'}]` }, { label: `${T.backToMenu}  [${engine.lastInput==='gamepad'?'B':'ESC'}]` }],
-    engine.pauseIndex, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 62, f, 200, 22, 4);
+  drawButtons(ctx,[{label:T.tryAgain+'  ['+(engine.lastInput==='gamepad'?'A':'ENTER')+']'},{label:T.backToMenu+'  ['+(engine.lastInput==='gamepad'?'B':'ESC')+']'}],
+    engine.pauseIndex,CANVAS_WIDTH/2,CANVAS_HEIGHT-62,engine.frame,200,22,4);
 }
 
 function renderVictoryUI(engine: GameEngine) {
-  const ctx = engine.ui!;
-  const f = engine.frame;
-  for (let i = 0; i < 24; i++) {
-    const sx = (i * 53 + f * 0.6) % CANVAS_WIDTH;
-    const sy = (i * 37 + f * 0.4) % CANVAS_HEIGHT;
-    ctx.fillStyle = `rgba(244,208,63,${0.25 + Math.sin(f * 0.1 + i) * 0.25})`;
-    ctx.fillRect(sx, sy, 3, 3);
-  }
-  drawPanel(ctx, 40, 26, CANVAS_WIDTH - 80, CANVAS_HEIGHT - 52);
-  titleText(ctx, T.victory, CANVAS_WIDTH / 2, 58, 24, '#f4d03f');
-  text(ctx, T.victorySub, CANVAS_WIDTH / 2, 78, 12, '#e8c99b', 'center', true);
-  ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2 - 20, 88 + Math.sin(f * 0.09) * 2);
-  ctx.scale(1.4, 1.4);
-  drawDuck(ctx, 0, 0, f, 'down', false, false, false);
-  ctx.restore();
-  const r = engine.run, s = engine.stats;
-  text(ctx,'DIFICULTAD',70,130,5.5,'#8792a5','left');
-  text(ctx,difficultyLabel(engine),CANVAS_WIDTH-70,130,6.5,'#e3bd6b','right',true);
-  const lines: [string, string][] = [
-    [T.statRooms, `${s.roomsCleared}`],
-    [T.statEnemies, `${s.enemiesDefeated}`],
-    [T.statBosses, `${r.bosses}`],
-    [T.statBread, `${s.breadStolen}`],
-    [T.statGolden, `${s.goldenCrumbs}`],
-    [T.statTime, fmtTime(r.time)],
+  const ctx=engine.ui!;
+  drawMenuBackdrop(ctx,engine.frame,.94,'#78c99a');
+  drawMenuHeader(ctx,T.victory,T.victorySub,engine.frame,'#78c99a','OPERACIÓN COMPLETADA');
+
+  const r=engine.run,s=engine.stats;
+  drawMenuCard(ctx,34,74,150,188,true,'#78c99a','rgba(13,28,24,.96)');
+  ctx.save();ctx.translate(109,112+Math.sin(engine.frame*.08)*1.5);ctx.scale(2.7,2.7);
+  drawDuck(ctx,-8,-8,engine.frame,'down',false,false,false);ctx.restore();
+  text(ctx,'BANCO DEL PAN',109,171,5.1,'#6f8a82','center',true,false);
+  titleText(ctx,'LIMPIO',109,191,13,'#8bd3a4','center',false);
+  text(ctx,'DIFICULTAD',109,218,4.8,'#5d7470','center',false,false);
+  text(ctx,difficultyLabel(engine),109,232,6.5,'#e2ce86','center',true,false);
+
+  drawMenuCard(ctx,196,74,250,188,false,'#e6c56f','rgba(9,21,27,.96)');
+  drawSectionLabel(ctx,'BOTÍN E INFORME',212,94,'#e6c56f');
+  const lines:[string,string][]=[
+    [T.statRooms,String(s.roomsCleared)],[T.statEnemies,String(s.enemiesDefeated)],[T.statBosses,String(r.bosses)],
+    [T.statBread,String(s.breadStolen)],[T.statGolden,String(s.goldenCrumbs)],[T.statTime,fmtTime(r.time)],
   ];
-  lines.forEach(([k, v], i) => {
-    const y = 146 + i * 15;
-    text(ctx, k, 70, y, 11, '#8792a5', 'left', false);
-    text(ctx, v, CANVAS_WIDTH - 70, y, 12, '#fff6c9', 'right', true);
+  lines.forEach(([k,v],i)=>{
+    const col=i%2,row=Math.floor(i/2),x=214+col*112,y=120+row*39;
+    text(ctx,k,x,y,4.8,'#647a7d','left',false,false);
+    text(ctx,v,x,y+14,8.7,'#e4e9e0','left',true,false);
   });
-  drawButtons(ctx, [{ label: `${T.playAgain}  [${engine.lastInput==='gamepad'?'A':'ENTER'}]` }, { label: `${T.backToMenu}  [${engine.lastInput==='gamepad'?'B':'ESC'}]` }],
-    engine.pauseIndex, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 66, f, 200, 22, 4);
+  text(ctx,'ATRACO COMPLETADO',321,242,6.1,'#78c99a','center',true,false);
+
+  drawButtons(ctx,[{label:T.playAgain+'  ['+(engine.lastInput==='gamepad'?'A':'ENTER')+']'},{label:T.backToMenu+'  ['+(engine.lastInput==='gamepad'?'B':'ESC')+']'}],
+    engine.pauseIndex,CANVAS_WIDTH/2,CANVAS_HEIGHT-66,engine.frame,200,22,4);
 }
 
 function fmtTime(frames: number) {
