@@ -12,7 +12,7 @@ import {
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
-  MAIN_MENU, mainMenuHit, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  mainMenuHit, MAIN_OPEN, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
