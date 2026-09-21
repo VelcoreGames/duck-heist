@@ -269,6 +269,15 @@ export function playBossRoar() {
   blip('sawtooth', 180, 60, 0.5, 0.06);
   noise(0.4, 0.04, 0.05);
 }
+
+export function playBossPhase(tier:'mini'|'sub'|'boss'='boss') {
+  if(!enabled()) return;
+  priorityUntil=performance.now()+(tier==='boss'?720:tier==='sub'?560:420);
+  const base=tier==='boss'?88:tier==='sub'?116:148;
+  noise(tier==='boss'?.32:tier==='sub'?.24:.16,tier==='boss'?.052:.038,0,.18);
+  blip('sawtooth',base,base*1.8,tier==='boss'?.34:.24,tier==='boss'?.055:.04);
+  blip('triangle',base*2.1,base*3.2,.18,.035,.06);
+}
 export function playDoorLock() {
   noise(0.18, 0.06);
   blip('square', 260, 90, 0.16, 0.05);
