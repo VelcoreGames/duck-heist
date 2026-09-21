@@ -148,6 +148,7 @@ export interface GameStats {
   goldenCrumbs: number; floorsCleared: number;
 }
 
+export interface WeaponRunStat { shots:number; damage:number; kills:number; }
 export interface RunStats {
   time: number;
   bosses: number;
@@ -159,6 +160,8 @@ export interface RunStats {
   goldenEarned: number;
   seed:string;
   weaponIds:string[];
+  itemIds:string[];
+  weaponStats:Record<string,WeaponRunStat>;
 }
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard' | 'mad';
@@ -231,17 +234,34 @@ export interface KeyBindings {
   weapon1:string; weapon2:string;
 }
 
+export interface DifficultyCareerRecord {
+  runs:number; wins:number; bestFloor:number; bestTime:number; bestEndlessRound:number; bestEndlessScore:number;
+}
+export interface WeaponCareerStat { runs:number; wins:number; shots:number; damage:number; kills:number; }
+export interface ItemCareerStat { runs:number; wins:number; }
 export interface CareerStats {
   runs:number; wins:number; deaths:number; abandoned:number; endlessRuns:number;
   totalEnemies:number; totalBosses:number; totalDamage:number; totalDamageTaken:number;
   totalRooms:number; totalPlayFrames:number; bestEndlessRound:number; bestFloor:number;
+  difficulty:Record<DifficultyMode,DifficultyCareerRecord>;
+  weapons:Record<string,WeaponCareerStat>;
+  items:Record<string,ItemCareerStat>;
 }
 
 export interface RunHistoryEntry {
   id:string; mode:GameMode; difficulty:DifficultyMode; outcome:'victory'|'death'|'abandoned';
   floor:number; round:number; time:number; enemies:number; bosses:number; damage:number;
   damageTaken:number; items:number; weapons:number; golden:number; seed:string;
+  weaponIds:string[]; itemIds:string[]; activeItemId:string|null; synergyIds:string[];
 }
+
+export type ContractMetric='runs'|'wins'|'enemies'|'bosses'|'damage'|'rooms'|'endlessRuns';
+export interface ContractPeriodState {
+  key:string;
+  baseline:Record<ContractMetric,number>;
+  rewarded:string[];
+}
+export interface ContractState { daily:ContractPeriodState; weekly:ContractPeriodState; }
 
 export interface SwapRequest {
   itemId: string;
@@ -371,6 +391,7 @@ export interface GameEngine {
   career: CareerStats;
   runHistory: RunHistoryEntry[];
   runRecorded:boolean;
+  contracts:ContractState;
   best: GameStats;
   /** cosméticos permanentes */
   unlockedSkins: string[];

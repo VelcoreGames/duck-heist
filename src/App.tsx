@@ -435,7 +435,8 @@ export default function App() {
           else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
         }
       } else if(st===GameState.CAREER){
-        for(let i=0;i<3;i++) if(inside(p.x,p.y,{x:52+i*126,y:68,w:114,h:24})&&engine.careerTab!==i){engine.careerTab=i;softMove();}
+        const w=65,gap=5,start=28;
+        for(let i=0;i<6;i++) if(inside(p.x,p.y,{x:start+i*(w+gap),y:68,w,h:24})&&engine.careerTab!==i){engine.careerTab=i;softMove();}
       } else if(st===GameState.CONTROLS){
         CONTROL_ROWS.forEach((_,i)=>{
           const col=i<8?0:1,row=i<8?i:i-8,bx=34+col*210,by=78+row*27;
