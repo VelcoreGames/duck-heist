@@ -396,7 +396,6 @@ export interface GameEngine {
   unlockedSkins: string[];
   equippedSkin: string;
   discovered:Record<CollectionCategory,string[]>;
-  discoveredSynergies:string[];
   knownSynergies:string[];
   bestFloor:number;
   newRecord:boolean;
