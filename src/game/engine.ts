@@ -478,7 +478,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
     endlessCheckpointRound,endlessCheckpointDifficulty,endlessResumeIndex:0,
-    menuIndex: 0, pauseIndex: 0, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
+    menuIndex: 0, pauseIndex: 0, runInfoTab:0, confirmIndex:1, confirmKind:null, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
 }
@@ -3268,16 +3268,17 @@ export function saveSettings(engine: GameEngine) {
 }
 
 export const SETTING_ROWS = [
-  { key: 'master', label: T.settingMaster, kind: 'vol' as const },
-  { key: 'music', label: T.settingMusic, kind: 'vol' as const },
-  { key: 'sfx', label: T.settingSfx, kind: 'vol' as const },
-  { key: 'shake', label: T.settingShake, kind: 'shake' as const },
-  { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const },
-  { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const },
-  { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const },
-  { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const },
-  { key: 'testQuack', label: 'PROBAR CUAC', kind: 'action' as const },
-  { key: 'testDash', label: 'PROBAR ESQUIVE', kind: 'action' as const },
+  { key: 'master', label: T.settingMaster, kind: 'vol' as const, group:'AUDIO', description:'Volumen general del juego.' },
+  { key: 'music', label: T.settingMusic, kind: 'vol' as const, group:'AUDIO', description:'Volumen de música y ambiente.' },
+  { key: 'sfx', label: T.settingSfx, kind: 'vol' as const, group:'AUDIO', description:'Disparos, impactos, UI y efectos.' },
+  { key: 'shake', label: T.settingShake, kind: 'shake' as const, group:'FEEDBACK', description:'Intensidad del movimiento de cámara al golpear o recibir daño.' },
+  { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const, group:'FEEDBACK', description:'Muestra u oculta los números de daño sobre enemigos.' },
+  { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO UI', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
+  { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const, group:'VIDEO', description:'Aumenta o reduce el tamaño visual de la interfaz.' },
+  { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
+  { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const, group:'VIDEO', description:'Ajusta el brillo del canvas del juego.' },
+  { key: 'testQuack', label: 'PROBAR CUAC', kind: 'action' as const, group:'PRUEBAS', description:'Reproduce el sonido del objeto activo CUAC.' },
+  { key: 'testDash', label: 'PROBAR ESQUIVE', kind: 'action' as const, group:'PRUEBAS', description:'Reproduce el sonido del esquive.' },
 ];
 
 export function settingValue(engine: GameEngine, i: number) {
