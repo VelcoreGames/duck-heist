@@ -1,8 +1,7 @@
 // Datos del juego: armas, objetos, enemigos (todo en español)
 import { ACTIVE_RULES, NEW_ACTIVE_ITEMS, NEW_PASSIVE_ITEMS, PASSIVE_RULES } from './itemRules';
 import { EXPANSION_ITEMS, type ItemRole } from './expansion';
-import { BOSSES, SUBBOSSES, MINIBOSSES, FLOOR_BOSS_POOL, FLOOR_SUBBOSS_POOL, FLOOR_MINIBOSS_POOL, type BossDef } from './bossExpansion';
-export { BOSSES, SUBBOSSES, MINIBOSSES, FLOOR_BOSS_POOL, FLOOR_SUBBOSS_POOL, FLOOR_MINIBOSS_POOL } from './bossExpansion';
+export { BOSSES, SUBBOSSES, MINIBOSSES, FLOOR_BOSS_POOL, FLOOR_SUBBOSS_POOL, FLOOR_MINIBOSS_POOL, FINAL_BOSS_ID } from './bossExpansion';
 export type { BossDef } from './bossExpansion';
 
 export const RARITY_NAMES = ['COMÚN', 'POCO COMÚN', 'RARO', 'ÉPICO', 'LEGENDARIO'];
