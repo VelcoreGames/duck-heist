@@ -8,3 +8,8 @@ export function seededRandom(seed:string) {
     return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
+
+let source:()=>number=Math.random;
+export function gameRandom(){return source();}
+export function setGameRandom(fn:()=>number){source=fn;}
+export function resetGameRandom(){source=Math.random;}
