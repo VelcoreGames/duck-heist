@@ -1114,6 +1114,14 @@ function drawBossBar(engine: GameEngine) {
     ctx.fillStyle='rgba(4,6,12,.95)';
     ctx.fillRect(x+(w/phaseCount)*i,y+6,2,10);
   }
+  if(phaseCount>1){
+    for(let i=0;i<phaseCount;i++){
+      const px=x+(w/phaseCount)*(i+.5),active=i===phase,done=i<phase;
+      ctx.fillStyle=active?accent:done?'#6e7b82':'#303842';
+      const pulse=active?1+Math.round((Math.sin(engine.frame*.16)+1)*.5):0;
+      ctx.fillRect(Math.round(px)-3-pulse,y+18,6+pulse*2,2);
+    }
+  }
 }
 function drawMinimap(engine: GameEngine) {
   const ctx = engine.ui!;
@@ -1454,6 +1462,17 @@ function renderBossIntroUI(engine: GameEngine) {
   const t = engine.bossIntroTimer;
   ctx.fillStyle = 'rgba(4,6,14,0.82)';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  for(let y=0;y<CANVAS_HEIGHT;y+=8){ctx.fillStyle='rgba(255,255,255,.018)';ctx.fillRect(0,y,CANVAS_WIDTH,1);}
+  const introBoss=getContentOf(engine).enemies.find((e:Enemy)=>e.isBoss);
+  if(introBoss){
+    ctx.save();
+    const s=BOSSES[introBoss.bossType]?2.15:SUBBOSSES[introBoss.bossType]?1.8:1.55;
+    ctx.translate(365,170);ctx.scale(s,s);
+    ctx.globalAlpha=.12+.08*Math.sin(engine.frame*.08);
+    ctx.filter='brightness(1.5)';
+    drawBoss(ctx,-introBoss.size/2,-introBoss.size/2,introBoss.bossType,engine.frame,introBoss.hp,introBoss.maxHp,false,introBoss.bossPhase);
+    ctx.filter='none';ctx.restore();
+  }
   const a = Math.min(1, (115 - t) / 18);
   ctx.globalAlpha = clamp(a, 0, 1);
   ctx.fillStyle = '#8a2c2c';
