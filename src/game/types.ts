@@ -79,11 +79,19 @@ export interface Pickup {
   value: number; lifetime: number;
   vx?:number; vy?:number;
   collectDelay?:number;
+  /** Fuerza una recogida visual hacia el pato al cerrar una ronda. */
+  forceMagnet?:boolean;
+  /** La recogida pertenece al barrido visual de cierre de ronda. */
+  sweepCollect?:boolean;
 }
 
 export interface ItemPickup {
   x: number; y: number; itemId: string; isWeapon: boolean; isActive: boolean;
   discovered?:boolean;
+  /** Equipo sobrante que vuela al pato antes de convertirse en migas. */
+  vacuuming?:boolean;
+  recycleValue?:number;
+  vx?:number; vy?:number;
 }
 
 export interface ShopItem {
@@ -143,6 +151,12 @@ export interface RoomContent {
   perfectAwarded?:boolean;
   clearCounted?:boolean;
   lastVisit?:number;
+  endlessSweep?:{
+    started:number;
+    recycledItems:number;
+    recycledMigas:number;
+    discardedHealing:number;
+  };
 }
 
 export interface GameStats {
