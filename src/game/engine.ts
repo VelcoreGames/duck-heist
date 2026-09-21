@@ -67,11 +67,16 @@ function emptyEndlessState():EndlessState {
     marketOpen:false,marketIndex:0,marketDoneRound:0,nextRewardBoost:0,nextRoundTimer:0,
   };
 }
-function queueNextEndlessRound(engine:GameEngine,frames=48) {
+function queueNextEndlessRound(engine:GameEngine,frames=42) {
   const e=engine.endless;
   if(e.awaitingReward||e.marketOpen)return;
   e.nextRoundTimer=Math.max(1,frames);
+  engine.state=GameState.PLAYING;
+  engine.roomLabelTimer=0;
+  engine.toast=e.round===0?'ATRACO SIN FIN · RONDA 1':`RONDA ${e.round} LISTA · SIGUE ${e.round+1}`;
+  engine.toastTimer=Math.min(36,e.nextRoundTimer);
   saveEndlessCheckpoint(engine);
+  engine.onStateChange?.(engine.state);
 }
 
 function emptyEndlessRecords() {
@@ -594,7 +599,9 @@ function applyEndlessBossRank(engine:GameEngine,boss:Enemy) {
 function resetEndlessArena(engine:GameEngine) {
   const room=engine.map.rooms.get(engine.currentKey)!;
   const content=getContent(engine);
-  content.enemies=[];content.pickups=[];content.items=[];content.puddles=[];content.choices=undefined;
+  // La arena y todo el botín recogible persisten entre rondas.
+  // Solo se limpia combate temporal.
+  content.enemies=[];content.puddles=[];content.choices=undefined;
   content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
   content.damaged=false;content.clearCounted=false;content.perfectAwarded=false;content.combatTimer=0;
   content.alarmTimer=undefined;content.securityTimer=undefined;content.modifierResolved=false;
@@ -741,9 +748,10 @@ export function resumeEndlessGame(engine:GameEngine):boolean {
     engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];engine.grenades=[];engine.remoteBomb=null;engine.decoy=null;
     engine.swap=null;engine.activeSwap=null;engine.pickupCard=null;engine.keys={};engine.mouseDown=false;
     engine.endlessCheckpointRound=engine.endless.round;engine.endlessCheckpointDifficulty=engine.difficulty;
-    engine.roomLabel='ATRACO SIN FIN · CONTINUADO';engine.roomLabelTimer=100;
-    if(!engine.endless.awaitingReward&&!engine.endless.marketOpen)engine.endless.nextRoundTimer=48;
-    engine.state=GameState.ENDLESS_REWARD;setMusic('run',Math.min(5,engine.endless.alert));engine.onStateChange?.(engine.state);
+    engine.roomLabel='ATRACO SIN FIN · CONTINUADO';engine.roomLabelTimer=0;
+    setMusic('run',Math.min(5,engine.endless.alert));
+    if(!engine.endless.awaitingReward&&!engine.endless.marketOpen) queueNextEndlessRound(engine,42);
+    else {engine.state=GameState.ENDLESS_REWARD;engine.onStateChange?.(engine.state);}
     return true;
   } catch {return false;}
 }
@@ -789,25 +797,9 @@ function finishEndlessRound(engine:GameEngine) {
   const e=engine.endless,content=getContent(engine),room=currentRoom(engine);
   if(!e.roundActive) return;
   e.roundActive=false;
-  // La arena persiste, pero nada de la ronda anterior permanece tirado.
-  // Migajas y monedas se absorben automáticamente; armas/objetos no elegidos desaparecen.
-  let collectedGolden=false;
-  for(const p of content.pickups) {
-    if(p.type==='crumb') {
-      engine.player.crumbs+=p.value;
-      engine.stats.breadStolen+=p.value;
-    } else if(p.type==='golden_crumb') {
-      engine.player.goldenCrumbs+=p.value;
-      engine.stats.goldenCrumbs+=p.value;
-      engine.run.goldenEarned+=p.value;
-      engine.totalGoldenCrumbs+=p.value;
-      collectedGolden=true;
-    } else if(FOODS[p.type] && engine.player.hp<engine.player.maxHp && e.alert<4) {
-      healPlayer(engine,Math.min(1,foodHeal(p.type)));
-    }
-  }
-  if(collectedGolden) saveProgress(engine);
-  content.pickups=[];content.items=[];content.puddles=[];content.choices=undefined;
+  // El botín del suelo permanece exactamente donde cayó.
+  // Solo se limpian elementos peligrosos/temporales de combate.
+  content.puddles=[];content.choices=undefined;
   content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
   engine.projectiles=[];engine.grenades=[];engine.remoteBomb=null;engine.deathEchoes=[];
   room.cleared=true;
@@ -820,10 +812,13 @@ function finishEndlessRound(engine:GameEngine) {
   e.rewardIndex=0;e.awaitingReward=e.rewardOptions.length>0;e.nextRoundTimer=0;
   saveEndlessRecord(engine);
   setMusic('run',Math.min(5,e.alert));
-  engine.state=GameState.ENDLESS_REWARD;
-  if(!e.awaitingReward) queueNextEndlessRound(engine,48);
-  else saveEndlessCheckpoint(engine);
-  engine.onStateChange?.(engine.state);
+  if(!e.awaitingReward) {
+    queueNextEndlessRound(engine,42);
+  } else {
+    engine.state=GameState.ENDLESS_REWARD;
+    saveEndlessCheckpoint(engine);
+    engine.onStateChange?.(engine.state);
+  }
 }
 
 export function startEndlessRound(engine:GameEngine) {
@@ -846,7 +841,7 @@ export function startEndlessRound(engine:GameEngine) {
   engine.player.vx=0;engine.player.vy=0;engine.player.firstHitUsed=false;
   engine.player.roomShield=getBuild(engine.player).roomShield;
   const title=e.roundKind==='special'?specialLabel(e.special!):e.roundKind==='miniboss'?'MINIJEFE':e.roundKind==='subboss'?'SUBJEFE':e.roundKind==='boss'?'JEFE DE PISO':'ASALTO';
-  engine.roomLabel=`RONDA ${e.round} · ${title}`;engine.roomLabelTimer=105;
+  engine.roomLabel=`RONDA ${e.round} · ${title}`;engine.roomLabelTimer=48;
   if(e.roundKind==='miniboss') spawnEndlessBoss(engine,'mini');
   else if(e.roundKind==='subboss') spawnEndlessBoss(engine,'sub');
   else if(e.roundKind==='boss') spawnEndlessBoss(engine,'boss');
@@ -875,8 +870,8 @@ export function startEndlessGame(engine:GameEngine) {
   engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];engine.grenades=[];
   engine.stats={breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
   engine.swap=null;engine.activeSwap=null;engine.pickupCard=null;engine.bossIntroSeen={};engine.keys={};engine.mouseDown=false;
-  engine.roomLabel='ATRACO SIN FIN';engine.roomLabelTimer=100;engine.endless.awaitingReward=false;engine.endless.nextRoundTimer=54;
-  engine.state=GameState.ENDLESS_REWARD;setMusic('run',0);engine.onStateChange?.(engine.state);
+  engine.roomLabel='ATRACO SIN FIN';engine.roomLabelTimer=0;engine.endless.awaitingReward=false;
+  engine.state=GameState.PLAYING;setMusic('run',0);queueNextEndlessRound(engine,42);
 }
 
 export function restartCurrentMode(engine:GameEngine) {
@@ -923,7 +918,11 @@ export function confirmEndlessReward(engine:GameEngine) {
 
 function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomContent) {
   const e=engine.endless;
-  if(engine.gameMode!=='endless'||!e.roundActive||engine.state!==GameState.PLAYING) return;
+  if(engine.gameMode!=='endless'||engine.state!==GameState.PLAYING) return;
+  if(!e.roundActive) {
+    if(e.nextRoundTimer>0 && --e.nextRoundTimer<=0) startEndlessRound(engine);
+    return;
+  }
   const scale=endlessScale(e.round,engine.difficulty);
   if(e.roundKind==='combat'||e.roundKind==='special') {
     e.pressure=Math.min(100,e.pressure+scale.pressureGain);
@@ -1247,14 +1246,7 @@ export function updateEngine(engine: GameEngine) {
     if (--engine.bossIntroTimer <= 0) { engine.state = GameState.PLAYING; engine.onStateChange?.(engine.state); }
     return;
   }
-  if (engine.state === GameState.ENDLESS_REWARD) {
-    const e=engine.endless;
-    if(!e.awaitingReward&&!e.marketOpen&&e.nextRoundTimer>0&&!--e.nextRoundTimer) {
-      startEndlessRound(engine);
-      return;
-    }
-    return;
-  }
+  if (engine.state === GameState.ENDLESS_REWARD) return;
   if (engine.state === GameState.FLOOR_CLEAR) {
     if (--engine.floorClearTimer === 55) loadNextFloor(engine);
     return;
