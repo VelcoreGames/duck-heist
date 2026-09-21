@@ -53,14 +53,15 @@ function renderHistory(e:GameEngine){
     const y=139+i*25,accent=outcomeColor(r);
     drawMenuCard(c,48,y,384,21,false,accent,'rgba(10,24,30,.91)');
     text(c,outcomeLabel(r),58,y+14,4.7,accent,'left',true,false);
-    text(c,r.mode==='endless'?'SIN FIN · R'+r.round:'ATRACO · P'+r.floor,142,y+14,4.9,'#c7d2cc','left',true,false);
+    text(c,r.mode==='endless'?'SIN FIN · R'+r.round:r.mode==='daily'?'DIARIO · '+r.dailyScore:'ATRACO · P'+r.floor,142,y+14,4.9,'#c7d2cc','left',true,false);
     text(c,r.difficulty.toUpperCase(),248,y+14,4.5,'#839699','left',true,false);
     text(c,String(r.enemies)+' ENEM.',326,y+14,4.5,'#8ca09f','left',false,false);
     text(c,fmt(r.time),421,y+14,4.9,'#d4c886','right',true,false);
   });
   if(e.runHistory.length>=2){
     const now=e.runHistory[0],prev=e.runHistory[1];
-    const progressNow=now.mode==='endless'?now.round:now.floor,progressPrev=prev.mode==='endless'?prev.round:prev.floor;
+    const progressNow=now.mode==='endless'?now.round:now.mode==='daily'?now.dailyScore:now.floor;
+    const progressPrev=prev.mode==='endless'?prev.round:prev.mode==='daily'?prev.dailyScore:prev.floor;
     const sameMode=now.mode===prev.mode,signed=(n:number)=>n>0?'+'+n:String(n);
     drawMenuCard(c,48,270,384,24,false,'#6b8588','rgba(7,18,24,.96)');
     text(c,'VS RUN ANTERIOR',58,284,4.4,'#779093','left',true,false);
