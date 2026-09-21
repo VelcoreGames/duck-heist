@@ -1,0 +1,126 @@
+name: v0.8.0 final mouse polish QA
+on:
+  push:
+    branches: [fix/v080-mouse-menu-final-polish]
+    paths:
+      - 'src/**'
+      - 'package*.json'
+      - '.github/workflows/v080-final-mouse-polish-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v080-mouse-menu-final-polish
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Verify version remains v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') process.exit(1);"
+          grep -q "v0.8.0" src/game/render.ts
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser mouse QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-final-polish.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine);
+          await page.evaluate(()=>localStorage.clear());
+          const canvas=page.locator('canvas[role="application"]');
+          const pt=async(x,y)=>{const b=await canvas.boundingBox();if(!b)throw new Error('no canvas');return{x:b.x+x/480*b.width,y:b.y+y/352*b.height};};
+          const clickWorld=async(x,y)=>{const p=await pt(x,y);await page.mouse.click(p.x,p.y);await page.waitForTimeout(90);};
+          const state=()=>page.evaluate(()=>window.duckHeistEngine.state);
+
+          // Overlay de objeto activo: clic fuera NO cancela.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;
+            e.testing=true;e.state='PLAYING';
+            e.activeSwap={itemId:'emergency_bread',from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};
+            e.onStateChange?.('PLAYING');
+          });
+          await clickWorld(20,60);
+          if(!(await page.evaluate(()=>!!window.duckHeistEngine.activeSwap))) throw new Error('active swap cancelled by outside click');
+          await clickWorld(307,242);
+          if(await page.evaluate(()=>!!window.duckHeistEngine.activeSwap)) throw new Error('active swap cancel button failed');
+
+          // Resultado: borde superior visible del botón debe ser realmente clicable.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.gameMode='heist';e.pendingMode='heist';e.state='GAME_OVER';e.pauseIndex=0;e.onStateChange?.('GAME_OVER');
+          });
+          await clickWorld(240,286);
+          if((await state())==='GAME_OVER') throw new Error('result first button visual edge is dead');
+
+          // Menú principal desde resultado, usando geometría compartida.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.gameMode='endless';e.state='GAME_OVER';e.pauseIndex=1;e.endless.round=3;e.onStateChange?.('GAME_OVER');
+          });
+          await clickWorld(240,312);
+          if((await state())!=='MENU') throw new Error('endless result menu button failed');
+
+          // Resultado diario comparte la misma geometría.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.gameMode='daily';e.state='GAME_OVER';e.pauseIndex=1;e.onStateChange?.('GAME_OVER');
+          });
+          await clickWorld(240,312);
+          if((await state())!=='MENU') throw new Error('daily result menu button failed');
+
+          // Mercado de Respiro: conservar migas avanza sin gastarlas.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;
+            e.gameMode='endless';e.state='ENDLESS_REWARD';e.endless.round=10;e.endless.alert=1;
+            e.endless.marketOpen=true;e.endless.awaitingReward=false;e.player.crumbs=73;e.onStateChange?.('ENDLESS_REWARD');
+          });
+          await clickWorld(240,282);
+          const market=await page.evaluate(()=>({state:window.duckHeistEngine.state,open:window.duckHeistEngine.endless.marketOpen,crumbs:window.duckHeistEngine.player.crumbs}));
+          if(market.open||market.crumbs!==73) throw new Error('conserve migas action incorrect '+JSON.stringify(market));
+
+          // El clic fuera de una confirmación no ejecuta nada.
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;e.state='PAUSED';e.confirmKind='restart';e.confirmReturnState='PAUSED';e.state='CONFIRM';e.onStateChange?.('CONFIRM');
+          });
+          await clickWorld(30,300);
+          if((await state())!=='CONFIRM') throw new Error('confirmation reacted to outside click');
+
+          const overflow=await page.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth,y:document.documentElement.scrollHeight>innerHeight}));
+          if(overflow.x||overflow.y) throw new Error('document overflow '+JSON.stringify(overflow));
+          if(errors.length) throw new Error('runtime errors '+errors.join(' | '));
+          console.log(JSON.stringify({market,finalState:await state(),overflow},null,2));
+          await browser.close();
+          JS
+      - name: Publish rebuilt bundle and remove temporary QA
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/v080-final-mouse-polish-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist .github/workflows/v080-final-mouse-polish-qa.yml
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: publish verified v0.8.0 mouse menu polish'
+            git push origin HEAD:fix/v080-mouse-menu-final-polish
+          fi
