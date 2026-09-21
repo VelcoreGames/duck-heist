@@ -3,7 +3,7 @@ import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES } fr
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
-import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,GameState } from './engine';
+import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,type Dir } from './constants';
@@ -13,7 +13,7 @@ import { eligiblePassives,diverseRewards } from './loot';
 import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
-import { endlessRoundKind, rewardRounds } from './endless';
+import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -232,6 +232,33 @@ export function runSelfChecks():CheckReport {
       assert(expected.every((kind,i)=>endlessRoundKind(i+1)===kind),'cadencia de rondas cambió');
       assert([3,5,7,8,10].every(rewardRounds),'faltan recompensas tempranas');
       assert(!rewardRounds(101)&&rewardRounds(108)&&rewardRounds(110),'taper de recompensas tardías cambió');
+    });
+    check('Curva tardía de Sin Fin escala presión sin inflar esponjas',()=>{
+      const r50=endlessScale(50,'normal'),r100=endlessScale(100,'normal'),r150=endlessScale(150,'normal'),r200=endlessScale(200,'normal');
+      assert(r100.hp>r50.hp&&r200.hp>r100.hp,'HP dejó de progresar');
+      assert(r200.hp<10&&r200.budget<100,'endgame volvió a ser esponja o maratón');
+      assert(r150.pressureGain>r100.pressureGain&&r200.pressureGain>=r150.pressureGain,'presión tardía no escala');
+      assert(r200.maxActive<=12,'demasiados enemigos simultáneos');
+    });
+    check('Atraco Imposible avanza por cinco niveles',()=>{
+      assert(endlessOverdrive(100)===0&&endlessOverdrive(101)===1&&endlessOverdrive(121)===2,'inicio de sobrecarga incorrecto');
+      assert(endlessOverdrive(181)===5&&endlessOverdrive(500)===5,'sobrecarga sin límite');
+      assert(endlessStage(200)==='ATRACO IMPOSIBLE · V','nivel final no visible');
+    });
+    check('Peligros tardíos aumentan frecuencia sin perder aviso',()=>{
+      const early=endlessHazardTiming(100),late=endlessHazardTiming(200);
+      assert(late.warning<early.warning&&late.warning>=34,'aviso tardío ilegible');
+      assert(late.repeatCooldown<early.repeatCooldown&&late.repeatCooldown>=145,'cadencia de peligros fuera de rango');
+      assert(late.openingCooldown>=120,'peligro inicial instantáneo');
+    });
+    check('Sin Fin limpia drops entre rondas sin perder monedas',()=>{
+      const e=setup(),c=e.contents.get(e.currentKey)!;e.gameMode='endless';e.player.crumbs=0;e.player.goldenCrumbs=0;e.totalGoldenCrumbs=0;
+      c.items=[{x:10,y:10,itemId:'feather_gun',isWeapon:true,isActive:false},{x:20,y:20,itemId:'bread_helmet',isWeapon:false,isActive:false}];
+      c.pickups=[{x:0,y:0,type:'crumb',value:5,lifetime:99999},{x:0,y:0,type:'golden_crumb',value:2,lifetime:99999},{x:0,y:0,type:'hp',value:1,lifetime:99999}];
+      const result=cleanupEndlessFloorDrops(e,c);
+      assert(c.items.length===0&&c.pickups.length===0,'drops persistieron');
+      assert(result.recycledItems===2&&result.discardedHealing===1,'limpieza incompleta');
+      assert(e.player.crumbs>=5+result.recycledMigas&&e.totalGoldenCrumbs===2,'monedas perdidas');
     });
     check('Jerarquía de jefes conserva fases previstas',()=>{
       assert(Object.values(MINIBOSSES).every(b=>b.phases===1),'minijefe con fases inesperadas');
