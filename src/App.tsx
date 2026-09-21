@@ -350,7 +350,7 @@ export default function App() {
         case GameState.ENDLESS_REWARD:
           if(left || up) moveEndlessReward(engine,-1);
           else if(right || down) moveEndlessReward(engine,1);
-          else if(k==='r') recycleEndlessRewards(engine);
+          else if(k===engine.bindings.recycle) recycleEndlessRewards(engine);
           else if(yes) confirmEndlessReward(engine);
           else if(k==='escape'){openConfirm('quit');}
           break;
@@ -358,7 +358,7 @@ export default function App() {
           if (k === engine.bindings.pause) { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
           else if (k === engine.bindings.dash) handleDash(engine);
           else if (k === engine.bindings.active) handleActiveItem(engine);
-          else if (k === 'r' && engine.gameMode==='endless') recycleNearestEndlessFloorItem(engine);
+          else if (k === engine.bindings.recycle && engine.gameMode==='endless') recycleNearestEndlessFloorItem(engine);
           else if (k === engine.bindings.weapon1 && !selectEventOption(engine,0)) selectWeaponDirect(engine, 0);
           else if (k === engine.bindings.weapon2 && !selectEventOption(engine,1)) selectWeaponDirect(engine, 1);
           break;
@@ -642,7 +642,7 @@ export default function App() {
       if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
       const liveKeys:Partial<Record<PadAction,string>>={
         map:engine.bindings.map,pause:engine.bindings.pause,dash:engine.bindings.dash,
-        active:engine.bindings.active,interact:engine.bindings.interact,
+        active:engine.bindings.active,interact:engine.bindings.interact,recycle:engine.bindings.recycle,
       };
       const key=liveKeys[action]||'Enter';
       onKeyDown(new KeyboardEvent('keydown',{key}),true);

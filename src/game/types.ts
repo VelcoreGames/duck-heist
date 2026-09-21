@@ -91,7 +91,7 @@ export interface ShopItem {
   isFood?:boolean;
 }
 
-export interface Puddle { x: number; y: number; life: number; kind?:'water'|'fire'|'smoke'|'radiation'; radius?:number; }
+export interface Puddle { x: number; y: number; life: number; kind?:'water'|'butter'|'fire'|'smoke'|'radiation'; radius?:number; }
 
 export interface Pedestal {
   x: number; y: number; itemId: string; isWeapon: boolean; taken: boolean; bossLoot?: boolean;
@@ -230,7 +230,7 @@ export interface Settings {
 export interface KeyBindings {
   moveUp:string; moveDown:string; moveLeft:string; moveRight:string;
   shootUp:string; shootDown:string; shootLeft:string; shootRight:string;
-  interact:string; dash:string; active:string; map:string; pause:string;
+  interact:string; dash:string; active:string; map:string; pause:string; recycle:string;
   weapon1:string; weapon2:string;
 }
 
@@ -424,7 +424,7 @@ export interface GameEngine {
   heistIntroSeen:boolean;
   hitStop:number;
   deathEchoes:{enemy:Enemy;life:number;vx:number;vy:number}[];
-  decoy:{x:number;y:number;life:number;explosive:boolean}|null;
+  decoy:{x:number;y:number;life:number;explosive:boolean;stunOnExpire?:number}|null;
   grenades:import('./grenades').ThrownGrenade[];
   remoteBomb:{x:number;y:number;life:number}|null;
   drone:{x:number;y:number;life:number;cooldown:number}|null;

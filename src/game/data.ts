@@ -711,6 +711,10 @@ const preciseEffects: Record<string,string> = {
   bread_bomb:'Explosión cercana: 30 de daño.', duck_decoy:'Atrae enemigos hacia un patito durante 6 s.',
   coffee_machine:'Duplica la cadencia de disparo durante 6 s.', holy_crumb:'Recupera 2 corazones. Tiempo de recarga: 40 s.',
   megaphone:'Una onda hace 15 de daño y empuja toda la sala.',
+  butter_sprayer:'Rocía una franja de mantequilla que ralentiza enemigos durante 5 s.',
+  crumb_drone:'Invoca un dron que ataca al enemigo más cercano durante 10 s.',
+  emergency_bread:'Recupera 2 corazones. No se consume la recarga con la vida llena.',
+  fake_alarm:'Atrae enemigos durante 4 s y después los aturde durante 2.5 s.',
 };
 for (const item of [...Object.values(ITEMS), ...Object.values(ACTIVE_ITEMS)]) {
   item.description = preciseEffects[item.id] ?? item.description;

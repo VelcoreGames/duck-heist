@@ -6,7 +6,7 @@ export function deadzone(value:number,threshold=.2) {
   if(!Number.isFinite(value)||Math.abs(value)<threshold)return 0;
   return Math.sign(value)*Math.min(1,(Math.abs(value)-threshold)/(1-threshold));
 }
-export type PadAction='confirm'|'back'|'interact'|'dash'|'active'|'previousWeapon'|'nextWeapon'|'map'|'pause'|'up'|'down'|'left'|'right';
+export type PadAction='confirm'|'back'|'interact'|'dash'|'active'|'recycle'|'previousWeapon'|'nextWeapon'|'map'|'pause'|'up'|'down'|'left'|'right';
 
 /** Poll current snapshots, never retain a browser Gamepad object. */
 export class GamepadInput {
@@ -30,6 +30,7 @@ export class GamepadInput {
     else if(just(9))act('pause');
     else if(just(1))act(live?'dash':'back');
     else if(just(0))act(live?'interact':'confirm');
+    else if(just(2)&&live)act('recycle');
     else if(just(3)&&live)act('active');
     else if(just(4))act(live?'previousWeapon':'left');
     else if(just(5))act(live?'nextWeapon':'right');
@@ -47,15 +48,16 @@ export class GamepadInput {
   }
 }
 
-export function actionPrompt(e:GameEngine,key:'interact'|'active'|'dash'|'map'|'pause'|'weapons') {
+export function actionPrompt(e:GameEngine,key:'interact'|'active'|'dash'|'map'|'pause'|'recycle'|'weapons') {
   const keys={
     interact:keyLabel(e.bindings.interact),
     active:keyLabel(e.bindings.active),
     dash:keyLabel(e.bindings.dash)+' / CLIC DERECHO',
     map:keyLabel(e.bindings.map),
     pause:keyLabel(e.bindings.pause),
+    recycle:keyLabel(e.bindings.recycle),
     weapons:'RUEDA / '+keyLabel(e.bindings.weapon1)+' / '+keyLabel(e.bindings.weapon2),
   };
-  const pad={interact:'A',active:'Y',dash:'B',map:'VIEW',pause:'START',weapons:'LB / RB'};
+  const pad={interact:'A',active:'Y',dash:'B',map:'VIEW',pause:'START',recycle:'X',weapons:'LB / RB'};
   return (e.lastInput==='gamepad'?pad:keys)[key];
 }

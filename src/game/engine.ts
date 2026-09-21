@@ -1498,6 +1498,10 @@ export function updateEngine(engine: GameEngine) {
   if(engine.decoy && --engine.decoy.life<=0) {
     const decoy=engine.decoy;engine.decoy=null;
     if(decoy.explosive) explode(engine,makeProjectile(decoy.x,decoy.y,0,0,'baguette',24,true,1,{explode:58}),content);
+    if(decoy.stunOnExpire) {
+      for(const enemy of content.enemies) {enemy.stunned=Math.max(enemy.stunned ?? 0,decoy.stunOnExpire);enemy.chargeTimer=0;enemy.recover=Math.max(enemy.recover,45);}
+      spawn(engine,decoy.x,decoy.y,'spark',14,'#f4d03f');playDoorLock();
+    }
   }
 
   if (engine.transition.active) {
@@ -3281,11 +3285,26 @@ export function handleActiveItem(engine: GameEngine) {
       playShoot('baguette_launcher');
       break;
     }
-    case 'decoy': case 'lure': {
+    case 'decoy': case 'lure': case 'fakeAlarm': {
       const aim=aimVector(engine);
       const spot=safeDrop(room,cx+aim.x*52,cy+aim.y*52);
-      engine.decoy={x:spot.x+8,y:spot.y+8,life:rule.duration!,explosive:rule.action==='lure'};playBounce();break;
+      engine.decoy={x:spot.x+8,y:spot.y+8,life:rule.duration!,explosive:rule.action==='lure',stunOnExpire:rule.action==='fakeAlarm'?150:undefined};
+      if(rule.action==='fakeAlarm'){engine.toast='ALARMA FALSA ACTIVADA';engine.toastTimer=55;playDoorLock();}else playBounce();
+      break;
     }
+    case 'butter': {
+      const aim=aimVector(engine),angle=Math.atan2(aim.y,aim.x);
+      for(const distance of [22,38,54,70,86]) {
+        const lateral=Math.sin(distance*.37)*7;
+        const x=clamp(cx+Math.cos(angle)*distance+Math.cos(angle+Math.PI/2)*lateral,34,CANVAS_WIDTH-34);
+        const y=clamp(cy+Math.sin(angle)*distance+Math.sin(angle+Math.PI/2)*lateral,34,CANVAS_HEIGHT-34);
+        content.puddles.push({x,y,life:300,kind:'butter',radius:18});
+        spawn(engine,x,y,'spark',2,'#f2d76b');
+      }
+      playBounce();break;
+    }
+    case 'drone':
+      engine.drone={x:cx,y:cy,life:rule.duration!,cooldown:0};spawn(engine,cx,cy,'spark',10,'#b7dfe5');playEquip();break;
     case 'stun': case 'siren':
       for(const enemy of content.enemies) if(rule.action==='stun'||enemy.type.startsWith('policia')||enemy.type==='dron_policial') {enemy.stunned=rule.duration;enemy.chargeTimer=0;enemy.recover=45;}
       p.quackWave=18;playDoorLock();break;

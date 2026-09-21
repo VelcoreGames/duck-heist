@@ -5,7 +5,7 @@ export type ControlAction = keyof KeyBindings;
 export const DEFAULT_BINDINGS:KeyBindings = {
   moveUp:'w', moveDown:'s', moveLeft:'a', moveRight:'d',
   shootUp:'arrowup', shootDown:'arrowdown', shootLeft:'arrowleft', shootRight:'arrowright',
-  interact:'e', dash:'shift', active:' ', map:'m', pause:'escape', weapon1:'1', weapon2:'2',
+  interact:'e', dash:'shift', active:' ', map:'m', pause:'escape', recycle:'r', weapon1:'1', weapon2:'2',
 };
 
 export const CONTROL_ROWS:{id:ControlAction;label:string;group:'MOVIMIENTO'|'DISPARO'|'ACCIONES'}[] = [
@@ -22,6 +22,7 @@ export const CONTROL_ROWS:{id:ControlAction;label:string;group:'MOVIMIENTO'|'DIS
   {id:'active',label:'OBJETO ACTIVO',group:'ACCIONES'},
   {id:'map',label:'MAPA',group:'ACCIONES'},
   {id:'pause',label:'PAUSA',group:'ACCIONES'},
+  {id:'recycle',label:'RECICLAR BOTÍN SIN FIN',group:'ACCIONES'},
   {id:'weapon1',label:'ARMA 1',group:'ACCIONES'},
   {id:'weapon2',label:'ARMA 2',group:'ACCIONES'},
 ];
