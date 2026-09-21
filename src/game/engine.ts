@@ -184,16 +184,16 @@ function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss'
   const hp = Math.round(def.hp * hpMult * (1 + (sc.hp - 1) * 0.78));
   const tierSpeed = tier === 'boss' ? 1.04 : tier === 'sub' ? 1.08 : 1.12;
   const tierDamage = tier === 'boss' ? 1.2 : tier === 'sub' ? 1.1 : 1;
-  const isMoney = bossType === 'tax_collector' || bossType === 'el_auditor' || bossType === 'cajero_3000' || bossType === 'bread_banker';
-  const isTech = bossType === 'dron_centinela' || bossType === 'director_seguridad' || bossType === 'cajero_3000';
+  const legacyMoney = bossType === 'tax_collector' || bossType === 'el_auditor' || bossType === 'cajero_3000' || bossType === 'bread_banker';
+  const legacyTech = bossType === 'dron_centinela' || bossType === 'director_seguridad' || bossType === 'cajero_3000';
   return {
     id: nextEnemyId++, type: bossType,
     x: CANVAS_WIDTH / 2 - def.size / 2, y: CANVAS_HEIGHT * 0.28,
     vx: 0, vy: 0, hp, maxHp: hp,
     speed: def.speed * sc.speed * tierSpeed, damage: tierDamage, size: def.size, score: tier === 'boss' ? 180 : tier === 'sub' ? 100 : 60,
-    behavior: 'chaser', flying: bossType === 'dron_centinela',
+    behavior: 'chaser', flying: def.family === 'tech',
     fireRate: Math.round((tier === 'boss' ? 52 : tier === 'sub' ? 58 : 64) * sc.fire), fireCooldown: 45,
-    projectileType: isMoney ? 'coin_proj' : isTech ? 'drone_shot' : (bossType.includes('panadero') || bossType === 'don_levadura' ? 'dough_ball' : 'enemy_bullet'),
+    projectileType: def.pattern?.projectile ?? (legacyMoney ? 'coin_proj' : legacyTech ? 'drone_shot' : (bossType.includes('panadero') || bossType === 'don_levadura' ? 'dough_ball' : 'enemy_bullet')),
     hurtTimer: 0, moveAngle: 0, moveTimer: 0,
     telegraph: 0, chargeTimer: 0, burst: 0, burstDelay: 0, slowTimer: 0, burn: 0, elite: false,
     isBoss: true, bossType, bossPhase: 0,
