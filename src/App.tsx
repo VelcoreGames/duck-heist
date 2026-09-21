@@ -15,7 +15,7 @@ import { MAIN_MENU, PAUSE_MENU, CONFIRM_MENU, mainMenuHit, WARDROBE, WARDROBE_AC
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
-import { COLLECTION_TABS, collectionEntries } from './game/catalog';
+import { COLLECTION_TABS } from './game/catalog';
 import { collectionMove, collectionTab, collectionClick, collectionViewEntries, cycleCollectionFilter, cycleCollectionSort } from './game/collectionUI';
 import { CONTROL_ROWS, remapBinding } from './game/controls';
 import { controlsHit, resetControls } from './game/controlsUI';
