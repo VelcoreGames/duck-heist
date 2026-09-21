@@ -95,7 +95,7 @@ export interface ContractDef {
 }
 const DAILY:Omit<ContractDef,'period'>[]=[
   {id:'d_enemies',name:'LIMPIEZA RÁPIDA',description:'Derrota 25 enemigos.',metric:'enemies',target:25,reward:8},
-  {id:'d_bosses',name:'MANDOS INTERMEDIOS',description:'Derrota 2 jefes o subjefes contabilizados.',metric:'bosses',target:2,reward:10},
+  {id:'d_bosses',name:'MANDOS INTERMEDIOS',description:'Derrota 2 jefes de piso.',metric:'bosses',target:2,reward:10},
   {id:'d_damage',name:'DAÑOS MENORES',description:'Haz 1,800 de daño.',metric:'damage',target:1800,reward:8},
   {id:'d_rooms',name:'RUTA DE ESCAPE',description:'Completa 8 salas.',metric:'rooms',target:8,reward:8},
   {id:'d_runs',name:'FICHA DEL DÍA',description:'Termina 1 run.',metric:'runs',target:1,reward:6},
@@ -104,7 +104,7 @@ const DAILY:Omit<ContractDef,'period'>[]=[
 ];
 const WEEKLY:Omit<ContractDef,'period'>[]=[
   {id:'w_enemies',name:'LISTA DE VIGILANCIA',description:'Derrota 150 enemigos.',metric:'enemies',target:150,reward:30},
-  {id:'w_bosses',name:'CAMBIO DE GERENCIA',description:'Derrota 10 jefes.',metric:'bosses',target:10,reward:35},
+  {id:'w_bosses',name:'CAMBIO DE GERENCIA',description:'Derrota 10 jefes de piso.',metric:'bosses',target:10,reward:35},
   {id:'w_damage',name:'PÓLIZA INÚTIL',description:'Haz 12,000 de daño.',metric:'damage',target:12000,reward:30},
   {id:'w_rooms',name:'PLANO COMPLETO',description:'Completa 45 salas.',metric:'rooms',target:45,reward:30},
   {id:'w_runs',name:'REINCIDENCIA',description:'Termina 6 runs.',metric:'runs',target:6,reward:25},
