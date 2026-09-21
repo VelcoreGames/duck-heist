@@ -604,8 +604,10 @@ function resetEndlessArena(engine:GameEngine) {
 
 function configureEndlessArena(engine:GameEngine) {
   const room=engine.map.rooms.get(engine.currentKey)!;
-  room.floorIndex=Math.min(5,engine.endless.alert);
-  engine.map.floorIndex=Math.min(5,engine.endless.alert);
+  // Atraco Sin Fin siempre usa exactamente la misma arena y el mismo tema visual.
+  room.floorIndex=0;
+  engine.map.floorIndex=0;
+  room.doors=[];
   const special=engine.endless.special;
   if(special==='blackout') room.modifier='blackout';
   else if(special==='cameras') room.modifier='cameras';
@@ -787,15 +789,27 @@ function finishEndlessRound(engine:GameEngine) {
   const e=engine.endless,content=getContent(engine),room=currentRoom(engine);
   if(!e.roundActive) return;
   e.roundActive=false;
-  // Todo lo no elegido desaparece. Las migajas se cobran automáticamente.
+  // La arena persiste, pero nada de la ronda anterior permanece tirado.
+  // Migajas y monedas se absorben automáticamente; armas/objetos no elegidos desaparecen.
+  let collectedGolden=false;
   for(const p of content.pickups) {
-    if(p.type==='crumb'||p.type==='golden_crumb') {
-      engine.player.crumbs+=p.value;engine.stats.breadStolen+=p.value;
+    if(p.type==='crumb') {
+      engine.player.crumbs+=p.value;
+      engine.stats.breadStolen+=p.value;
+    } else if(p.type==='golden_crumb') {
+      engine.player.goldenCrumbs+=p.value;
+      engine.stats.goldenCrumbs+=p.value;
+      engine.run.goldenEarned+=p.value;
+      engine.totalGoldenCrumbs+=p.value;
+      collectedGolden=true;
     } else if(FOODS[p.type] && engine.player.hp<engine.player.maxHp && e.alert<4) {
       healPlayer(engine,Math.min(1,foodHeal(p.type)));
     }
   }
-  content.pickups=[];content.items=[];content.puddles=[];engine.projectiles=[];engine.grenades=[];engine.remoteBomb=null;
+  if(collectedGolden) saveProgress(engine);
+  content.pickups=[];content.items=[];content.puddles=[];content.choices=undefined;
+  content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
+  engine.projectiles=[];engine.grenades=[];engine.remoteBomb=null;engine.deathEchoes=[];
   room.cleared=true;
   const perfect=!e.roundDamaged;
   if(perfect){e.perfectRounds++;e.perfectStreak++;e.maxPerfectStreak=Math.max(e.maxPerfectStreak,e.perfectStreak);e.score+=150+e.round*8;engine.toast='RONDA PERFECTA';engine.toastTimer=90;}
@@ -819,8 +833,16 @@ export function startEndlessRound(engine:GameEngine) {
   e.threatRank=e.round%50===0?'NÉMESIS':endlessThreatRank(e.round);
   e.pendingEnemies=[];e.spawnCooldown=0;e.roundActive=true;e.awaitingReward=false;e.rewardOptions=[];e.rewardIndex=0;e.nextRoundTimer=0;
   resetEndlessArena(engine);configureEndlessArena(engine);
-  const room=currentRoom(engine);room.cleared=false;
-  engine.player.x=CANVAS_WIDTH/2-8;engine.player.y=CANVAS_HEIGHT*.70;
+  const room=currentRoom(engine);room.cleared=false;room.doors=[];
+  // Solo la primera ronda coloca al jugador. Después conserva su posición exacta
+  // para que se sienta como una única sala continua.
+  if(e.round===1){
+    engine.player.x=CANVAS_WIDTH/2-8;
+    engine.player.y=CANVAS_HEIGHT*.70;
+  } else {
+    engine.player.x=clamp(engine.player.x,TILE_SIZE+4,CANVAS_WIDTH-TILE_SIZE-20);
+    engine.player.y=clamp(engine.player.y,TILE_SIZE+4,CANVAS_HEIGHT-TILE_SIZE-22);
+  }
   engine.player.vx=0;engine.player.vy=0;engine.player.firstHitUsed=false;
   engine.player.roomShield=getBuild(engine.player).roomShield;
   const title=e.roundKind==='special'?specialLabel(e.special!):e.roundKind==='miniboss'?'MINIJEFE':e.roundKind==='subboss'?'SUBJEFE':e.roundKind==='boss'?'JEFE DE PISO':'ASALTO';

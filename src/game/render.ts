@@ -900,7 +900,7 @@ function renderDangerEventHUD(engine: GameEngine) {
 
 function drawHUD(engine: GameEngine) {
   const ctx=engine.ui!;
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.4.3',8,8);ctx.restore();
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.fillStyle='#e8d79a';ctx.font='700 5px "Chakra Petch",monospace';ctx.textBaseline='top';ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=1;ctx.fillText('v0.6.4',8,8);ctx.restore();
   const p=engine.player;
   const heartW=Math.min(p.maxHp,10)*13+7;
   ctx.fillStyle='rgba(5,12,18,.48)';ctx.fillRect(4,4,heartW,18);
@@ -920,10 +920,14 @@ function drawHUD(engine: GameEngine) {
   text(ctx,`${p.crumbs}`,cx+70,13,7.5,'#e8c99b','right',true);
   drawItemIcon(ctx,cx+4,18,'golden_crumb',11);text(ctx,'MONEDAS',cx+19,25,5.2,'#ac9a65','left');
   text(ctx,`${engine.totalGoldenCrumbs}`,cx+70,26,7.5,'#f4d03f','right',true);
-  text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,10,6.2,'#d3c999','center',true);
-  text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,19,5.7,'#829c98');
-
-  drawMinimap(engine);
+  if(engine.gameMode==='endless'){
+    text(ctx,'ATRACO SIN FIN',240,10,6.5,'#d3c999','center',true);
+    text(ctx,`MISMA ARENA · ${endlessStage(Math.max(1,engine.endless.round))}`,240,19,5.4,'#829c98');
+  } else {
+    text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,10,6.2,'#d3c999','center',true);
+    text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,19,5.7,'#829c98');
+    drawMinimap(engine);
+  }
   drawBossBar(engine);
   if(engine.alert>=5){
     ctx.fillStyle='rgba(5,12,18,.48)';ctx.fillRect(5,27,62,12);
@@ -1091,7 +1095,7 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.6.3',8,10,5.5,'#e8d79a','left',true);
+  text(ctx,'v0.6.4',8,10,5.5,'#e8d79a','left',true);
   drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
   text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
   MENU_ITEMS.forEach((item,i)=>{
@@ -1534,7 +1538,7 @@ function renderEndlessRewardUI(engine:GameEngine) {
   if(!e.marketOpen&&!e.awaitingReward){
     const initial=e.round===0;
     const w=286,h=72,x=(CANVAS_WIDTH-w)/2,y=132;
-    ctx.fillStyle='rgba(3,7,12,.42)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.fillStyle='rgba(3,7,12,.18)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
     drawPanel(ctx,x,y,w,h,'rgba(8,15,21,.94)','rgba(213,184,103,.72)');
     titleText(ctx,initial?'ATRACO SIN FIN':`RONDA ${e.round} SUPERADA`,240,y+25,initial?14:12,'#f4d03f');
     text(ctx,initial?'PREPÁRATE · RONDA 1':`SIGUIENTE · RONDA ${e.round+1}`,240,y+44,7,'#d5dfd8','center',true);
