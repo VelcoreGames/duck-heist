@@ -1,9 +1,9 @@
 import { auditContent, CATALOG, COLLECTION_TABS } from './catalog';
-import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS } from './data';
+import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES } from './data';
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
-import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,GameState } from './engine';
+import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,type Dir } from './constants';
@@ -12,6 +12,8 @@ import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
 import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
+import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
+import { endlessRoundKind, rewardRounds } from './endless';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -204,6 +206,26 @@ export function runSelfChecks():CheckReport {
       assert(!e.player.dashReadyFlash&&!e.player.quackReadyFlash,'aviso repetido');
     });
     check('Credencial falsa modera la alerta',()=>{const e=setup();e.alert=0;e.player.items=['fake_id'];changeAlert(e,10);assert(e.alert===8,'crecimiento incorrecto');});
+    check('Controles antiguos reciben reciclaje de Sin Fin',()=>{
+      const bindings=normalizeBindings({moveUp:'i'});assert(bindings.moveUp==='i'&&bindings.recycle===DEFAULT_BINDINGS.recycle,'migración de controles incompleta');
+      remapBinding(bindings,'recycle','q');assert(bindings.recycle==='q','reciclaje no remapeable');
+    });
+    check('Reciclaje de suelo Sin Fin elimina un objeto y paga migas',()=>{
+      const e=setup(),c=e.contents.get(e.currentKey)!;e.gameMode='endless';e.state=GameState.PLAYING;e.player.crumbs=0;
+      c.items.push({x:e.player.x,y:e.player.y,itemId:'bread_helmet',isWeapon:false,isActive:false});
+      assert(recycleNearestEndlessFloorItem(e),'no recicló');assert(c.items.length===0,'objeto sigue en el suelo');assert(e.player.crumbs>0,'no entregó migas');
+    });
+    check('Cadencia de 10 rondas de Atraco Sin Fin',()=>{
+      const expected=['combat','combat','combat','combat','miniboss','combat','special','subboss','combat','boss'];
+      assert(expected.every((kind,i)=>endlessRoundKind(i+1)===kind),'cadencia de rondas cambió');
+      assert([3,5,7,8,10].every(rewardRounds),'faltan recompensas tempranas');
+      assert(!rewardRounds(101)&&rewardRounds(108)&&rewardRounds(110),'taper de recompensas tardías cambió');
+    });
+    check('Jerarquía de jefes conserva fases previstas',()=>{
+      assert(Object.values(MINIBOSSES).every(b=>b.phases===1),'minijefe con fases inesperadas');
+      assert(Object.values(SUBBOSSES).every(b=>b.phases===2),'subjefe con fases inesperadas');
+      assert(Object.values(BOSSES).every(b=>b.phases===3),'jefe de piso sin tres fases');
+    });
     check('Zona muerta del control no mueve al pato',()=>assert(deadzone(.12)===0&&deadzone(-1)===-1,'zona muerta inválida'));
     check('Terminología y catálogo es-MX',()=>{
       assert(LOCALE==='es-MX','locale incorrecto');
