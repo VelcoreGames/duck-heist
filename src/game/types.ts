@@ -64,6 +64,7 @@ export interface Enemy {
   buffTimer?:number;
   mutation?:EndlessBossMutation|null;
   mutationCounter?:number;
+  phaseTransition?:number;
 }
 
 export type PickupType =
