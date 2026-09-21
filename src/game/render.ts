@@ -19,7 +19,7 @@ import {
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
 import {
-  text, titleText, drawPanel, drawButtons, drawMenuScene, drawTitleLogo, drawBar,
+  text, titleText, drawPanel, drawMenuScene, drawTitleLogo, drawBar,
   drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuChoice, drawMouseButton,
   drawSectionLabel, drawKeyChip,
 } from './ui';
@@ -31,7 +31,7 @@ import {
   pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect,
-  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, HUD_MENU, inside,
+  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, HUD_MENU, endActionRect, inside,
 } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
@@ -956,7 +956,7 @@ function renderRunStats(engine:GameEngine) {
   text(ctx,`SALAS  ${s.roomsCleared}`,128,127,8,'#cbd5d9','left');
   text(ctx,`ENEMIGOS  ${s.enemiesDefeated}`,128,150,8,'#cbd5d9','left');
   text(ctx,`JEFES  ${r.bosses}`,128,173,8,'#cbd5d9','left');
-  text(ctx,`MIGAJAS  ${Math.floor(p.crumbs)}`,252,104,8,'#e9dfbd','left',true);
+  text(ctx,`${engine.gameMode==='endless'?'MIGAS':'MIGAJAS'}  ${Math.floor(p.crumbs)}`,252,104,8,'#e9dfbd','left',true);
   text(ctx,`PAN ROBADO  ${s.breadStolen}`,252,127,8,'#cbd5d9','left');
   text(ctx,`OBJETOS  ${r.items}`,252,150,8,'#cbd5d9','left');
   text(ctx,`ARMAS  ${r.weaponsFound}`,252,173,8,'#cbd5d9','left');
@@ -1169,10 +1169,8 @@ function renderActiveSwapUI(engine: GameEngine) {
   drawItemIcon(ctx,box.x+32,box.y+154,current.id,24);
   wrappedText(ctx,current.name,box.x+68,box.y+171,180,8,10,1,'#dfcf9f',true);
 
-  drawMenuCard(ctx,box.confirm.x,box.confirm.y,box.confirm.w,box.confirm.h,true,'#c98cff','rgba(38,26,47,.98)');
-  drawMenuCard(ctx,box.cancel.x,box.cancel.y,box.cancel.w,box.cancel.h,false,'#566a72','rgba(10,22,28,.95)');
-  text(ctx,'CAMBIAR',box.confirm.x+box.confirm.w/2,box.confirm.y+18,7.2,'#f0ddff','center',true,false);
-  text(ctx,'CANCELAR',box.cancel.x+box.cancel.w/2,box.cancel.y+18,7.2,'#9db0ae','center',true,false);
+  drawMouseButton(ctx,'CAMBIAR',box.confirm.x,box.confirm.y,box.confirm.w,box.confirm.h,inside(engine.mouseX,engine.mouseY,box.confirm),'#c98cff');
+  drawMouseButton(ctx,'CANCELAR',box.cancel.x,box.cancel.y,box.cancel.w,box.cancel.h,inside(engine.mouseX,engine.mouseY,box.cancel),'#6c7d87');
 }
 
 const isFull = (p: GameEngine['player']) => p.weapons.every(w => w !== null);
@@ -1227,9 +1225,9 @@ function drawHUD(engine: GameEngine) {
   drawMouseButton(ctx,'MENÚ',HUD_MENU.x,HUD_MENU.y,HUD_MENU.w,HUD_MENU.h,inside(engine.mouseX,engine.mouseY,HUD_MENU),'#8fb7c8');
   const cx=CANVAS_WIDTH-80;
   drawPanel(ctx,cx,4,76,28,'rgba(5,12,18,.52)','rgba(115,133,146,.24)','rgba(31,48,57,.38)');
-  drawItemIcon(ctx,cx+4,5,'crumb',12);text(ctx,'MIGAJAS',cx+19,12,5.2,'#899f98','left');
+  drawItemIcon(ctx,cx+4,5,'crumb',12);text(ctx,engine.gameMode==='endless'?'MIGAS':'MIGAJAS',cx+19,12,5.2,'#899f98','left');
   text(ctx,`${p.crumbs}`,cx+70,13,7.5,'#e8c99b','right',true);
-  drawItemIcon(ctx,cx+4,18,'golden_crumb',11);text(ctx,'MONEDAS',cx+19,25,5.2,'#ac9a65','left');
+  drawItemIcon(ctx,cx+4,18,'golden_crumb',11);text(ctx,engine.gameMode==='endless'?'DORADAS':'MONEDAS',cx+19,25,5.2,'#ac9a65','left');
   text(ctx,`${engine.totalGoldenCrumbs}`,cx+70,26,7.5,'#f4d03f','right',true);
   if(engine.gameMode==='endless'){
     text(ctx,'ATRACO SIN FIN',240,10,6.5,'#d3c999','center',true);
@@ -1807,7 +1805,7 @@ function renderRunInfoUI(engine:GameEngine) {
     const metrics:[string,string,string][]=[
       [engine.gameMode==='endless'?'RONDA':'PISO',engine.gameMode==='endless'?String(engine.endless.round):String(r.floorReached)+'/'+TOTAL_FLOORS,'#e6c56f'],
       ['SALAS',String(s2.roomsCleared),'#dce5de'],['ENEMIGOS',String(s2.enemiesDefeated),'#dce5de'],['JEFES',String(r.bosses),'#dce5de'],
-      ['DAÑO HECHO',String(Math.round(r.dmgDealt)),'#78c99a'],['DAÑO RECIBIDO',String(Math.round(r.dmgTaken*10)/10),'#d85d58'],['MIGAJAS',String(Math.floor(p.crumbs)),'#d8c57d'],['PAN ROBADO',String(s2.breadStolen),'#d8c57d'],['TIEMPO',fmtTime(r.time),'#79b9d2'],
+      ['DAÑO HECHO',String(Math.round(r.dmgDealt)),'#78c99a'],['DAÑO RECIBIDO',String(Math.round(r.dmgTaken*10)/10),'#d85d58'],[engine.gameMode==='endless'?'MIGAS':'MIGAJAS',String(Math.floor(p.crumbs)),'#d8c57d'],['PAN ROBADO',String(s2.breadStolen),'#d8c57d'],['TIEMPO',fmtTime(r.time),'#79b9d2'],
     ];
     metrics.forEach(([k,v,col],i)=>{const x=56+(i%3)*132,y=137+Math.floor(i/3)*53;text(ctx,k,x,y,4.7,'#64797d','left',false,false);text(ctx,v,x,y+18,9,col,'left',true,false);});
     if(engine.gameMode==='endless'){ctx.fillStyle='rgba(216,93,88,.13)';ctx.fillRect(50,264,380,22);text(ctx,'ALERTA '+engine.endless.alert+' · PRESIÓN '+Math.round(engine.endless.pressure)+'% · '+engine.endless.threatRank,240,279,5.5,engine.endless.pressure>=75?'#e0766f':'#a9b8b3','center',true,false);}else text(ctx,'SEMILLA · '+r.seed,240,279,5.2,'#71888c','center',true,false);
@@ -1898,13 +1896,25 @@ function renderEndlessRewardUI(engine:GameEngine) {
   if(e.marketOpen){
     const opts=endlessMarketOptions(engine);
     opts.forEach((opt,i)=>{const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.marketIndex;drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(25,45,35,.98)':'rgba(10,23,29,.95)');text(ctx,String(opt.cost)+' MIGAS',x+ENDLESS_REWARD_LAYOUT.w-10,y+15,5,on?accent:'#8f9279','right',true,false);wrappedText(ctx,opt.label,x+10,y+38,ENDLESS_REWARD_LAYOUT.w-20,7.2,9,2,on?'#eff8e9':'#d5dfd8',true);wrappedText(ctx,opt.description,x+10,y+69,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,3,'#8ba09f');text(ctx,on?'CLIC PARA COMPRAR':'',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,4.6,accent,'center',true,false);});
-    drawMenuCard(ctx,116,241,248,24,false,accent,'rgba(7,18,24,.95)');text(ctx,'MIGAJAS DISPONIBLES',132,256,4.8,'#6f8588','left',false,false);text(ctx,String(Math.floor(engine.player.crumbs)),348,257,7.2,accent,'right',true,false);
-    drawMouseButton(ctx,'GUARDAR MIGAJAS Y SEGUIR',ENDLESS_SECONDARY.x,ENDLESS_SECONDARY.y,ENDLESS_SECONDARY.w,ENDLESS_SECONDARY.h,inside(engine.mouseX,engine.mouseY,ENDLESS_SECONDARY),accent);
+    drawMenuCard(ctx,78,236,324,40,false,accent,'rgba(7,18,24,.95)');
+    text(ctx,'MIGAS · MONEDA DE ESTA PARTIDA',92,249,4.8,accent,'left',true,false);
+    text(ctx,'Compra en mercados entre rondas.',92,260,4.4,'#8fa19f','left',false,false);
+    text(ctx,'Se conservan en este Atraco Sin Fin · No son MONEDAS DORADAS.',92,271,4,'#73888a','left',false,false);
+    text(ctx,Math.floor(engine.player.crumbs)+' MIGAS',390,249,6.1,accent,'right',true,false);
+    drawMouseButton(ctx,'CONSERVAR MIGAS · SIGUIENTE RONDA',ENDLESS_SECONDARY.x,ENDLESS_SECONDARY.y,ENDLESS_SECONDARY.w,ENDLESS_SECONDARY.h,inside(engine.mouseX,engine.mouseY,ENDLESS_SECONDARY),accent);
   }else if(e.awaitingReward&&e.rewardOptions.length){
     e.rewardOptions.forEach((opt,i)=>{const x=ENDLESS_REWARD_LAYOUT.startX+i*(ENDLESS_REWARD_LAYOUT.w+ENDLESS_REWARD_LAYOUT.gap),y=ENDLESS_REWARD_LAYOUT.y,on=i===e.rewardIndex;const kind=opt.kind==='weapon'?'ARMA':opt.kind==='item'?'OBJETO':opt.kind==='heal'?'CURACIÓN':'BOTÍN';drawMenuCard(ctx,x,y,ENDLESS_REWARD_LAYOUT.w,ENDLESS_REWARD_LAYOUT.h,on,accent,on?'rgba(48,41,24,.98)':'rgba(10,23,29,.95)');text(ctx,kind,x+ENDLESS_REWARD_LAYOUT.w-10,y+15,4.8,on?accent:'#71868a','right',true,false);wrappedText(ctx,opt.label,x+10,y+40,ENDLESS_REWARD_LAYOUT.w-20,7.3,9,2,on?'#fff1bc':'#d5dfd8',true);wrappedText(ctx,opt.description,x+10,y+70,ENDLESS_REWARD_LAYOUT.w-20,5.3,6.6,4,'#8ba09f');text(ctx,on?'CLIC PARA TOMAR':'',x+ENDLESS_REWARD_LAYOUT.w/2,y+101,4.6,accent,'center',true,false);});
     const amount=10+e.alert*4;drawMouseButton(ctx,'RECICLAR TODO · +'+amount+' MIGAS',ENDLESS_SECONDARY.x,ENDLESS_SECONDARY.y,ENDLESS_SECONDARY.w,ENDLESS_SECONDARY.h,inside(engine.mouseX,engine.mouseY,ENDLESS_SECONDARY),'#b6a36d');
   }
-  drawMenuCard(ctx,128,302,224,18,false,'#586d72','rgba(7,18,24,.92)');text(ctx,'PRESIÓN '+Math.round(e.pressure)+'% · '+e.threatRank,240,314,5.2,e.pressure>=75?'#d86b58':'#81969a','center',true,false);
+  drawMenuCard(ctx,128,316,224,18,false,'#586d72','rgba(7,18,24,.92)');text(ctx,'PRESIÓN '+Math.round(e.pressure)+'% · '+e.threatRank,240,329,5.2,e.pressure>=75?'#d86b58':'#81969a','center',true,false);
+}
+
+function renderEndActions(engine:GameEngine,accent:string){
+  const ctx=engine.ui!;
+  ['OTRO INTENTO','MENÚ PRINCIPAL'].forEach((label,i)=>{
+    const box=endActionRect(i);
+    drawMouseButton(ctx,label,box.x,box.y,box.w,box.h,inside(engine.mouseX,engine.mouseY,box),accent);
+  });
 }
 
 function renderGameOverUI(engine: GameEngine) {
@@ -1934,7 +1944,7 @@ function renderGameOverUI(engine: GameEngine) {
     });
     const threat=e.damageBySource.projectile>=e.damageBySource.contact?'PROYECTILES':'CONTACTO';
     text(ctx,'MAYOR AMENAZA · '+threat,240,250,5.4,'#c9857d','center',true,false);
-    drawButtons(ctx,[{label:'OTRO INTENTO'},{label:'MENÚ PRINCIPAL'}],engine.pauseIndex,240,286,engine.frame,200,22,4);
+    renderEndActions(engine,'#d85d58');
     return;
   }
 
@@ -1966,8 +1976,7 @@ function renderGameOverUI(engine: GameEngine) {
   const tally=Math.min(1,(engine.frame-engine.endFrame)/70);
   text(ctx,'+'+Math.floor(r.goldenEarned*tally)+' MONEDAS GUARDADAS · TOTAL '+engine.totalGoldenCrumbs,315,249,5.4,'#d4bd73','center',true,false);
 
-  drawButtons(ctx,[{label:T.tryAgain},{label:T.backToMenu}],
-    engine.pauseIndex,CANVAS_WIDTH/2,CANVAS_HEIGHT-62,engine.frame,200,22,4);
+  renderEndActions(engine,'#d85d58');
 }
 
 function renderVictoryUI(engine: GameEngine) {
@@ -1998,8 +2007,7 @@ function renderVictoryUI(engine: GameEngine) {
   });
   text(ctx,'ATRACO COMPLETADO',321,242,6.1,'#78c99a','center',true,false);
 
-  drawButtons(ctx,[{label:T.playAgain},{label:T.backToMenu}],
-    engine.pauseIndex,CANVAS_WIDTH/2,CANVAS_HEIGHT-66,engine.frame,200,22,4);
+  renderEndActions(engine,'#78c99a');
 }
 
 function fmtTime(frames: number) {
