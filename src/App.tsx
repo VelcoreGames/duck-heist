@@ -11,7 +11,7 @@ import {
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
-import { MAIN_MENU, PAUSE_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit, endlessRewardHit } from './game/layout';
+import { MAIN_MENU, PAUSE_MENU, CONFIRM_MENU, mainMenuHit, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SETTINGS, inside, COLLECTION, activeSwapHit, endlessRewardHit } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
@@ -25,6 +25,7 @@ const PAUSE_TOP=PAUSE_MENU.y,PAUSE_H=PAUSE_MENU.h,PAUSE_GAP=PAUSE_MENU.gap,PAUSE
 const OVER_TOP = CANVAS_HEIGHT - 62, OVER_H = 22, OVER_GAP = 4, OVER_W = 200;
 const DIFF_TOP=72,DIFF_H=51,DIFF_GAP=5,DIFF_W=364;
 const RESUME_TOP=154,RESUME_H=30,RESUME_GAP=10,RESUME_W=238;
+const CONFIRM_TOP=CONFIRM_MENU.y,CONFIRM_H=CONFIRM_MENU.h,CONFIRM_GAP=CONFIRM_MENU.gap,CONFIRM_W=CONFIRM_MENU.w;
 
 export default function App() {
   const worldRef = useRef<HTMLCanvasElement>(null);
@@ -146,14 +147,35 @@ export default function App() {
         case 6: engine.settingsIndex = 0; subReturn = GameState.MENU; goTo(GameState.SETTINGS); break;
       }
     };
+    const openConfirm=(kind:GameEngine['confirmKind'])=>{
+      engine.confirmKind=kind;engine.confirmIndex=1;playUiSelect();goTo(GameState.CONFIRM);
+    };
+    const cancelConfirm=()=>{
+      const back=engine.confirmKind==='new_endless'?GameState.ENDLESS_RESUME:GameState.PAUSED;
+      engine.confirmKind=null;engine.confirmIndex=1;playUiBack();goTo(back);
+    };
+    const executeConfirm=()=>{
+      const kind=engine.confirmKind;engine.confirmKind=null;engine.confirmIndex=1;playUiSelect();
+      if(kind==='restart'){restartCurrentMode(engine);return;}
+      if(kind==='quit'){engine.menuIndex=0;setMusic('menu');goTo(GameState.MENU);return;}
+      if(kind==='new_endless'){
+        clearEndlessCheckpoint(engine);
+        engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));
+        goTo(GameState.DIFFICULTY);
+      }
+    };
     const activatePause = () => {
       switch (engine.pauseIndex) {
         case 0: playUiSelect(); goTo(GameState.PLAYING); break;
-        case 1: if(engine.gameMode!=='endless')openFloorMap(engine); break;
-        case 2: playUiSelect(); restartCurrentMode(engine); break;
-        case 3: playUiSelect(); subReturn = GameState.PAUSED; goTo(GameState.HOW_TO_PLAY); break;
-        case 4: playUiSelect(); engine.settingsIndex = 0; subReturn = GameState.PAUSED; goTo(GameState.SETTINGS); break;
-        case 5: playUiBack(); engine.menuIndex = 0; setMusic('menu'); goTo(GameState.MENU); break;
+        case 1:
+          if(engine.gameMode==='endless'){engine.runInfoTab=1;playUiSelect();goTo(GameState.RUN_INFO);}
+          else openFloorMap(engine);
+          break;
+        case 2: engine.runInfoTab=0;playUiSelect();goTo(GameState.RUN_INFO); break;
+        case 3: openConfirm('restart'); break;
+        case 4: playUiSelect(); subReturn = GameState.PAUSED; goTo(GameState.HOW_TO_PLAY); break;
+        case 5: playUiSelect(); engine.settingsIndex = 0; subReturn = GameState.PAUSED; goTo(GameState.SETTINGS); break;
+        case 6: openConfirm('quit'); break;
       }
     };
     const activateEnd = () => {
@@ -277,7 +299,7 @@ export default function App() {
               playUiSelect();
               if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
             } else {
-              playUiSelect();clearEndlessCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);
+              openConfirm('new_endless');
             }
           } else if(k==='escape'){playUiBack();goTo(GameState.MENU);}
           break;
@@ -298,9 +320,21 @@ export default function App() {
           break;
         case GameState.PAUSED:
           if (k === 'escape') { playUiBack(); goTo(GameState.PLAYING); }
+          else if(k==='tab'){engine.runInfoTab=0;playUiSelect();goTo(GameState.RUN_INFO);}
           else if (up) menuMove(engine, -1, PAUSE_MENU.count, 'pause');
           else if (down) menuMove(engine, 1, PAUSE_MENU.count, 'pause');
-          else if (k === 'enter') activatePause();
+          else if (yes) activatePause();
+          break;
+        case GameState.RUN_INFO:
+          if(k==='escape'){playUiBack();goTo(GameState.PAUSED);}
+          else if(left||k==='a'){engine.runInfoTab=0;playUiMove();}
+          else if(right||k==='d'||k==='tab'){engine.runInfoTab=1;playUiMove();}
+          break;
+        case GameState.CONFIRM:
+          if(k==='escape'){cancelConfirm();}
+          else if(up||left){engine.confirmIndex=0;playUiMove();}
+          else if(down||right){engine.confirmIndex=1;playUiMove();}
+          else if(yes){if(engine.confirmIndex===0)executeConfirm();else cancelConfirm();}
           break;
         case GameState.GAME_OVER:
         case GameState.VICTORY:
@@ -355,20 +389,24 @@ export default function App() {
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
       // micro-interacción: el puntero también navega las listas
       const st = engine.state;
-      if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.ENDLESS_RESUME || st === GameState.PAUSED || st === GameState.GAME_OVER || st === GameState.VICTORY) {
-        const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st===GameState.ENDLESS_RESUME?RESUME_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
-        const cnt = st === GameState.MENU ? 7 : st===GameState.DIFFICULTY?4:st===GameState.ENDLESS_RESUME?2:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
-        const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st===GameState.ENDLESS_RESUME?RESUME_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
-        const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st===GameState.ENDLESS_RESUME?RESUME_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
-        const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st===GameState.ENDLESS_RESUME?RESUME_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
+      if (st === GameState.MENU || st === GameState.DIFFICULTY || st === GameState.ENDLESS_RESUME || st === GameState.PAUSED || st === GameState.CONFIRM || st === GameState.GAME_OVER || st === GameState.VICTORY) {
+        const top = st === GameState.MENU ? MENU_TOP : st===GameState.DIFFICULTY?DIFF_TOP:st===GameState.ENDLESS_RESUME?RESUME_TOP:st===GameState.CONFIRM?CONFIRM_TOP:st === GameState.PAUSED ? PAUSE_TOP : OVER_TOP;
+        const cnt = st === GameState.MENU ? 7 : st===GameState.DIFFICULTY?4:st===GameState.ENDLESS_RESUME?2:st===GameState.CONFIRM?2:st === GameState.PAUSED ? PAUSE_MENU.count : 2;
+        const h = st === GameState.MENU ? MENU_H : st===GameState.DIFFICULTY?DIFF_H:st===GameState.ENDLESS_RESUME?RESUME_H:st===GameState.CONFIRM?CONFIRM_H:st === GameState.PAUSED ? PAUSE_H : OVER_H;
+        const g = st === GameState.MENU ? MENU_GAP : st===GameState.DIFFICULTY?DIFF_GAP:st===GameState.ENDLESS_RESUME?RESUME_GAP:st===GameState.CONFIRM?CONFIRM_GAP:st === GameState.PAUSED ? PAUSE_GAP : OVER_GAP;
+        const w = st === GameState.MENU ? MENU_W : st===GameState.DIFFICULTY?DIFF_W:st===GameState.ENDLESS_RESUME?RESUME_W:st===GameState.CONFIRM?CONFIRM_W:st === GameState.PAUSED ? PAUSE_W : OVER_W;
         const i=st===GameState.MENU?mainMenuHit(p.x,p.y):hitList(p.x,p.y,top,cnt,h,g,w);
         if (i >= 0) {
           if (st === GameState.MENU) { if (engine.menuIndex !== i) { engine.menuIndex = i; softMove(); } }
           else if(st===GameState.DIFFICULTY){if(engine.difficultyIndex!==i){engine.difficultyIndex=i;softMove();}}
           else if(st===GameState.ENDLESS_RESUME){if(engine.endlessResumeIndex!==i){engine.endlessResumeIndex=i;softMove();}}
           else if (st === GameState.PAUSED) { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
+          else if (st === GameState.CONFIRM) { if (engine.confirmIndex !== i) { engine.confirmIndex = i; softMove(); } }
           else { if (engine.pauseIndex !== i) { engine.pauseIndex = i; softMove(); } }
         }
+      } else if(st===GameState.RUN_INFO){
+        if(inside(p.x,p.y,{x:42,y:70,w:190,h:24})&&engine.runInfoTab!==0){engine.runInfoTab=0;softMove();}
+        else if(inside(p.x,p.y,{x:248,y:70,w:190,h:24})&&engine.runInfoTab!==1){engine.runInfoTab=1;softMove();}
       } else if(st===GameState.ENDLESS_REWARD){
         const count=engine.endless.marketOpen?3:engine.endless.rewardOptions.length;
         const hit=endlessRewardHit(p.x,p.y,count);
@@ -448,7 +486,7 @@ export default function App() {
           if(i>=0){
             engine.endlessResumeIndex=i;
             if(i===0){if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}}
-            else {clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}
+            else {openConfirm('new_endless');}
           }
           break;
         }
@@ -470,6 +508,16 @@ export default function App() {
         case GameState.PAUSED: {
           const i = hitList(x, y, PAUSE_TOP, PAUSE_MENU.count, PAUSE_H, PAUSE_GAP, PAUSE_W);
           if (i >= 0) { engine.pauseIndex = i; activatePause(); }
+          break;
+        }
+        case GameState.RUN_INFO:
+          if(inside(x,y,{x:42,y:70,w:190,h:24})){engine.runInfoTab=0;playUiMove();}
+          else if(inside(x,y,{x:248,y:70,w:190,h:24})){engine.runInfoTab=1;playUiMove();}
+          else if(y>315){playUiBack();goTo(GameState.PAUSED);}
+          break;
+        case GameState.CONFIRM: {
+          const i=hitList(x,y,CONFIRM_TOP,2,CONFIRM_H,CONFIRM_GAP,CONFIRM_W);
+          if(i>=0){engine.confirmIndex=i;if(i===0)executeConfirm();else cancelConfirm();}
           break;
         }
         case GameState.GAME_OVER:
