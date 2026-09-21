@@ -1546,9 +1546,9 @@ export function updateEngine(engine: GameEngine) {
     const explosiveRate=w.explode?build.explosiveRate:1;
     player.fireCooldown = Math.max(2,Math.round(w.fireRate/(build.fireRate*explosiveRate*synergyRate*(player.fireBoost>0?player.fireBoostPower:1))));
     player.facingAngle=Math.atan2(sy,sx);
-    player.shootFlash = 4;
     const kick=w.id==='baguette_launcher'||w.id==='rubber_duck_cannon'||w.id==='egg_cannon'?2.2:
       w.id==='breadcrumb_shotgun'||w.id==='baguette_sniper'||w.id==='golden_egg_revolver'?1.45:.55;
+    player.shootFlash = kick>2?6:kick>1?5:4;
     engine.shakeIntensity=Math.max(engine.shakeIntensity,kick);
     const muzzleColor=w.id==='quack_laser'||w.id==='plasma_baker'?'#82e7ff':w.id==='golden_egg_revolver'?'#ffd85a':'#fff0b0';
     spawn(engine,player.x+7+sx*12,player.y+8+sy*12,'spark',kick>2?4:kick>1?3:1,muzzleColor);
@@ -2977,7 +2977,11 @@ export function damageEnemy(engine: GameEngine, e: Enemy, dmg: number, crit: boo
     if(engine.damageNumbers.length>=80)engine.damageNumbers.shift();
     engine.damageNumbers.push({ x: e.x + e.size / 2 + rng(-4, 4), y: e.y - 4, value: dmg, life: 1, crit });
   }
-  spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'hit', 3);
+  spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'hit', dmg>=8?5:3);
+  if(dmg>=8){
+    spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',e.isBoss?6:4,e.isBoss?'#ffd7a3':'#fff0c4');
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?1.4:.75);
+  }
   playHit();
   if (crit) {
     spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 8, '#f4d03f');
