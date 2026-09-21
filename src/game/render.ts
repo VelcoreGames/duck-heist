@@ -1489,7 +1489,7 @@ function renderMenuUI(engine: GameEngine) {
     text(ctx,'LISTO',px+104,py+166,7.2,meta.accent,'left',true,false);
   }
   ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+208,pw-32,1);
-  text(ctx,'SELECCIONA UNA OPCIÓN · ESC PARA VOLVER',px+16,py+220,4.4,'#6f8587','left',true,false);
+  text(ctx,'SELECCIONA UNA OPCIÓN PARA CONTINUAR',px+16,py+220,4.4,'#6f8587','left',true,false);
   text(ctx,T.tagline,240,329,7.5,'#dbc486','center',true,false);
 }
 
