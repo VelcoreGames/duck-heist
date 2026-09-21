@@ -389,6 +389,7 @@ export interface GameEngine {
   runInfoTab: number;
   confirmIndex: number;
   confirmKind: 'restart'|'quit'|'new_endless'|null;
+  confirmReturnState: GameState;
   settingsIndex: number;
   upgradeIndex: number;
   wardrobeIndex: number;
