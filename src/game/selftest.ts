@@ -271,6 +271,12 @@ export function runSelfChecks():CheckReport {
       const signatures=all.map(b=>b.pattern.signature);
       assert(new Set(signatures).size===signatures.length,'firmas de combate repetidas');
       assert(all.every(b=>b.pattern.sequence.length>=4&&new Set(b.pattern.sequence).size===b.pattern.sequence.length),'secuencia de ataques pobre o duplicada');
+      const miniSeq=Object.values(MINIBOSSES).map(b=>b.pattern.sequence.join('>'));
+      const subSeq=Object.values(SUBBOSSES).map(b=>b.pattern.sequence.join('>'));
+      const bossSeq=Object.values(BOSSES).filter(b=>!b.finalBoss).map(b=>b.pattern.sequence.join('>'));
+      assert(new Set(miniSeq).size===miniSeq.length,'minijefes con secuencia base repetida');
+      assert(new Set(subSeq).size===subSeq.length,'subjefes con secuencia base repetida');
+      assert(new Set(bossSeq).size===bossSeq.length,'jefes rotativos con secuencia base repetida');
       assert(all.every(b=>b.pattern.support.length>=3&&b.pattern.tempo>0&&b.pattern.speed>0),'firma incompleta');
     });
     check('Todos los apoyos de las firmas de jefe existen',()=>{
