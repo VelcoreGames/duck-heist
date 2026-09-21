@@ -557,6 +557,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
 
   if (e.isBoss) {
+    if(engine.gameMode==='endless'&&e.mutation){
+      const mutationColor=e.mutation==='TORMENTA'?'#79c8ff':e.mutation==='BLINDADO'?'#aab9c8':e.mutation==='CAZADOR'?'#ff7b68':e.mutation==='REFUERZOS'?'#d6b06a':'#ff9b58';
+      ctx.save();ctx.globalAlpha=.16+.08*Math.sin(f*.14+e.id);ctx.strokeStyle=mutationColor;ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(e.x+e.size/2,e.y+e.size/2+3,e.size*.76,e.size*.62,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ctx.fillStyle=mutationColor;ctx.globalAlpha=.85;ctx.fillRect(e.x+e.size/2-5,e.y-10,10,2);ctx.globalAlpha=1;
+    }
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
