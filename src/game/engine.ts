@@ -784,9 +784,9 @@ function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
     const id=rollWeapon(engine,rare||n===10);
     result.push({kind:'weapon',itemId:id,label:WEAPONS[id].name,description:WEAPONS[id].description});
   };
-  if(n===3){addItem(true);result.push(engine.endless.alert<5?{kind:'heal',amount:1,label:'PAN DE RESERVA',description:'Recupera 1 corazón.'}:{kind:'crumbs',amount:14+engine.endless.alert*2,label:'RESERVAS AGOTADAS',description:'A estas alturas el banco casi no deja curación.'});result.push({kind:'crumbs',amount:12+engine.endless.alert*2,label:'BOTÍN RÁPIDO',description:'Migajas para sostener la run.'});}
+  if(n===3){addItem(true);result.push(engine.endless.alert<5?{kind:'heal',amount:1,label:'PAN DE RESERVA',description:'Recupera 1 corazón.'}:{kind:'crumbs',amount:14+engine.endless.alert*2,label:'RESERVAS AGOTADAS',description:'A estas alturas el banco casi no deja curación.'});result.push({kind:'crumbs',amount:12+engine.endless.alert*2,label:'BOTÍN RÁPIDO',description:'Migas para sostener esta run.'});}
   else if(n===5){addWeapon();addItem(true);result.push(engine.endless.alert<6?{kind:'heal',amount:1,label:'RESPIRAR',description:'Recupera 1 corazón antes de seguir.'}:{kind:'crumbs',amount:20+engine.endless.alert*3,label:'SIN RESPIRO',description:'En alertas altas la curación deja de estar garantizada.'});}
-  else if(n===7){addItem(true);addWeapon();result.push({kind:'crumbs',amount:18+engine.endless.alert*3,label:'PREMIO DE RIESGO',description:'Convierte el desafío en migajas.'});}
+  else if(n===7){addItem(true);addWeapon();result.push({kind:'crumbs',amount:18+engine.endless.alert*3,label:'PREMIO DE RIESGO',description:'Convierte el desafío en migas de esta run.'});}
   else if(n===8){addItem(true);addWeapon();addItem(false);}
   else {
     addItem(true);addWeapon();
@@ -794,7 +794,7 @@ function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
     else if(engine.endless.alert<8) result.push({kind:'heal',amount:1,label:'BOTÍN DEL JEFE',description:'Recuperación limitada para el siguiente ciclo.'});
     else result.push({kind:'crumbs',amount:30+engine.endless.alert*4,label:'SUMINISTROS CORTADOS',description:'En Alerta alta ya no hay curación garantizada.'});
   }
-  while(result.length<3) result.push({kind:'crumbs',amount:15+engine.endless.alert*2,label:'MIGAJAS',description:'Recompensa segura.'});
+  while(result.length<3) result.push({kind:'crumbs',amount:15+engine.endless.alert*2,label:'MIGAS',description:'Moneda temporal para esta run.'});
   return result.slice(0,3);
 }
 
@@ -880,7 +880,7 @@ function openEndlessMarketIfNeeded(engine:GameEngine) {
 export function buyEndlessMarket(engine:GameEngine) {
   const e=engine.endless;if(!e.marketOpen)return;
   const option=endlessMarketOptions(engine)[e.marketIndex];if(!option)return;
-  if(engine.player.crumbs<option.cost){engine.toast='MIGAJAS INSUFICIENTES';engine.toastTimer=70;playDeny();return;}
+  if(engine.player.crumbs<option.cost){engine.toast='MIGAS INSUFICIENTES';engine.toastTimer=70;playDeny();return;}
   if(option.id==='heal'&&engine.player.hp>=engine.player.maxHp){engine.toast='VIDA COMPLETA';engine.toastTimer=70;playDeny();return;}
   if(option.id==='shield'&&engine.player.shield>=2){engine.toast='BLINDAJE AL MÁXIMO';engine.toastTimer=70;playDeny();return;}
   engine.player.crumbs-=option.cost;
@@ -892,7 +892,7 @@ export function buyEndlessMarket(engine:GameEngine) {
 
 export function skipEndlessMarket(engine:GameEngine) {
   if(!engine.endless.marketOpen)return;
-  engine.endless.marketOpen=false;engine.toast='MIGAJAS GUARDADAS';engine.toastTimer=60;playUiBack();queueNextEndlessRound(engine,42);
+  engine.endless.marketOpen=false;engine.toast='MIGAS CONSERVADAS · SIGUIENTE RONDA';engine.toastTimer=60;playUiBack();queueNextEndlessRound(engine,42);
 }
 
 function finishEndlessRound(engine:GameEngine) {
@@ -1020,7 +1020,7 @@ export function recycleEndlessRewards(engine:GameEngine) {
   const amount=10+engine.endless.alert*4;
   engine.player.crumbs+=amount;engine.stats.breadStolen+=amount;
   engine.endless.rewardOptions=[];engine.endless.awaitingReward=false;
-  engine.toast=`RECICLADO · +${amount} MIGAJAS`;engine.toastTimer=80;playCoin();
+  engine.toast=`RECICLADO · +${amount} MIGAS`;engine.toastTimer=80;playCoin();
   if(!openEndlessMarketIfNeeded(engine))queueNextEndlessRound(engine,42);
 }
 
@@ -1039,7 +1039,7 @@ export function recycleNearestEndlessFloorItem(engine:GameEngine) {
   const amount=4+rarity*3+(it.isWeapon?3:0);
   content.items.splice(best,1);
   p.crumbs+=amount;engine.stats.breadStolen+=amount;
-  engine.toast=`RECICLADO · +${amount} MIGAJAS`;engine.toastTimer=55;
+  engine.toast=`RECICLADO · +${amount} MIGAS`;engine.toastTimer=55;
   spawn(engine,it.x+8,it.y+8,'spark',8,'#d8bc70');playCoin();
   return true;
 }
