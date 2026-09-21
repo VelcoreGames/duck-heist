@@ -479,7 +479,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     restartHold: 0, bossDefeatTimer: 0, rewardDropTimer: 0,
     swap: null, swapSel: 0, swapGuard: 0, overlayLabels: [],
     totalGoldenCrumbs: totalGolden, metaLevels, settings, bindings, controlIndex:0, controlCapture:false,
-    career:careerData.career,runHistory:careerData.history,runRecorded:false,best,
+    career:careerData.career,runHistory:careerData.history,runRecorded:false,contracts:careerData.contracts,best,
     unlockedSkins, equippedSkin,
     discovered, bestFloor, newRecord:false, knownSynergies:[],endFrame:0,
     heistIntroTimer:0,heistIntroSeen:false, hitStop:0, deathEchoes:[], decoy:null,
@@ -496,7 +496,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 
 function newRunStats() {
   const seed=`PAN-${Math.floor(Math.random()*0xffffffff).toString(16).toUpperCase().padStart(8,'0')}`;
-  return { time: 0, bosses: 0, items: 0, weaponsFound: 1, dmgDealt: 0, dmgTaken: 0, floorReached: 1, goldenEarned: 0,seed,weaponIds:['quack_blaster'] };
+  return { time: 0, bosses: 0, items: 0, weaponsFound: 1, dmgDealt: 0, dmgTaken: 0, floorReached: 1, goldenEarned: 0,seed,weaponIds:['quack_blaster'],itemIds:[],weaponStats:{} };
 }
 
 function createPlayer(meta: Record<string, number>) {
@@ -947,6 +947,7 @@ export function restartCurrentMode(engine:GameEngine) {
 
 export function abandonCurrentRun(engine:GameEngine) {
   recordRun(engine,'abandoned');
+  saveProgress(engine);
 }
 
 export function moveEndlessReward(engine:GameEngine,dir:number) {
@@ -2177,6 +2178,7 @@ export function grantItem(engine: GameEngine, itemId: string, _isWeapon=false, i
   const p = engine.player;
   if(!ITEMS[itemId] && !ACTIVE_ITEMS[itemId]) return;
   engine.run.items++;
+  if(!engine.run.itemIds.includes(itemId)) engine.run.itemIds.push(itemId);
   if (isActive || ACTIVE_ITEMS[itemId]) {
     p.activeItem = itemId;
     p.activeItemCooldown = 0;
@@ -2241,6 +2243,7 @@ function checkSynergies(engine: GameEngine, justGot: string) {
   for (const s of SYNERGIES) {
     if (s.requires.every(id => owned.has(id)) && !engine.knownSynergies.includes(s.id)) {
       engine.knownSynergies.push(s.id);
+      discover(engine,'synergies',s.id);
       engine.synergyNotice={name:s.name,description:s.flavor,timer:125};
       spawn(engine, engine.player.x + 7, engine.player.y + 8, 'spark', 16, '#b06fe8');
       playEquip();
