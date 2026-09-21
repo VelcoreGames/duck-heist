@@ -220,6 +220,7 @@ export interface Settings {
   uiScale: number;          // 1..3
   fullscreen: boolean;
   brightness: number;       // 0.6..1.4
+  reduceMotion: boolean;    // reduce decorative menu motion
 }
 
 export interface SwapRequest {
@@ -385,6 +386,9 @@ export interface GameEngine {
 
   menuIndex: number;
   pauseIndex: number;
+  runInfoTab: number;
+  confirmIndex: number;
+  confirmKind: 'restart'|'quit'|'new_endless'|null;
   settingsIndex: number;
   upgradeIndex: number;
   wardrobeIndex: number;
