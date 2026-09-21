@@ -17,7 +17,7 @@ import { GamepadInput, type PadAction } from './game/gamepad';
 import { getBuild } from './game/itemRules';
 import { COLLECTION_TABS } from './game/catalog';
 import { collectionMove, collectionTab, collectionClick, collectionViewEntries, cycleCollectionFilter, cycleCollectionSort } from './game/collectionUI';
-import { CONTROL_ROWS, remapBinding } from './game/controls';
+import { CONTROL_ROWS, remapBinding, keyLabel } from './game/controls';
 import { controlsHit, resetControls } from './game/controlsUI';
 import { careerClick, careerTab } from './game/careerUI';
 import { SKINS, BOSSES } from './game/data';
@@ -798,8 +798,8 @@ function hintFor(engine: GameEngine): string {
   switch (engine.state) {
     case GameState.MENU: return 'W / S elegir · ENTER confirmar · rueda también vale';
     case GameState.DIFFICULTY:return 'W / S dificultad · ENTER confirmar · ESC volver';
-    case GameState.PLAYING: return 'WASD mover · MOUSE / FLECHAS disparar · RUEDA cambiar arma · SHIFT esquivar · E interactuar · M mapa';
-    case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · M / ESC cerrar';
+    case GameState.PLAYING: return keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight)+' mover · MOUSE / '+keyLabel(engine.bindings.shootUp)+' '+keyLabel(engine.bindings.shootLeft)+' '+keyLabel(engine.bindings.shootDown)+' '+keyLabel(engine.bindings.shootRight)+' disparar · '+keyLabel(engine.bindings.dash)+' esquivar · '+keyLabel(engine.bindings.interact)+' interactuar';
+    case GameState.MAP:return 'MAPA · Combate en pausa · WASD / FLECHAS / MOUSE inspeccionar · '+keyLabel(engine.bindings.map)+' / ESC cerrar';
     case GameState.PAUSED: return 'ESC continuar · flechas navegar · TAB info de run';
     case GameState.RUN_INFO:return 'A / D cambiar vista · ESC volver a pausa';
     case GameState.COLLECTION:return 'A / D categoría · Q filtro · E ordenar · P carrera · ESC volver';
