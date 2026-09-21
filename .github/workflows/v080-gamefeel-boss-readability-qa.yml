@@ -74,13 +74,25 @@ jobs:
           await page.waitForTimeout(180);
           await page.keyboard.up('d');
           await page.mouse.move(box.x+box.width*.72,box.y+box.height*.52);
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;
+            e.player.dashCooldown=0;
+            e.player.dashTimer=0;
+            e.transition.active=false;
+          });
           await page.mouse.down({button:'left'});
           await page.waitForTimeout(120);
           const beforeDash=await page.evaluate(()=>window.duckHeistEngine.projectiles.length);
-          await page.mouse.down({button:'right'});
-          await page.waitForTimeout(30);
-          await page.mouse.up({button:'right'});
-          await page.waitForTimeout(120);
+          await page.evaluate(()=>{
+            const canvas=document.querySelector('canvas[role="application"]');
+            if(!canvas)throw new Error('No application canvas for right-click dash');
+            const rect=canvas.getBoundingClientRect();
+            canvas.dispatchEvent(new MouseEvent('mousedown',{
+              button:2,buttons:3,bubbles:true,cancelable:true,
+              clientX:rect.left+rect.width*.72,clientY:rect.top+rect.height*.52
+            }));
+          });
+          await page.waitForTimeout(80);
           const dashShoot=await page.evaluate(()=>({
             mouseDown:window.duckHeistEngine.mouseDown,
             dash:window.duckHeistEngine.player.dashTimer,
