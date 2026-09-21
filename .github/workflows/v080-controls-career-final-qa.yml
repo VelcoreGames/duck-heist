@@ -1,0 +1,75 @@
+name: v0.8.0 controls career final QA
+on:
+  push:
+    branches: [feature/v080-controls-career-archive]
+    paths:
+      - '.github/workflows/v080-controls-career-final-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v080-controls-career-archive
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Browser career comparison smoke
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-final.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine);
+          await page.evaluate(()=>{
+            const e=window.duckHeistEngine;
+            e.runHistory=[
+              {id:'2',mode:'heist',difficulty:'normal',outcome:'death',floor:4,round:0,time:6000,enemies:55,bosses:3,damage:4100,damageTaken:12,items:7,weapons:4,golden:22,seed:'PAN-2'},
+              {id:'1',mode:'heist',difficulty:'normal',outcome:'death',floor:3,round:0,time:5200,enemies:41,bosses:2,damage:3200,damageTaken:15,items:5,weapons:3,golden:15,seed:'PAN-1'}
+            ];
+            e.state='CAREER';e.careerTab=1;
+          });
+          await page.waitForTimeout(120);
+          const v=await page.evaluate(()=>({
+            state:window.duckHeistEngine.state,
+            overflowX:document.documentElement.scrollWidth>innerWidth,
+            overflowY:document.documentElement.scrollHeight>innerHeight
+          }));
+          if(v.state!=='CAREER'||v.overflowX||v.overflowY)throw new Error('career comparison render failed');
+          if(errors.length)throw new Error(errors.join(' | '));
+          await browser.close();
+          JS
+      - name: Version invariants
+        run: |
+          test "$(cat VERSION)" = "0.8.0"
+          grep -Fq '"version": "0.8.0"' package.json
+          grep -Fq "VS RUN ANTERIOR" src/game/careerUI.ts
+      - name: Cleanup temporary QA
+        if: always()
+        shell: bash
+        run: |
+          rm -f .github/workflows/v080-controls-career-final-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: remove temporary final controls career QA'
+            git push origin HEAD:feature/v080-controls-career-archive
+          fi
