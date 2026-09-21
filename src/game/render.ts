@@ -1386,48 +1386,92 @@ function drawDifficultyLock(ctx:CanvasRenderingContext2D,x:number,y:number,color
 function renderDifficultyUI(engine:GameEngine) {
   const ctx=engine.ui!;
   const left=58,width=364,top=72,rowH=51,gap=5;
-  drawPanel(ctx,30,22,420,306,'rgba(7,11,18,.94)','rgba(77,92,106,.72)');
-  titleText(ctx,engine.pendingMode==='endless'?'DIFICULTAD · ATRACO SIN FIN':'ELIGE LA DIFICULTAD DEL ATRACO',240,46,14,'#f4d03f');
-  text(ctx,engine.pendingMode==='endless'?'Misma base; la presión aumenta sin límite.':'Puedes cambiarla al comenzar cada nueva partida.',240,60,5.8,'#7f919a','center');
+  drawMenuBackdrop(ctx,engine.frame,.9,engine.pendingMode==='endless'?'#d86b58':'#e6c56f');
+  drawMenuHeader(
+    ctx,
+    engine.pendingMode==='endless'?'DIFICULTAD · SIN FIN':'NIVEL DE SEGURIDAD',
+    engine.pendingMode==='endless'?'El banco no se acaba. La presión sí sube.':'Elige el nivel antes de entrar.',
+    engine.frame,
+    engine.pendingMode==='endless'?'#d86b58':'#e6c56f',
+    'PLANIFICACIÓN DEL ATRACO',
+  );
   DIFFICULTY_MODES.forEach((mode,i)=>{
     const def=DIFFICULTIES[mode],y=top+i*(rowH+gap),selected=engine.difficultyIndex===i,locked=mode==='mad'&&!engine.madUnlocked;
-    const color=locked?'#9a6570':mode==='easy'?'#91d49b':mode==='normal'?'#f4d03f':mode==='hard'?'#f29a55':'#ff665e';
-    const fill=mode==='easy'?'rgba(25,61,37,.95)':mode==='normal'?'rgba(62,51,18,.95)':mode==='hard'?'rgba(69,38,19,.95)':'rgba(69,22,28,.95)';
-    ctx.save();if(selected){ctx.shadowColor=color;ctx.shadowBlur=9;}drawPanel(ctx,left,y,width,rowH,selected?fill:'rgba(10,16,23,.82)',selected?color:'rgba(71,84,97,.5)');ctx.restore();
-    const tx=left+18+(locked?16:0);if(locked)drawDifficultyLock(ctx,left+17,y+10,color);
-    titleText(ctx,def.label,tx,y+19,9,color,'left');
-    const skullX=tx+Math.min(126,def.label.length*5.8+8);for(let n=0;n<i+1;n++)drawDifficultySkull(ctx,skullX+n*11,y+11,color);
-    wrappedText(ctx,locked?'Completa un atraco para desbloquearlo.':def.desc,left+18,y+31,width-36,5.5,6.4,2,locked?'#8a6870':'#8fa0aa');
-    if(selected){text(ctx,'›',left-10,y+29,13,color);text(ctx,'‹',left+width+10,y+29,13,color);}
+    const color=locked?'#8f6671':mode==='easy'?'#78c99a':mode==='normal'?'#e6c56f':mode==='hard'?'#e89a58':'#e55f59';
+    drawMenuCard(ctx,left,y,width,rowH,selected,color,selected?'rgba(31,31,25,.97)':'rgba(10,22,28,.94)');
+    text(ctx,String(i+1).padStart(2,'0'),left+12,y+17,5.2,selected?color:'#536970','left',true,false);
+    if(locked) drawDifficultyLock(ctx,left+34,y+10,color);
+    titleText(ctx,def.label,left+(locked?50:34),y+20,9,color,'left',false);
+    const skullX=left+185;
+    for(let n=0;n<i+1;n++) drawDifficultySkull(ctx,skullX+n*12,y+11,color);
+    wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,left+34,y+32,width-54,5.4,6.4,2,locked?'#8a6870':'#8ea1a5');
+    text(ctx,locked?'BLOQUEADO':selected?'SELECCIONADO':'DISPONIBLE',left+width-14,y+18,5.2,locked?'#a76f79':selected?color:'#60747b','right',true,false);
   });
-  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR     B · VOLVER':'W / S · ELEGIR     ENTER · CONFIRMAR     ESC · VOLVER',240,316,5.6,'#71858b','center');
+  drawMenuFooter(
+    ctx,
+    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · CONFIRMAR   B · VOLVER':'W / S · ELEGIR   ENTER · CONFIRMAR   ESC · VOLVER',
+    engine.pendingMode==='endless'?'ARENA ÚNICA':'NUEVA PARTIDA',
+    engine.pendingMode==='endless'?'#d86b58':'#e6c56f',
+  );
 }
 
 function renderMenuUI(engine: GameEngine) {
   const ctx = engine.ui!;
-  text(ctx,'v0.8.0',8,10,5.5,'#e8d79a','left',true);
-  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 62, engine.frame);
-  text(ctx,'SE BUSCA UN CÓMPLICE',MAIN_MENU.x+MAIN_MENU.w/2,115,7,'#c9b27a','center',true);
+  const meta=MENU_META[engine.menuIndex] ?? MENU_META[0];
+  ctx.save();
+  ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  ctx.restore();
+
+  text(ctx,'v0.8.0',10,12,5.3,'#d8ca9c','left',true,false);
+  drawTitleLogo(ctx, CANVAS_WIDTH / 2, 58, engine.frame);
+  text(ctx,'EXPEDIENTE 08-HEIST',30,108,5.1,'#8aa09d','left',true,false);
+
   MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex,x=MAIN_MENU.x,y=MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap),w=MAIN_MENU.w,h=MAIN_MENU.h;
-    ctx.save();if(on) {ctx.shadowColor='#e8b95066';ctx.shadowBlur=15;ctx.translate(x+w/2,y+h/2);ctx.scale(1.025,1.025);ctx.translate(-x-w/2,-y-h/2);}
-    ctx.fillStyle=on?'#d9bc70':'rgba(18,36,42,.95)';ctx.fillRect(x,y,w,h);
-    ctx.strokeStyle=on?'#fff0b0':'#3b5355';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-    ctx.fillStyle=on?'#f5dc92':'#203a42';ctx.fillRect(x+3,y+2,w-6,1);
-    ctx.fillStyle=on?'#8c6b39':'#0a1b22';ctx.fillRect(x+3,y+h-3,w-6,1);
-    if(on) {ctx.fillStyle='rgba(255,255,220,.13)';ctx.fillRect(x+3+(engine.frame*.6)%(w-24),y+3,20,h-6);}
-    text(ctx,item.label,x+w/2,y+15,9,on?'#17262a':'#b7c5b6','center',true,false);
-    if(on) {text(ctx,'›',x-9,y+15,14,'#e7c87f');text(ctx,'‹',x+w+9,y+15,14,'#e7c87f');}
-    ctx.restore();
+    const on=i===engine.menuIndex;
+    const x=MAIN_MENU.x,y=MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap);
+    const desc=['Campaña','Supervivencia','Meta','Aspectos','Archivo','Controles','Sistema'][i] ?? '';
+    drawMenuChoice(ctx,i,item.label,desc,x,y,MAIN_MENU.w,MAIN_MENU.h,on,engine.frame,meta.accent);
   });
-  if(engine.menuIndex===1){
+
+  const px=216,py=122,pw=234,ph=184;
+  drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.95)');
+  drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
+  titleText(ctx,meta.title,px+16,py+47,13,'#efe3bc','left',false);
+  wrappedText(ctx,meta.desc,px+16,py+66,pw-32,7,10,4,'#9db0ad');
+  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+116,pw-32,1);
+  text(ctx,meta.tag,px+16,py+134,5.3,meta.accent,'left',true,false);
+
+  if(engine.menuIndex===0){
+    text(ctx,'MEJOR PISO',px+16,py+158,5.2,'#71878b','left',false,false);
+    text(ctx,String(engine.bestFloor)+'/6',px+100,py+158,7.5,'#e7d79e','left',true,false);
+    text(ctx,'DIFICULTAD',px+16,py+174,5.2,'#71878b','left',false,false);
+    text(ctx,DIFFICULTIES[engine.difficulty].label,px+100,py+174,7.2,meta.accent,'left',true,false);
+  } else if(engine.menuIndex===1){
     const rec=engine.endlessRecords[engine.difficulty];
-    const saved=engine.endlessCheckpointRound>0?` · GUARDADO R${engine.endlessCheckpointRound}`:'';
-    text(ctx,`RÉCORD ${DIFFICULTIES[engine.difficulty].label} · RONDA ${rec.round}${saved}`,240,316,5.6,'#aebd9e','center',true);
+    text(ctx,'RÉCORD',px+16,py+158,5.2,'#71878b','left',false,false);
+    text(ctx,'RONDA '+rec.round,px+100,py+158,7.5,'#e7d79e','left',true,false);
+    text(ctx,'GUARDADO',px+16,py+174,5.2,'#71878b','left',false,false);
+    text(ctx,engine.endlessCheckpointRound>0?'RONDA '+engine.endlessCheckpointRound:'—',px+100,py+174,7.2,meta.accent,'left',true,false);
+  } else if(engine.menuIndex===2 || engine.menuIndex===3){
+    text(ctx,'MONEDAS',px+16,py+158,5.2,'#71878b','left',false,false);
+    drawItemIcon(ctx,px+97,py+146,'golden_crumb',14);
+    text(ctx,String(engine.totalGoldenCrumbs),px+118,py+158,8,meta.accent,'left',true,false);
+  } else if(engine.menuIndex===4){
+    const found=Object.values(engine.discovered).reduce((a,list)=>a+list.length,0);
+    text(ctx,'REGISTROS ABIERTOS',px+16,py+158,5.2,'#71878b','left',false,false);
+    text(ctx,String(found),px+150,py+158,8,meta.accent,'left',true,false);
+  } else {
+    text(ctx,'ESTADO',px+16,py+158,5.2,'#71878b','left',false,false);
+    text(ctx,'LISTO',px+100,py+158,7.2,meta.accent,'left',true,false);
   }
-  text(ctx,T.tagline,240,326,9,'#dbbd77','center',true);
-  text(ctx,engine.lastInput==='gamepad'?'CRUCETA · ELEGIR     A · CONFIRMAR':'W / S · ELEGIR     ENTER · CONFIRMAR',30,348,6,'#738b89','left');
-  drawItemIcon(ctx,368,337,'golden_crumb',13);text(ctx,`${engine.totalGoldenCrumbs} MONEDAS`,389,348,6,'#ac9f75','left');
+
+  text(ctx,T.tagline,240,326,8,'#dbc486','center',true,false);
+  drawMenuFooter(
+    ctx,
+    engine.lastInput==='gamepad'?'CRUCETA · ELEGIR   A · ABRIR':'W / S · ELEGIR   ENTER · ABRIR',
+    String(engine.totalGoldenCrumbs)+' MONEDAS',
+    meta.accent,
+  );
 }
 
 function renderHowToPlayUI(engine: GameEngine) {
