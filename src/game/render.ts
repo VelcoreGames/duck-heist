@@ -72,7 +72,51 @@ function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'
 function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:number){
   if(engine.gameMode!=='endless')return;
   const e=engine.endless,alert=e.alert,pressure=e.pressure;
+  const damageTier=e.round>=100?3:e.round>=50?2:e.round>=21?1:0;
   ctx.save();
+
+  // La arena no cambia de sala: envejece visualmente sobre el mismo piso.
+  if(damageTier>0){
+    const cracks=[[82,88],[142,258],[236,72],[324,244],[395,116],[108,190],[366,286]] as const;
+    ctx.strokeStyle=damageTier>=3?'#352d2e':'#4a4340';
+    ctx.lineWidth=1;
+    ctx.globalAlpha=.085+damageTier*.025;
+    for(let i=0;i<Math.min(cracks.length,2+damageTier*2);i++){
+      const [x,y]=cracks[i],flip=i%2?1:-1;
+      ctx.beginPath();
+      ctx.moveTo(x-9,y-2);ctx.lineTo(x,y+3);ctx.lineTo(x+8,y-4);ctx.lineTo(x+13,y+3*flip);
+      ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x,y+3);ctx.lineTo(x-4,y+10);ctx.stroke();
+    }
+  }
+  if(damageTier>=2){
+    const scorch=[[116,118,20,7],[286,222,27,9],[378,174,18,6],[205,282,24,8]] as const;
+    ctx.fillStyle='#211d1d';
+    for(let i=0;i<scorch.length;i++){
+      const [x,y,rx,ry]=scorch[i];
+      ctx.globalAlpha=.045+.018*damageTier;
+      ctx.beginPath();ctx.ellipse(x,y,rx,ry,(i%2?-.22:.18),0,Math.PI*2);ctx.fill();
+    }
+    // Humo bajo y pegado a paredes: ambientación, nunca tapa amenazas del centro.
+    for(let i=0;i<3;i++){
+      const t=(f*.006+i*.31)%1;
+      const x=i===1?CANVAS_WIDTH-52:48+i*26;
+      const y=CANVAS_HEIGHT-58-t*52;
+      ctx.globalAlpha=(1-t)*(.035+.012*damageTier);
+      ctx.fillStyle='#aab2ae';
+      ctx.beginPath();ctx.ellipse(x+Math.sin(f*.018+i)*5,y,9+t*7,4+t*4,0,0,Math.PI*2);ctx.fill();
+    }
+  }
+  if(damageTier>=3){
+    const blink=.32+.28*(Math.sin(f*.14)>0?1:0);
+    ctx.globalAlpha=blink;
+    ctx.fillStyle='#e34d46';
+    for(const [x,y] of [[42,48],[CANVAS_WIDTH-46,48],[42,CANVAS_HEIGHT-52],[CANVAS_WIDTH-46,CANVAS_HEIGHT-52]] as const){
+      ctx.fillRect(x,y,4,2);
+      ctx.globalAlpha=blink*.18;ctx.fillRect(x-5,y-3,14,8);ctx.globalAlpha=blink;
+    }
+  }
+
   if(alert>=2){
     const alarm=.022+Math.min(.07,alert*.006)+Math.max(0,pressure-45)*.0007;
     ctx.globalAlpha=alarm*(.75+.25*Math.sin(f*.045));
@@ -235,7 +279,19 @@ export function renderWorld(engine: GameEngine) {
       ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
-    } else drawCoin(ctx, p.x, p.y, f, p.type === 'golden_crumb');
+    } else {
+      if(engine.gameMode==='endless'){
+        const golden=p.type==='golden_crumb';
+        ctx.save();
+        ctx.globalAlpha=golden?.22:.09;
+        ctx.strokeStyle=golden?'#f4d03f':'#d4a574';
+        ctx.lineWidth=1;
+        ctx.beginPath();ctx.ellipse(p.x,p.y+4,golden?8:6,golden?4:3,0,0,Math.PI*2);ctx.stroke();
+        if(golden){ctx.globalAlpha=.12+.06*Math.sin(f*.12);ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.stroke();}
+        ctx.restore();
+      }
+      drawCoin(ctx, p.x, p.y, f, p.type === 'golden_crumb');
+    }
   }
 
   let nearestEndlessItem:{x:number;y:number;itemId:string;isWeapon:boolean;isActive:boolean;d:number}|null=null;
@@ -265,6 +321,16 @@ export function renderWorld(engine: GameEngine) {
     const floorDeath=d.enemy.isBoss&&!!BOSSES[d.enemy.bossType],subDeath=d.enemy.isBoss&&!!SUBBOSSES[d.enemy.bossType];
     const maxLife=floorDeath?68:subDeath?54:d.enemy.isBoss?46:20;
     const deathT=clamp(d.life/maxLife,0,1);
+    if(d.enemy.isBoss){
+      const burst=1-deathT,cx=d.enemy.x+d.enemy.size/2,cy=d.enemy.y+d.enemy.size/2;
+      ctx.save();
+      ctx.globalAlpha=deathT*(floorDeath?.58:subDeath?.46:.34);
+      ctx.strokeStyle=floorDeath?'#ffd85a':subDeath?'#ff9b68':'#f4d03f';
+      ctx.lineWidth=floorDeath?2:1.5;
+      ctx.beginPath();ctx.arc(cx,cy,14+burst*(floorDeath?54:38),0,Math.PI*2);ctx.stroke();
+      if(floorDeath){ctx.globalAlpha*=.55;ctx.beginPath();ctx.arc(cx,cy,26+burst*78,0,Math.PI*2);ctx.stroke();}
+      ctx.restore();
+    }
     ctx.save();ctx.globalAlpha=deathT;
     ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);
     ctx.rotate((1-deathT)*(floorDeath?.7:1.05));
@@ -566,6 +632,67 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
   void engine;
 }
 
+function drawBossMutationOverlay(ctx:CanvasRenderingContext2D,e:Enemy,f:number,engine:GameEngine){
+  if(engine.gameMode!=='endless'||!e.mutation)return;
+  const cx=e.x+e.size/2,cy=e.y+e.size/2;
+  const pulse=.55+.45*Math.sin(f*.16+e.id);
+  const color=e.mutation==='TORMENTA'?'#79c8ff':e.mutation==='BLINDADO'?'#aab9c8':e.mutation==='CAZADOR'?'#ff6d63':e.mutation==='REFUERZOS'?'#d6b06a':'#ff8b55';
+  ctx.save();
+  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1.5;
+  ctx.globalAlpha=.11+.07*pulse;
+  ctx.beginPath();ctx.ellipse(cx,cy+3,e.size*.78,e.size*.62,0,0,Math.PI*2);ctx.stroke();
+
+  if(e.mutation==='FRENÉTICO'){
+    // Trazos de velocidad y postura visual agresiva.
+    ctx.globalAlpha=.45+.25*pulse;ctx.lineWidth=2;
+    const back=e.moveAngle+Math.PI;
+    for(let i=-1;i<=1;i++){
+      const a=back+i*.32,r1=e.size*.48,r2=e.size*(.82+i*.04);
+      ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);
+      ctx.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);ctx.stroke();
+    }
+    ctx.globalAlpha=.75;ctx.fillRect(cx-6,e.y-10,12,2);
+  } else if(e.mutation==='BLINDADO'){
+    // Placas externas visibles: el volumen del boss se percibe más pesado.
+    ctx.globalAlpha=.88;
+    ctx.fillRect(e.x-4,cy-7,6,14);ctx.fillRect(e.x+e.size-2,cy-7,6,14);
+    ctx.fillRect(cx-8,e.y-5,16,5);
+    ctx.fillStyle='#dce3e8';ctx.globalAlpha=.75;
+    ctx.fillRect(e.x-2,cy-4,2,2);ctx.fillRect(e.x+e.size,cy-4,2,2);ctx.fillRect(cx-1,e.y-3,2,2);
+  } else if(e.mutation==='CAZADOR'){
+    // Visor + retícula sólo durante el wind-up real: información visual, no ruido falso.
+    ctx.globalAlpha=.9;ctx.fillRect(cx-9,e.y-8,18,3);
+    ctx.fillStyle='#fff0df';ctx.fillRect(cx-2,e.y-8,4,3);
+    if(e.telegraph>.05){
+      const px=engine.player.x+7,py=engine.player.y+8;
+      ctx.globalAlpha=.16+e.telegraph*.24;ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();ctx.setLineDash([]);
+      ctx.globalAlpha=.5+e.telegraph*.35;
+      ctx.strokeRect(px-8,py-8,16,16);
+      ctx.beginPath();ctx.arc(px,py,11,0,Math.PI*2);ctx.stroke();
+    }
+  } else if(e.mutation==='REFUERZOS'){
+    // Baliza de mando / radio activa.
+    ctx.globalAlpha=.8;
+    ctx.beginPath();ctx.moveTo(cx,e.y-3);ctx.lineTo(cx,e.y-16);ctx.stroke();
+    ctx.fillRect(cx-2,e.y-18,4,4);
+    ctx.globalAlpha=.22+.24*pulse;
+    for(let r=7;r<=13;r+=6){ctx.beginPath();ctx.arc(cx,e.y-15,r,Math.PI*1.15,Math.PI*1.85);ctx.stroke();}
+  } else if(e.mutation==='TORMENTA'){
+    // Arcos cortos alrededor del cuerpo; azul exclusivo para no confundirse con daño normal.
+    ctx.globalAlpha=.62+.2*pulse;ctx.lineWidth=1.5;
+    for(let i=0;i<4;i++){
+      const a=f*.025+i*Math.PI/2;
+      const x1=cx+Math.cos(a)*e.size*.56,y1=cy+Math.sin(a)*e.size*.46;
+      const x2=cx+Math.cos(a+.22)*e.size*.82,y2=cy+Math.sin(a+.22)*e.size*.72;
+      const mx=(x1+x2)/2+Math.sin(f*.18+i)*5,my=(y1+y2)/2+Math.cos(f*.16+i)*4;
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(mx,my);ctx.lineTo(x2,y2);ctx.stroke();
+    }
+    ctx.globalAlpha=.75;ctx.fillRect(cx-5,e.y-10,10,2);
+  }
+  ctx.restore();
+}
+
 function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: GameEngine) {
   const hurt = e.hurtTimer > 0;
   const player = engine.player;
@@ -664,12 +791,6 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*(70+t*55),cy+Math.sin(ang)*(70+t*55));ctx.stroke();
       ctx.setLineDash([]);ctx.restore();
     }
-    if(engine.gameMode==='endless'&&e.mutation){
-      const mutationColor=e.mutation==='TORMENTA'?'#79c8ff':e.mutation==='BLINDADO'?'#aab9c8':e.mutation==='CAZADOR'?'#ff7b68':e.mutation==='REFUERZOS'?'#d6b06a':'#ff9b58';
-      ctx.save();ctx.globalAlpha=.16+.08*Math.sin(f*.14+e.id);ctx.strokeStyle=mutationColor;ctx.lineWidth=2;
-      ctx.beginPath();ctx.ellipse(e.x+e.size/2,e.y+e.size/2+3,e.size*.76,e.size*.62,0,0,Math.PI*2);ctx.stroke();ctx.restore();
-      ctx.fillStyle=mutationColor;ctx.globalAlpha=.85;ctx.fillRect(e.x+e.size/2-5,e.y-10,10,2);ctx.globalAlpha=1;
-    }
     ctx.save();
     const wind=e.telegraph>.05?e.telegraph:0;
     const phasePulse=(e.phaseTransition??0)>0?Math.sin((54-(e.phaseTransition??0))*.28)*.045:0;
@@ -681,6 +802,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
     ctx.filter='none';
     ctx.restore();
+    drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
   } else {

@@ -624,7 +624,11 @@ function applyBossMutationAttack(engine:GameEngine,boss:Enemy,room:MapRoom,conte
   if(engine.gameMode!=='endless'||!boss.mutation)return;
   boss.mutationCounter=(boss.mutationCounter??0)+1;
   const n=boss.mutationCounter;
-  if(boss.mutation==='CAZADOR'&&n%2===0){
+  if(boss.mutation==='BLINDADO'&&n%3===0){
+    // BLINDADO no es solo más HP: responde con un pulso radial lento que
+    // obliga a reposicionarse y refuerza su identidad defensiva.
+    bossRing(engine,boss,tier==='boss'?10:7,tier==='boss'?2.15:1.9,'enemy_bullet',engine.frame*.018);
+  } else if(boss.mutation==='CAZADOR'&&n%2===0){
     bossFan(engine,boss,ang,3,tier==='boss'?.18:.22,3.55,'enemy_bullet');
   } else if(boss.mutation==='REFUERZOS'&&n%3===0){
     const pool=tier==='boss'?['policia_rapido','dron_policial','policia_escopeta']:['policia_pato','policia_rapido'];
@@ -2981,6 +2985,9 @@ export function damageEnemy(engine: GameEngine, e: Enemy, dmg: number, crit: boo
   if(dmg>=8){
     spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',e.isBoss?6:4,e.isBoss?'#ffd7a3':'#fff0c4');
     engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?1.4:.75);
+    // Los impactos realmente pesados deben sentirse incluso sin crítico,
+    // pero con un hitstop corto para no volver entrecortadas las armas rápidas.
+    if(dmg>=10) engine.hitStop=Math.max(engine.hitStop,e.isBoss?2:1);
   }
   playHit();
   if (crit) {
