@@ -1,0 +1,67 @@
+name: v0.8.0 mouse menu visual review
+on:
+  push:
+    branches: [feature/v080-mouse-first-menu-redesign]
+    paths:
+      - '.github/workflows/v080-mouse-menu-visual.yml'
+permissions:
+  contents: write
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v080-mouse-first-menu-redesign
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --package-lock=false playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Capture menu screens
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/menu-shots
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/menu-visual.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1191,height:900},deviceScaleFactor:1});
+          await page.goto('http://127.0.0.1:4173/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistEngine&&document.querySelector('canvas[role="application"]'));
+          const canvas=page.locator('canvas[role="application"]');
+          const click=async(x,y)=>{const b=await canvas.boundingBox();await page.mouse.click(b.x+x/480*b.width,b.y+y/352*b.height);await page.waitForTimeout(80);};
+          const shot=async name=>{await canvas.screenshot({path:'/tmp/menu-shots/'+name+'.png'});};
+          await shot('01-main');
+          await click(117,87.5);await shot('02-difficulty');await click(74,329);
+          await click(117,232.5);await shot('03-collection');await click(74,329);
+          await click(117,290.5);await shot('04-settings');await click(74,329);
+          await click(117,87.5);await click(339,121);await click(370,329);
+          await page.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING',{timeout:7000});
+          await click(374,14);await shot('05-pause');
+          await click(338,134);await shot('06-confirm');
+          await browser.close();
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mouse-menu-visual-review
+          path: /tmp/menu-shots/*.png
+          retention-days: 1
+      - name: Cleanup
+        if: always()
+        shell: bash
+        run: |
+          rm -f .github/workflows/v080-mouse-menu-visual.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: remove temporary mouse menu visual review'
+            git push origin HEAD:feature/v080-mouse-first-menu-redesign
+          fi
