@@ -412,7 +412,7 @@ export default function App() {
       if (ev.button === 2) {
         ev.preventDefault();
         if (engine.state === GameState.PLAYING && !inSwap()) {
-          engine.mouseDown=false;engine.player.shootFlash=0;
+          // El dash no debe cancelar el disparo izquierdo que siga sostenido.
           handleDash(engine);
         }
         return;
