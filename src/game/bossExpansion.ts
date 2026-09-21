@@ -56,8 +56,12 @@ function uniqueAttackSequence(tier:BossTier,index:number,wanted:number):BossAtta
   // Codifica el índice como una k-permutación. Para los primeros 48 índices
   // garantiza secuencias distintas sin depender del azar ni de la seed de la partida.
   const pool=[...ATTACKS];
-  let rank=index+(tier==='mini'?0:tier==='sub'?137:281);
-  rank%=permutationCount(pool.length,wanted);
+  const total=permutationCount(pool.length,wanted);
+  const firstBlock=permutationCount(pool.length-1,wanted-1);
+  // Saltos coprimos al espacio de permutaciones reparten también el primer ataque,
+  // evitando que docenas de jefes comiencen con la misma apertura.
+  const step=firstBlock-1;
+  let rank=(index*step+(tier==='mini'?0:tier==='sub'?137:281))%total;
   const sequence:BossAttackKind[]=[];
   for(let pos=0;pos<wanted;pos++){
     const block=permutationCount(pool.length-1,wanted-pos-1);
