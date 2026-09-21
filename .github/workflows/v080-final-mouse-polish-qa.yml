@@ -94,9 +94,12 @@ jobs:
 
           // Cambio de arma: ambos slots y cancelar.
           await page.evaluate(()=>{
-            const e=window.duckHeistEngine;e.state='PLAYING';e.player.weapons[1]={...e.player.weapons[0]};
+            const e=window.duckHeistEngine;
+            if(!e.contents.get(e.currentKey)) e.contents.set(e.currentKey,{enemies:[],pickups:[],items:[],puddles:[],doorAnim:{},lockFlash:0,combatTimer:0,ambient:0,magnet:0});
+            e.player.weapons[1]={...e.player.weapons[0]};
             const content=e.contents.get(e.currentKey);content.items=[{x:220,y:160,itemId:'breadcrumb_shotgun',isWeapon:true,isActive:false}];
-            e.swap={itemId:'breadcrumb_shotgun',slot:0,from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};e.swapSel=0;e.onStateChange?.('PLAYING');
+            e.swap={itemId:'breadcrumb_shotgun',slot:0,from:'floor',srcIndex:0,worldX:220,worldY:160,roomKey:e.currentKey};e.swapSel=0;
+            e.state='PLAYING';e.onStateChange?.('PLAYING');
           });
           await clickWorld(143,213);
           if((await page.evaluate(()=>window.duckHeistEngine.player.weapons[0]?.id))!=='breadcrumb_shotgun') throw new Error('weapon swap slot 1 failed');
