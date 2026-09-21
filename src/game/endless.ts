@@ -5,14 +5,14 @@ import type { DifficultyMode, EndlessRoundKind, EndlessSpecial } from './types';
 
 export const ENDLESS_ROOM_KEY='0,0';
 
-export function createEndlessMap(alert=0):GameMap {
+export function createEndlessMap(_alert=0):GameMap {
   const room:MapRoom={
     gx:0,gy:0,type:RoomType.START,doors:[],visited:true,cleared:false,generated:true,
-    layout:[],distance:0,floorIndex:Math.min(5,alert),revealed:true,template:'open',
+    layout:[],distance:0,floorIndex:0,revealed:true,template:'open',
   };
   room.layout=generateRoomLayout(room,Math.random,'open');
   const rooms=new Map<string,MapRoom>([[ENDLESS_ROOM_KEY,room]]);
-  return {rooms,startKey:ENDLESS_ROOM_KEY,itemRoomKey:ENDLESS_ROOM_KEY,bossKey:ENDLESS_ROOM_KEY,floorIndex:Math.min(5,alert)};
+  return {rooms,startKey:ENDLESS_ROOM_KEY,itemRoomKey:ENDLESS_ROOM_KEY,bossKey:ENDLESS_ROOM_KEY,floorIndex:0};
 }
 
 export function endlessRoundKind(round:number):EndlessRoundKind {
