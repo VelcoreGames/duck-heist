@@ -1,10 +1,11 @@
 // Shared drawing and hit-test geometry. No duplicated menu rectangles.
 export const MAIN_MENU = { x:30, y:103, w:172, h:29, gap:2, count:7 };
-export const PAUSE_MENU={y:66,h:20,gap:4,w:202,count:6};
+export const PAUSE_MENU={y:66,h:20,gap:4,w:202,count:7};
+export const CONFIRM_MENU={y:225,h:28,gap:8,w:210,count:2};
 export const SWAP_LAYOUT = { x:35, y:51, w:410, h:250, cardsY:171, cardW:185, cardH:84, gap:8 };
 export const WARDROBE = { x:203,y:70,w:252,h:228,cols:3,cellW:76,cellH:94,gap:6 };
 export const WARDROBE_ACTION = { x:43,y:276,w:135,h:23 };
-export const SETTINGS = { x:62,y:63,w:356,h:20,gap:5 };
+export const SETTINGS = { x:62,y:70,w:356,h:16,gap:3 };
 export const COLLECTION = { x:200,y:89,w:251,h:217,cols:4,cellW:53,cellH:56,gap:8 };
 export const inside = (x:number,y:number,r:{x:number;y:number;w:number;h:number}) => x>=r.x && y>=r.y && x<=r.x+r.w && y<=r.y+r.h;
 export function mainMenuHit(x:number,y:number) {
