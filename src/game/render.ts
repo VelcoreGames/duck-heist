@@ -144,7 +144,7 @@ function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:n
   ctx.restore();
 }
 
-export function renderWorldexport function renderWorld(engine: GameEngine) {
+export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
   const s = engine.state;
   if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.HEIST_INTRO) {
