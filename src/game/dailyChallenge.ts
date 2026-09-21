@@ -110,6 +110,7 @@ export function finalizeDaily(e:GameEngine,outcome:DailyChallengeResult['outcome
   const wasCompleted=record.completed;
   if(outcome==='victory'){
     record.completed=true;
+    record.bestTime=record.bestTime?Math.min(record.bestTime,e.run.time):e.run.time;
     if(!wasCompleted){
       e.dailyProfile.totalCompleted++;
       e.dailyProfile.currentStreak=e.dailyProfile.lastCompletedKey===previousDateKey(record.key)?e.dailyProfile.currentStreak+1:1;
