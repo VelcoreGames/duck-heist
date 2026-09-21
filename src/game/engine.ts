@@ -3298,7 +3298,7 @@ export function handleActiveItem(engine: GameEngine) {
         const lateral=Math.sin(distance*.37)*7;
         const x=clamp(cx+Math.cos(angle)*distance+Math.cos(angle+Math.PI/2)*lateral,34,CANVAS_WIDTH-34);
         const y=clamp(cy+Math.sin(angle)*distance+Math.sin(angle+Math.PI/2)*lateral,34,CANVAS_HEIGHT-34);
-        content.puddles.push({x,y,life:300,kind:'water',radius:18});
+        content.puddles.push({x,y,life:300,kind:'butter',radius:18});
         spawn(engine,x,y,'spark',2,'#f2d76b');
       }
       playBounce();break;
