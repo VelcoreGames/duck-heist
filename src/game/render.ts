@@ -230,10 +230,15 @@ export function renderWorld(engine: GameEngine) {
 
   for (const e of content.enemies) drawEnemy(ctx, e, f, engine);
   for(const d of engine.deathEchoes) {
-    ctx.save();ctx.globalAlpha=d.life/(d.enemy.isBoss?42:20);
-    ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);ctx.rotate((20-d.life)*.035);
-    ctx.scale(Math.max(.3,d.life/20),Math.max(.2,d.life/24));
-    if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false);
+    const floorDeath=d.enemy.isBoss&&!!BOSSES[d.enemy.bossType],subDeath=d.enemy.isBoss&&!!SUBBOSSES[d.enemy.bossType];
+    const maxLife=floorDeath?68:subDeath?54:d.enemy.isBoss?46:20;
+    const deathT=clamp(d.life/maxLife,0,1);
+    ctx.save();ctx.globalAlpha=deathT;
+    ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);
+    ctx.rotate((1-deathT)*(floorDeath?.7:1.05));
+    const sx=.32+deathT*.68,sy=.18+deathT*.82;
+    ctx.scale(sx,sy);
+    if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false,d.enemy.bossPhase);
     else {
       switch(d.enemy.type) {
         case 'toaster_turret':drawToasterTurret(ctx,-10,-10,f,false);break;
@@ -299,8 +304,31 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   if (p.hp > 0) {
-    drawDuckSkin(ctx, p.x, p.y, f, engine.equippedSkin, p.dir, p.moving,
+    if(p.dashTimer>0){
+      for(let i=3;i>=1;i--){
+        ctx.save();
+        ctx.globalAlpha=.08+i*.055;
+        const ox=-p.dashDir.x*(i*5+2),oy=-p.dashDir.y*(i*5+2);
+        drawDuckSkin(ctx,p.x+ox,p.y+oy,f-i*2,engine.equippedSkin,p.dir,true,false,true,p.shootFlash>0);
+        ctx.restore();
+      }
+      ctx.save();ctx.globalAlpha=.34;ctx.strokeStyle='#fff3a8';ctx.lineWidth=1;
+      for(let i=-1;i<=1;i++){
+        const px=p.x+7-p.dashDir.x*(12+i*4)+p.dashDir.y*i*4;
+        const py=p.y+8-p.dashDir.y*(12+i*4)-p.dashDir.x*i*4;
+        ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px-p.dashDir.x*16,py-p.dashDir.y*16);ctx.stroke();
+      }
+      ctx.restore();
+    }
+    const recoil=p.shootFlash>0?(p.shootFlash/4)*1.6:0;
+    const drawX=p.x-Math.cos(p.facingAngle)*recoil,drawY=p.y-Math.sin(p.facingAngle)*recoil;
+    drawDuckSkin(ctx, drawX, drawY, f, engine.equippedSkin, p.dir, p.moving,
       p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);
+    if(p.shootFlash>0){
+      const mx=p.x+7+Math.cos(p.facingAngle)*14,my=p.y+8+Math.sin(p.facingAngle)*14;
+      ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);ctx.globalAlpha=.7;
+      ctx.fillStyle='#fff4bd';ctx.fillRect(0,-2,7,4);ctx.fillStyle='#f4d03f';ctx.fillRect(5,-1,5,2);ctx.restore();
+    }
     if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
       ctx.globalAlpha = 0.2;
       ctx.fillStyle = '#fff';
@@ -557,6 +585,30 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
 
   if (e.isBoss) {
+    const cx=e.x+e.size/2,cy=e.y+e.size/2;
+    if((e.phaseTransition??0)>0){
+      const pt=e.phaseTransition??0;
+      const progress=1-pt/54;
+      ctx.save();
+      ctx.globalAlpha=Math.min(.8,pt/18);
+      const accent=BOSSES[e.bossType]?'#ff5d63':SUBBOSSES[e.bossType]?'#f39a68':'#f4d03f';
+      ctx.strokeStyle=accent;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(cx,cy,12+progress*42,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha*=.55;ctx.beginPath();ctx.arc(cx,cy,22+progress*58,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.12+.14*Math.sin(f*.35);ctx.fillStyle=accent;ctx.beginPath();ctx.arc(cx,cy,18+(54-pt)*.35,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    if(e.telegraph>.05){
+      const t=e.telegraph,ang=e.moveAngle;
+      ctx.save();
+      ctx.globalAlpha=.16+t*.34;
+      ctx.strokeStyle=BOSSES[e.bossType]?'#ff6a63':SUBBOSSES[e.bossType]?'#f1a26f':'#ffd166';
+      ctx.lineWidth=2+t*2;
+      ctx.beginPath();ctx.arc(cx,cy,e.size*.62+t*8,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.18+t*.32;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*(70+t*55),cy+Math.sin(ang)*(70+t*55));ctx.stroke();
+      ctx.setLineDash([]);ctx.restore();
+    }
     if(engine.gameMode==='endless'&&e.mutation){
       const mutationColor=e.mutation==='TORMENTA'?'#79c8ff':e.mutation==='BLINDADO'?'#aab9c8':e.mutation==='CAZADOR'?'#ff7b68':e.mutation==='REFUERZOS'?'#d6b06a':'#ff9b58';
       ctx.save();ctx.globalAlpha=.16+.08*Math.sin(f*.14+e.id);ctx.strokeStyle=mutationColor;ctx.lineWidth=2;
