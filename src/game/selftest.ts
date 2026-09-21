@@ -1,5 +1,5 @@
 import { auditContent, CATALOG, COLLECTION_TABS } from './catalog';
-import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, FLOOR_BOSS_POOL, FLOOR_MINIBOSS_POOL, FLOOR_SUBBOSS_POOL, FINAL_BOSS_ID } from './data';
+import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENEMIES, FLOOR_BOSS_POOL, FLOOR_MINIBOSS_POOL, FLOOR_SUBBOSS_POOL, FINAL_BOSS_ID } from './data';
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
@@ -14,6 +14,7 @@ import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
+import { drawBoss } from './sprites';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -271,6 +272,15 @@ export function runSelfChecks():CheckReport {
       assert(new Set(signatures).size===signatures.length,'firmas de combate repetidas');
       assert(all.every(b=>b.pattern.sequence.length>=4&&new Set(b.pattern.sequence).size===b.pattern.sequence.length),'secuencia de ataques pobre o duplicada');
       assert(all.every(b=>b.pattern.support.length>=3&&b.pattern.tempo>0&&b.pattern.speed>0),'firma incompleta');
+    });
+    check('Todos los apoyos de las firmas de jefe existen',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      assert(all.every(b=>b.pattern.support.every(id=>!!ENEMIES[id])),'firma invoca un enemigo inexistente');
+    });
+    check('Los 121 jefes pueden dibujarse sin excepción',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      all.forEach(b=>drawBoss(ctx,80,80,b.id,120,b.hp,b.hp,false,b.phases-1));
+      assert(all.length>=121,'catálogo de jefes incompleto');
     });
     check('Pisos 1 a 5 rotan ocho jefes y piso 6 fija al Gran Jefe',()=>{
       assert(FLOOR_BOSS_POOL.length===6,'cantidad de pisos incorrecta');
