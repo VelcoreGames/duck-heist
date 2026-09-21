@@ -14,7 +14,7 @@ import {
 import { generateMap, key, freeTiles, type MapRoom } from './mapgen';
 import {
   createEndlessMap, endlessRoundKind, endlessScale, endlessSpecial, endlessStage,
-  endlessThreatRank, endlessComposition, endlessMilestone, endlessBossMutation, rewardRounds, specialLabel,
+  endlessThreatRank, endlessComposition, endlessMilestone, endlessBossMutation, rewardRounds, specialLabel, endlessOverdrive, endlessHazardTiming,
 } from './endless';
 import { T } from './i18n';
 import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
@@ -895,19 +895,45 @@ export function skipEndlessMarket(engine:GameEngine) {
   engine.endless.marketOpen=false;engine.toast='MIGAS CONSERVADAS · SIGUIENTE RONDA';engine.toastTimer=60;playUiBack();queueNextEndlessRound(engine,42);
 }
 
+export function cleanupEndlessFloorDrops(engine:GameEngine,content:RoomContent=getContent(engine)) {
+  let recycledItems=0,recycledMigas=0,bankedMigas=0,golden=0,discardedHealing=0;
+  for(const it of content.items) {
+    const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
+    const rarity=Math.max(1,def?.rarity??1);
+    const manualValue=4+rarity*3+(it.isWeapon?3:0);
+    const value=Math.max(2,Math.floor(manualValue*.6));
+    recycledItems++;recycledMigas+=value;
+  }
+  if(recycledMigas>0){engine.player.crumbs+=recycledMigas;engine.stats.breadStolen+=recycledMigas;}
+  content.items=[];
+  for(const p of content.pickups) {
+    if(p.type==='crumb'){bankedMigas+=p.value;engine.player.crumbs+=p.value;engine.stats.breadStolen+=p.value;}
+    else if(p.type==='golden_crumb'){
+      golden+=p.value;engine.player.goldenCrumbs+=p.value;engine.stats.goldenCrumbs+=p.value;
+      engine.run.goldenEarned+=p.value;engine.totalGoldenCrumbs+=p.value;
+    } else discardedHealing++;
+  }
+  content.pickups=[];
+  if(golden>0)saveProgress(engine);
+  if(recycledItems||bankedMigas||golden)playCoin();
+  return {recycledItems,recycledMigas,bankedMigas,golden,discardedHealing};
+}
+
 function finishEndlessRound(engine:GameEngine) {
   const e=engine.endless,content=getContent(engine),room=currentRoom(engine);
   if(!e.roundActive) return;
   e.roundActive=false;
-  // El botín del suelo permanece exactamente donde cayó.
-  // Solo se limpian elementos peligrosos/temporales de combate.
+  // Entre rondas no se acumulan drops: monedas se cobran, equipo sobrante se recicla
+  // con valor reducido y la curación abandonada expira.
+  const cleanup=cleanupEndlessFloorDrops(engine,content);
   content.puddles=[];content.choices=undefined;
   content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
   engine.projectiles=[];engine.grenades=[];engine.remoteBomb=null;engine.deathEchoes=[];
   room.cleared=true;
   const perfect=!e.roundDamaged;
-  if(perfect){e.perfectRounds++;e.perfectStreak++;e.maxPerfectStreak=Math.max(e.maxPerfectStreak,e.perfectStreak);e.score+=150+e.round*8;engine.toast='RONDA PERFECTA';engine.toastTimer=90;}
-  else e.perfectStreak=0;
+  const cleanupNote=cleanup.recycledItems>0?` · LIMPIEZA +${cleanup.recycledMigas} MIGAS`:cleanup.discardedHealing>0?' · SUELO LIMPIO':'';
+  if(perfect){e.perfectRounds++;e.perfectStreak++;e.maxPerfectStreak=Math.max(e.maxPerfectStreak,e.perfectStreak);e.score+=150+e.round*8;engine.toast='RONDA PERFECTA'+cleanupNote;engine.toastTimer=90;}
+  else {e.perfectStreak=0;if(cleanupNote){engine.toast='RONDA SUPERADA'+cleanupNote;engine.toastTimer=75;}}
   e.score+=e.round*35+e.killedThisRound*12+(e.roundKind==='boss'?600:e.roundKind==='subboss'?300:e.roundKind==='miniboss'?180:0);
   if(e.round%10===0) e.alert=Math.floor(e.round/10);
   e.rewardOptions=rewardRounds(e.round)?makeEndlessRewards(engine):[];
@@ -931,7 +957,7 @@ export function startEndlessRound(engine:GameEngine) {
   e.milestone=endlessMilestone(e.round);
   e.compositionLabel='';
   e.hazardKind=null;e.hazardWarning=0;
-  e.hazardCooldown=Math.max(160,520-e.alert*22-(e.milestone?80:0));
+  e.hazardCooldown=endlessHazardTiming(e.round,!!e.milestone).openingCooldown;
   e.pendingEnemies=[];e.spawnCooldown=0;e.roundActive=true;e.awaitingReward=false;e.rewardOptions=[];e.rewardIndex=0;e.nextRoundTimer=0;
   resetEndlessArena(engine);configureEndlessArena(engine);
   const room=currentRoom(engine);room.cleared=false;room.doors=[];
@@ -1102,14 +1128,14 @@ function updateEndlessHazard(engine:GameEngine,content:RoomContent) {
     e.hazardWarning--;
     if(e.hazardWarning===0&&e.hazardKind){
       triggerEndlessHazard(engine,content,e.hazardKind);
-      e.hazardCooldown=Math.max(210,560-e.alert*24-(e.milestone?90:0));
+      e.hazardCooldown=endlessHazardTiming(e.round,!!e.milestone).repeatCooldown;
       e.hazardKind=null;
     }
     return;
   }
   if(e.hazardCooldown>0){e.hazardCooldown--;return;}
   e.hazardKind=chooseEndlessHazard(engine);
-  e.hazardWarning=54;
+  e.hazardWarning=endlessHazardTiming(e.round,!!e.milestone).warning;
   engine.toast=`PELIGRO · ${endlessHazardLabel(e.hazardKind)}`;
   engine.toastTimer=50;
   playDanger('camera');
@@ -1141,7 +1167,7 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
       e.spawnCooldown=Math.max(10,scale.spawnDelay-Math.floor(e.pressure/18));
     }
     if(e.pressure>=100) {
-      e.pressure=62;playDanger('camera');engine.toast='PRESIÓN 100% · REFUERZOS';engine.toastTimer=70;
+      e.pressure=Math.min(77,62+endlessOverdrive(e.round)*3);playDanger('camera');engine.toast='PRESIÓN 100% · REFUERZOS';engine.toastTimer=70;
       const pool=Object.values(ENEMIES).filter(x=>x.minFloor<=Math.min(5,e.alert)&&x.damage>0);
       const def=pool[Math.floor(random()*pool.length)];
       const spot=freeTiles(room.layout,2).find(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,engine.player.x,engine.player.y)>120);
@@ -1153,7 +1179,7 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     const bossPressure=scale.pressureGain*(.22+Math.min(.30,e.alert*.025));
     e.pressure=Math.min(100,e.pressure+bossPressure);
     const supports=content.enemies.filter(x=>!x.isBoss).length;
-    const supportCap=Math.min(2,1+Math.floor(e.alert/7));
+    const supportCap=Math.min(3,1+Math.floor(e.alert/7)+(endlessOverdrive(e.round)>=3?1:0));
     if(e.pressure>=100&&supports<supportCap&&content.enemies.some(x=>x.isBoss)) {
       e.pressure=45;
       const pool=['policia_pato','policia_rapido',...(e.alert>=6?['dron_policial','policia_escopeta']:[])];
