@@ -21,7 +21,7 @@ import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
 import { DEFAULT_BINDINGS } from './controls';
 import { loadCareer, recordRun, refreshContracts } from './career';
-import { seededRandom } from './random';
+import { seededRandom, gameRandom, setGameRandom, resetGameRandom } from './random';
 import { dailyModifiers, dailyScore, ensureDailyProfile, finalizeDaily, loadDailyChallenge } from './dailyChallenge';
 import type { CollectionCategory } from './catalog';
 import { WARDROBE } from './layout';
@@ -48,8 +48,7 @@ import {
 // ---------------------------------------------------------------------------
 // UTILIDADES
 // ---------------------------------------------------------------------------
-let runRandom:()=>number=Math.random;
-const random=()=>runRandom();
+const random=gameRandom;
 const rng = (min: number, max: number) => random() * (max - min) + min;
 const rngInt = (min: number, max: number) => Math.floor(random() * (max - min + 1)) + min;
 const pick = <T,>(a: T[]): T => a[Math.floor(random() * a.length)];
@@ -549,7 +548,7 @@ function createPlayer(meta: Record<string, number>) {
 // ---------------------------------------------------------------------------
 export function startGame(engine: GameEngine) {
   refreshContracts(engine);
-  runRandom=Math.random;activeDailyModifiers=[];
+  resetGameRandom();activeDailyModifiers=[];
   engine.gameMode='heist';engine.pendingMode='heist';engine.dailyResult=null;
   activeDifficulty=engine.difficulty;
   saveProgress(engine);
@@ -597,7 +596,7 @@ export function startDailyChallenge(engine:GameEngine) {
   const current=engine.dailyProfile.current;
   engine.gameMode='daily';engine.pendingMode='daily';engine.difficulty='normal';engine.difficultyIndex=DIFFICULTY_MODES.indexOf('normal');
   activeDifficulty='normal';engine.daily={key:current.key,seed:current.seed,modifiers:dailyModifiers(current.key),score:0};engine.dailyResult=null;
-  activeDailyModifiers=[...engine.daily.modifiers];runRandom=seededRandom(current.seed+':run');
+  activeDailyModifiers=[...engine.daily.modifiers];setGameRandom(seededRandom(current.seed+':run'));
   saveProgress(engine);nextEnemyId=0;initAudio();
   engine.player=createPlayer({});
   if(engine.daily.modifiers.includes('GLASS_BEAK')) {engine.player.maxHp=3;engine.player.hp=3;engine.player.damageMultiplier*=1.25;}
@@ -969,7 +968,7 @@ export function startEndlessRound(engine:GameEngine) {
 
 export function startEndlessGame(engine:GameEngine) {
   refreshContracts(engine);
-  runRandom=Math.random;activeDailyModifiers=[];engine.dailyResult=null;
+  resetGameRandom();activeDailyModifiers=[];engine.dailyResult=null;
   clearEndlessCheckpoint(engine);
   activeDifficulty=engine.difficulty;saveProgress(engine);nextEnemyId=0;initAudio();
   engine.gameMode='endless';engine.pendingMode='endless';engine.player=createPlayer(engine.metaLevels);
