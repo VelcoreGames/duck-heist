@@ -24,6 +24,11 @@ export function endlessRoundKind(round:number):EndlessRoundKind {
   return 'combat';
 }
 
+export function endlessOverdrive(round:number) {
+  const r=Math.max(1,round);
+  return r<=100?0:Math.min(5,1+Math.floor((r-101)/20));
+}
+
 export function endlessStage(round:number) {
   if(round<=10) return 'INTRUSIÓN';
   if(round<=20) return 'RESPUESTA ARMADA';
@@ -32,7 +37,8 @@ export function endlessStage(round:number) {
   if(round<=50) return 'ESTADO DE SITIO';
   if(round<=75) return 'BANCO EN GUERRA';
   if(round<=100) return 'PROTOCOLO FINAL';
-  return 'ATRACO IMPOSIBLE';
+  const roman=['','I','II','III','IV','V'][endlessOverdrive(round)] ?? 'V';
+  return `ATRACO IMPOSIBLE · ${roman}`;
 }
 
 export function endlessThreatRank(round:number):'NORMAL'|'VETERANO'|'ÉLITE'|'NÉMESIS' {
@@ -45,28 +51,45 @@ export function endlessThreatRank(round:number):'NORMAL'|'VETERANO'|'ÉLITE'|'N�
 
 export interface EndlessScale {
   hp:number; dmg:number; speed:number; fire:number; budget:number; maxActive:number;
-  eliteChance:number; spawnDelay:number; pressureGain:number;
+  eliteChance:number; spawnDelay:number; pressureGain:number; overdrive:number;
 }
 export function endlessScale(round:number,difficulty:DifficultyMode):EndlessScale {
-  const r=Math.max(1,round),alert=Math.floor((r-1)/10);
+  const r=Math.max(1,round),alert=Math.floor((r-1)/10),overdrive=endlessOverdrive(r);
   const difficultyMul={
     easy:{hp:.82,dmg:.75,speed:.92,fire:1.18,count:.92,elite:.55},
     normal:{hp:1,dmg:1,speed:1,fire:1,count:1,elite:1},
     hard:{hp:1.15,dmg:1.18,speed:1.06,fire:.88,count:1.1,elite:1.35},
     mad:{hp:1.28,dmg:1.38,speed:1.12,fire:.74,count:1.22,elite:1.75},
   }[difficulty];
-  const hp=(1+(r-1)*.045+alert*.10)*difficultyMul.hp;
+  // Hasta R100 crece como antes. Después entra un soft cap de HP y tamaño de ola:
+  // el reto sigue subiendo por presión, élites, peligros y refuerzos, no por esponjas.
+  const hpBase=r<=100
+    ? 1+(r-1)*.045+alert*.10
+    : 6.355+(r-100)*.022+Math.max(0,alert-9)*.03;
+  const hp=hpBase*difficultyMul.hp;
   const dmg=(1+(r-1)*.018+alert*.045)*difficultyMul.dmg;
   const speed=Math.min(1.48,(1+Math.min(.38,(r-1)*.005+alert*.012))*difficultyMul.speed);
   const baseFire=Math.max(.58,1-Math.min(.42,(r-1)*.004+alert*.009));
   // Nunca comprimimos la cadencia por debajo de ~52%: el endgame debe ser brutal, no ilegible.
   const fire=Math.max(.52,Math.min(1.22,baseFire*difficultyMul.fire));
-  const budget=Math.max(3,Math.round((3+r*.46+alert*1.25)*difficultyMul.count));
+  const budgetBase=r<=100
+    ? 3+r*.46+alert*1.25
+    : 60.25+(r-100)*.20+Math.max(0,alert-9)*.55;
+  const budget=Math.max(3,Math.round(budgetBase*difficultyMul.count));
   const maxActive=Math.min(12,4+Math.floor(r/14)+Math.floor(alert/3));
   const eliteChance=Math.min(.78,(.025+r*.0065+alert*.02)*difficultyMul.elite);
-  const spawnDelay=Math.max(16,46-Math.floor(r*.22)-alert);
-  const pressureGain=Math.min(.145,.04+r*.00055+alert*.0025);
-  return {hp,dmg,speed,fire,budget,maxActive,eliteChance,spawnDelay,pressureGain};
+  const spawnDelay=Math.max(14,46-Math.floor(r*.22)-alert-overdrive);
+  const pressureGain=Math.min(.18,.04+r*.00055+alert*.0025+overdrive*.006);
+  return {hp,dmg,speed,fire,budget,maxActive,eliteChance,spawnDelay,pressureGain,overdrive};
+}
+
+export function endlessHazardTiming(round:number,milestone=false) {
+  const r=Math.max(1,round),alert=Math.floor((r-1)/10),overdrive=endlessOverdrive(r);
+  return {
+    warning:Math.max(34,54-overdrive*4),
+    openingCooldown:Math.max(120,520-alert*22-overdrive*20-(milestone?80:0)),
+    repeatCooldown:Math.max(145,560-alert*24-overdrive*22-(milestone?90:0)),
+  };
 }
 
 export function endlessSpecial(round:number):EndlessSpecial {
