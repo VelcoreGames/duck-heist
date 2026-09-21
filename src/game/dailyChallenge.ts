@@ -70,8 +70,13 @@ export function loadDailyChallenge():DailyChallengeProfile {
 }
 export function ensureDailyProfile(profile:DailyChallengeProfile) {
   const key=dailyKey();
-  if(profile.current.key!==key) profile.current=blankRecord(key);
+  if(profile.current.key!==key){profile.current=blankRecord(key);persistDaily(profile);}
   return profile;
+}
+export function refreshDailyRuntime(e:GameEngine) {
+  ensureDailyProfile(e.dailyProfile);
+  e.daily={key:e.dailyProfile.current.key,seed:e.dailyProfile.current.seed,modifiers:dailyModifiers(e.dailyProfile.current.key),score:0};
+  return e.daily;
 }
 export function persistDaily(profile:DailyChallengeProfile) {
   try{localStorage.setItem('duckheist_daily',JSON.stringify(profile));}catch{}
