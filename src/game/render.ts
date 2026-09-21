@@ -1148,7 +1148,7 @@ function renderActiveSwapUI(engine: GameEngine) {
   drawMenuCard(ctx,box.x+18,box.y+132,box.w-36,54,false,'#6c7d87','rgba(8,18,24,.95)');
   text(ctx,'ACTUAL',box.x+32,box.y+149,5,'#72858c','left',true,false);
   drawItemIcon(ctx,box.x+32,box.y+154,current.id,24);
-  wrappedText(ctx,current.name,box.x+68,box.y+171,180,8,'#dfcf9f' as any,1,'#dfcf9f',true);
+  wrappedText(ctx,current.name,box.x+68,box.y+171,180,8,10,1,'#dfcf9f',true);
 
   drawMenuCard(ctx,box.confirm.x,box.confirm.y,box.confirm.w,box.confirm.h,true,'#c98cff','rgba(38,26,47,.98)');
   drawMenuCard(ctx,box.cancel.x,box.cancel.y,box.cancel.w,box.cancel.h,false,'#566a72','rgba(10,22,28,.95)');
@@ -1436,7 +1436,7 @@ function renderMenuUI(engine: GameEngine) {
     drawMenuChoice(ctx,i,item.label,desc,x,y,MAIN_MENU.w,MAIN_MENU.h,on,engine.frame,meta.accent);
   });
 
-  const px=216,py=122,pw=234,ph=184;
+  const px=216,py=104,pw=234,ph=204;
   drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.95)');
   drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
   titleText(ctx,meta.title,px+16,py+47,13,'#efe3bc','left',false);
