@@ -895,13 +895,17 @@ export function skipEndlessMarket(engine:GameEngine) {
   engine.endless.marketOpen=false;engine.toast='MIGAS CONSERVADAS · SIGUIENTE RONDA';engine.toastTimer=60;playUiBack();queueNextEndlessRound(engine,42);
 }
 
+function endlessRecycleValue(it:RoomContent['items'][number]) {
+  const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
+  const rarity=Math.max(1,def?.rarity??1);
+  const manualValue=4+rarity*3+(it.isWeapon?3:0);
+  return Math.max(2,Math.floor(manualValue*.6));
+}
+
 export function cleanupEndlessFloorDrops(engine:GameEngine,content:RoomContent=getContent(engine)) {
   let recycledItems=0,recycledMigas=0,bankedMigas=0,golden=0,discardedHealing=0;
   for(const it of content.items) {
-    const def=WEAPONS[it.itemId]??ITEMS[it.itemId]??ACTIVE_ITEMS[it.itemId];
-    const rarity=Math.max(1,def?.rarity??1);
-    const manualValue=4+rarity*3+(it.isWeapon?3:0);
-    const value=Math.max(2,Math.floor(manualValue*.6));
+    const value=it.recycleValue??endlessRecycleValue(it);
     recycledItems++;recycledMigas+=value;
   }
   if(recycledMigas>0){engine.player.crumbs+=recycledMigas;engine.stats.breadStolen+=recycledMigas;}
@@ -919,21 +923,47 @@ export function cleanupEndlessFloorDrops(engine:GameEngine,content:RoomContent=g
   return {recycledItems,recycledMigas,bankedMigas,golden,discardedHealing};
 }
 
+export function beginEndlessFloorSweep(engine:GameEngine,content:RoomContent=getContent(engine)) {
+  if(content.endlessSweep)return content.endlessSweep;
+  let recycledItems=0,recycledMigas=0,discardedHealing=0;
+  for(const it of content.items) {
+    const value=endlessRecycleValue(it);
+    it.vacuuming=true;it.recycleValue=value;it.vx=0;it.vy=0;
+    recycledItems++;recycledMigas+=value;
+  }
+  for(const p of content.pickups) {
+    p.forceMagnet=true;p.sweepCollect=true;p.vx=0;p.vy=0;
+    if(p.type!=='crumb'&&p.type!=='golden_crumb')discardedHealing++;
+  }
+  content.endlessSweep={started:engine.frame,recycledItems,recycledMigas,discardedHealing};
+  engine.toast=(content.items.length||content.pickups.length)?'RECOGIENDO BOTÍN...':'RONDA ASEGURADA';
+  engine.toastTimer=72;
+  return content.endlessSweep;
+}
+
 function finishEndlessRound(engine:GameEngine) {
   const e=engine.endless,content=getContent(engine),room=currentRoom(engine);
   if(!e.roundActive) return;
+
+  if(!content.endlessSweep) {
+    beginEndlessFloorSweep(engine,content);
+    content.puddles=[];content.choices=undefined;
+    content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
+    engine.projectiles=[];engine.grenades=[];engine.remoteBomb=null;engine.deathEchoes=[];
+    room.cleared=true;
+  }
+
+  const sweep=content.endlessSweep!;
+  const pending=content.items.some(it=>it.vacuuming)||content.pickups.some(p=>p.sweepCollect);
+  if(pending&&engine.frame-sweep.started<150)return;
+  if(pending)cleanupEndlessFloorDrops(engine,content);
+
+  content.endlessSweep=undefined;
   e.roundActive=false;
-  // Entre rondas no se acumulan drops: monedas se cobran, equipo sobrante se recicla
-  // con valor reducido y la curación abandonada expira.
-  const cleanup=cleanupEndlessFloorDrops(engine,content);
-  content.puddles=[];content.choices=undefined;
-  content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
-  engine.projectiles=[];engine.grenades=[];engine.remoteBomb=null;engine.deathEchoes=[];
-  room.cleared=true;
   const perfect=!e.roundDamaged;
-  const cleanupNote=cleanup.recycledItems>0?` · LIMPIEZA +${cleanup.recycledMigas} MIGAS`:cleanup.discardedHealing>0?' · SUELO LIMPIO':'';
+  const cleanupNote=sweep.recycledItems>0?` · RECOGIDO +${sweep.recycledMigas} MIGAS`:sweep.discardedHealing>0?' · SUELO RECOGIDO':'';
   if(perfect){e.perfectRounds++;e.perfectStreak++;e.maxPerfectStreak=Math.max(e.maxPerfectStreak,e.perfectStreak);e.score+=150+e.round*8;engine.toast='RONDA PERFECTA'+cleanupNote;engine.toastTimer=90;}
-  else {e.perfectStreak=0;if(cleanupNote){engine.toast='RONDA SUPERADA'+cleanupNote;engine.toastTimer=75;}}
+  else {e.perfectStreak=0;engine.toast='RONDA SUPERADA'+cleanupNote;engine.toastTimer=75;}
   e.score+=e.round*35+e.killedThisRound*12+(e.roundKind==='boss'?600:e.roundKind==='subboss'?300:e.roundKind==='miniboss'?180:0);
   if(e.round%10===0) e.alert=Math.floor(e.round/10);
   e.rewardOptions=rewardRounds(e.round)?makeEndlessRewards(engine):[];
@@ -1148,6 +1178,7 @@ function updateEndlessDirector(engine:GameEngine,room:MapRoom,content:RoomConten
     if(e.nextRoundTimer>0 && --e.nextRoundTimer<=0) startEndlessRound(engine);
     return;
   }
+  if(content.endlessSweep){finishEndlessRound(engine);return;}
   const scale=endlessScale(e.round,engine.difficulty);
   updateEndlessHazard(engine,content);
   if(e.roundKind==='combat'||e.roundKind==='special') {
@@ -1783,23 +1814,29 @@ export function updateEngine(engine: GameEngine) {
     if((p.collectDelay ?? 0)>0) {p.collectDelay!--;continue;}
     if (p.lifetime < 99999 && !room.cleared) p.lifetime--;
     const isCoin = p.type === 'crumb' || p.type === 'golden_crumb';
-    const d2 = dist(p.x, p.y, player.x + 7, player.y + 8);
-    // sólo las monedas son arrastradas automáticamente; la comida no
-    if (isCoin && (d2<magnet || autoMagnet || instantMagnet)) {
-      if(build.king && !room.cleared && d2<65) {
+    const sweep=!!p.forceMagnet;
+    let d2 = dist(p.x, p.y, player.x + 7, player.y + 8);
+    // Al cerrar una ronda, todo el botín visible viaja hasta el pato antes de resolverse.
+    if ((isCoin||sweep) && (sweep||d2<magnet || autoMagnet || instantMagnet)) {
+      if(!sweep&&build.king && !room.cleared && d2<65) {
         const a=engine.frame*.06+i*1.7;
         p.x=lerp(p.x,player.x+7+Math.cos(a)*32,.15);p.y=lerp(p.y,player.y+8+Math.sin(a)*32,.15);
         if(engine.frame%30===i%30) for(const enemy of [...content.enemies]) if(dist(p.x,p.y,enemy.x+enemy.size/2,enemy.y+enemy.size/2)<20) damageEnemy(engine,enemy,2,false,content);
         continue;
       }
-      const a = Math.atan2(player.y + 8 - p.y, player.x + 7 - p.x)+Math.sin(engine.frame*.09+i)*.16;
-      p.vx=lerp(p.vx ?? 0,Math.cos(a)*Math.min(8,d2*.15+2),.16);
-      p.vy=lerp(p.vy ?? 0,Math.sin(a)*Math.min(8,d2*.15+2),.16);
+      const a = Math.atan2(player.y + 8 - p.y, player.x + 7 - p.x)+Math.sin(engine.frame*.09+i)*(sweep?.06:.16);
+      const maxSpeed=sweep?12:8,accel=sweep?.28:.16;
+      p.vx=lerp(p.vx ?? 0,Math.cos(a)*Math.min(maxSpeed,d2*(sweep?.22:.15)+(sweep?3:2)),accel);
+      p.vy=lerp(p.vy ?? 0,Math.sin(a)*Math.min(maxSpeed,d2*(sweep?.22:.15)+(sweep?3:2)),accel);
       p.x+=p.vx;p.y+=p.vy;
-      if(autoMagnet && engine.frame%6===i%6) spawn(engine,p.x,p.y,'spark',1,'#e8c99b');
+      d2=dist(p.x,p.y,player.x+7,player.y+8);
+      if((autoMagnet||sweep) && engine.frame%4===i%4) spawn(engine,p.x,p.y,'spark',1,isCoin?'#e8c99b':'#ffb6c4');
     }
     if (d2 < 14) {
-      if(!isCoin && player.hp>=player.maxHp) continue;
+      if(!isCoin && player.hp>=player.maxHp) {
+        if(p.sweepCollect){spawn(engine,p.x,p.y,'spark',4,'#ffb6c4');content.pickups.splice(i,1);}
+        continue;
+      }
       if (p.type === 'crumb') { player.crumbs += p.value; engine.stats.breadStolen += p.value; }
       else if (p.type === 'golden_crumb') {
         player.goldenCrumbs += p.value;
@@ -1821,7 +1858,7 @@ export function updateEngine(engine: GameEngine) {
       }
       if (isCoin) spawn(engine, p.x, p.y, 'spark', 4, '#f4d03f');
       if(isCoin) playCoin(); else playHeal();
-      if(!isCoin && random()<build.keepFood) {p.collectDelay=75;spawn(engine,p.x,p.y,'spark',2,'#afd9ae');}
+      if(!isCoin && !p.sweepCollect && random()<build.keepFood) {p.collectDelay=75;spawn(engine,p.x,p.y,'spark',2,'#afd9ae');}
       else content.pickups.splice(i, 1);
       continue;
     }
@@ -1832,6 +1869,21 @@ export function updateEngine(engine: GameEngine) {
   if (engine.swapGuard > 0) engine.swapGuard--;
   for (let i = content.items.length - 1; i >= 0; i--) {
     const it = content.items[i];
+    if(it.vacuuming){
+      const tx=player.x+7,ty=player.y+8,cx=it.x+8,cy=it.y+8,d2=dist(cx,cy,tx,ty);
+      const a=Math.atan2(ty-cy,tx-cx)+Math.sin(engine.frame*.08+i)*.05;
+      it.vx=lerp(it.vx??0,Math.cos(a)*Math.min(12,d2*.22+3),.28);
+      it.vy=lerp(it.vy??0,Math.sin(a)*Math.min(12,d2*.22+3),.28);
+      it.x+=it.vx;it.y+=it.vy;
+      if(engine.frame%4===i%4)spawn(engine,it.x+8,it.y+8,'spark',1,'#d8bc70');
+      if(dist(it.x+8,it.y+8,tx,ty)<16){
+        const value=it.recycleValue??endlessRecycleValue(it);
+        player.crumbs+=value;engine.stats.breadStolen+=value;
+        spawn(engine,tx,ty,'spark',6,'#f4d03f');playCoin();
+        content.items.splice(i,1);
+      }
+      continue;
+    }
     if (dist(it.x + 8, it.y + 8, player.x + 7, player.y + 8) < 24 && bound(engine,'interact') && engine.swapGuard <= 0) {
       if (it.isWeapon) {
         if (!tryGiveWeapon(engine, it.itemId, 'floor', i, it.x, it.y)) {
