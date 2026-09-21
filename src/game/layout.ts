@@ -26,6 +26,10 @@ export const MAP_CLOSE:Rect={x:356,y:318,w:96,h:22};
 export const HUD_MENU:Rect={x:354,y:6,w:40,h:17};
 export const SWAP_CANCEL:Rect={x:176,y:309,w:128,h:24};
 
+export const RESULT_BUTTONS={x:140,y:286,w:200,h:22,gap:4,count:2};
+export const resultButtonRect=(i:number):Rect=>({...RESULT_BUTTONS,y:RESULT_BUTTONS.y+i*(RESULT_BUTTONS.h+RESULT_BUTTONS.gap)});
+export function resultButtonHit(x:number,y:number){for(let i=0;i<RESULT_BUTTONS.count;i++)if(inside(x,y,resultButtonRect(i)))return i;return -1;}
+
 export const SETTINGS={x:34,y:82,w:202,h:26,gapX:8,gapY:6,cols:2,rows:6};
 export const settingsRect=(i:number):Rect=>({x:SETTINGS.x+(i>=SETTINGS.rows?SETTINGS.w+SETTINGS.gapX:0),y:SETTINGS.y+(i%SETTINGS.rows)*(SETTINGS.h+SETTINGS.gapY),w:SETTINGS.w,h:SETTINGS.h});
 export const settingsMinusRect=(i:number):Rect=>{const r=settingsRect(i);return{x:r.x+r.w-78,y:r.y+3,w:22,h:r.h-6};};
