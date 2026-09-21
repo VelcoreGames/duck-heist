@@ -1,5 +1,5 @@
 import { COLLECTION_TABS, collectionEntries, type CatalogEntry } from './catalog';
-import { RARITY_COLORS, RARITY_NAMES } from './data';
+import { RARITY_COLORS, RARITY_NAMES, SYNERGIES } from './data';
 import { COLLECTION, inside } from './layout';
 import { drawItemIcon } from './itemArt';
 import { drawBoss, drawDuckSkin, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
@@ -33,10 +33,12 @@ export function collectionMove(e:GameEngine,delta:number) {
   if(top+COLLECTION.cellH>e.collectionScroll+COLLECTION.h) e.collectionScroll=top+COLLECTION.cellH-COLLECTION.h;
 }
 export function collectionTab(e:GameEngine,index:number) {
-  e.collectionTab=COLLECTION_TABS[(index+5)%5].id;e.collectionIndex=0;e.collectionScroll=0;
+  const n=COLLECTION_TABS.length;
+  e.collectionTab=COLLECTION_TABS[(index+n)%n].id;e.collectionIndex=0;e.collectionScroll=0;
 }
 export function collectionClick(e:GameEngine,x:number,y:number) {
-  for(let i=0;i<5;i++) if(inside(x,y,{x:29+i*86,y:57,w:82,h:22})) { collectionTab(e,i);return; }
+  const tabW=68,tabGap=3,tabX=29;
+  for(let i=0;i<COLLECTION_TABS.length;i++) if(inside(x,y,{x:tabX+i*(tabW+tabGap),y:57,w:tabW,h:22})) { collectionTab(e,i);return; }
   if(!inside(x,y,COLLECTION)) return;
   if(inside(x,y,{x:200,y:81,w:72,h:18})){cycleCollectionFilter(e);return;}
   if(inside(x,y,{x:278,y:81,w:72,h:18})){cycleCollectionSort(e);return;}
@@ -51,6 +53,14 @@ function known(e:GameEngine,entry:CatalogEntry) {
 export function drawCatalogSprite(e:GameEngine,entry:CatalogEntry,x:number,y:number,size:number,unknown=false) {
   const c=e.ui!;
   if(entry.category==='items' || entry.category==='weapons') { drawItemIcon(c,x,y,unknown?'mystery':entry.id,size,RARITY_COLORS[entry.rarity],unknown);return; }
+  if(entry.category==='synergies') {
+    const def=SYNERGIES.find(s=>s.id===entry.id);
+    if(unknown||!def){drawItemIcon(c,x,y,'mystery',size,'#9b7bb8',true);return;}
+    const sub=Math.max(12,Math.floor(size*.68));
+    drawItemIcon(c,x,y+Math.floor(size*.18),def.requires[0]??'mystery',sub,'#c39be0');
+    drawItemIcon(c,x+Math.floor(size*.32),y,def.requires[1]??'mystery',sub,'#8fb7c8');
+    return;
+  }
   c.save();c.translate(x+size/2,y+size/2);c.scale(size/40,size/40);c.globalAlpha=unknown?.22:1;
   const f=e.frame;
   if(entry.category==='skins') drawDuckSkin(c,-8,-8,f,entry.id);
@@ -78,10 +88,11 @@ export function renderCollection(e:GameEngine) {
   drawMenuBackdrop(c,mf,.93,'#9abf9f');
   drawMenuHeader(c,'COLECCIÓN','Todo lo que el banco ya te dejó descubrir.',mf,'#9abf9f','ARCHIVO DEL BANCO');
   text(c,'DESCUBIERTOS · '+discovered+' / '+all.length,444,63,5.8,'#91a9a6','right',true,false);
+  const tabW=68,tabGap=3,tabX=29;
   COLLECTION_TABS.forEach((tab,i)=>{
-    const on=tab.id===e.collectionTab,x=29+i*86;
-    drawMenuCard(c,x,57,82,22,on,'#9abf9f',on?'rgba(35,47,35,.98)':'rgba(10,24,30,.9)');
-    text(c,tab.name,70+i*86,72,7,on?'#eff0ce':'#9fb1ae','center',true,false);
+    const on=tab.id===e.collectionTab,x=tabX+i*(tabW+tabGap);
+    drawMenuCard(c,x,57,tabW,22,on,'#9abf9f',on?'rgba(35,47,35,.98)':'rgba(10,24,30,.9)');
+    text(c,tab.name,x+tabW/2,72,5.7,on?'#eff0ce':'#9fb1ae','center',true,false);
   });
   const filterLabel=e.collectionFilter==='all'?'TODOS':e.collectionFilter==='known'?'DESCUBIERTOS':'PENDIENTES';
   const sortLabel=e.collectionSort==='default'?'ORDEN BASE':e.collectionSort==='name'?'A–Z':'RAREZA';
