@@ -70,7 +70,10 @@ export function drawDuck(
   if (hurt && Math.floor(frame * 0.5) % 2 === 0) ctx.globalAlpha = 0.45;
   if (dashing) ctx.globalAlpha = 0.75;
 
-  const waddle = moving ? Math.round(Math.sin(frame * 0.35)) : 0;
+  // El pato nunca queda completamente rígido: respiración muy sutil en idle,
+  // paso más marcado al moverse y tensión corporal al disparar/dashear.
+  const idleBreath = !moving && !dashing && !shooting && Math.sin(frame * 0.06) > 0.72 ? 1 : 0;
+  const waddle = moving ? Math.round(Math.sin(frame * 0.35)) : idleBreath;
   const step = moving ? Math.sin(frame * 0.35) : 0;
   const blink = (frame % 190) < 7;
 
@@ -96,6 +99,19 @@ export function drawDuck(
   rect(ctx, bx + 4, by + 14 + waddle, 8, 1, pal.shade);
   rect(ctx, bx + 4, by + 7 + waddle, 3, 1, '#fff59d');
   rect(ctx, bx + 11, by + 8 + waddle, 1, 4, 'rgba(255,255,255,.18)');
+
+  // Ala expresiva: acompaña disparo, dash y caminata sin cambiar la silueta base.
+  const wingKick = shooting ? 2 : dashing ? 1 : moving && Math.abs(step) > .55 ? 1 : 0;
+  if (dir === 'left') {
+    rect(ctx, bx + 10 + wingKick, by + 9 + waddle, 4, 3, pal.shade);
+    if (shooting) px(ctx, bx + 13 + wingKick, by + 8 + waddle, '#fff59d', 1);
+  } else if (dir === 'right') {
+    rect(ctx, bx + 2 - wingKick, by + 9 + waddle, 4, 3, pal.shade);
+    if (shooting) px(ctx, bx + 2 - wingKick, by + 8 + waddle, '#fff59d', 1);
+  } else if (dir === 'down' && shooting) {
+    rect(ctx, bx + 1, by + 10 + waddle, 3, 2, pal.shade);
+    rect(ctx, bx + 12, by + 10 + waddle, 3, 2, pal.shade);
+  }
 
   if (dir !== 'up') {
     rect(ctx, bx + 5, by + 7 + waddle, 1, 6, pal.strap);
