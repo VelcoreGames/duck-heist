@@ -1196,10 +1196,12 @@ function descendStairs(engine: GameEngine) {
 function loadNextFloor(engine: GameEngine) {
   const idx = engine.map.floorIndex + 1;
   if (idx >= TOTAL_FLOORS) {
-    engine.totalGoldenCrumbs+=100;engine.run.goldenEarned+=100;engine.stats.goldenCrumbs+=100;
-    engine.madUnlocked=true;
-    try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
-    if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
+    if(engine.gameMode!=='daily'){
+      engine.totalGoldenCrumbs+=100;engine.run.goldenEarned+=100;engine.stats.goldenCrumbs+=100;
+      engine.madUnlocked=true;
+      try {localStorage.setItem('duckheist_mad_bread_unlocked','1');} catch { /* sin almacenamiento */ }
+      if(!engine.unlockedSkins.includes('golden')) engine.unlockedSkins.push('golden');
+    }
     recordOutcome(engine,'victory');
     engine.state = GameState.VICTORY;
     engine.endFrame=engine.frame;playQuack();
@@ -3351,12 +3353,10 @@ function spawn(engine: GameEngine, x: number, y: number, type: string, count: nu
 function saveProgress(engine: GameEngine) {
   if(engine.testing) return;
   try {
-    if(engine.run.time>0 && engine.run.floorReached>engine.bestFloor) {engine.bestFloor=engine.run.floorReached;engine.newRecord=true;}
+    if(engine.gameMode!=='daily'&&engine.run.time>0&&engine.run.floorReached>engine.bestFloor) {engine.bestFloor=engine.run.floorReached;engine.newRecord=true;}
     localStorage.setItem('duckheist_save', JSON.stringify(permanentSnapshot(engine)));
-    if (engine.stats.breadStolen > (engine.best.breadStolen ?? 0)) {
-      engine.newRecord=true;
-      engine.best = { ...engine.stats };
-      localStorage.setItem('duckheist_best', JSON.stringify(engine.stats));
+    if(engine.gameMode!=='daily'&&engine.stats.breadStolen>(engine.best.breadStolen??0)) {
+      engine.newRecord=true;engine.best={...engine.stats};localStorage.setItem('duckheist_best',JSON.stringify(engine.stats));
     }
   } catch { /* ignorar */ }
 }
