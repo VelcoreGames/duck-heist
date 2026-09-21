@@ -3,7 +3,7 @@ import { RARITY_COLORS, RARITY_NAMES } from './data';
 import { COLLECTION, inside } from './layout';
 import { drawItemIcon } from './itemArt';
 import { drawBoss, drawDuckSkin, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
-import { text, titleText, drawPanel, wrappedText, drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel } from './ui';
+import { text, wrappedText, drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMenuFooter, drawSectionLabel } from './ui';
 import type { GameEngine } from './types';
 import { SPECIAL_ENEMIES,drawTacticalEnemy } from './tacticalSprites';
 
