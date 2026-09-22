@@ -1,0 +1,184 @@
+name: v0.8.0 unique account save QA
+on:
+  push:
+    branches: [feat/v080-cloud-accounts]
+    paths:
+      - '.github/workflows/v080-unique-account-save-qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-cloud-accounts
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+      - name: Validate unique usernames and numbered suggestions
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon;
+          create role authenticated;
+          create schema extensions;
+          SQL
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20260922_velcore_games_accounts.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          do $qa$
+          declare
+            first jsonb;
+            dup jsonb;
+            taken2 jsonb;
+            dup2 jsonb;
+          begin
+            first:=public.vg_create_account('PatoLadron','PanSeguro_123','ci-a');
+            if coalesce((first->>'ok')::boolean,false) is not true then raise exception 'first account failed %',first; end if;
+
+            dup:=public.vg_create_account('patoladron','OtraClave_123','ci-b');
+            if dup->>'code'<>'username_taken' then raise exception 'duplicate was accepted %',dup; end if;
+            if jsonb_array_length(dup->'suggestions')<>3 then raise exception 'expected 3 suggestions %',dup; end if;
+            if dup->'suggestions'->>0<>'patoladron2' then raise exception 'unexpected first suggestion %',dup; end if;
+
+            taken2:=public.vg_create_account('PatoLadron2','PanSeguro_456','ci-c');
+            if coalesce((taken2->>'ok')::boolean,false) is not true then raise exception 'numbered account failed %',taken2; end if;
+
+            dup2:=public.vg_create_account('PatoLadron','OtraClave_789','ci-d');
+            if dup2->'suggestions' ? 'PatoLadron2' then raise exception 'suggested an occupied username %',dup2; end if;
+          end
+          $qa$;
+          SQL
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser username suggestions and account-linked save
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/vg-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+
+          const suggest=await browser.newPage({viewport:{width:1191,height:900}});
+          const errors=[];
+          suggest.on('pageerror',e=>errors.push(String(e)));
+          suggest.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await suggest.route('http://127.0.0.1:4173/velcore-cloud.json',route=>route.fulfill({
+            status:200,contentType:'application/json',
+            body:JSON.stringify({supabaseUrl:'https://cloud.test',anonKey:'public-anon-key-for-browser-qa-1234567890'})
+          }));
+          await suggest.route('https://cloud.test/rest/v1/rpc/vg_create_account',async route=>{
+            await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+              ok:false,code:'username_taken',suggestions:['PatoLadron2','PatoLadron3','PatoLadron4']
+            })});
+          });
+          await suggest.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          await suggest.getByRole('button',{name:'CREAR CUENTA',exact:true}).first().click();
+          await suggest.locator('input[name="username"]').fill('PatoLadron');
+          await suggest.locator('input[name="password"]').fill('PanSeguro_123');
+          await suggest.locator('.vg-account-primary').click();
+          await suggest.getByRole('button',{name:'PatoLadron2',exact:true}).waitFor();
+          const options=await suggest.locator('.vg-username-suggestions button').allTextContents();
+          if(JSON.stringify(options)!==JSON.stringify(['PatoLadron2','PatoLadron3','PatoLadron4']))throw new Error('suggestions mismatch '+JSON.stringify(options));
+          await suggest.getByRole('button',{name:'PatoLadron2',exact:true}).click();
+          if(await suggest.locator('input[name="username"]').inputValue()!=='PatoLadron2')throw new Error('suggestion did not fill username');
+
+          const cloud=await browser.newPage({viewport:{width:1191,height:900}});
+          let saveCalls=0,revision=0;
+          await cloud.addInitScript(()=>{
+            localStorage.setItem('vg_account_session',JSON.stringify({
+              userId:'11111111-1111-1111-1111-111111111111',username:'CloudDuck',
+              token:'0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+              expiresAt:'2099-01-01T00:00:00Z'
+            }));
+          });
+          await cloud.route('http://127.0.0.1:4173/velcore-cloud.json',route=>route.fulfill({
+            status:200,contentType:'application/json',
+            body:JSON.stringify({supabaseUrl:'https://cloud.test',anonKey:'public-anon-key-for-browser-qa-1234567890'})
+          }));
+          await cloud.route('https://cloud.test/rest/v1/rpc/**',async route=>{
+            const name=route.request().url().split('/').pop();
+            if(name==='vg_validate_session')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+              ok:true,code:'ok',user_id:'11111111-1111-1111-1111-111111111111',username:'CloudDuck',expires_at:'2099-01-01T00:00:00Z'
+            })});
+            if(name==='vg_load_game_save')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:false,code:'not_found'})});
+            if(name==='vg_save_game_save'){
+              saveCalls++;revision++;
+              return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,code:'saved',revision,updated_at:new Date().toISOString()})});
+            }
+            return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,code:'ok'})});
+          });
+          await cloud.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          await cloud.getByText('CloudDuck',{exact:true}).waitFor();
+          if(saveCalls<1)throw new Error('initial account save was not created');
+          await cloud.evaluate(()=>{
+            localStorage.setItem('duckheist_test_progress',JSON.stringify({floor:3,achievement:'first_win'}));
+            window.dispatchEvent(new Event('duckheist:save'));
+          });
+          await cloud.waitForFunction(()=>localStorage.getItem('vg_cloud_meta_duck-heist')!==null);
+          await cloud.waitForTimeout(1200);
+          if(saveCalls<2)throw new Error('game save event did not sync to account');
+
+          const audit=await browser.newPage({viewport:{width:1191,height:900}});
+          await audit.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await audit.waitForFunction(()=>window.duckHeistAudit && window.duckHeistEngine);
+          const report=await audit.evaluate(()=>window.duckHeistAudit);
+          if(report.failures.length)throw new Error('selftest '+report.failures.join(' | '));
+          if(report.passed<452)throw new Error('selftest count regressed '+report.passed);
+          if(errors.length)throw new Error('runtime '+errors.join(' | '));
+
+          console.log(JSON.stringify({usernameSuggestions:options,cloudSaveCalls:saveCalls,selftests:report.passed,runtimeErrors:errors},null,2));
+          await browser.close();
+          JS
+
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-unique-account-save-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh unique account save bundle'
+            git push origin HEAD:feat/v080-cloud-accounts
+          fi
