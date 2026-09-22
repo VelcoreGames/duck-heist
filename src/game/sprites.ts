@@ -1443,262 +1443,135 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
 // ENEMIGOS POLICÍA
 // ---------------------------------------------------------------------------
 
-const POL_BLUE = '#2b4a8b';
-const POL_BLUE_L = '#4f7ad4';
-const POL_BLUE_D = '#1b2f5c';
+const POL_BLUE = '#284a70';
+const POL_BLUE_L = '#4e7596';
+const POL_BLUE_D = '#17293d';
 
-/** POLICÍA PATO - básico, uniforme azul, gorra y placa */
-export function drawPoliciaPato(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
-  const bx = Math.floor(x), by = Math.floor(y);
-  const bob = Math.round(Math.sin(frame * 0.2));
-  ctx.save();
-  if (hurt && Math.floor(frame) % 2 === 0) ctx.globalAlpha = 0.55;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.32)';
-  ctx.fillRect(bx + 2, by + 16, 12, 3);
-
-  // Patas
-  rect(ctx, bx + 4, by + 15, 3, 2, '#f0912b');
-  rect(ctx, bx + 9, by + 15, 3, 2, '#f0912b');
-
-  rect(ctx, bx + 3, by + 7 + bob, 10, 8, POL_BLUE);
-  rect(ctx, bx + 2, by + 9 + bob, 12, 4, POL_BLUE_L);
-  rect(ctx, bx + 3, by + 13 + bob, 10, 2, POL_BLUE_D);
-  px(ctx, bx + 5, by + 9 + bob, '#f4d03f', 2);
-  rect(ctx, bx + 3, by + 12 + bob, 10, 1, '#141821');
-  rect(ctx, bx + 3, by - 1 + bob, 10, 3, POL_BLUE_D);
-  rect(ctx, bx + 4, by - 2 + bob, 8, 2, POL_BLUE);
-  rect(ctx, bx + 2, by + 1 + bob, 12, 2, POL_BLUE_D);
-
-  rect(ctx, bx + 4, by + 2 + bob, 8, 6, '#e9e4d6');
-  rect(ctx, bx + 3, by + 3 + bob, 10, 4, '#e9e4d6');
-
-  // Ojos enfadados
-  const ex = dirX > 0 ? 1 : -1;
-  rect(ctx, bx + 4, by + 3 + bob, 3, 1, '#3a3a3a'); // ceja
-  rect(ctx, bx + 9, by + 3 + bob, 3, 1, '#3a3a3a');
-  px(ctx, bx + 5 + ex, by + 4 + bob, '#c0392b', 2);
-  px(ctx, bx + 9 + ex, by + 4 + bob, '#c0392b', 2);
-
-  // Pico
-  const bxp = dirX > 0 ? bx + 12 : bx - 2;
-  rect(ctx, bxp, by + 5 + bob, 5, 2, '#f0912b');
-
-  // Gorra de policía
-  rect(ctx, bx + 2, by + 1 + bob, 12, 3, POL_BLUE);
-  rect(ctx, bx + 4, by + bob - 1, 8, 2, POL_BLUE_D);
-  rect(ctx, dirX > 0 ? bx + 12 : bx + 1, by + 2 + bob, 3, 2, '#141821'); // visera
-  px(ctx, bx + 7, by + 1 + bob, '#f4d03f', 2);
-
-  // Pistola
-  const gx = dirX > 0 ? bx + 13 : bx - 3;
-  rect(ctx, gx, by + 10 + bob, 4, 2, '#2b3038');
-
-  ctx.restore();
+function policeBadge(ctx:Ctx,x:number,y:number){
+  rect(ctx,x,y,4,4,'#d6b34a');px(ctx,x+1,y+1,'#fff0a6',1);
+}
+function policeCap(ctx:Ctx,x:number,y:number,wide=11){
+  rect(ctx,x,y+1,wide,3,POL_BLUE_D);rect(ctx,x+2,y-1,wide-4,3,POL_BLUE);rect(ctx,x+wide-2,y+3,4,1,'#101820');
+  px(ctx,x+Math.floor(wide/2),y,'#d6b34a',2);
 }
 
-/** POLICÍA ANTIDISTURBIOS - grande, casco y escudo frontal */
+/** POLICÍA PATO — patrullero base con silueta de arma y chaleco claramente separados. */
+export function drawPoliciaPato(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.18));
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+8,by+18,7,.33);
+  // cola y cuerpo
+  rect(ctx,bx,by+9+bob,4,6,'#d7d2c8');rect(ctx,bx+3,by+7+bob,10,9,'#ece8dd');
+  rect(ctx,bx+2,by+10+bob,12,6,POL_BLUE);rect(ctx,bx+4,by+11+bob,8,4,'#192430');
+  policeBadge(ctx,bx+5,by+11+bob);
+  // cabeza orientada
+  rect(ctx,bx+4,by+2+bob,8,6,'#eeeade');enemyEye(ctx,bx+(dirX>0?9:5),by+3+bob,true);
+  rect(ctx,dirX>0?bx+12:bx-2,by+5+bob,5,2,'#f0912b');
+  policeCap(ctx,bx+2,by+bob,11);
+  // arma al frente
+  const gx=dirX>0?bx+11:bx-5;
+  rect(ctx,gx,by+11+bob,8,3,'#27323b');rect(ctx,gx+(dirX>0?5:0),by+10+bob,4,2,'#485965');
+  px(ctx,dirX>0?gx+8:gx-1,by+11+bob,'#9fc4d3',1);
+  // radio y piernas
+  rect(ctx,bx+1,by+11+bob,2,5,'#374c59');rect(ctx,bx+4,by+16,3,2,'#ef8b35');rect(ctx,bx+10,by+16,3,2,'#ef8b35');
+  ctx.restore();ctx.globalAlpha=1;
+}
+
+/** POLICÍA ANTIDISTURBIOS — muro móvil con escudo de policarbonato y casco cerrado. */
 export function drawPoliciaAntidisturbios(
   ctx: Ctx, x: number, y: number, frame: number, hurt: boolean,
   shieldDir: { x: number; y: number }, charging: boolean, shieldDown = false,
 ) {
-  const bx = Math.floor(x), by = Math.floor(y);
-  const bob = Math.round(Math.sin(frame * 0.12));
-  ctx.save();
-  if (hurt && Math.floor(frame) % 2 === 0) ctx.globalAlpha = 0.55;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.38)';
-  ctx.fillRect(bx + 2, by + 20, 18, 4);
-
-  // Patas gruesas
-  rect(ctx, bx + 5, by + 18, 4, 3, '#f0912b');
-  rect(ctx, bx + 13, by + 18, 4, 3, '#f0912b');
-
-  // Armadura oscura
-  rect(ctx, bx + 3, by + 8 + bob, 16, 11, '#242a36');
-  rect(ctx, bx + 2, by + 10 + bob, 18, 6, '#333b4a');
-  rect(ctx, bx + 5, by + 11 + bob, 12, 3, '#1a1f28');
-  // Hombreras
-  rect(ctx, bx + 1, by + 8 + bob, 4, 4, '#3d4655');
-  rect(ctx, bx + 17, by + 8 + bob, 4, 4, '#3d4655');
-
-  // Cabeza + casco antidisturbios
-  rect(ctx, bx + 6, by + 2 + bob, 10, 7, '#e9e4d6');
-  rect(ctx, bx + 5, by + 1 + bob, 12, 4, '#242a36');
-  rect(ctx, bx + 4, by + 4 + bob, 14, 2, '#333b4a');
-  // Visor
-  ctx.globalAlpha = (hurt && Math.floor(frame) % 2 === 0 ? 0.55 : 1) * 0.75;
-  rect(ctx, bx + 6, by + 5 + bob, 10, 3, '#7fb3d5');
-  ctx.globalAlpha = hurt && Math.floor(frame) % 2 === 0 ? 0.55 : 1;
-  px(ctx, bx + 7, by + 5 + bob, '#d6eaf8', 2);
-  // Pico asomando
-  rect(ctx, bx + 9, by + 8 + bob, 4, 2, '#f0912b');
-
-  // ESCUDO orientado a su dirección fija (se baja durante la recuperación)
-  const len = Math.hypot(shieldDir.x, shieldDir.y) || 1;
-  const sx = bx + 10 + (shieldDir.x / len) * 12;
-  const sy = by + 12 + (shieldDir.y / len) * 12;
-  ctx.save();
-  ctx.translate(sx, sy);
-  ctx.rotate(Math.atan2(shieldDir.y, shieldDir.x) + Math.PI / 2);
-  if (shieldDown) {
-    // escudo caído: más pequeño y apagado
-    ctx.globalAlpha = 0.5;
-    rect(ctx, -6, 4, 12, 5, '#3a4452');
-    rect(ctx, -5, 5, 10, 3, '#4a5563');
-  } else {
-    rect(ctx, -7, -3, 14, 6, '#4a5563');
-    rect(ctx, -6, -2, 12, 4, '#6d7b8d');
-    rect(ctx, -6, -2, 12, 1, '#9fb0c4');
-    // Franja policial
-    rect(ctx, -6, 0, 12, 1, '#f4d03f');
-  }
-  if (charging && !shieldDown) {
-    ctx.globalAlpha = 0.5 + Math.sin(frame * 0.5) * 0.4;
-    rect(ctx, -8, -4, 16, 8, '#ff6b5b');
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.11));
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+11,by+23,10,.4);
+  // torso pesado + placas
+  rect(ctx,bx+2,by+9+bob,18,11,'#222a34');rect(ctx,bx+4,by+10+bob,14,8,'#303c49');
+  rect(ctx,bx,by+10+bob,5,6,'#414e5d');rect(ctx,bx+17,by+10+bob,5,6,'#414e5d');
+  rect(ctx,bx+7,by+12+bob,8,4,'#19212a');policeBadge(ctx,bx+9,by+12+bob);
+  // casco + visor cian
+  rect(ctx,bx+5,by+1+bob,12,7,'#e7e4db');rect(ctx,bx+4,by+bob,14,4,'#242d38');rect(ctx,bx+5,by+4+bob,12,3,'#6f91a4');
+  ctx.globalAlpha=.72;rect(ctx,bx+6,by+5+bob,10,1,'#b5d9e2');ctx.globalAlpha=1;
+  rect(ctx,bx+9,by+7+bob,5,2,'#ef8b35');
+  // piernas
+  rect(ctx,bx+5,by+19,4,3,'#d97c2d');rect(ctx,bx+13,by+19,4,3,'#d97c2d');
+  // escudo orientado: más alto y con marca BREAD SEC
+  const len=Math.hypot(shieldDir.x,shieldDir.y)||1;
+  const sx=bx+11+(shieldDir.x/len)*12,sy=by+13+(shieldDir.y/len)*12;
+  ctx.save();ctx.translate(sx,sy);ctx.rotate(Math.atan2(shieldDir.y,shieldDir.x)+Math.PI/2);
+  if(shieldDown){
+    ctx.globalAlpha=.45;metalEdge(ctx,-8,4,16,6,'#495561','#73818c','#272f37');
+  }else{
+    metalEdge(ctx,-9,-5,18,10,'#546675','#9ab0bc','#2e3943');
+    ctx.globalAlpha=.3;rect(ctx,-7,-3,14,5,'#a9cfda');ctx.globalAlpha=1;
+    rect(ctx,-7,2,14,2,'#d6b34a');px(ctx,-1,-1,'#f5e7a1',2);
+    if(charging){ctx.globalAlpha=.35+.25*Math.sin(frame*.5);rect(ctx,-10,-6,20,12,'#ff5c50');ctx.globalAlpha=1;}
   }
   ctx.restore();
-
-  ctx.restore();
+  ctx.restore();ctx.globalAlpha=1;
 }
 
-/** POLICÍA ESCOPETA - distancia media, ataque telegrafiado */
+/** POLICÍA ESCOPETA — artillero de hombros anchos y arma dominante. */
 export function drawPoliciaEscopeta(
   ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number, charge: number,
 ) {
-  const bx = Math.floor(x), by = Math.floor(y);
-  const bob = Math.round(Math.sin(frame * 0.15));
-  ctx.save();
-  if (hurt && Math.floor(frame) % 2 === 0) ctx.globalAlpha = 0.55;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.32)';
-  ctx.fillRect(bx + 2, by + 17, 14, 3);
-
-  rect(ctx, bx + 4, by + 16, 3, 2, '#f0912b');
-  rect(ctx, bx + 10, by + 16, 3, 2, '#f0912b');
-
-  // Cuerpo con chaleco
-  rect(ctx, bx + 3, by + 8 + bob, 12, 8, '#1f3566');
-  rect(ctx, bx + 2, by + 10 + bob, 14, 4, POL_BLUE);
-  rect(ctx, bx + 4, by + 9 + bob, 10, 4, '#141821'); // chaleco
-  rect(ctx, bx + 5, by + 10 + bob, 2, 2, '#f4d03f');
-  rect(ctx, bx + 11, by + 10 + bob, 2, 2, '#f4d03f');
-
-  // Cabeza
-  rect(ctx, bx + 4, by + 3 + bob, 9, 6, '#ddd6c4');
-  // Gafas tácticas
-  rect(ctx, bx + 4, by + 4 + bob, 9, 2, '#141821');
-  px(ctx, bx + (dirX > 0 ? 10 : 5), by + 4 + bob, '#e74c3c', 2);
-  // Gorra
-  rect(ctx, bx + 3, by + 1 + bob, 11, 3, '#1f3566');
-  rect(ctx, bx + (dirX > 0 ? 12 : 2), by + 3 + bob, 3, 1, '#141821');
-  // Pico
-  rect(ctx, bx + (dirX > 0 ? 13 : -1), by + 6 + bob, 4, 2, '#f0912b');
-
-  // Escopeta
-  const gx = dirX > 0 ? bx + 12 : bx - 8;
-  rect(ctx, gx, by + 11 + bob, 12, 3, '#3e2723');
-  rect(ctx, gx + (dirX > 0 ? 6 : 0), by + 11 + bob, 6, 2, '#5d4037');
-
-  // Telegrafía de disparo
-  if (charge > 0) {
-    const t = charge;
-    ctx.globalAlpha = 0.35 + t * 0.55;
-    const mx = dirX > 0 ? gx + 13 : gx - 2;
-    ctx.fillStyle = '#ff9f43';
-    ctx.beginPath();
-    ctx.arc(mx, by + 12 + bob, 2 + t * 4, 0, Math.PI * 2);
-    ctx.fill();
-    // Marcador de peligro
-    ctx.globalAlpha = t * 0.8;
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(bx + 2, by - 6, Math.round(14 * t), 2);
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.14));
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+9,by+19,8,.34);
+  rect(ctx,bx+2,by+8+bob,14,9,POL_BLUE_D);rect(ctx,bx+1,by+11+bob,16,5,POL_BLUE);
+  rect(ctx,bx+4,by+10+bob,10,5,'#151e27');rect(ctx,bx,by+9+bob,4,5,'#465665');rect(ctx,bx+15,by+9+bob,4,5,'#465665');
+  // casco/gafas
+  rect(ctx,bx+4,by+2+bob,9,6,'#e8e2d5');rect(ctx,bx+3,by+bob,11,3,'#21354c');rect(ctx,bx+4,by+4+bob,9,2,'#151a21');
+  enemyEye(ctx,bx+(dirX>0?10:5),by+4+bob,charge>.2);
+  rect(ctx,dirX>0?bx+13:bx-1,by+6+bob,4,2,'#ef8b35');
+  // escopeta grande
+  const gx=dirX>0?bx+10:bx-10;
+  rect(ctx,gx,by+11+bob,15,3,'#513b32');rect(ctx,gx+(dirX>0?7:0),by+10+bob,8,2,'#7d6859');
+  rect(ctx,gx+(dirX>0?13:-1),by+10+bob,3,5,'#262d33');
+  if(charge>0){
+    const mx=dirX>0?gx+17:gx-3;
+    ctx.globalAlpha=.2+charge*.55;ctx.fillStyle='#ff8a43';ctx.beginPath();ctx.arc(mx,by+12+bob,2+charge*5,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.75;rect(ctx,bx+2,by-5,Math.max(2,Math.round(14*charge)),2,'#ff5b4d');ctx.globalAlpha=1;
   }
-
-  ctx.restore();
+  rect(ctx,bx+4,by+17,3,2,'#ef8b35');rect(ctx,bx+11,by+17,3,2,'#ef8b35');
+  ctx.restore();ctx.globalAlpha=1;
 }
 
-/** POLICÍA RÁPIDO - pequeño, veloz, errático */
+/** POLICÍA RÁPIDO — interceptor ligero, piernas largas y mochila de radio. */
 export function drawPoliciaRapido(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
-  const bx = Math.floor(x), by = Math.floor(y);
-  const run = Math.sin(frame * 0.5);
-  const bob = Math.round(run);
-  ctx.save();
-  if (hurt && Math.floor(frame) % 2 === 0) ctx.globalAlpha = 0.55;
-
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(bx + 2, by + 14, 10, 2);
-
-  // Patas largas en carrera
-  rect(ctx, bx + 3, by + 12, 2, run > 0 ? 3 : 2, '#f0912b');
-  rect(ctx, bx + 8, by + 12, 2, run > 0 ? 2 : 3, '#f0912b');
-
-  // Cuerpo pequeño
-  rect(ctx, bx + 2, by + 6 + bob, 9, 7, POL_BLUE_L);
-  rect(ctx, bx + 3, by + 11 + bob, 7, 2, POL_BLUE);
-  px(ctx, bx + 4, by + 8 + bob, '#f4d03f', 2);
-
-  // Cabeza
-  rect(ctx, bx + 3, by + 2 + bob, 7, 5, '#e9e4d6');
-  px(ctx, bx + (dirX > 0 ? 7 : 4), by + 3 + bob, '#c0392b', 2);
-  rect(ctx, bx + (dirX > 0 ? 10 : -1), by + 4 + bob, 3, 2, '#f0912b');
-  // Gorrita
-  rect(ctx, bx + 2, by + 1 + bob, 9, 2, POL_BLUE);
-
-  // Líneas de velocidad
-  ctx.globalAlpha = 0.35;
-  const tx = dirX > 0 ? bx - 4 : bx + 12;
-  rect(ctx, tx, by + 6, 4, 1, '#9fd0ff');
-  rect(ctx, tx, by + 9, 3, 1, '#9fd0ff');
-  ctx.restore();
+  const bx=Math.floor(x),by=Math.floor(y),run=Math.sin(frame*.55),bob=Math.round(run);
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+7,by+16,6,.27);
+  // zancada exagerada
+  rect(ctx,bx+3,by+12,2,run>0?4:2,'#ef8b35');rect(ctx,bx+9,by+12,2,run>0?2:4,'#ef8b35');
+  // cuerpo estrecho
+  rect(ctx,bx+2,by+6+bob,10,7,POL_BLUE_L);rect(ctx,bx+4,by+8+bob,6,4,'#1b2733');policeBadge(ctx,bx+5,by+8+bob);
+  rect(ctx,bx+1,by+8+bob,2,5,'#3c5365'); // radio
+  // cabeza + casco aerodinámico
+  rect(ctx,bx+3,by+2+bob,8,5,'#e8e3d8');rect(ctx,bx+2,by+bob,10,3,'#24435f');
+  enemyEye(ctx,bx+(dirX>0?8:4),by+3+bob,false);rect(ctx,dirX>0?bx+11:bx-1,by+4+bob,4,2,'#ef8b35');
+  // líneas velocidad
+  ctx.globalAlpha=.3;const tx=dirX>0?bx-5:bx+13;rect(ctx,tx,by+6,5,1,'#8fc5dd');rect(ctx,tx+(dirX>0?1:-1),by+9,4,1,'#d6b34a');ctx.globalAlpha=1;
+  ctx.restore();ctx.globalAlpha=1;
 }
 
-/** DRON POLICIAL - vuela, hélices, foco */
+/** DRON POLICIAL — silueta de rotor gemelo, ojo central y cono de vigilancia. */
 export function drawDronPolicial(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
-  const bx = Math.floor(x), by = Math.floor(y);
-  const hover = Math.sin(frame * 0.15) * 2;
-  ctx.save();
-  if (hurt && Math.floor(frame) % 2 === 0) ctx.globalAlpha = 0.55;
-
-  // Sombra en el suelo (vuela alto)
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.beginPath();
-  ctx.ellipse(bx + 8, by + 22, 6, 2, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const fy = by + hover;
-
-  // Hélices (borrosas)
-  ctx.globalAlpha = (hurt && Math.floor(frame) % 2 === 0 ? 0.55 : 1) * 0.55;
-  const spin = (frame % 4) < 2 ? 5 : 2;
-  rect(ctx, bx - 2, fy + 2, spin * 2, 1, '#cfd8dc');
-  rect(ctx, bx + 12, fy + 2, spin * 2, 1, '#cfd8dc');
-  ctx.globalAlpha = hurt && Math.floor(frame) % 2 === 0 ? 0.55 : 1;
-
-  // Brazos
-  rect(ctx, bx + 1, fy + 3, 14, 2, '#37474f');
-  // Chasis
-  rect(ctx, bx + 4, fy + 4, 8, 7, '#455a64');
-  rect(ctx, bx + 5, fy + 5, 6, 4, '#607d8b');
-  // Franja policial
-  rect(ctx, bx + 4, fy + 8, 8, 1, '#f4d03f');
-
-  // Lente / ojo rojo escaneando
-  const pulse = 0.55 + Math.sin(frame * 0.25) * 0.45;
-  ctx.globalAlpha = pulse;
-  px(ctx, bx + 7, fy + 9, '#ff3b30', 3);
-  ctx.globalAlpha = pulse * 0.25;
-  ctx.fillStyle = '#ff3b30';
-  ctx.beginPath();
-  ctx.arc(bx + 8, fy + 10, 7, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Luz azul intermitente
-  if (Math.floor(frame * 0.1) % 2 === 0) px(ctx, bx + 4, fy + 3, '#4f7ad4', 2);
-  else px(ctx, bx + 11, fy + 3, '#ff3b30', 2);
-
-  ctx.restore();
+  const bx=Math.floor(x),by=Math.floor(y),hover=Math.sin(frame*.15)*1.5,pulse=.55+.45*Math.sin(frame*.25);
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+8,by+22,6,.22);
+  const fy=by+hover;
+  // rotores
+  ctx.globalAlpha=.45;const spin=frame%4<2?7:4;rect(ctx,bx-4,fy+1,spin*2,1,'#bccbd2');rect(ctx,bx+10,fy+1,spin*2,1,'#bccbd2');ctx.globalAlpha=1;
+  rect(ctx,bx,fy+3,16,2,'#3a4853');rect(ctx,bx+3,fy+4,10,8,'#465967');
+  metalEdge(ctx,bx+4,fy+5,8,5,'#607785','#9fb5bd','#31424c');
+  // ojo central y luces
+  ctx.globalAlpha=.55+.35*pulse;enemyEye(ctx,bx+7,fy+8,true);ctx.globalAlpha=1;
+  px(ctx,bx+2,fy+4,frame%20<10?'#4f8fd4':'#ff5b50',2);px(ctx,bx+12,fy+4,frame%20<10?'#ff5b50':'#4f8fd4',2);
+  // foco/arma
+  rect(ctx,bx+6,fy+12,4,3,'#242d35');
+  ctx.globalAlpha=.12+.08*pulse;ctx.fillStyle='#e7d98b';ctx.beginPath();ctx.moveTo(bx+7,fy+15);ctx.lineTo(bx+1,fy+24);ctx.lineTo(bx+15,fy+24);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+  ctx.restore();ctx.globalAlpha=1;
 }
 
 /** Pedestal de la sala de objeto */
