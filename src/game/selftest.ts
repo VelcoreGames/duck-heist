@@ -14,7 +14,8 @@ import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
-import { drawBoss } from './sprites';
+import { drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
+import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -276,6 +277,27 @@ export function runSelfChecks():CheckReport {
       assert(c.items.length===0&&c.pickups.length===0,'drops persistieron');
       assert(result.recycledItems===2&&result.discardedHealing===1,'limpieza incompleta');
       assert(e.player.crumbs>=5+result.recycledMigas&&e.totalGoldenCrumbs===2,'monedas perdidas');
+    });
+    check('Todo el roster normal rediseñado renderiza sin excepción',()=>{
+      const ids=Object.keys(ENEMIES);
+      for(const id of ids){
+        if(SPECIAL_ENEMIES.has(id)){drawTacticalEnemy(ctx,id,40,40,120,false,.4,.65);continue;}
+        switch(id){
+          case 'policia_pato':drawPoliciaPato(ctx,40,40,120,false,1);break;
+          case 'policia_rapido':drawPoliciaRapido(ctx,40,40,120,false,1);break;
+          case 'policia_escopeta':drawPoliciaEscopeta(ctx,40,40,120,false,1,.65);break;
+          case 'policia_antidisturbios':drawPoliciaAntidisturbios(ctx,40,40,120,false,{x:1,y:0},true,false);break;
+          case 'dron_policial':drawDronPolicial(ctx,40,40,120,false);break;
+          case 'guard_goose':drawGuardGoose(ctx,40,40,120,false);break;
+          case 'security_pigeon':drawSecurityPigeon(ctx,40,40,120,false);break;
+          case 'toaster_turret':drawToasterTurret(ctx,40,40,120,false);break;
+          case 'rolling_bagel':drawRollingBagel(ctx,40,40,120,false);break;
+          case 'evil_croissant':drawEvilCroissant(ctx,40,40,120,false);break;
+          case 'banker_chicken':drawBankerChicken(ctx,40,40,120,false);break;
+          default:throw new Error('enemigo sin renderer: '+id);
+        }
+      }
+      assert(ids.length>=20,'roster normal incompleto');
     });
     check('Los 145 encuentros de jerarquía renderizan sin excepción',()=>{
       const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
