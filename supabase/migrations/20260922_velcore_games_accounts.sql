@@ -99,8 +99,8 @@ begin
     return jsonb_build_object('ok',false,'code','weak_password');
   end if;
 
-  v_recovery_raw:=upper(encode(extensions.gen_random_bytes(8),'hex'));
-  v_recovery:='DH-'||substr(v_recovery_raw,1,4)||'-'||substr(v_recovery_raw,5,4)||'-'||substr(v_recovery_raw,9,4)||'-'||substr(v_recovery_raw,13,4);
+  v_recovery_raw:=upper(encode(extensions.gen_random_bytes(10),'hex'));
+  v_recovery:='DH-'||substr(v_recovery_raw,1,4)||'-'||substr(v_recovery_raw,5,4)||'-'||substr(v_recovery_raw,9,4)||'-'||substr(v_recovery_raw,13,4)||'-'||substr(v_recovery_raw,17,4);
 
   begin
     insert into public.vg_users(username,username_norm,password_hash,recovery_hash)
@@ -217,8 +217,8 @@ begin
     return jsonb_build_object('ok',false,'code','invalid_recovery');
   end if;
 
-  v_raw:=upper(encode(extensions.gen_random_bytes(8),'hex'));
-  v_recovery:='DH-'||substr(v_raw,1,4)||'-'||substr(v_raw,5,4)||'-'||substr(v_raw,9,4)||'-'||substr(v_raw,13,4);
+  v_raw:=upper(encode(extensions.gen_random_bytes(10),'hex'));
+  v_recovery:='DH-'||substr(v_raw,1,4)||'-'||substr(v_raw,5,4)||'-'||substr(v_raw,9,4)||'-'||substr(v_raw,13,4)||'-'||substr(v_raw,17,4);
   update public.vg_users
     set password_hash=extensions.crypt(p_new_password,extensions.gen_salt('bf',12)),
         recovery_hash=encode(extensions.digest(v_recovery,'sha256'),'hex'),
