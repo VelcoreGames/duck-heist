@@ -86,6 +86,9 @@ declare
   v_recovery_raw text;
   v_recovery text;
   v_expires timestamptz:=now()+interval '30 days';
+  v_suggestions jsonb:='[]'::jsonb;
+  v_candidate text;
+  v_suffix integer;
 begin
   delete from public.vg_sessions where expires_at<=now();
 
@@ -107,7 +110,14 @@ begin
     values(v_username,v_norm,extensions.crypt(p_password,extensions.gen_salt('bf',12)),encode(extensions.digest(v_recovery,'sha256'),'hex'))
     returning id into v_user;
   exception when unique_violation then
-    return jsonb_build_object('ok',false,'code','username_taken');
+    for v_suffix in 2..999 loop
+      v_candidate:=left(v_username,20-length(v_suffix::text))||v_suffix::text;
+      if not exists(select 1 from public.vg_users where username_norm=lower(v_candidate)) then
+        v_suggestions:=v_suggestions||jsonb_build_array(v_candidate);
+        if jsonb_array_length(v_suggestions)>=3 then exit; end if;
+      end if;
+    end loop;
+    return jsonb_build_object('ok',false,'code','username_taken','suggestions',v_suggestions);
   end;
 
   v_token:=encode(extensions.gen_random_bytes(32),'hex');
