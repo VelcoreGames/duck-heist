@@ -1,0 +1,152 @@
+name: v0.8.0 Enemy visual follow-up QA
+on:
+  push:
+    branches: [art/v080-enemy-visual-overhaul]
+    paths:
+      - '.github/workflows/v080-enemy-art-followup-qa-2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/v080-enemy-visual-overhaul
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('package version changed: '+p.version)"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Route artifact guard
+        run: |
+          test -f dist/duck-heist/index.html
+          test -f dist/duck-heist-movil/index.html
+          test -f dist/eca/index.html
+          test -f dist/404.html
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Chromium full smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/duck-heist-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const errors=[];
+          const attachErrors=p=>{
+            p.on('pageerror',e=>errors.push('pageerror '+String(e)));
+            p.on('console',m=>{if(m.type()==='error')errors.push('console '+m.text());});
+          };
+
+          const auditPage=await browser.newPage({viewport:{width:1191,height:900}});
+          attachErrors(auditPage);
+          await auditPage.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await auditPage.waitForFunction(()=>window.duckHeistAudit && window.duckHeistEngine);
+          const audit=await auditPage.evaluate(()=>window.duckHeistAudit);
+          if(audit.failures.length)throw new Error('self audit: '+audit.failures.join(' | '));
+          if(audit.passed<452)throw new Error('unexpectedly low self-check count '+audit.passed);
+
+          const collection=await auditPage.evaluate(async()=>{
+            const e=window.duckHeistEngine,wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+            const samples=[];
+            for(const tab of ['enemies','bosses']){
+              const hashes=[];
+              for(const idx of [0,1,2,5,9,17,31,47]){
+                e.collectionTab=tab;e.collectionFilter='all';e.collectionIndex=idx;e.collectionScroll=0;e.state='COLLECTION';e.onStateChange?.('COLLECTION');await wait();
+                const c=e.ui;if(!c)throw new Error('missing ui context');
+                const d=c.getImageData(0,0,c.canvas.width,c.canvas.height).data;
+                let opaque=0,hash=2166136261>>>0;
+                for(let i=0;i<d.length;i+=97){opaque+=d[i+3]>0?1:0;hash=Math.imul(hash^d[i],16777619)>>>0;hash=Math.imul(hash^d[i+1],16777619)>>>0;hash=Math.imul(hash^d[i+2],16777619)>>>0;}
+                if(opaque<400)throw new Error(tab+' '+idx+' rendered too sparse');
+                hashes.push(hash);
+              }
+              if(new Set(hashes).size<6)throw new Error(tab+' visual samples insufficiently distinct '+JSON.stringify(hashes));
+              samples.push({tab,uniqueHashes:new Set(hashes).size});
+            }
+            return samples;
+          });
+
+          const game=await browser.newPage({viewport:{width:1191,height:900}});
+          attachErrors(game);
+          await game.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await game.waitForFunction(()=>window.duckHeistEngine && window.duckHeistAudit);
+          await game.evaluate(()=>localStorage.clear());
+
+          const clickWorld=async(wx,wy)=>{
+            await game.evaluate(([x,y])=>{
+              const canvases=[...document.querySelectorAll('canvas')];
+              const c=canvases[canvases.length-1];
+              if(!c)throw new Error('canvas missing');
+              const r=c.getBoundingClientRect();
+              const init={bubbles:true,cancelable:true,button:0,buttons:1,clientX:r.left+x/480*r.width,clientY:r.top+y/360*r.height};
+              c.dispatchEvent(new MouseEvent('mousemove',init));
+              c.dispatchEvent(new MouseEvent('mousedown',init));
+              c.dispatchEvent(new MouseEvent('mouseup',{...init,buttons:0}));
+            },[wx,wy]);
+            await game.waitForTimeout(120);
+          };
+
+          if((await game.evaluate(()=>window.duckHeistEngine.state))!=='MENU')throw new Error('fresh state is not MENU');
+          await clickWorld(96,92);
+          await game.waitForFunction(()=>window.duckHeistEngine.state==='DIFFICULTY');
+          await clickWorld(370,329);
+          await game.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING',null,{timeout:8000});
+
+          const before=await game.evaluate(()=>({x:window.duckHeistEngine.player.x,y:window.duckHeistEngine.player.y}));
+          await game.keyboard.down('KeyD');await game.waitForTimeout(250);await game.keyboard.up('KeyD');await game.waitForTimeout(100);
+          const after=await game.evaluate(()=>({x:window.duckHeistEngine.player.x,y:window.duckHeistEngine.player.y}));
+          if(after.x===before.x&&after.y===before.y)throw new Error('real gameplay movement did not update player');
+
+          await game.keyboard.press('Escape');await game.waitForFunction(()=>window.duckHeistEngine.state==='PAUSED');
+          await game.keyboard.press('Escape');await game.waitForFunction(()=>window.duckHeistEngine.state==='PLAYING');
+
+          const overflow=await game.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth+1,y:document.documentElement.scrollHeight>innerHeight+1}));
+          if(overflow.x||overflow.y)throw new Error('desktop overflow '+JSON.stringify(overflow));
+
+          const hub=await browser.newPage({viewport:{width:1191,height:900}});
+          attachErrors(hub);
+          await hub.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          if(!(await hub.locator('text=VELCORE').count()))throw new Error('root hub missing');
+
+          const direct=await browser.newPage({viewport:{width:390,height:844}});
+          attachErrors(direct);
+          await direct.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          if((await direct.locator('canvas').count())<2)throw new Error('mobile direct Duck Heist route missing canvases');
+          const mobileOverflow=await direct.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth+1,y:document.documentElement.scrollHeight>innerHeight+1}));
+          if(mobileOverflow.x||mobileOverflow.y)throw new Error('mobile overflow '+JSON.stringify(mobileOverflow));
+          if(errors.length)throw new Error('runtime '+errors.join(' | '));
+
+          console.log(JSON.stringify({auditPassed:audit.passed,collection,before,after,desktopOverflow:overflow,mobileOverflow,runtimeErrors:errors},null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-enemy-art-followup-qa-2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh final enemy visual follow-up bundle'
+            git push origin HEAD:art/v080-enemy-visual-overhaul
+          fi
