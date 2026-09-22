@@ -2,6 +2,7 @@ import type {
   DailyChallengeProfile, DailyChallengeRecord, DailyChallengeResult, DailyMedal,
   DailyModifier, GameEngine, RunHistoryEntry,
 } from './types';
+import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 
 export const DAILY_MODIFIERS:Record<DailyModifier,{name:string;description:string;accent:string}> = {
   SECURITY_SURGE:{name:'SEGURIDAD REFORZADA',description:'+18% vida y +12% daño enemigo.',accent:'#d85d58'},
@@ -79,7 +80,7 @@ export function refreshDailyRuntime(e:GameEngine) {
   return e.daily;
 }
 export function persistDaily(profile:DailyChallengeProfile) {
-  try{localStorage.setItem('duckheist_daily',JSON.stringify(profile));}catch{}
+  try{localStorage.setItem('duckheist_daily',JSON.stringify(profile));notifyCloudSave();}catch{}
 }
 
 export function medalForScore(score:number):DailyMedal {
