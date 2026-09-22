@@ -139,6 +139,19 @@ export default function AccountGate({children}:{children:ReactNode}){
       setMessage(unverified?'Todavía no aparece como verificado. Abre el enlace del correo y vuelve a intentar.':e instanceof Error?e.message:'No se pudo verificar.');
     }finally{setBusy(false);}
   };
+  useEffect(()=>{
+    if(audit||gate!=='verify'||!cfg||!emailInput||!passwordInput)return;
+    const onReturn=()=>{
+      if(document.visibilityState==='visible'&&!busy)void checkVerification();
+    };
+    window.addEventListener('focus',onReturn);
+    document.addEventListener('visibilitychange',onReturn);
+    return()=>{
+      window.removeEventListener('focus',onReturn);
+      document.removeEventListener('visibilitychange',onReturn);
+    };
+  },[audit,gate,cfg,emailInput,passwordInput,busy]);
+
   const resend=async()=>{
     if(!cfg)return;setBusy(true);
     try{await resendVerification(cfg,emailInput);setMessage('Correo de verificación reenviado. Revisa también spam.');}
@@ -209,6 +222,7 @@ export default function AccountGate({children}:{children:ReactNode}){
   if(gate==='verify')return (
     <AccountShell title="VERIFICA TU CORREO" subtitle={<>Enviamos un enlace a <strong>{emailInput}</strong>. Verifica el correo antes de elegir tu usuario.</>}>
       <div className="vg-verify-mark" aria-hidden="true">✉</div>
+      <p className="vg-account-note vg-verify-help">Abre el enlace del correo. Al volver a esta pestaña lo comprobaré automáticamente; también puedes usar el botón.</p>
       <button className="vg-account-primary" disabled={busy} onClick={()=>void checkVerification()}>{busy?'COMPROBANDO…':'YA VERIFIQUÉ MI CORREO'}</button>
       <button className="vg-account-secondary" disabled={busy} onClick={()=>void resend()}>REENVIAR CORREO</button>
       <button className="vg-account-link" onClick={()=>{setGate('auth');setMode('login');setMessage('');}}>USAR OTRO CORREO</button>
