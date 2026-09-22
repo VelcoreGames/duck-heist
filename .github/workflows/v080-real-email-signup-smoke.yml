@@ -1,0 +1,53 @@
+name: real email auth signup smoke
+on:
+  push:
+    branches: [feat/v080-email-first-accounts]
+    paths:
+      - '.github/workflows/v080-real-email-signup-smoke.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-email-first-accounts
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Real Supabase signup requires verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const cfg=JSON.parse(fs.readFileSync('public/velcore-cloud.json','utf8'));
+          const email='qa-'+Date.now()+'@example.com';
+          const password='Qa!'+crypto.randomBytes(18).toString('base64url');
+          const url=cfg.supabaseUrl+'/auth/v1/signup?redirect_to='+encodeURIComponent('https://velcoregames.com/duck-heist');
+          const res=await fetch(url,{
+            method:'POST',
+            headers:{'Content-Type':'application/json','apikey':cfg.anonKey},
+            body:JSON.stringify({email,password})
+          });
+          const body=await res.json().catch(()=>({}));
+          console.log(JSON.stringify({status:res.status,ok:res.ok,userId:body.id||body.user?.id||null,email:body.email||body.user?.email||null,hasAccessToken:!!body.access_token,hasRefreshToken:!!body.refresh_token,errorCode:body.error_code||body.code||null},null,2));
+          if(!res.ok)throw new Error('real signup failed');
+          if(body.access_token||body.refresh_token)throw new Error('signup unexpectedly returned a session before email verification');
+          if(!(body.id||body.user?.id))throw new Error('signup did not create/return a user');
+          JS
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/v080-real-email-signup-smoke.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: remove real email signup smoke'
+            git push origin HEAD:feat/v080-email-first-accounts
+          fi
