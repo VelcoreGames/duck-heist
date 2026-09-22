@@ -449,165 +449,109 @@ export function drawBreadHP(ctx: Ctx, x: number, y: number, filled: boolean) {
   }
 }
 
+function enemyShadow(ctx:Ctx,cx:number,y:number,rx:number,alpha=.34){
+  ctx.fillStyle=`rgba(0,0,0,${alpha})`;
+  ctx.beginPath();ctx.ellipse(cx,y,rx,Math.max(2,Math.round(rx*.28)),0,0,Math.PI*2);ctx.fill();
+}
+function enemyEye(ctx:Ctx,x:number,y:number,alert=false){
+  px(ctx,x,y,alert?'#ff574d':'#10151c',2);
+  if(alert){ctx.globalAlpha=.28;ctx.fillStyle='#ff574d';ctx.fillRect(x-2,y-2,6,6);ctx.globalAlpha=1;}
+}
+function metalEdge(ctx:Ctx,x:number,y:number,w:number,h:number,base:string,hi:string,lo:string){
+  rect(ctx,x,y,w,h,base);rect(ctx,x+1,y+1,w-2,1,hi);rect(ctx,x+1,y+h-2,w-2,1,lo);
+}
+function crownMark(ctx:Ctx,x:number,y:number,color='#e5bd45'){
+  px(ctx,x,y+2,color,2);px(ctx,x+3,y,color,2);px(ctx,x+6,y+2,color,2);rect(ctx,x,y+4,8,2,color);
+}
+
+/** PALOMA DE SEGURIDAD — silueta de tirador, visera y arma siempre legibles. */
 export function drawSecurityPigeon(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  const bob = Math.sin(frame * 0.15) * 1;
-  
-  if (hurt && Math.floor(frame) % 2 === 0) {
-    ctx.globalAlpha = 0.6;
-  }
-  
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(bx + 8, by + 17, 6, 2, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Body
-  rect(ctx, bx + 4, by + 6 + bob, 8, 9, '#8e8e8e');
-  rect(ctx, bx + 3, by + 8 + bob, 10, 5, '#9e9e9e');
-  
-  // Head
-  rect(ctx, bx + 4, by + 2 + bob, 7, 5, '#a0a0a0');
-  
-  // Eyes
-  px(ctx, bx + 5, by + 3 + bob, '#cc3333', 2);
-  px(ctx, bx + 9, by + 3 + bob, '#cc3333', 2);
-  
-  // Beak
-  rect(ctx, bx + 6, by + 5 + bob, 3, 2, '#d4a574');
-  
-  // Security hat
-  rect(ctx, bx + 3, by + 1 + bob, 9, 2, '#1a237e');
-  rect(ctx, bx + 5, by + 0 + bob, 5, 1, '#1a237e');
-  // Badge
-  px(ctx, bx + 7, by + 1 + bob, '#f4d03f', 1);
-  
-  // Feet
-  rect(ctx, bx + 4, by + 15, 3, 2, '#bf6060');
-  rect(ctx, bx + 9, by + 15, 3, 2, '#bf6060');
-  
-  ctx.globalAlpha = 1;
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.16));
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+8,by+18,7);
+  // cola/ala trasera: rompe la silueta rectangular
+  rect(ctx,bx-1,by+9+bob,4,7,'#596b83');rect(ctx,bx-3,by+11+bob,3,6,'#7387a3');
+  // cuerpo y chaleco BANK
+  rect(ctx,bx+3,by+7+bob,10,10,'#65768c');
+  rect(ctx,bx+2,by+10+bob,12,6,'#263647');rect(ctx,bx+4,by+11+bob,8,4,'#17212d');
+  rect(ctx,bx+5,by+12+bob,2,2,'#e5bd45');rect(ctx,bx+9,by+12+bob,2,2,'#89a8b7');
+  // cabeza, cuello iridiscente y pico lateral
+  rect(ctx,bx+4,by+2+bob,8,6,'#8a9aac');rect(ctx,bx+4,by+6+bob,8,2,'#4c7c83');
+  enemyEye(ctx,bx+9,by+3+bob,true);
+  rect(ctx,bx+12,by+5+bob,5,2,'#f0912b');px(ctx,bx+16,by+5+bob,'#d46618',1);
+  // gorra de seguridad
+  rect(ctx,bx+2,by+bob,12,3,'#1d3049');rect(ctx,bx+4,by-2+bob,8,3,'#294866');
+  rect(ctx,bx+11,by+2+bob,5,1,'#0d1620');crownMark(ctx,bx+6,by-2+bob,'#e5bd45');
+  // arma compacta con mira roja
+  rect(ctx,bx+11,by+10+bob,8,3,'#202b36');rect(ctx,bx+15,by+9+bob,3,2,'#536674');
+  px(ctx,bx+18,by+10+bob,'#ff574d',1);rect(ctx,bx+8,by+12+bob,4,2,'#344654');
+  // patas
+  rect(ctx,bx+4,by+16,3,2,'#ef8b35');rect(ctx,bx+10,by+16,3,2,'#ef8b35');
+  ctx.restore();ctx.globalAlpha=1;
 }
 
+/** GANSO GUARDIA — bruto de contacto con casco, porra y hombreras anchas. */
 export function drawGuardGoose(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  const bob = Math.sin(frame * 0.2) * 1;
-  
-  if (hurt && Math.floor(frame) % 2 === 0) {
-    ctx.globalAlpha = 0.6;
-  }
-  
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(bx + 10, by + 22, 8, 3, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Body (larger than pigeon)
-  rect(ctx, bx + 4, by + 10 + bob, 12, 10, '#f0f0f0');
-  rect(ctx, bx + 3, by + 12 + bob, 14, 6, '#e8e8e8');
-  
-  // Neck
-  rect(ctx, bx + 7, by + 4 + bob, 6, 8, '#f0f0f0');
-  
-  // Head
-  rect(ctx, bx + 5, by + 1 + bob, 8, 5, '#f0f0f0');
-  
-  // Mean eyes
-  px(ctx, bx + 6, by + 2 + bob, '#0a0a0a', 2);
-  px(ctx, bx + 10, by + 2 + bob, '#0a0a0a', 2);
-  // Angry eyebrows
-  rect(ctx, bx + 5, by + 1 + bob, 3, 1, '#333');
-  rect(ctx, bx + 10, by + 1 + bob, 3, 1, '#333');
-  
-  // Beak
-  rect(ctx, bx + 13, by + 3 + bob, 5, 3, '#e67e22');
-  rect(ctx, bx + 14, by + 5 + bob, 4, 1, '#d35400');
-  
-  // Security vest
-  rect(ctx, bx + 5, by + 11 + bob, 10, 6, '#1a237e');
-  px(ctx, bx + 9, by + 12 + bob, '#f4d03f', 2);
-  
-  // Feet
-  rect(ctx, bx + 5, by + 20, 4, 2, '#e67e22');
-  rect(ctx, bx + 11, by + 20, 4, 2, '#e67e22');
-  
-  ctx.globalAlpha = 1;
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.13));
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+10,by+23,9,.38);
+  // silueta ancha + hombros
+  rect(ctx,bx+2,by+10+bob,16,10,'#e8e7df');rect(ctx,bx,by+12+bob,5,6,'#3b4654');rect(ctx,bx+16,by+12+bob,5,6,'#3b4654');
+  rect(ctx,bx+4,by+11+bob,12,8,'#283444');rect(ctx,bx+6,by+12+bob,8,5,'#17202a');
+  // cuello alto y cabeza agresiva
+  rect(ctx,bx+7,by+4+bob,6,8,'#f2efe6');rect(ctx,bx+5,by+1+bob,9,6,'#f2efe6');
+  enemyEye(ctx,bx+11,by+3+bob,true);rect(ctx,bx+14,by+4+bob,6,3,'#ef8b35');rect(ctx,bx+15,by+6+bob,4,1,'#c85e16');
+  // casco con visor levantado
+  rect(ctx,bx+4,by-1+bob,11,3,'#343d49');rect(ctx,bx+6,by-3+bob,8,3,'#4d5a69');
+  rect(ctx,bx+13,by+1+bob,5,2,'#151c24');px(ctx,bx+8,by-2+bob,'#e5bd45',2);
+  // porra, siempre visible en diagonal
+  ctx.save();ctx.translate(bx+3,by+11+bob);ctx.rotate(-.48);
+  rect(ctx,-2,-1,4,12,'#242a31');rect(ctx,-1,-6,2,7,'#697784');rect(ctx,-2,-7,4,2,'#1a2027');ctx.restore();
+  // placa frontal
+  rect(ctx,bx+8,by+13+bob,4,3,'#60748a');px(ctx,bx+9,by+13+bob,'#e5bd45',2);
+  rect(ctx,bx+5,by+20,4,2,'#ef8b35');rect(ctx,bx+12,by+20,4,2,'#ef8b35');
+  ctx.restore();ctx.globalAlpha=1;
 }
 
+/** TORRETA TOSTADORA — máquina de cocina militarizada con núcleo/cañón claramente frontal. */
 export function drawToasterTurret(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  
-  if (hurt && Math.floor(frame) % 2 === 0) {
-    ctx.globalAlpha = 0.6;
-  }
-  
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(bx + 10, by + 20, 8, 3, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Body
-  rect(ctx, bx + 2, by + 4, 16, 14, '#8e8e8e');
-  rect(ctx, bx + 3, by + 3, 14, 1, '#7e7e7e');
-  
-  // Slots (glow)
-  const glow = Math.sin(frame * 0.1) * 0.3 + 0.7;
-  ctx.globalAlpha = glow;
-  rect(ctx, bx + 5, by + 2, 4, 4, '#e74c3c');
-  rect(ctx, bx + 11, by + 2, 4, 4, '#e74c3c');
-  ctx.globalAlpha = hurt && Math.floor(frame) % 2 === 0 ? 0.6 : 1;
-  
-  // Chrome details
-  rect(ctx, bx + 2, by + 10, 16, 1, '#b0b0b0');
-  rect(ctx, bx + 7, by + 12, 6, 3, '#606060');
-  
-  // Lever
-  rect(ctx, bx + 17, by + 8, 2, 5, '#606060');
-  rect(ctx, bx + 16, by + 7, 4, 2, '#707070');
-  
-  ctx.globalAlpha = 1;
+  const bx=Math.floor(x),by=Math.floor(y),pulse=.55+.45*Math.sin(frame*.17);
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+10,by+21,9,.4);
+  // pedestal industrial
+  metalEdge(ctx,bx+3,by+16,15,5,'#3d4650','#788894','#20262d');
+  rect(ctx,bx+6,by+20,9,2,'#15191f');
+  // cuerpo cromado y franjas de peligro
+  metalEdge(ctx,bx+2,by+5,16,12,'#8e9aa2','#d8e1e4','#515b63');
+  for(let i=0;i<4;i++)rect(ctx,bx+3+i*4,by+14,2,2,i%2?'#1d2228':'#e0a83c');
+  // pan emergente
+  rect(ctx,bx+6,by,8,4,'#d39758');rect(ctx,bx+7,by-1,6,3,'#f0c37c');rect(ctx,bx+8,by+1,4,2,'#e9d1a0');
+  // cara/núcleo rojo
+  ctx.globalAlpha=.55+.35*pulse;rect(ctx,bx+5,by+8,8,4,'#2a2021');enemyEye(ctx,bx+6,by+8,true);enemyEye(ctx,bx+11,by+8,true);ctx.globalAlpha=1;
+  // cañón de pan frontal
+  rect(ctx,bx+12,by+9,8,4,'#303943');rect(ctx,bx+17,by+8,4,6,'#20262c');rect(ctx,bx+20,by+9,3,4,'#4b5963');
+  if(frame%14<4){ctx.globalAlpha=.35+.35*pulse;rect(ctx,bx+22,by+8,4,6,'#ff714f');ctx.globalAlpha=1;}
+  // manómetro térmico
+  rect(ctx,bx+3,by+6,2,5,'#2b3238');px(ctx,bx+3,by+6,pulse>.7?'#ff624f':'#e5bd45',2);
+  ctx.restore();ctx.globalAlpha=1;
 }
 
+/** ROSQUILLA RODANTE — rueda blindada de pan con pinchos y rostro central. */
 export function drawRollingBagel(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  const rot = frame * 0.1;
-  
-  if (hurt && Math.floor(frame) % 2 === 0) {
-    ctx.globalAlpha = 0.6;
-  }
-  
-  ctx.save();
-  ctx.translate(bx + 8, by + 8);
-  ctx.rotate(rot);
-  
-  // Outer bagel
-  ctx.fillStyle = '#d4a574';
-  ctx.beginPath();
-  ctx.arc(0, 0, 8, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Inner hole
-  ctx.fillStyle = COLORS.floor;
-  ctx.beginPath();
-  ctx.arc(0, 0, 3, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Sesame seeds
-  ctx.fillStyle = '#f5e6ca';
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2;
-    px(ctx, Math.cos(a) * 6 - 1, Math.sin(a) * 6 - 1, '#f5e6ca', 2);
-  }
-  
-  ctx.restore();
-  ctx.globalAlpha = 1;
+  const bx=Math.floor(x),by=Math.floor(y),rot=frame*.16;
+  ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
+  enemyShadow(ctx,bx+8,by+17,8,.3);
+  ctx.translate(bx+8,by+8);ctx.rotate(rot);
+  // aro con dos tonos
+  ctx.fillStyle='#b8733f';ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#e1a85f';ctx.beginPath();ctx.arc(0,0,6.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2a211c';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();
+  // pinchos metálicos
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.save();ctx.rotate(a);rect(ctx,6,-1,5,3,'#56616b');px(ctx,10,0,'#aeb9c0',1);ctx.restore();}
+  // semillas y placas
+  for(let i=0;i<5;i++){const a=i*1.25+.3;px(ctx,Math.cos(a)*5-1,Math.sin(a)*5-1,'#f5dfb3',1);}
+  rect(ctx,-2,-2,2,2,'#ff574d');rect(ctx,1,-2,2,2,'#ff574d');
+  ctx.restore();ctx.globalAlpha=1;
 }
 
 export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, frame: number) {
