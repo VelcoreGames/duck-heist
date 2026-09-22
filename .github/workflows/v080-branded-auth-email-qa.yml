@@ -56,17 +56,19 @@ jobs:
           if(!confirmation.includes('Tu progreso te sigue a cualquier equipo.'))throw new Error('brand continuity missing');
           console.log(JSON.stringify({templates:Object.keys(req).length,branding:'Velcore Games',externalImages:0,supabaseBranding:0},null,2));
           JS
-      - name: Detect Supabase management token
+      - name: Apply hosted Supabase templates when token exists
         shell: bash
-        env:
-          TOKEN_PRESENT: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
-        run: echo "SUPABASE_ACCESS_TOKEN_AVAILABLE=$TOKEN_PRESENT"
-      - name: Apply hosted Supabase templates
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: nohiktjbysfkhtiqdbjy
-        run: npm run email:apply
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "SUPABASE_ACCESS_TOKEN_AVAILABLE=true"
+            npm run email:apply
+          else
+            echo "SUPABASE_ACCESS_TOKEN_AVAILABLE=false"
+            echo "Hosted template deployment skipped; QA continues."
+          fi
       - name: Remove temporary workflow
         if: always()
         shell: bash
