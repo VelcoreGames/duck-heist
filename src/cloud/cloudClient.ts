@@ -61,7 +61,7 @@ export async function loadCloudConfig():Promise<CloudConfig|null>{
 async function rpc<T>(cfg:CloudConfig,name:string,args:Record<string,unknown>):Promise<T>{
   const res=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/'+name,{
     method:'POST',
-    headers:{'Content-Type':'application/json','apikey':cfg.anonKey,'Authorization':'Bearer '+cfg.anonKey},
+    headers:{'Content-Type':'application/json','apikey':cfg.anonKey},
     body:JSON.stringify(args),
   });
   let body:unknown=null;
