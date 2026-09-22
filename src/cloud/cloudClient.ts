@@ -353,21 +353,25 @@ export async function initialSync(cfg:CloudConfig,session:AccountSession):Promis
 }
 
 export async function resolveConflict(cfg:CloudConfig,session:AccountSession,conflict:CloudConflict,choice:'remote'|'local'){
+  const verified=await validateSession(cfg,session);
+  if(!verified)throw new Error('Sesión vencida. Inicia sesión otra vez.');
   if(choice==='remote'){
-    restoreLocalGameSave(conflict.remote);const h=await hashPayload(conflict.remote);setMeta(session,conflict.remoteRevision,h,conflict.remoteUpdatedAt);
+    restoreLocalGameSave(conflict.remote);const h=await hashPayload(conflict.remote);setMeta(verified,conflict.remoteRevision,h,conflict.remoteUpdatedAt);
     return conflict.remoteRevision;
   }
-  const saved=await saveRemote(cfg,session,conflict.local,conflict.remoteRevision,true);
+  const saved=await saveRemote(cfg,verified,conflict.local,conflict.remoteRevision,true);
   if(!saved.ok)throw new Error(accountMessage(saved.code));
-  setMeta(session,saved.revision||conflict.remoteRevision+1,conflict.localHash,saved.updated_at);
+  setMeta(verified,saved.revision||conflict.remoteRevision+1,conflict.localHash,saved.updated_at);
   return saved.revision||conflict.remoteRevision+1;
 }
 export async function syncCurrent(cfg:CloudConfig,session:AccountSession){
-  const meta=getMeta();if(!meta||meta.userId!==session.userId)return initialSync(cfg,session);
+  const verified=await validateSession(cfg,session);
+  if(!verified)throw new Error('Sesión vencida. Inicia sesión otra vez.');
+  const meta=getMeta();if(!meta||meta.userId!==verified.userId)return initialSync(cfg,verified);
   const payload=captureLocalGameSave(),hash=await hashPayload(payload);
   if(hash===meta.hash)return {kind:'ready',revision:meta.revision} as InitialSync;
-  const saved=await saveRemote(cfg,session,payload,meta.revision,false);
-  if(saved.ok){setMeta(session,saved.revision||meta.revision+1,hash,saved.updated_at);return {kind:'ready',revision:saved.revision||meta.revision+1} as InitialSync;}
+  const saved=await saveRemote(cfg,verified,payload,meta.revision,false);
+  if(saved.ok){setMeta(verified,saved.revision||meta.revision+1,hash,saved.updated_at);return {kind:'ready',revision:saved.revision||meta.revision+1} as InitialSync;}
   if(saved.code==='conflict'&&saved.payload&&saved.revision){
     return {kind:'conflict',conflict:{local:payload,localHash:hash,remote:saved.payload,remoteRevision:saved.revision,remoteUpdatedAt:saved.updated_at||''}} as InitialSync;
   }
