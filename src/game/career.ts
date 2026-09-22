@@ -2,6 +2,7 @@ import type {
   CareerStats, ContractMetric, ContractPeriodState, ContractState, DifficultyCareerRecord,
   DifficultyMode, GameEngine, ItemCareerStat, RunHistoryEntry, WeaponCareerStat,
 } from './types';
+import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 
 const DIFFICULTIES:DifficultyMode[]=['easy','normal','hard','mad'];
 const METRICS:ContractMetric[]=['runs','wins','enemies','bosses','damage','rooms','endlessRuns'];
@@ -87,7 +88,7 @@ function loadContracts(c:CareerStats):ContractState{
   return {daily:normalizePeriod(raw.daily,dateKey(),c),weekly:normalizePeriod(raw.weekly,weekKey(),c)};
 }
 function persistContracts(state:ContractState){
-  try{localStorage.setItem('duckheist_contracts',JSON.stringify(state));}catch{}
+  try{localStorage.setItem('duckheist_contracts',JSON.stringify(state));notifyCloudSave();}catch{}
 }
 
 export interface ContractDef {
@@ -204,6 +205,7 @@ export function recordRun(engine:GameEngine,outcome:RunHistoryEntry['outcome']) 
   try {
     localStorage.setItem('duckheist_career',JSON.stringify(c));
     localStorage.setItem('duckheist_history',JSON.stringify(engine.runHistory));
+    notifyCloudSave();
   } catch {}
 }
 

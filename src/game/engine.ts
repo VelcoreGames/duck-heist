@@ -32,6 +32,7 @@ import { completeTutorial, updateTutorial } from './tutorial';
 import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
+import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 import type {
   GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind,
 } from './types';
@@ -802,7 +803,7 @@ function saveEndlessRecord(engine:GameEngine) {
   const cur=engine.endlessRecords[engine.difficulty];
   const next={round:Math.max(cur.round,engine.endless.round),score:Math.max(cur.score,Math.round(engine.endless.score)),alert:Math.max(cur.alert,engine.endless.alert)};
   engine.endlessRecords[engine.difficulty]=next;
-  try {localStorage.setItem('duckheist_endless_records',JSON.stringify(engine.endlessRecords));} catch { /* sin almacenamiento */ }
+  try {localStorage.setItem('duckheist_endless_records',JSON.stringify(engine.endlessRecords));notifyCloudSave();} catch { /* sin almacenamiento */ }
 }
 
 function saveEndlessCheckpoint(engine:GameEngine) {
@@ -816,11 +817,12 @@ function saveEndlessCheckpoint(engine:GameEngine) {
     localStorage.setItem('duckheist_endless_checkpoint',JSON.stringify(payload));
     engine.endlessCheckpointRound=engine.endless.round;
     engine.endlessCheckpointDifficulty=engine.difficulty;
+    notifyCloudSave();
   } catch { /* sin almacenamiento */ }
 }
 
 export function clearEndlessCheckpoint(engine:GameEngine) {
-  try {localStorage.removeItem('duckheist_endless_checkpoint');} catch { /* sin almacenamiento */ }
+  try {localStorage.removeItem('duckheist_endless_checkpoint');notifyCloudSave();} catch { /* sin almacenamiento */ }
   engine.endlessCheckpointRound=0;engine.endlessCheckpointDifficulty=null;
 }
 
@@ -3567,6 +3569,7 @@ function saveProgress(engine: GameEngine) {
     if(engine.gameMode!=='daily'&&engine.stats.breadStolen>(engine.best.breadStolen??0)) {
       engine.newRecord=true;engine.best={...engine.stats};localStorage.setItem('duckheist_best',JSON.stringify(engine.stats));
     }
+    notifyCloudSave();
   } catch { /* ignorar */ }
 }
 
