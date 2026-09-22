@@ -1,5 +1,6 @@
 import App from './App';
 import GamePortal from './GamePortal';
+import AccountGate from './cloud/AccountGate';
 
 function normalizePath(pathname:string){
   const clean=pathname.replace(/\/{2,}/g,'/').replace(/\/$/,'')||'/';
@@ -39,7 +40,7 @@ export default function RouteApp(){
 
   if(path==='/duck-heist'){
     document.title='DUCK HEIST · Velcore Games';
-    return <App />;
+    return <AccountGate><App /></AccountGate>;
   }
   if(path==='/duck-heist-movil'){
     document.title='Duck Heist Móvil · Velcore Games';
