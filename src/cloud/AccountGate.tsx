@@ -123,7 +123,7 @@ export default function AccountGate({children}:{children:ReactNode}){
       </div>
       <form className="vg-account-form" onSubmit={submit}>
         <label>NOMBRE DE USUARIO<input name="username" autoComplete="username" maxLength={20} placeholder="PatoLadron" required /></label>
-        {mode==='recover'&&<label>CÓDIGO DE RECUPERACIÓN<input name="recovery" autoComplete="off" placeholder="DH-XXXX-XXXX-XXXX-XXXX" required /></label>}
+        {mode==='recover'&&<label>CÓDIGO DE RECUPERACIÓN<input name="recovery" autoComplete="off" placeholder="DH-XXXX-XXXX-XXXX-XXXX-XXXX" required /></label>}
         <label>{mode==='recover'?'NUEVA CONTRASEÑA':'CONTRASEÑA'}<input name="password" type="password" autoComplete={mode==='login'?'current-password':'new-password'} minLength={mode==='login'?1:10} maxLength={128} required /></label>
         <button className="vg-account-primary" disabled={busy||!cfg}>{busy?'PROCESANDO…':mode==='signup'?'CREAR CUENTA':mode==='recover'?'RECUPERAR CUENTA':'ENTRAR AL ATRACO'}</button>
       </form>
