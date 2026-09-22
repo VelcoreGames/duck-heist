@@ -451,3 +451,5 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 @media(max-width:560px){.vg-account-page{padding:14px}.vg-account-card{padding:27px 20px 22px}.vg-account-brand{margin-bottom:27px}.vg-conflict-grid{grid-template-columns:1fr}.vg-account-hud{right:6px;top:6px}.vg-account-chip{padding:5px 7px}.vg-account-chip small{display:none}}
 
 :fullscreen .vg-account-hud{display:none!important;}
+
+.vg-username-suggestions{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:-4px 0 2px}.vg-username-suggestions>span{width:100%;font-size:8px;font-weight:700;letter-spacing:.12em;color:#6f888d}.vg-username-suggestions button{padding:6px 9px;border:1px solid #526b72;background:#0a1820;color:#e4ca75;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.04em}.vg-username-suggestions button:hover,.vg-username-suggestions button:focus-visible{border-color:#d9bd63;background:#17221d;color:#f1d77c}
