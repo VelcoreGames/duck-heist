@@ -1,7 +1,7 @@
 // Pixel art sprite renderer using canvas
 // All sprites are drawn procedurally - no external assets needed
 
-import { COLORS, TILE_SIZE } from './constants';
+import { TILE_SIZE } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette } from './data';
 import { drawItemIcon } from './itemArt';
 
