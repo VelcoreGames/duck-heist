@@ -28,6 +28,7 @@ interface AuthTokenReply {
   access_token?:string;refresh_token?:string;expires_in?:number;expires_at?:number;token_type?:string;
   user?:AuthUser;id?:string;email?:string;email_confirmed_at?:string|null;confirmed_at?:string|null;
 }
+interface UsernameLoginReply extends AuthTokenReply { ok?:boolean;code?:string;username?:string;
 interface ProfileReply {ok:boolean;code:string;username?:string;suggestions?:string[];}
 interface LoadReply {ok:boolean;code:string;revision?:number;payload?:CloudPayload;updated_at?:string;}
 interface SaveReply extends LoadReply {}
@@ -63,7 +64,7 @@ export function validateEmail(v:string){
 export function validateUsername(v:string){
   const value=v.trim();
   if(!/^[A-Za-z0-9_]{3,20}$/.test(value))return 'Usa de 3 a 20 caracteres: letras, números o _.';
-  if(['admin','administrator','mod','moderator','soporte','support','velcore','velcoregames','duckheist'].includes(value.toLowerCase()))return 'Ese nombre está reservado.';
+  if(['administrator','mod','moderator','soporte','support','velcore','velcoregames','duckheist'].includes(value.toLowerCase()))return 'Ese nombre está reservado.';
   return '';
 }
 export function validatePassword(v:string){
@@ -234,6 +235,18 @@ export async function loginEmail(cfg:CloudConfig,email:string,password:string){
   });
   const session=sessionFromToken(body);cacheSession(session);return session;
 }
+export async function loginUsername(cfg:CloudConfig,username:string,password:string){
+  const ue=validateUsername(username),pe=validatePassword(password);if(ue||pe)throw new Error(ue||pe);
+  const res=await fetch(cfg.supabaseUrl+'/functions/v1/vg-login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':cfg.anonKey},
+    body:JSON.stringify({username:username.trim(),password}),
+  });
+  const body=await decodeBody(res) as UsernameLoginReply & Record<string,unknown>;
+  if(!res.ok||body.ok===false)throw authError(body,res.status);
+  const session=sessionFromToken(body,body.username||username.trim());
+  cacheSession(session);return session;
+}
 export async function sendPasswordReset(cfg:CloudConfig,email:string){
   const ee=validateEmail(email);if(ee)throw new Error(ee);
   const target=encodeURIComponent(confirmationRedirect());
@@ -384,8 +397,9 @@ export function accountMessage(code:string){
   const map:Record<string,string>={
     invalid_username:'Nombre de usuario inválido.',reserved_username:'Ese nombre está reservado.',username_taken:'Ese nombre ya existe.',
     email_not_verified:'Primero verifica tu correo.',profile_exists:'Tu cuenta ya tiene nombre de usuario.',
-    email_not_confirmed:'Primero verifica tu correo.',invalid_credentials:'Correo o contraseña incorrectos.',
-    invalid_grant:'Correo o contraseña incorrectos.',over_email_send_rate_limit:'Se enviaron demasiados correos en poco tiempo. Espera unos minutos antes de volver a intentarlo.',
+    email_not_confirmed:'Primero verifica tu correo.',invalid_credentials:'Usuario o contraseña incorrectos.',
+    invalid_grant:'Datos de acceso incorrectos.',too_many_attempts:'Demasiados intentos fallidos. Espera 15 minutos antes de volver a intentar.',
+    invalid_client:'No se pudo validar el cliente del juego.',over_email_send_rate_limit:'Se enviaron demasiados correos en poco tiempo. Espera unos minutos antes de volver a intentarlo.',
     email_address_not_authorized:'Ese correo no está autorizado por el servicio de correo.',invalid_session:'La sesión venció. Inicia sesión otra vez.',
     not_found:'No existe un guardado en la nube.',conflict:'Tu partida cambió en otro equipo.',
     payload_too_large:'El guardado supera el tamaño permitido.',weak_password:'La contraseña debe tener al menos 10 caracteres.',
