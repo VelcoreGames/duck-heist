@@ -1,0 +1,108 @@
+name: v0.8.0 Multi-game routing QA
+on:
+  push:
+    branches: [site/v080-multigame-routing]
+    paths:
+      - '.github/workflows/v080-multigame-routing-qa.yml'
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: site/v080-multigame-routing
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Version guard
+        run: node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Verify physical routes
+        shell: bash
+        run: |
+          test -f dist/index.html
+          test -f dist/duck-heist/index.html
+          test -f dist/duck-heist-movil/index.html
+          test -f dist/eca/index.html
+          test -f dist/404.html
+          cmp dist/index.html dist/duck-heist/index.html
+          cmp dist/index.html dist/duck-heist-movil/index.html
+          cmp dist/index.html dist/eca/index.html
+          node -e "const r=require('./dist/routes.json'); const expected=['/','/duck-heist','/duck-heist-movil','/eca']; if(JSON.stringify(r.routes)!==JSON.stringify(expected)) throw new Error(JSON.stringify(r))"
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser route audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/velcore-games-routes.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..40}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1280,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          const results={};
+
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          results.root={
+            title:await page.title(),
+            hub:await page.locator('text=UN LUGAR.').count(),
+            duckLink:await page.locator('a[href="/duck-heist"]').count(),
+            mobileLink:await page.locator('a[href="/duck-heist-movil"]').count(),
+            ecaLink:await page.locator('a[href="/eca"]').count(),
+          };
+
+          await page.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          results.duck={
+            title:await page.title(),
+            canvases:await page.locator('canvas').count(),
+          };
+
+          await page.goto('http://127.0.0.1:4173/duck-heist-movil/',{waitUntil:'networkidle'});
+          results.mobile={
+            title:await page.title(),
+            heading:await page.locator('h1').innerText(),
+          };
+
+          await page.goto('http://127.0.0.1:4173/eca/',{waitUntil:'networkidle'});
+          results.eca={
+            title:await page.title(),
+            heading:await page.locator('h1').innerText(),
+          };
+
+          if(results.root.title!=='Velcore Games'||!results.root.hub||!results.root.duckLink||!results.root.mobileLink||!results.root.ecaLink) throw new Error('root '+JSON.stringify(results.root));
+          if(!results.duck.title.includes('DUCK HEIST')||results.duck.canvases<2) throw new Error('duck '+JSON.stringify(results.duck));
+          if(results.mobile.heading!=='DUCK HEIST MÓVIL') throw new Error('mobile '+JSON.stringify(results.mobile));
+          if(results.eca.heading!=='ECA') throw new Error('eca '+JSON.stringify(results.eca));
+          if(errors.length) throw new Error('runtime '+errors.join(' | '));
+          console.log(JSON.stringify(results,null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and cleanup
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-multigame-routing-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh multi-game route bundle'
+            git push origin HEAD:site/v080-multigame-routing
+          fi
