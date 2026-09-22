@@ -253,7 +253,7 @@ async function fetchAuthUser(cfg:CloudConfig,session:AccountSession){
   return authRequest<AuthUser>(cfg,'/user',{headers:{Authorization:'Bearer '+session.accessToken}});
 }
 async function loadProfile(cfg:CloudConfig,session:AccountSession){
-  const r=await rpc<ProfileReply>(cfg,'vg_get_profile',{},session.accessToken);
+  const r=await rpc<ProfileReply>(cfg,'vg_auth_get_profile',{},session.accessToken);
   if(!r.ok&&r.code!=='not_found')throw new Error(accountMessage(r.code));
   return r.ok&&r.username?r.username:'';
 }
@@ -288,7 +288,7 @@ export async function parseAuthCallback(cfg:CloudConfig){
 }
 export async function claimUsername(cfg:CloudConfig,session:AccountSession,username:string){
   const ue=validateUsername(username);if(ue)throw new Error(ue);
-  const r=await rpc<ProfileReply>(cfg,'vg_claim_username',{p_username:username.trim()},session.accessToken);
+  const r=await rpc<ProfileReply>(cfg,'vg_auth_claim_username',{p_username:username.trim()},session.accessToken);
   if(!r.ok){
     if(r.code==='username_taken')throw new UsernameTakenError(Array.isArray(r.suggestions)?r.suggestions.slice(0,3):[]);
     throw new Error(accountMessage(r.code));
@@ -300,10 +300,10 @@ export async function logoutAccount(cfg:CloudConfig,session:AccountSession){
 }
 
 async function loadRemote(cfg:CloudConfig,session:AccountSession){
-  return rpc<LoadReply>(cfg,'vg_load_game_save',{p_game_slug:GAME_SLUG},session.accessToken);
+  return rpc<LoadReply>(cfg,'vg_auth_load_game_save',{p_game_slug:GAME_SLUG},session.accessToken);
 }
 async function saveRemote(cfg:CloudConfig,session:AccountSession,payload:CloudPayload,expectedRevision:number,force=false){
-  return rpc<SaveReply>(cfg,'vg_save_game_save',{
+  return rpc<SaveReply>(cfg,'vg_auth_save_game_save',{
     p_game_slug:GAME_SLUG,p_expected_revision:expectedRevision,p_payload:payload,p_device_id:deviceId(),p_force:force,
   },session.accessToken);
 }
