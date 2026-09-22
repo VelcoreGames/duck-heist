@@ -142,7 +142,15 @@ function setMeta(session:AccountSession,revision:number,hash:string,updatedAt=ne
   localStorage.setItem(META_KEY,JSON.stringify(meta));localStorage.setItem(OWNER_KEY,session.userId);
 }
 
-interface AuthReply {ok:boolean;code:string;user_id?:string;username?:string;session_token?:string;expires_at?:string;recovery_code?:string;}
+interface AuthReply {ok:boolean;code:string;user_id?:string;username?:string;session_token?:string;expires_at?:string;recovery_code?:string;suggestions?:string[];}
+
+export class UsernameTakenError extends Error {
+  code='username_taken' as const;
+  constructor(public suggestions:string[]){
+    super('Ese nombre ya existe. Elige una de estas opciones disponibles.');
+    this.name='UsernameTakenError';
+  }
+}
 interface LoadReply {ok:boolean;code:string;revision?:number;payload?:CloudPayload;updated_at?:string;}
 interface SaveReply extends LoadReply {}
 
@@ -153,7 +161,10 @@ function accountFromReply(r:AuthReply):AccountSession{
 export async function createAccount(cfg:CloudConfig,username:string,password:string){
   const ue=validateUsername(username),pe=validatePassword(password);if(ue||pe)throw new Error(ue||pe);
   const r=await rpc<AuthReply>(cfg,'vg_create_account',{p_username:username.trim(),p_password:password,p_device_id:deviceId()});
-  if(!r.ok)throw new Error(accountMessage(r.code));
+  if(!r.ok){
+    if(r.code==='username_taken')throw new UsernameTakenError(Array.isArray(r.suggestions)?r.suggestions.filter(x=>typeof x==='string').slice(0,3):[]);
+    throw new Error(accountMessage(r.code));
+  }
   const session=accountFromReply(r);cacheSession(session);
   return {session,recoveryCode:r.recovery_code||''};
 }
