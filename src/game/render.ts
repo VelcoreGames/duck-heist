@@ -842,6 +842,19 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     }
   }
 
+  if(!e.isBoss && e.elite){
+    const cx=e.x+e.size/2,cy=e.y+e.size/2,pulse=.5+.5*Math.sin(f*.16+e.id);
+    ctx.save();
+    ctx.globalAlpha=.16+.12*pulse;ctx.strokeStyle='#f4d03f';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.ellipse(cx,cy+2,e.size*.72,e.size*.58,0,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.55+.25*pulse;ctx.fillStyle='#f4d03f';
+    ctx.fillRect(Math.round(cx)-4,e.y-10,2,3);ctx.fillRect(Math.round(cx),e.y-13,2,6);ctx.fillRect(Math.round(cx)+4,e.y-10,2,3);
+    ctx.fillRect(Math.round(cx)-5,e.y-7,12,2);
+    ctx.globalAlpha=.4;
+    for(let i=0;i<3;i++){const a=f*.025+i*2.1;ctx.fillRect(Math.round(cx+Math.cos(a)*(e.size*.65)),Math.round(cy+Math.sin(a)*(e.size*.48)),2,2);}
+    ctx.restore();
+  }
+
   if (hurt) {
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#ffffff';
