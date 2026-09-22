@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import {
   type AccountSession,type CloudConfig,type CloudConflict,
   CloudAuthError,UsernameTakenError,claimUsername,clearLocalGameData,getCachedSession,initialSync,
-  loadCloudConfig,loginEmail,logoutAccount,parseAuthCallback,resendVerification,resolveConflict,
+  loadCloudConfig,loginEmail,loginUsername,logoutAccount,parseAuthCallback,resendVerification,resolveConflict,
   sendPasswordReset,signUpEmail,syncCurrent,updatePassword,validateEmail,validatePassword,validateSession,validateUsername,
 } from './cloudClient';
 
@@ -18,6 +18,7 @@ export default function AccountGate({children}:{children:ReactNode}){
   const [conflict,setConflict]=useState<CloudConflict|null>(null);
   const [message,setMessage]=useState('');
   const [emailInput,setEmailInput]=useState('');
+  const [loginUsernameInput,setLoginUsernameInput]=useState('');
   const [passwordInput,setPasswordInput]=useState('');
   const [usernameInput,setUsernameInput]=useState('');
   const [suggestions,setSuggestions]=useState<string[]>([]);
@@ -110,6 +111,17 @@ export default function AccountGate({children}:{children:ReactNode}){
 
   const submitAuth=async(ev:FormEvent<HTMLFormElement>)=>{
     ev.preventDefault();if(!cfg){setMessage('La nube no está configurada todavía.');return;}
+
+    if(mode==='login'){
+      const ue=validateUsername(loginUsernameInput);if(ue){setMessage(ue);return;}
+      const pe=validatePassword(passwordInput);if(pe){setMessage(pe);return;}
+      setBusy(true);setMessage('');
+      try{const s=await loginUsername(cfg,loginUsernameInput,passwordInput);await enterGame(cfg,s);}
+      catch(e){setMessage(e instanceof Error?e.message:'No se pudo acceder a la cuenta.');}
+      finally{setBusy(false);}
+      return;
+    }
+
     const ee=validateEmail(emailInput);if(ee){setMessage(ee);return;}
     if(mode==='recover'){
       setBusy(true);setMessage('');
@@ -118,23 +130,14 @@ export default function AccountGate({children}:{children:ReactNode}){
       finally{setBusy(false);}
       return;
     }
+
     const pe=validatePassword(passwordInput);if(pe){setMessage(pe);return;}
     setBusy(true);setMessage('');
     try{
-      if(mode==='signup'){
-        const created=await signUpEmail(cfg,emailInput,passwordInput);
-        if(created.session&&created.verified){await enterGame(cfg,created.session);}
-        else {setResendWait(60);setGate('verify');setMessage('Te enviamos un enlace de verificación. Ábrelo y vuelve aquí.');}
-      }else{
-        try{
-          const s=await loginEmail(cfg,emailInput,passwordInput);await enterGame(cfg,s);
-        }catch(e){
-          const unverified=e instanceof CloudAuthError&&(e.code==='email_not_confirmed'||/confirm/i.test(e.message));
-          if(unverified){setResendWait(30);setGate('verify');setMessage('Ese correo todavía no está verificado. Revisa tu bandeja de entrada.');}
-          else throw e;
-        }
-      }
-    }catch(e){setMessage(e instanceof Error?e.message:'No se pudo acceder a la cuenta.');}
+      const created=await signUpEmail(cfg,emailInput,passwordInput);
+      if(created.session&&created.verified){await enterGame(cfg,created.session);}
+      else {setResendWait(60);setGate('verify');setMessage('Te enviamos un enlace de verificación. Ábrelo y vuelve aquí.');}
+    }catch(e){setMessage(e instanceof Error?e.message:'No se pudo crear la cuenta.');}
     finally{setBusy(false);}
   };
 
@@ -198,7 +201,7 @@ export default function AccountGate({children}:{children:ReactNode}){
     const ok=await doSync();if(!ok){setBusy(false);setMessage('No cerré la sesión para evitar perder cambios sin sincronizar.');return;}
     try{
       await logoutAccount(cfg,getCachedSession()||session);clearLocalGameData();
-      setSession(null);setMenu(false);setGate('auth');setMode('login');setEmailInput('');setPasswordInput('');setUsernameInput('');setSuggestions([]);setMessage('Sesión cerrada.');
+      setSession(null);setMenu(false);setGate('auth');setMode('login');setEmailInput('');setLoginUsernameInput('');setPasswordInput('');setUsernameInput('');setSuggestions([]);setMessage('Sesión cerrada.');
     }catch(e){setMessage(e instanceof Error?e.message:'No se pudo cerrar sesión.');}
     finally{setBusy(false);}
   };
@@ -209,7 +212,7 @@ export default function AccountGate({children}:{children:ReactNode}){
   if(gate==='auth')return (
     <AccountShell
       title={mode==='signup'?'CREA TU CUENTA':mode==='recover'?'RECUPERA TU CUENTA':'IDENTIFÍCATE'}
-      subtitle={mode==='signup'?'Primero verificamos tu correo. Después eliges tu nombre de jugador.':'Tu progreso, logros y colección viajan contigo entre equipos.'}
+      subtitle={mode==='signup'?'Primero verificamos tu correo. Después eliges tu nombre de jugador.':mode==='recover'?'Usaremos el correo vinculado a tu cuenta para recuperar el acceso.':'Entra con tu usuario. Tu correo queda vinculado a la cuenta, pero no necesitas escribirlo aquí.'}
     >
       <div className="vg-account-tabs">
         <button className={mode==='login'?'is-active':''} onClick={()=>{setMode('login');setMessage('');}}>ENTRAR</button>
@@ -217,11 +220,13 @@ export default function AccountGate({children}:{children:ReactNode}){
         <button className={mode==='recover'?'is-active':''} onClick={()=>{setMode('recover');setMessage('');}}>RECUPERAR</button>
       </div>
       <form className="vg-account-form" onSubmit={submitAuth}>
-        <label>CORREO ELECTRÓNICO<input name="email" type="email" autoComplete="email" maxLength={254} placeholder="tu@correo.com" value={emailInput} onChange={e=>setEmailInput(e.target.value)} required /></label>
+        {mode==='login'
+          ? <label>NOMBRE DE USUARIO<input name="username" autoComplete="username" maxLength={20} placeholder="PatoLadron" value={loginUsernameInput} onChange={e=>setLoginUsernameInput(e.target.value)} required /></label>
+          : <label>CORREO ELECTRÓNICO<input name="email" type="email" autoComplete="email" maxLength={254} placeholder="tu@correo.com" value={emailInput} onChange={e=>setEmailInput(e.target.value)} required /></label>}
         {mode!=='recover'&&<PasswordField value={passwordInput} onChange={setPasswordInput} show={showPassword} onToggle={()=>setShowPassword(v=>!v)} autoComplete={mode==='login'?'current-password':'new-password'} />}
         <button className="vg-account-primary" disabled={busy||!cfg}>{busy?'PROCESANDO…':mode==='signup'?'ENVIAR VERIFICACIÓN':mode==='recover'?'ENVIAR CORREO DE RECUPERACIÓN':'ENTRAR AL ATRACO'}</button>
       </form>
-      <p className="vg-account-note">{mode==='signup'?'No podrás elegir usuario ni jugar hasta verificar el correo.':mode==='recover'?'Recibirás un enlace seguro para cambiar tu contraseña.':'Usa tu correo y contraseña para entrar desde cualquier PC.'}</p>
+      <p className="vg-account-note">{mode==='signup'?'Primero verifica el correo. Después elegirás tu usuario.':mode==='recover'?'Recibirás un enlace seguro para cambiar tu contraseña.':'Entra con tu usuario y contraseña. El correo sólo se usa para verificación y recuperación.'}</p>
       {message&&<p className="vg-account-message">{message}</p>}
     </AccountShell>
   );
