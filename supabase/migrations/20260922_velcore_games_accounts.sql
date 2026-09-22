@@ -49,14 +49,14 @@ create or replace function public.vg_private_user_for_session(p_session_token te
 returns uuid
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   v_hash text;
   v_user uuid;
 begin
   if p_session_token is null or length(p_session_token) < 32 then return null; end if;
-  v_hash := encode(digest(p_session_token, 'sha256'), 'hex');
+  v_hash := encode(extensions.digest(p_session_token, 'sha256'), 'hex');
   select user_id into v_user
   from public.vg_sessions
   where token_hash=v_hash and expires_at>now();
@@ -75,7 +75,7 @@ create or replace function public.vg_create_account(p_username text,p_password t
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   v_username text:=trim(coalesce(p_username,''));
@@ -99,19 +99,19 @@ begin
     return jsonb_build_object('ok',false,'code','weak_password');
   end if;
 
-  v_recovery_raw:=upper(encode(gen_random_bytes(8),'hex'));
+  v_recovery_raw:=upper(encode(extensions.gen_random_bytes(8),'hex'));
   v_recovery:='DH-'||substr(v_recovery_raw,1,4)||'-'||substr(v_recovery_raw,5,4)||'-'||substr(v_recovery_raw,9,4)||'-'||substr(v_recovery_raw,13,4);
 
   begin
     insert into public.vg_users(username,username_norm,password_hash,recovery_hash)
-    values(v_username,v_norm,crypt(p_password,gen_salt('bf',12)),encode(digest(v_recovery,'sha256'),'hex'))
+    values(v_username,v_norm,extensions.crypt(p_password,extensions.gen_salt('bf',12)),encode(extensions.digest(v_recovery,'sha256'),'hex'))
     returning id into v_user;
   exception when unique_violation then
     return jsonb_build_object('ok',false,'code','username_taken');
   end;
 
-  v_token:=encode(gen_random_bytes(32),'hex');
-  v_token_hash:=encode(digest(v_token,'sha256'),'hex');
+  v_token:=encode(extensions.gen_random_bytes(32),'hex');
+  v_token_hash:=encode(extensions.digest(v_token,'sha256'),'hex');
   insert into public.vg_sessions(token_hash,user_id,device_id,expires_at)
   values(v_token_hash,v_user,left(coalesce(p_device_id,''),100),v_expires);
 
@@ -126,7 +126,7 @@ create or replace function public.vg_login(p_username text,p_password text,p_dev
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   u public.vg_users%rowtype;
@@ -146,7 +146,7 @@ begin
     return jsonb_build_object('ok',false,'code','locked');
   end if;
 
-  if u.password_hash <> crypt(coalesce(p_password,''),u.password_hash) then
+  if u.password_hash <> extensions.crypt(coalesce(p_password,''),u.password_hash) then
     update public.vg_users
       set failed_attempts=case when failed_attempts>=7 then 0 else failed_attempts+1 end,
           locked_until=case when failed_attempts>=7 then now()+interval '15 minutes' else null end
@@ -156,9 +156,9 @@ begin
   end if;
 
   update public.vg_users set failed_attempts=0,locked_until=null,last_login_at=now() where id=u.id;
-  v_token:=encode(gen_random_bytes(32),'hex');
+  v_token:=encode(extensions.gen_random_bytes(32),'hex');
   insert into public.vg_sessions(token_hash,user_id,device_id,expires_at)
-  values(encode(digest(v_token,'sha256'),'hex'),u.id,left(coalesce(p_device_id,''),100),v_expires);
+  values(encode(extensions.digest(v_token,'sha256'),'hex'),u.id,left(coalesce(p_device_id,''),100),v_expires);
 
   return jsonb_build_object('ok',true,'code','ok','user_id',u.id,'username',u.username,'session_token',v_token,'expires_at',v_expires);
 end;
@@ -168,7 +168,7 @@ create or replace function public.vg_validate_session(p_session_token text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   v_user uuid;
@@ -178,7 +178,7 @@ begin
   v_user:=public.vg_private_user_for_session(p_session_token);
   if v_user is null then return jsonb_build_object('ok',false,'code','invalid_session'); end if;
   select * into u from public.vg_users where id=v_user;
-  select expires_at into v_exp from public.vg_sessions where token_hash=encode(digest(p_session_token,'sha256'),'hex');
+  select expires_at into v_exp from public.vg_sessions where token_hash=encode(extensions.digest(p_session_token,'sha256'),'hex');
   return jsonb_build_object('ok',true,'code','ok','user_id',u.id,'username',u.username,'expires_at',v_exp);
 end;
 $$;
@@ -187,10 +187,10 @@ create or replace function public.vg_logout(p_session_token text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 begin
-  delete from public.vg_sessions where token_hash=encode(digest(coalesce(p_session_token,''),'sha256'),'hex');
+  delete from public.vg_sessions where token_hash=encode(extensions.digest(coalesce(p_session_token,''),'sha256'),'hex');
   return jsonb_build_object('ok',true,'code','ok');
 end;
 $$;
@@ -199,7 +199,7 @@ create or replace function public.vg_recover_account(p_username text,p_recovery_
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   u public.vg_users%rowtype;
@@ -212,23 +212,23 @@ begin
     return jsonb_build_object('ok',false,'code','weak_password');
   end if;
   select * into u from public.vg_users where username_norm=lower(trim(coalesce(p_username,''))) for update;
-  if not found or u.recovery_hash<>encode(digest(upper(trim(coalesce(p_recovery_code,''))),'sha256'),'hex') then
+  if not found or u.recovery_hash<>encode(extensions.digest(upper(trim(coalesce(p_recovery_code,''))),'sha256'),'hex') then
     perform pg_sleep(.18);
     return jsonb_build_object('ok',false,'code','invalid_recovery');
   end if;
 
-  v_raw:=upper(encode(gen_random_bytes(8),'hex'));
+  v_raw:=upper(encode(extensions.gen_random_bytes(8),'hex'));
   v_recovery:='DH-'||substr(v_raw,1,4)||'-'||substr(v_raw,5,4)||'-'||substr(v_raw,9,4)||'-'||substr(v_raw,13,4);
   update public.vg_users
-    set password_hash=crypt(p_new_password,gen_salt('bf',12)),
-        recovery_hash=encode(digest(v_recovery,'sha256'),'hex'),
+    set password_hash=extensions.crypt(p_new_password,extensions.gen_salt('bf',12)),
+        recovery_hash=encode(extensions.digest(v_recovery,'sha256'),'hex'),
         failed_attempts=0,locked_until=null,last_login_at=now()
     where id=u.id;
   delete from public.vg_sessions where user_id=u.id;
 
-  v_token:=encode(gen_random_bytes(32),'hex');
+  v_token:=encode(extensions.gen_random_bytes(32),'hex');
   insert into public.vg_sessions(token_hash,user_id,device_id,expires_at)
-  values(encode(digest(v_token,'sha256'),'hex'),u.id,left(coalesce(p_device_id,''),100),v_expires);
+  values(encode(extensions.digest(v_token,'sha256'),'hex'),u.id,left(coalesce(p_device_id,''),100),v_expires);
 
   return jsonb_build_object(
     'ok',true,'code','recovered','user_id',u.id,'username',u.username,
@@ -241,7 +241,7 @@ create or replace function public.vg_load_game_save(p_session_token text,p_game_
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   v_user uuid;
@@ -269,7 +269,7 @@ create or replace function public.vg_save_game_save(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = ''
 as $$
 declare
   v_user uuid;
@@ -318,6 +318,14 @@ begin
   return jsonb_build_object('ok',true,'code','saved','revision',v_revision,'updated_at',v_updated);
 end;
 $$;
+
+revoke execute on function public.vg_create_account(text,text,text) from public, anon, authenticated;
+revoke execute on function public.vg_login(text,text,text) from public, anon, authenticated;
+revoke execute on function public.vg_validate_session(text) from public, anon, authenticated;
+revoke execute on function public.vg_logout(text) from public, anon, authenticated;
+revoke execute on function public.vg_recover_account(text,text,text,text) from public, anon, authenticated;
+revoke execute on function public.vg_load_game_save(text,text) from public, anon, authenticated;
+revoke execute on function public.vg_save_game_save(text,text,bigint,jsonb,text,boolean) from public, anon, authenticated;
 
 grant execute on function public.vg_create_account(text,text,text) to anon, authenticated;
 grant execute on function public.vg_login(text,text,text) to anon, authenticated;
