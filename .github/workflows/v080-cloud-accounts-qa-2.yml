@@ -1,0 +1,160 @@
+name: v0.8.0 cloud accounts QA rerun
+on:
+  push:
+    branches: [feat/v080-cloud-accounts]
+    paths:
+      - '.github/workflows/v080-cloud-accounts-qa-2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-cloud-accounts
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('package version changed: '+p.version)"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Route artifact guard
+        run: |
+          test -f dist/duck-heist/index.html
+          test -f dist/duck-heist-movil/index.html
+          test -f dist/eca/index.html
+          test -f dist/404.html
+      - name: Validate Supabase migration and RPC lifecycle
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon;
+          create role authenticated;
+          create schema extensions;
+          SQL
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20260922_velcore_games_accounts.sql
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          do $qa$
+          declare
+            created jsonb;
+            logged jsonb;
+            saved jsonb;
+            loaded jsonb;
+            conflict jsonb;
+            recovered jsonb;
+            tok text;
+            recovery text;
+          begin
+            created:=public.vg_create_account('QaDuck_01','PanSeguro_123','ci-a');
+            if coalesce((created->>'ok')::boolean,false) is not true then raise exception 'create failed %',created; end if;
+            tok:=created->>'session_token'; recovery:=created->>'recovery_code';
+            if tok is null or recovery is null then raise exception 'credentials missing'; end if;
+            if exists(select 1 from public.vg_users where password_hash='PanSeguro_123' or recovery_hash=recovery) then raise exception 'plaintext secret stored'; end if;
+
+            loaded:=public.vg_load_game_save(tok,'duck-heist');
+            if loaded->>'code'<>'not_found' then raise exception 'expected empty cloud %',loaded; end if;
+
+            saved:=public.vg_save_game_save(tok,'duck-heist',0,'{"schemaVersion":1,"gameVersion":"0.8.0","storage":{"duckheist_save":"{}"}}'::jsonb,'ci-a',false);
+            if coalesce((saved->>'ok')::boolean,false) is not true or (saved->>'revision')::int<>1 then raise exception 'first save failed %',saved; end if;
+
+            loaded:=public.vg_load_game_save(tok,'duck-heist');
+            if (loaded->>'revision')::int<>1 or loaded->'payload'->>'gameVersion'<>'0.8.0' then raise exception 'load mismatch %',loaded; end if;
+
+            conflict:=public.vg_save_game_save(tok,'duck-heist',0,'{"schemaVersion":1}'::jsonb,'ci-b',false);
+            if conflict->>'code'<>'conflict' or (conflict->>'revision')::int<>1 then raise exception 'conflict guard failed %',conflict; end if;
+
+            logged:=public.vg_login('qaduck_01','PanSeguro_123','ci-b');
+            if coalesce((logged->>'ok')::boolean,false) is not true then raise exception 'case-insensitive login failed %',logged; end if;
+
+            recovered:=public.vg_recover_account('QaDuck_01',recovery,'PanNuevo_456','ci-c');
+            if coalesce((recovered->>'ok')::boolean,false) is not true then raise exception 'recovery failed %',recovered; end if;
+            if public.vg_validate_session(tok)->>'code'<>'invalid_session' then raise exception 'old session survived recovery'; end if;
+            if coalesce((public.vg_login('QaDuck_01','PanNuevo_456','ci-c')->>'ok')::boolean,false) is not true then raise exception 'new password failed'; end if;
+          end
+          $qa$;
+          SQL
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser account gate and game regression smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/vg-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const errors=[];
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          page.on('pageerror',e=>errors.push('pageerror '+String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console '+m.text());});
+          await page.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          if(!(await page.getByText('IDENTIFÍCATE',{exact:true}).count()))throw new Error('account gate missing');
+          if((await page.locator('input[name="username"]').count())!==1)throw new Error('username input missing');
+          if((await page.locator('input[name="password"]').count())!==1)throw new Error('password input missing');
+          if(await page.getByText(/jugar sin cuenta/i).count())throw new Error('guest bypass must not exist');
+
+          const mobile=await browser.newPage({viewport:{width:390,height:844}});
+          await mobile.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          const overflow=await mobile.evaluate(()=>({x:document.documentElement.scrollWidth>innerWidth+1,y:document.documentElement.scrollHeight>innerHeight+1}));
+          if(overflow.x)throw new Error('mobile account horizontal overflow '+JSON.stringify(overflow));
+
+          const audit=await browser.newPage({viewport:{width:1191,height:900}});
+          audit.on('pageerror',e=>errors.push('audit pageerror '+String(e)));
+          audit.on('console',m=>{if(m.type()==='error')errors.push('audit console '+m.text());});
+          await audit.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await audit.waitForFunction(()=>window.duckHeistAudit && window.duckHeistEngine);
+          const report=await audit.evaluate(()=>window.duckHeistAudit);
+          if(report.failures.length)throw new Error('selftest '+report.failures.join(' | '));
+          if(report.passed<452)throw new Error('selftest count regressed '+report.passed);
+          if(errors.length)throw new Error(errors.join(' | '));
+          console.log(JSON.stringify({accountGate:true,mobileOverflow:overflow,selftests:report.passed,runtimeErrors:errors},null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-cloud-accounts-qa-2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh cloud account bundle'
+            git push origin HEAD:feat/v080-cloud-accounts
+          fi
