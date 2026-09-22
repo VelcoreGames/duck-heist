@@ -205,10 +205,6 @@ export async function initialSync(cfg:CloudConfig,session:AccountSession):Promis
       restoreLocalGameSave(remote.payload);const h=await hashPayload(remote.payload);setMeta(verified,remote.revision,h,remote.updated_at);
       return {kind:'ready',revision:remote.revision};
     }
-    if(!hasMeaningfulLocalProgress(local)){
-      restoreLocalGameSave(remote.payload);const h=await hashPayload(remote.payload);setMeta(verified,remote.revision,h,remote.updated_at);
-      return {kind:'ready',revision:remote.revision};
-    }
     if(meta?.userId===verified.userId){
       if(localHash===meta.hash){
         if(remote.revision!==meta.revision){restoreLocalGameSave(remote.payload);const h=await hashPayload(remote.payload);setMeta(verified,remote.revision,h,remote.updated_at);}
@@ -219,6 +215,10 @@ export async function initialSync(cfg:CloudConfig,session:AccountSession):Promis
         const saved=await saveRemote(cfg,verified,local,meta.revision,false);
         if(saved.ok){setMeta(verified,saved.revision||meta.revision+1,localHash,saved.updated_at);return {kind:'ready',revision:saved.revision||meta.revision+1};}
       }
+    }
+    if(!hasMeaningfulLocalProgress(local)){
+      restoreLocalGameSave(remote.payload);const h=await hashPayload(remote.payload);setMeta(verified,remote.revision,h,remote.updated_at);
+      return {kind:'ready',revision:remote.revision};
     }
     return {kind:'conflict',conflict:{local,localHash,remote:remote.payload,remoteRevision:remote.revision,remoteUpdatedAt:remote.updated_at||''}};
   }catch(e){
