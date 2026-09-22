@@ -107,7 +107,9 @@ async function decodeBody(res:Response){
 }
 function authError(body:Record<string,unknown>,status:number){
   const code=String(body.error_code||body.code||body.error||'auth_error');
-  const message=String(body.msg||body.message||body.error_description||accountMessage(code));
+  const translated=accountMessage(code);
+  const raw=String(body.msg||body.message||body.error_description||'');
+  const message=translated.startsWith('No se pudo completar la operación')?(raw||translated):translated;
   return new CloudAuthError(code,message,status);
 }
 async function authRequest<T>(cfg:CloudConfig,path:string,init:RequestInit={}):Promise<T>{
@@ -383,7 +385,8 @@ export function accountMessage(code:string){
     invalid_username:'Nombre de usuario inválido.',reserved_username:'Ese nombre está reservado.',username_taken:'Ese nombre ya existe.',
     email_not_verified:'Primero verifica tu correo.',profile_exists:'Tu cuenta ya tiene nombre de usuario.',
     email_not_confirmed:'Primero verifica tu correo.',invalid_credentials:'Correo o contraseña incorrectos.',
-    invalid_grant:'Correo o contraseña incorrectos.',invalid_session:'La sesión venció. Inicia sesión otra vez.',
+    invalid_grant:'Correo o contraseña incorrectos.',over_email_send_rate_limit:'Se enviaron demasiados correos en poco tiempo. Espera unos minutos antes de volver a intentarlo.',
+    email_address_not_authorized:'Ese correo no está autorizado por el servicio de correo.',invalid_session:'La sesión venció. Inicia sesión otra vez.',
     not_found:'No existe un guardado en la nube.',conflict:'Tu partida cambió en otro equipo.',
     payload_too_large:'El guardado supera el tamaño permitido.',weak_password:'La contraseña debe tener al menos 10 caracteres.',
   };
