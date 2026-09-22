@@ -14,7 +14,7 @@ import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
-import { drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
+import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
@@ -304,6 +304,13 @@ export function runSelfChecks():CheckReport {
       assert(all.length===145,'conteo total inesperado');
       for(const b of all) for(let phase=0;phase<b.phases;phase++) drawBoss(ctx,40,40,b.id,120+phase*7,b.hp,b.hp,false,phase);
     });
+    check('Los 145 encuentros tienen identidad visual estructural única',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      const keys=all.map(b=>bossVisualIdentityKey(b.id));
+      assert(keys.every(Boolean),'encuentro sin firma visual');
+      assert(new Set(keys).size===all.length,'dos encuentros comparten la misma firma visual estructural');
+      assert(bossVisualIdentityKey(FINAL_BOSS_ID)==='final:bread_banker:imperial-vault','firma final incorrecta');
+    });
     check('El roster completo utiliza las doce familias de ataque',()=>{
       const expected=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
       for(const group of [Object.values(MINIBOSSES),Object.values(SUBBOSSES),Object.values(BOSSES).filter(b=>!b.finalBoss)]){
@@ -333,10 +340,10 @@ export function runSelfChecks():CheckReport {
       const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
       assert(all.every(b=>b.pattern.support.every(id=>!!ENEMIES[id])),'firma invoca un enemigo inexistente');
     });
-    check('Los 121 jefes pueden dibujarse sin excepción',()=>{
+    check('Los 145 encuentros pueden dibujarse sin excepción',()=>{
       const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
       all.forEach(b=>drawBoss(ctx,80,80,b.id,120,b.hp,b.hp,false,b.phases-1));
-      assert(all.length>=121,'catálogo de jefes incompleto');
+      assert(all.length===145,'catálogo de jerarquía incompleto');
     });
     check('Pisos 1 a 5 rotan ocho jefes y piso 6 fija al Gran Jefe',()=>{
       assert(FLOOR_BOSS_POOL.length===6,'cantidad de pisos incorrecta');
