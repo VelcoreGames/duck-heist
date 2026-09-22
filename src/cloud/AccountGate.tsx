@@ -22,11 +22,18 @@ export default function AccountGate({children}:{children:ReactNode}){
   const [usernameInput,setUsernameInput]=useState('');
   const [suggestions,setSuggestions]=useState<string[]>([]);
   const [showPassword,setShowPassword]=useState(false);
+  const [resendWait,setResendWait]=useState(0);
   const [busy,setBusy]=useState(false);
   const [menu,setMenu]=useState(false);
   const syncTimer=useRef<number>(0);
   const saveDebounce=useRef<number>(0);
   const syncInFlight=useRef<Promise<boolean>|null>(null);
+
+  useEffect(()=>{
+    if(resendWait<=0)return;
+    const id=window.setInterval(()=>setResendWait(v=>Math.max(0,v-1)),1000);
+    return()=>window.clearInterval(id);
+  },[resendWait]);
 
   const enterGame=useCallback(async(c:CloudConfig,s:AccountSession)=>{
     const checked=await validateSession(c,s);
@@ -117,13 +124,13 @@ export default function AccountGate({children}:{children:ReactNode}){
       if(mode==='signup'){
         const created=await signUpEmail(cfg,emailInput,passwordInput);
         if(created.session&&created.verified){await enterGame(cfg,created.session);}
-        else {setGate('verify');setMessage('Te enviamos un enlace de verificación. Ábrelo y vuelve aquí.');}
+        else {setResendWait(60);setGate('verify');setMessage('Te enviamos un enlace de verificación. Ábrelo y vuelve aquí.');}
       }else{
         try{
           const s=await loginEmail(cfg,emailInput,passwordInput);await enterGame(cfg,s);
         }catch(e){
           const unverified=e instanceof CloudAuthError&&(e.code==='email_not_confirmed'||/confirm/i.test(e.message));
-          if(unverified){setGate('verify');setMessage('Ese correo todavía no está verificado. Revisa tu bandeja de entrada.');}
+          if(unverified){setResendWait(30);setGate('verify');setMessage('Ese correo todavía no está verificado. Revisa tu bandeja de entrada.');}
           else throw e;
         }
       }
@@ -153,8 +160,8 @@ export default function AccountGate({children}:{children:ReactNode}){
   },[audit,gate,cfg,emailInput,passwordInput,busy]);
 
   const resend=async()=>{
-    if(!cfg)return;setBusy(true);
-    try{await resendVerification(cfg,emailInput);setMessage('Correo de verificación reenviado. Revisa también spam.');}
+    if(!cfg||resendWait>0)return;setBusy(true);
+    try{await resendVerification(cfg,emailInput);setResendWait(60);setMessage('Correo de verificación reenviado. Revisa también spam.');}
     catch(e){setMessage(e instanceof Error?e.message:'No se pudo reenviar.');}
     finally{setBusy(false);}
   };
@@ -224,7 +231,7 @@ export default function AccountGate({children}:{children:ReactNode}){
       <div className="vg-verify-mark" aria-hidden="true">✉</div>
       <p className="vg-account-note vg-verify-help">Abre el enlace del correo. Al volver a esta pestaña lo comprobaré automáticamente; también puedes usar el botón.</p>
       <button className="vg-account-primary" disabled={busy} onClick={()=>void checkVerification()}>{busy?'COMPROBANDO…':'YA VERIFIQUÉ MI CORREO'}</button>
-      <button className="vg-account-secondary" disabled={busy} onClick={()=>void resend()}>REENVIAR CORREO</button>
+      <button className="vg-account-secondary" disabled={busy||resendWait>0} onClick={()=>void resend()}>{resendWait>0?`REENVIAR EN ${resendWait}s`:'REENVIAR CORREO'}</button>
       <button className="vg-account-link" onClick={()=>{setGate('auth');setMode('login');setMessage('');}}>USAR OTRO CORREO</button>
       {message&&<p className="vg-account-message">{message}</p>}
     </AccountShell>
