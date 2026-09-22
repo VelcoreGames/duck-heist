@@ -28,7 +28,7 @@ interface AuthTokenReply {
   access_token?:string;refresh_token?:string;expires_in?:number;expires_at?:number;token_type?:string;
   user?:AuthUser;id?:string;email?:string;email_confirmed_at?:string|null;confirmed_at?:string|null;
 }
-interface UsernameLoginReply extends AuthTokenReply { ok?:boolean;code?:string;username?:string;
+interface UsernameLoginReply extends AuthTokenReply { ok?:boolean;code?:string;username?:string; }
 interface ProfileReply {ok:boolean;code:string;username?:string;suggestions?:string[];}
 interface LoadReply {ok:boolean;code:string;revision?:number;payload?:CloudPayload;updated_at?:string;}
 interface SaveReply extends LoadReply {}
