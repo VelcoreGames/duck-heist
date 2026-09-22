@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import {
   type AccountSession,type CloudConfig,type CloudConflict,
   cacheSession,clearLocalGameData,createAccount,getCachedSession,initialSync,loadCloudConfig,loginAccount,logoutAccount,
-  recoverAccount,resolveConflict,syncCurrent,validatePassword,validateUsername,
+  recoverAccount,resolveConflict,syncCurrent,validatePassword,validateUsername,UsernameTakenError,
 } from './cloudClient';
 
 type Mode='login'|'signup'|'recover';
@@ -17,9 +17,13 @@ export default function AccountGate({children}:{children:ReactNode}){
   const [conflict,setConflict]=useState<CloudConflict|null>(null);
   const [recoveryCode,setRecoveryCode]=useState('');
   const [message,setMessage]=useState('');
+  const [usernameInput,setUsernameInput]=useState('');
+  const [suggestions,setSuggestions]=useState<string[]>([]);
   const [busy,setBusy]=useState(false);
   const [menu,setMenu]=useState(false);
   const syncTimer=useRef<number>(0);
+  const saveDebounce=useRef<number>(0);
+  const syncInFlight=useRef<Promise<boolean>|null>(null);
 
   const finishInitial=useCallback(async(c:CloudConfig,s:AccountSession)=>{
     const result=await initialSync(c,s);
@@ -50,15 +54,20 @@ export default function AccountGate({children}:{children:ReactNode}){
 
   const doSync=useCallback(async()=>{
     if(!cfg||!session||gate==='conflict'||gate==='auth'||gate==='boot')return false;
-    try{
-      const result=await syncCurrent(cfg,session);
-      if(result.kind==='conflict'){
-        window.dispatchEvent(new Event('blur'));setConflict(result.conflict);setGate('conflict');setMessage('Hay progreso distinto en otro equipo.');
-        return false;
-      }
-      if(result.kind==='offline'){setGate('offline');setMessage('Sin conexión: los cambios quedan guardados en este equipo.');return false;}
-      setGate('ready');setMessage('Guardado en la nube.');return true;
-    }catch(e){setGate('offline');setMessage(e instanceof Error?e.message:'Sin conexión');return false;}
+    if(syncInFlight.current)return syncInFlight.current;
+    const task=(async()=>{
+      try{
+        const result=await syncCurrent(cfg,session);
+        if(result.kind==='conflict'){
+          window.dispatchEvent(new Event('blur'));setConflict(result.conflict);setGate('conflict');setMessage('Hay progreso distinto en otro equipo.');
+          return false;
+        }
+        if(result.kind==='offline'){setGate('offline');setMessage('Sin conexión: los cambios quedan guardados en este equipo.');return false;}
+        setGate('ready');setMessage('Guardado en la nube.');return true;
+      }catch(e){setGate('offline');setMessage(e instanceof Error?e.message:'Sin conexión');return false;}
+    })();
+    syncInFlight.current=task;
+    try{return await task;}finally{if(syncInFlight.current===task)syncInFlight.current=null;}
   },[cfg,session,gate]);
 
   useEffect(()=>{
@@ -66,13 +75,24 @@ export default function AccountGate({children}:{children:ReactNode}){
     syncTimer.current=window.setInterval(()=>{void doSync();},12000);
     const onHide=()=>{if(document.visibilityState==='hidden')void doSync();};
     const onOnline=()=>{void doSync();};
-    document.addEventListener('visibilitychange',onHide);window.addEventListener('online',onOnline);
-    return()=>{window.clearInterval(syncTimer.current);document.removeEventListener('visibilitychange',onHide);window.removeEventListener('online',onOnline);};
+    const onGameSave=()=>{
+      window.clearTimeout(saveDebounce.current);
+      saveDebounce.current=window.setTimeout(()=>{void doSync();},700);
+    };
+    document.addEventListener('visibilitychange',onHide);
+    window.addEventListener('online',onOnline);
+    window.addEventListener('duckheist:save',onGameSave);
+    return()=>{
+      window.clearInterval(syncTimer.current);window.clearTimeout(saveDebounce.current);
+      document.removeEventListener('visibilitychange',onHide);
+      window.removeEventListener('online',onOnline);
+      window.removeEventListener('duckheist:save',onGameSave);
+    };
   },[audit,cfg,session,gate,doSync]);
 
   const submit=async(ev:FormEvent<HTMLFormElement>)=>{
     ev.preventDefault();if(!cfg){setMessage('La nube no está configurada todavía.');return;}
-    const fd=new FormData(ev.currentTarget),username=String(fd.get('username')||''),password=String(fd.get('password')||'');
+    const fd=new FormData(ev.currentTarget),username=usernameInput,password=String(fd.get('password')||'');
     const u=validateUsername(username);if(u){setMessage(u);return;}
     if(mode!=='login'){const p=validatePassword(password);if(p){setMessage(p);return;}}
     setBusy(true);setMessage('');
@@ -89,7 +109,10 @@ export default function AccountGate({children}:{children:ReactNode}){
         const recovered=await recoverAccount(cfg,username,recovery,password);setSession(recovered.session);setRecoveryCode(recovered.recoveryCode);
         const result=await finishInitial(cfg,recovered.session);if(result.kind!=='conflict')setGate('recovery');
       }
-    }catch(e){setMessage(e instanceof Error?e.message:'No se pudo acceder a la cuenta.');}
+    }catch(e){
+      if(e instanceof UsernameTakenError){setSuggestions(e.suggestions);setMessage(e.message);}
+      else setMessage(e instanceof Error?e.message:'No se pudo acceder a la cuenta.');
+    }
     finally{setBusy(false);}
   };
 
@@ -105,7 +128,7 @@ export default function AccountGate({children}:{children:ReactNode}){
     setBusy(true);setMessage('Sincronizando antes de cerrar sesión…');
     const ok=await doSync();
     if(!ok){setBusy(false);setMessage('No cerré la sesión para evitar perder cambios sin sincronizar.');return;}
-    try{await logoutAccount(cfg,session);clearLocalGameData();setSession(null);setMenu(false);setGate('auth');setMode('login');setMessage('Sesión cerrada.');}
+    try{await logoutAccount(cfg,session);clearLocalGameData();setSession(null);setMenu(false);setGate('auth');setMode('login');setUsernameInput('');setSuggestions([]);setMessage('Sesión cerrada.');}
     catch(e){setMessage(e instanceof Error?e.message:'No se pudo cerrar sesión.');}
     finally{setBusy(false);}
   };
@@ -117,12 +140,13 @@ export default function AccountGate({children}:{children:ReactNode}){
   if(gate==='auth')return (
     <AccountShell title={mode==='signup'?'CREA TU IDENTIDAD':mode==='recover'?'RECUPERA TU CUENTA':'IDENTIFÍCATE'} subtitle="Tu progreso, logros y colección viajan contigo entre equipos.">
       <div className="vg-account-tabs">
-        <button className={mode==='login'?'is-active':''} onClick={()=>{setMode('login');setMessage('');}}>ENTRAR</button>
-        <button className={mode==='signup'?'is-active':''} onClick={()=>{setMode('signup');setMessage('');}}>CREAR CUENTA</button>
-        <button className={mode==='recover'?'is-active':''} onClick={()=>{setMode('recover');setMessage('');}}>RECUPERAR</button>
+        <button className={mode==='login'?'is-active':''} onClick={()=>{setMode('login');setSuggestions([]);setMessage('');}}>ENTRAR</button>
+        <button className={mode==='signup'?'is-active':''} onClick={()=>{setMode('signup');setSuggestions([]);setMessage('');}}>CREAR CUENTA</button>
+        <button className={mode==='recover'?'is-active':''} onClick={()=>{setMode('recover');setSuggestions([]);setMessage('');}}>RECUPERAR</button>
       </div>
       <form className="vg-account-form" onSubmit={submit}>
-        <label>NOMBRE DE USUARIO<input name="username" autoComplete="username" maxLength={20} placeholder="PatoLadron" required /></label>
+        <label>NOMBRE DE USUARIO<input name="username" autoComplete="username" maxLength={20} placeholder="PatoLadron" value={usernameInput} onChange={e=>{setUsernameInput(e.target.value);setSuggestions([]);}} required /></label>
+        {mode==='signup'&&suggestions.length>0&&<div className="vg-username-suggestions"><span>PRUEBA CON:</span>{suggestions.map(name=><button type="button" key={name} onClick={()=>{setUsernameInput(name);setSuggestions([]);setMessage('Nombre disponible sugerido.');}}>{name}</button>)}</div>}
         {mode==='recover'&&<label>CÓDIGO DE RECUPERACIÓN<input name="recovery" autoComplete="off" placeholder="DH-XXXX-XXXX-XXXX-XXXX-XXXX" required /></label>}
         <label>{mode==='recover'?'NUEVA CONTRASEÑA':'CONTRASEÑA'}<input name="password" type="password" autoComplete={mode==='login'?'current-password':'new-password'} minLength={mode==='login'?1:10} maxLength={128} required /></label>
         <button className="vg-account-primary" disabled={busy||!cfg}>{busy?'PROCESANDO…':mode==='signup'?'CREAR CUENTA':mode==='recover'?'RECUPERAR CUENTA':'ENTRAR AL ATRACO'}</button>
