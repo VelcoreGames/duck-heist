@@ -27,6 +27,7 @@ export default function AccountGate({children}:{children:ReactNode}){
     if(result.kind==='conflict'){setConflict(result.conflict);setGate('conflict');return;}
     setGate(result.kind==='offline'?'offline':'ready');
     setMessage(result.kind==='offline'?'Sin conexión: jugando con copia local.':'');
+    return result;
   },[]);
 
   useEffect(()=>{
@@ -86,7 +87,7 @@ export default function AccountGate({children}:{children:ReactNode}){
       }else{
         const recovery=String(fd.get('recovery')||'');
         const recovered=await recoverAccount(cfg,username,recovery,password);setSession(recovered.session);setRecoveryCode(recovered.recoveryCode);
-        await finishInitial(cfg,recovered.session);setGate('recovery');
+        const result=await finishInitial(cfg,recovered.session);if(result.kind!=='conflict')setGate('recovery');
       }
     }catch(e){setMessage(e instanceof Error?e.message:'No se pudo acceder a la cuenta.');}
     finally{setBusy(false);}
@@ -103,7 +104,7 @@ export default function AccountGate({children}:{children:ReactNode}){
     if(!cfg||!session)return;
     setBusy(true);setMessage('Sincronizando antes de cerrar sesión…');
     const ok=await doSync();
-    if(!ok&&gate!=='ready'){setBusy(false);setMessage('No cerré la sesión para evitar perder cambios sin sincronizar.');return;}
+    if(!ok){setBusy(false);setMessage('No cerré la sesión para evitar perder cambios sin sincronizar.');return;}
     try{await logoutAccount(cfg,session);clearLocalGameData();setSession(null);setMenu(false);setGate('auth');setMode('login');setMessage('Sesión cerrada.');}
     catch(e){setMessage(e instanceof Error?e.message:'No se pudo cerrar sesión.');}
     finally{setBusy(false);}
