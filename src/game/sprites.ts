@@ -870,6 +870,104 @@ function drawBossAttackHardware(ctx:Ctx,def:NonNullable<ReturnType<typeof bossVi
   }
 }
 
+
+export function bossVisualIdentityKey(bossType:string){
+  const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
+  if(!def)return '';
+  if(def.finalBoss)return 'final:bread_banker:imperial-vault';
+  const h=bossVisualHash(bossType),tier=BOSSES[bossType]?2:SUBBOSSES[bossType]?1:0;
+  return [def.family,tier,h%8,(h>>>3)%8,(h>>>6)%6,(h>>>10)%5,def.pattern.sequence[0],def.pattern.sequence[1]].join(':');
+}
+
+function drawBossStructuralRig(ctx:Ctx,h:number,tier:number,phase:number,frame:number,v:BossVisual){
+  const rig=h%8,steel=v.family==='bakery'?'#795239':v.family==='finance'||v.family==='wealth'?'#4d443a':v.family==='vault'?'#403959':'#3c4852';
+  const edge=v.family==='bakery'?'#d29c5d':v.family==='wealth'?'#d7ad4c':'#7f919c';
+  const pulse=.55+.45*Math.sin(frame*.1+(h%17));
+  ctx.save();
+  switch(rig){
+    case 0: // ariete asimétrico + contrapeso: ancho y agresivo
+      metalEdge(ctx,-31,-7,10,25,steel,edge,'#222a31');
+      rect(ctx,21,-3,8,18,steel);rect(ctx,24,1,8,10,'#252d33');px(ctx,27,4,v.secondary,3);
+      if(tier>=1){rect(ctx,-35,3,6,8,v.accent);rect(ctx,29,5,5,6,v.secondary);}
+      break;
+    case 1: // bastidor de alas/archivadores: silueta en V
+      ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-17,-3);ctx.lineTo(-34,-17);ctx.lineTo(-29,8);ctx.lineTo(-18,13);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(17,-3);ctx.lineTo(34,-17);ctx.lineTo(29,8);ctx.lineTo(18,13);ctx.closePath();ctx.fill();
+      rect(ctx,-32,-12,9,3,v.accent);rect(ctx,23,-12,9,3,v.secondary);
+      break;
+    case 2: // antena/estandarte alto: lectura vertical
+      rect(ctx,-24,-29,3,43,steel);rect(ctx,-29,-30,13,9,'#252d33');rect(ctx,-27,-28,9,5,v.accent);
+      rect(ctx,19,-12,8,22,steel);rect(ctx,21,-16,4,5,edge);
+      if(frame%24<12)px(ctx,-23,-35,v.secondary,3);
+      break;
+    case 3: // turbinas laterales / maquinaria de persecución
+      for(const x of [-27,27]){
+        ctx.fillStyle=steel;ctx.beginPath();ctx.arc(x,1,9+tier,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,1,6+tier,0,Math.PI*2);ctx.stroke();
+        ctx.save();ctx.translate(x,1);ctx.rotate(frame*.04*(x<0?-1:1));rect(ctx,-1,-7,2,14,v.accent);rect(ctx,-7,-1,14,2,v.secondary);ctx.restore();
+      }
+      break;
+    case 4: // abrigo/capa partida: base triangular muy distinta
+      ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-17,-4);ctx.lineTo(-31,22);ctx.lineTo(-11,18);ctx.lineTo(0,8);ctx.lineTo(11,18);ctx.lineTo(31,22);ctx.lineTo(17,-4);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=.55;rect(ctx,-27,17,12,3,v.accent);rect(ctx,15,17,12,3,v.secondary);ctx.globalAlpha=1;
+      break;
+    case 5: // zancos blindados / chasis bajo
+      rect(ctx,-29,7,12,8,steel);rect(ctx,17,7,12,8,steel);
+      rect(ctx,-27,14,5,12,'#252d33');rect(ctx,22,14,5,12,'#252d33');
+      rect(ctx,-31,24,12,4,edge);rect(ctx,19,24,12,4,edge);
+      if(tier===2){rect(ctx,-34,8,5,5,v.accent);rect(ctx,29,8,5,5,v.secondary);}
+      break;
+    case 6: // chimeneas/reactores traseros
+      for(const x of [-21,16]){
+        rect(ctx,x,-22,6,31,steel);rect(ctx,x-2,-24,10,4,edge);
+        ctx.globalAlpha=.25+.2*pulse;rect(ctx,x+1,-31,4,8,phase>=2?'#ff5b54':v.accent);ctx.globalAlpha=1;
+      }
+      rect(ctx,-26,5,9,12,'#252d33');rect(ctx,17,5,9,12,'#252d33');
+      break;
+    default: // aro de bóveda segmentado: silueta circular mecánica
+      ctx.strokeStyle=edge;ctx.lineWidth=4;ctx.globalAlpha=.8;
+      for(let i=0;i<6;i++){const a=i*Math.PI/3+.16;ctx.beginPath();ctx.arc(0,2,27+tier*2,a,a+.55);ctx.stroke();}
+      ctx.globalAlpha=1;
+      for(let i=0;i<4;i++){const a=i*Math.PI/2;const x=Math.cos(a)*(27+tier*2),y=2+Math.sin(a)*(27+tier*2);px(ctx,x-1,y-1,i%2?v.secondary:v.accent,3);}
+      break;
+  }
+  ctx.restore();
+}
+
+function drawBossFrontIdentity(ctx:Ctx,h:number,tier:number,v:BossVisual){
+  const plate=(h>>>3)%8;
+  switch(plate){
+    case 0:
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-11,-4);ctx.lineTo(10,15);ctx.moveTo(11,-4);ctx.lineTo(-10,15);ctx.stroke();break;
+    case 1:
+      rect(ctx,-10,1,20,11,'#20282f');rect(ctx,-7,4,14,5,v.accent);px(ctx,-5,5,v.secondary,2);px(ctx,3,5,'#d8ece8',2);break;
+    case 2:
+      ctx.save();ctx.rotate(-.22);rect(ctx,-4,-12,7,31,v.secondary);rect(ctx,-2,-9,3,25,v.accent);ctx.restore();break;
+    case 3:
+      rect(ctx,-13,7,26,10,'#4a352c');for(let x=-9;x<=7;x+=8){rect(ctx,x,9,5,5,'#6c4d32');px(ctx,x+1,10,v.secondary,2);}break;
+    case 4:
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;ctx.strokeRect(-10,0,20,14);for(const p of [[-8,2],[6,2],[-8,10],[6,10]] as const)px(ctx,p[0],p[1],v.accent,2);break;
+    case 5:
+      for(let i=0;i<5;i++){ctx.save();ctx.rotate(-.55);rect(ctx,-13+i*6,-1,4,8,i%2?v.secondary:v.accent);ctx.restore();}break;
+    case 6:
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,5,8,0,Math.PI*2);ctx.stroke();crownMark(ctx,-4,1,v.accent);break;
+    default:
+      rect(ctx,-12,-1,24,5,'#1f2930');rect(ctx,-8,0,16,2,tier===2?v.secondary:v.accent);rect(ctx,-15,7,5,9,'#4a5660');rect(ctx,10,7,5,9,'#4a5660');break;
+  }
+}
+
+function drawBossCrest(ctx:Ctx,h:number,v:BossVisual){
+  switch((h>>>6)%6){
+    case 0: rect(ctx,-3,-29,6,10,'#2b333a');px(ctx,-2,-32,v.secondary,4);break;
+    case 1: rect(ctx,-14,-25,28,3,'#30383f');rect(ctx,-11,-30,5,6,v.accent);rect(ctx,6,-30,5,6,v.secondary);break;
+    case 2:
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.arc(-8,-23,7,.1,Math.PI*1.3);ctx.stroke();ctx.beginPath();ctx.arc(8,-23,7,Math.PI*1.9,Math.PI*.7,true);ctx.stroke();break;
+    case 3: rect(ctx,-13,-27,6,8,'#343d45');rect(ctx,7,-27,6,8,'#343d45');rect(ctx,-9,-31,3,5,v.accent);rect(ctx,7,-31,3,5,v.secondary);break;
+    case 4: rect(ctx,-10,-27,20,4,'#3b3028');for(let x=-8;x<=6;x+=7)rect(ctx,x,-32,4,6,x===-1?v.secondary:v.accent);break;
+    default: rect(ctx,-16,-25,32,3,'#242c33');rect(ctx,-5,-30,10,6,v.secondary);px(ctx,-2,-33,v.accent,4);break;
+  }
+}
+
 function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
@@ -880,6 +978,8 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
 
   // sombra ancha; la jerarquía se lee incluso en silueta
   ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,17,15+tier*3,4+tier,0,0,Math.PI*2);ctx.fill();
+
+  if(!def.finalBoss)drawBossStructuralRig(ctx,h,tier,phase,frame,v);
 
   if(def.finalBoss){
     // EL GRAN JEFE DEL BANCO: corona de pan, capa de armiño, puerta de bóveda y cetro.
@@ -904,7 +1004,15 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     // cetro del capital
     rect(ctx,26,-9,3,28,'#9c742a');ctx.fillStyle='#d9b34b';ctx.beginPath();ctx.arc(27,-12,7,0,Math.PI*2);ctx.fill();crownMark(ctx,23,-16,'#fff0a0');
     ctx.strokeStyle='#805f24';ctx.lineWidth=2;ctx.beginPath();ctx.arc(27,-12,4,0,Math.PI*2);ctx.stroke();px(ctx,26,-13,'#fff0a0',2);
-    if(phase>=1){ctx.globalAlpha=.18+.12*pulse;ctx.fillStyle=phase>=2?'#ff4f52':'#f4d03f';ctx.beginPath();ctx.arc(0,2,35+phase*5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+    if(phase>=1){
+      ctx.globalAlpha=.18+.12*pulse;ctx.fillStyle=phase>=2?'#ff4f52':'#f4d03f';ctx.beginPath();ctx.arc(0,2,35+phase*5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      // La armadura imperial se transforma por fase sin tapar los telegraphs de ataque.
+      for(const x of [-30,27]){rect(ctx,x,-15,4,25,'#9c742a');rect(ctx,x-2,-18,8,4,'#d7ad4c');ctx.globalAlpha=.35+.3*pulse;rect(ctx,x,-25,4,7,phase>=2?'#ff5b54':'#f4d03f');ctx.globalAlpha=1;}
+      if(phase>=2){
+        ctx.strokeStyle='#f4d03f';ctx.lineWidth=3;for(let i=0;i<8;i++){const a=i*Math.PI/4+.12;ctx.beginPath();ctx.arc(0,4,39,a,a+.34);ctx.stroke();}
+        rect(ctx,-17,-34,34,3,'#8b6328');rect(ctx,-15,-38,6,5,'#e5b65f');rect(ctx,-3,-41,6,8,'#f0c64f');rect(ctx,9,-38,6,5,'#e5b65f');
+      }
+    }
   }else if(v.family==='tech'){
     // plataforma mecánica / dron pesado
     rect(ctx,-17,-8,34,22,'#364751');rect(ctx,-13,-5,26,16,'#536b76');
@@ -949,6 +1057,8 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     if(v.family==='war'){for(let i=0;i<4;i++)rect(ctx,-10+i*6,11,3,5,i%2?v.secondary:'#806239');}
     if(v.family==='command'){rect(ctx,-20,-4,5,7,v.secondary);rect(ctx,15,-4,5,7,v.secondary);}
   }
+
+  if(!def.finalBoss){drawBossFrontIdentity(ctx,h,tier,v);drawBossCrest(ctx,h,v);}
 
   drawBossAttackHardware(ctx,{accent:v.accent,secondary:v.secondary,family:v.family,bob:v.bob},def.pattern.sequence,frame,phase);
 
