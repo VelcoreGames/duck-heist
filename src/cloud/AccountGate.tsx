@@ -24,7 +24,7 @@ export default function AccountGate({children}:{children:ReactNode}){
   const finishInitial=useCallback(async(c:CloudConfig,s:AccountSession)=>{
     const result=await initialSync(c,s);
     setSession(s);
-    if(result.kind==='conflict'){setConflict(result.conflict);setGate('conflict');return;}
+    if(result.kind==='conflict'){setConflict(result.conflict);setGate('conflict');return result;}
     setGate(result.kind==='offline'?'offline':'ready');
     setMessage(result.kind==='offline'?'Sin conexión: jugando con copia local.':'');
     return result;
