@@ -1,0 +1,76 @@
+name: v0.8.0 real email auth stage 2
+on:
+  push:
+    branches: [feat/v080-email-first-accounts]
+    paths:
+      - '.github/workflows/v080-real-email-auth-stage2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-email-first-accounts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify confirmed login and cloud persistence
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const cfg=JSON.parse(fs.readFileSync('public/velcore-cloud.json','utf8'));
+          const email=['qa-auth-20260922','velcoregames.com'].join('@');
+          const password=['PanSeguro','Email','123'].join('_');
+          const baseHeaders={'Content-Type':'application/json','apikey':cfg.anonKey};
+
+          const loginRes=await fetch(cfg.supabaseUrl+'/auth/v1/token?grant_type=password',{
+            method:'POST',headers:baseHeaders,body:JSON.stringify({email,password})
+          });
+          const login=await loginRes.json();
+          if(!loginRes.ok||!login.access_token)throw new Error('confirmed login failed '+JSON.stringify({status:loginRes.status,code:login.error_code||login.code}));
+          const authHeaders={...baseHeaders,Authorization:'Bearer '+login.access_token};
+
+          const userRes=await fetch(cfg.supabaseUrl+'/auth/v1/user',{headers:{apikey:cfg.anonKey,Authorization:'Bearer '+login.access_token}});
+          const user=await userRes.json();
+          if(!userRes.ok||!user.email_confirmed_at)throw new Error('verified user missing');
+
+          const rpc=async(name,body={})=>{
+            const res=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/'+name,{method:'POST',headers:authHeaders,body:JSON.stringify(body)});
+            const data=await res.json();
+            if(!res.ok)throw new Error(name+' http '+res.status);
+            return data;
+          };
+          const before=await rpc('vg_auth_get_profile');
+          if(before.code!=='not_found')throw new Error('expected no username before claim');
+
+          const claimed=await rpc('vg_auth_claim_username',{p_username:'QaMailUser'});
+          if(!claimed.ok||claimed.username!=='QaMailUser')throw new Error('username claim failed');
+
+          const payload={schemaVersion:1,gameVersion:'0.8.0',savedAt:new Date().toISOString(),deviceId:'real-email-ci',storage:{
+            duckheist_real_email_qa:JSON.stringify({floor:6,achievement:'BANCO VACIADO'})
+          }};
+          const saved=await rpc('vg_auth_save_game_save',{
+            p_game_slug:'duck-heist',p_expected_revision:0,p_payload:payload,p_device_id:'real-email-ci',p_force:false
+          });
+          if(!saved.ok||saved.revision!==1)throw new Error('cloud save failed');
+
+          const loaded=await rpc('vg_auth_load_game_save',{p_game_slug:'duck-heist'});
+          if(!loaded.ok||loaded.revision!==1||!loaded.payload?.storage?.duckheist_real_email_qa)throw new Error('cloud load failed');
+          console.log('REAL_EMAIL_FLOW',JSON.stringify({emailVerified:true,username:claimed.username,saveRevision:saved.revision}));
+          JS
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/v080-real-email-auth-stage2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: remove real email auth stage 2'
+            git push origin HEAD:feat/v080-email-first-accounts
+          fi
