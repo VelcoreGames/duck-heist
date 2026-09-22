@@ -968,6 +968,13 @@ function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:numb
   const phaseGlow=phase>0?1:0;
   ctx.save();
 
+  if(bossType==='bread_banker'){
+    // El jefe final ya tiene una silueta regia propia; aquí sólo añadimos vida visual.
+    if(frame%16<3){px(ctx,bx-4,by+4,v.secondary,2);px(ctx,bx+39,by+10,v.accent,2);}
+    if(phase>0){ctx.globalAlpha=.28+.18*pulse;ctx.strokeStyle=phase>=2?'#ff4d54':v.accent;ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx+18,by+17,31+phase*5,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+    ctx.restore();return;
+  }
+
   // Firma de familia: hace legible el rol incluso en movimiento.
   if(v.family==='command'){
     rect(ctx,bx+2,by+10,4,3,v.accent);rect(ctx,bx+28,by+10,4,3,v.accent);
