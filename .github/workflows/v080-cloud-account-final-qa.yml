@@ -1,0 +1,84 @@
+name: v0.8.0 cloud account final QA
+on:
+  push:
+    branches: [feat/v080-cloud-accounts]
+    paths:
+      - '.github/workflows/v080-cloud-account-final-qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-cloud-accounts
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard version
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') process.exit(1)"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify account gate and game
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/vg-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const errors=[];
+          const page=await browser.newPage({viewport:{width:1191,height:900}});
+          page.on('pageerror',e=>errors.push(String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await page.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          if(!(await page.getByText('IDENTIFÍCATE',{exact:true}).count()))throw new Error('account gate missing');
+          if((await page.locator('input[name="username"]').count())!==1)throw new Error('username missing');
+          if((await page.locator('input[name="password"]').count())!==1)throw new Error('password missing');
+          if(await page.getByText(/jugar sin cuenta/i).count())throw new Error('guest bypass exposed');
+
+          const mobile=await browser.newPage({viewport:{width:390,height:844}});
+          await mobile.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+          if(overflow)throw new Error('mobile horizontal overflow');
+
+          const audit=await browser.newPage({viewport:{width:1191,height:900}});
+          audit.on('pageerror',e=>errors.push(String(e)));
+          audit.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+          await audit.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await audit.waitForFunction(()=>window.duckHeistAudit && window.duckHeistEngine);
+          const report=await audit.evaluate(()=>window.duckHeistAudit);
+          if(report.failures.length)throw new Error(report.failures.join(' | '));
+          if(report.passed<452)throw new Error('selftests regressed');
+          if(errors.length)throw new Error(errors.join(' | '));
+          console.log(JSON.stringify({accountGate:true,mobileOverflow:false,selftests:report.passed,runtimeErrors:errors}));
+          await browser.close();
+          JS
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        run: |
+          npm run build
+          rm -f .github/workflows/v080-cloud-account-final-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh validated cloud account bundle'
+            git push origin HEAD:feat/v080-cloud-accounts
+          fi
