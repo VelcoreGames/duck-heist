@@ -1,0 +1,197 @@
+name: v0.8.0 Velcore Games brand QA
+on:
+  push:
+    branches: [feat/v080-velcore-games-brand-system]
+    paths:
+      - '.github/workflows/v080-vg-brand-qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-velcore-games-brand-system
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+      - name: Validate Velcore Games palette and email system
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const palette=['#0A1B5E','#1E3DFF','#00A8FF','#8B5CF6','#D946EF','#F3F4F8','#0F172A'];
+          const css=fs.readFileSync('src/index.css','utf8');
+          for(const c of palette)if(!css.includes(c))throw new Error('CSS missing '+c);
+
+          const templates=[
+            'confirmation.html','recovery.html','magic_link.html','invite.html',
+            'email_change.html','reauthentication.html',
+            'password_changed_notification.html','email_changed_notification.html'
+          ];
+          const obsolete=['#dec269','#d9bd63','#f0d77c','#040a0e','#09161d','#314952'];
+          for(const name of templates){
+            const html=fs.readFileSync('supabase/templates/'+name,'utf8');
+            for(const c of palette)if(!html.includes(c))throw new Error(name+' missing palette color '+c);
+            for(const old of obsolete)if(html.toLowerCase().includes(old))throw new Error(name+' still uses old brand color '+old);
+            if(/powered by supabase|supabase auth/i.test(html))throw new Error(name+' exposes Supabase branding');
+            if(/PARTE DEL ECOSISTEMA VELCORE/i.test(html))throw new Error(name+' links Velcore Games to agency branding');
+            if(!html.includes('VELCORE GAMES'))throw new Error(name+' missing Velcore Games brand');
+          }
+
+          const cloud=fs.readFileSync('src/cloud/cloudClient.ts','utf8');
+          if(!cloud.includes('export function normalizeEmail'))throw new Error('email normalization helper missing');
+          if(!cloud.includes('return v.trim().toLowerCase()'))throw new Error('email normalization is not lowercase canonical');
+          if(/email:email\.trim\(\)\.toLowerCase\(\)/.test(cloud))throw new Error('email normalization duplicated outside helper');
+
+          const deploy=fs.readFileSync('scripts/apply-auth-email-templates.mjs','utf8');
+          for(const key of [
+            'mailer_notifications_password_changed_enabled:true',
+            'mailer_templates_password_changed_notification_content:passwordChanged',
+            'mailer_notifications_email_changed_enabled:true',
+            'mailer_templates_email_changed_notification_content:emailChanged'
+          ])if(!deploy.includes(key))throw new Error('missing hosted email setting '+key);
+
+          console.log(JSON.stringify({
+            palette,
+            templates:templates.length,
+            canonicalEmail:true,
+            securityNotifications:true,
+            version:'0.8.0'
+          },null,2));
+          JS
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser QA desktop mobile auth and game
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/vg-brand-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep .25; done
+
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const errors=[];
+          const checkPage=async(viewport,path)=>{
+            const page=await browser.newPage({viewport});
+            page.on('pageerror',e=>errors.push('pageerror '+path+' '+e));
+            page.on('console',m=>{if(m.type()==='error')errors.push('console '+path+' '+m.text());});
+            await page.goto('http://127.0.0.1:4173'+path,{waitUntil:'networkidle'});
+            const overflow=await page.evaluate(()=>({
+              innerWidth:window.innerWidth,
+              doc:document.documentElement.scrollWidth,
+              body:document.body.scrollWidth
+            }));
+            if(overflow.doc>overflow.innerWidth+1||overflow.body>overflow.innerWidth+1)throw new Error(path+' horizontal overflow '+JSON.stringify(overflow));
+            return page;
+          };
+
+          for(const viewport of [{width:1440,height:900},{width:390,height:844}]){
+            const home=await checkPage(viewport,'/');
+            const vars=await home.evaluate(()=>({
+              navy:getComputedStyle(document.documentElement).getPropertyValue('--vg-navy').trim(),
+              blue:getComputedStyle(document.documentElement).getPropertyValue('--vg-blue').trim(),
+              cyan:getComputedStyle(document.documentElement).getPropertyValue('--vg-cyan').trim(),
+              purple:getComputedStyle(document.documentElement).getPropertyValue('--vg-purple').trim(),
+              magenta:getComputedStyle(document.documentElement).getPropertyValue('--vg-magenta').trim(),
+              light:getComputedStyle(document.documentElement).getPropertyValue('--vg-light').trim(),
+              night:getComputedStyle(document.documentElement).getPropertyValue('--vg-night').trim()
+            }));
+            const expected=['#0A1B5E','#1E3DFF','#00A8FF','#8B5CF6','#D946EF','#F3F4F8','#0F172A'];
+            if(JSON.stringify(Object.values(vars))!==JSON.stringify(expected))throw new Error('palette vars mismatch '+JSON.stringify(vars));
+            await home.getByText('VELCORE GAMES',{exact:true}).first().waitFor();
+            await home.close();
+
+            const login=await checkPage(viewport,'/duck-heist/');
+            await login.getByText('IDENTIFÍCATE',{exact:true}).waitFor();
+            await login.getByText('VELCORE GAMES',{exact:true}).first().waitFor();
+            await login.close();
+          }
+
+          // Canonical email + production redirect from a local origin.
+          const signup=await browser.newPage({viewport:{width:1191,height:900}});
+          let signupBody=null, signupRedirect='';
+          await signup.route('http://127.0.0.1:4173/velcore-cloud.json',r=>r.fulfill({
+            status:200,contentType:'application/json',
+            body:JSON.stringify({supabaseUrl:'https://cloud.test',anonKey:'sb_publishable_test_12345678901234567890'})
+          }));
+          await signup.route('https://cloud.test/auth/v1/signup**',async route=>{
+            const url=new URL(route.request().url());
+            signupRedirect=url.searchParams.get('redirect_to')||'';
+            signupBody=route.request().postDataJSON();
+            await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+              id:'11111111-1111-4111-8111-111111111111',
+              email:'mixed@example.com',
+              email_confirmed_at:null
+            })});
+          });
+          await signup.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          await signup.getByRole('button',{name:'CREAR CUENTA',exact:true}).click();
+          await signup.locator('input[name="email"]').fill('  MiXeD@Example.COM  ');
+          await signup.locator('input[name="password"]').fill('ExamplePass_123');
+          await signup.locator('.vg-account-primary').click();
+          await signup.getByText('VERIFICA TU CORREO',{exact:true}).waitFor();
+          if(signupBody?.email!=='mixed@example.com')throw new Error('email was not canonicalized '+JSON.stringify(signupBody));
+          if(signupRedirect!=='https://velcoregames.com/duck-heist')throw new Error('wrong auth redirect '+signupRedirect);
+          await signup.close();
+
+          // Existing game selftests.
+          const audit=await browser.newPage({viewport:{width:1191,height:900}});
+          audit.on('pageerror',e=>errors.push('audit '+e));
+          audit.on('console',m=>{if(m.type()==='error')errors.push('audit '+m.text());});
+          await audit.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await audit.waitForFunction(()=>window.duckHeistAudit);
+          const report=await audit.evaluate(()=>window.duckHeistAudit);
+          if(report.failures.length)throw new Error(report.failures.join(' | '));
+          if(report.passed<452)throw new Error('selftests regressed '+report.passed);
+          if(errors.length)throw new Error(errors.join(' | '));
+          console.log(JSON.stringify({
+            desktop:true,mobile:true,
+            noHorizontalOverflow:true,
+            canonicalEmail:signupBody?.email,
+            productionRedirect:signupRedirect,
+            selftests:report.passed,
+            runtimeErrors:errors
+          },null,2));
+          await browser.close();
+          JS
+
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-vg-brand-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh Velcore Games brand bundle'
+            git push origin HEAD:feat/v080-velcore-games-brand-system
+          fi
