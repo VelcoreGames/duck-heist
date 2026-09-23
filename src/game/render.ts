@@ -2,7 +2,7 @@
 //  · MUNDO  → canvas de 480x352 escalado con nearest-neighbour (pixel art puro)
 //  · UI     → canvas a resolución nativa con tipografía nítida
 import {
-  TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT,
+  TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH, UI_OFFSET_X,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
 } from './constants';
 import {
@@ -59,7 +59,7 @@ const menuFrame = (engine:GameEngine) => engine.settings.reduceMotion ? 0 : engi
 
 
 function drawGunVanScene(ctx:CanvasRenderingContext2D,f:number) {
-  ctx.save();ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(240,161,100,14,0,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.translate(CANVAS_WIDTH/2-UI_BASE_WIDTH/2,0);ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(240,161,100,14,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#05070a';ctx.fillRect(148,89,158,57);ctx.fillStyle='#0d1217';ctx.fillRect(157,80,105,11);ctx.fillRect(262,86,52,60);
   ctx.fillStyle='#27343d';ctx.fillRect(269,93,35,20);ctx.fillStyle='#56747f';ctx.globalAlpha=.48;ctx.fillRect(273,96,27,14);ctx.globalAlpha=1;
   ctx.fillStyle='#020304';ctx.fillRect(167,96,87,44);ctx.fillStyle='#171e23';ctx.fillRect(182,104,57,31);
@@ -71,7 +71,7 @@ function drawGunVanScene(ctx:CanvasRenderingContext2D,f:number) {
 }
 
 function drawCafeScene(ctx:CanvasRenderingContext2D,f:number) {
-  ctx.save();ctx.fillStyle='#4d3124';ctx.fillRect(136,106,208,38);ctx.fillStyle='#8a5b3d';ctx.fillRect(136,106,208,4);ctx.fillStyle='#e1b779';ctx.fillRect(142,112,196,3);
+  ctx.save();ctx.translate(CANVAS_WIDTH/2-UI_BASE_WIDTH/2,0);ctx.fillStyle='#4d3124';ctx.fillRect(136,106,208,38);ctx.fillStyle='#8a5b3d';ctx.fillRect(136,106,208,4);ctx.fillStyle='#e1b779';ctx.fillRect(142,112,196,3);
   ctx.fillStyle='#20262c';ctx.fillRect(296,80,34,27);ctx.fillStyle='#9aa6ab';ctx.fillRect(300,84,26,11);ctx.fillStyle='#dce5e7';ctx.fillRect(303,87,20,6);
   ctx.fillStyle='#efe0bf';ctx.fillRect(152,80,58,24);ctx.fillStyle='#2d2520';ctx.fillRect(156,84,50,16);ctx.fillStyle='#e4b768';ctx.fillRect(161,88,24,2);ctx.fillRect(161,93,32,2);
   drawShopPigeon(ctx,230,92,f);ctx.fillStyle='#f0ece2';ctx.fillRect(234,110,8,11);ctx.restore();
@@ -165,13 +165,17 @@ export function renderWorld(engine: GameEngine) {
   const s = engine.state;
   if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.DAILY_BRIEF || s===GameState.HEIST_INTRO) {
     const opening=s===GameState.HEIST_INTRO?Math.max(0,(90-engine.heistIntroTimer-15)/75):0;
+    ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.save();ctx.translate(UI_OFFSET_X,0);
     drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176);
+    ctx.restore();
     return;
   }
 
   if (s === GameState.HOW_TO_PLAY || s === GameState.SETTINGS ||
       s === GameState.WARDROBE || s === GameState.UPGRADES || s===GameState.COLLECTION || s===GameState.CONTROLS || s===GameState.CAREER) {
-    drawVaultScene(ctx,engine.frame,engine.equippedSkin);
+    ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.save();ctx.translate(UI_OFFSET_X,0);drawVaultScene(ctx,engine.frame,engine.equippedSkin);ctx.restore();
     ctx.fillStyle = 'rgba(4,6,14,0.86)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     return;
@@ -191,13 +195,13 @@ export function renderWorld(engine: GameEngine) {
 
   drawRoomFloor(ctx, room, content, f, engine.map.floorIndex);
   if(room.modifier==='blackout') {
-    ctx.fillStyle='rgba(2,10,18,.48)';ctx.fillRect(32,32,416,288);
+    ctx.fillStyle='rgba(2,10,18,.48)';ctx.fillRect(32,32,CANVAS_WIDTH-64,CANVAS_HEIGHT-64);
   }
   if(room.modifier==='waxed') {
     ctx.fillStyle='rgba(149,191,198,.06)';
-    for(let i=0;i<6;i++)ctx.fillRect(48+i*67,52,16,238);
+    for(let x=48;x<CANVAS_WIDTH-48;x+=67)ctx.fillRect(x,52,16,238);
   }
-  if(room.modifier==='alarm'&&!room.cleared){ctx.globalAlpha=.06+Math.sin(f*.05)*.025;ctx.fillStyle='#e15a4f';ctx.fillRect(32,32,416,288);ctx.globalAlpha=1;}
+  if(room.modifier==='alarm'&&!room.cleared){ctx.globalAlpha=.06+Math.sin(f*.05)*.025;ctx.fillStyle='#e15a4f';ctx.fillRect(32,32,CANVAS_WIDTH-64,CANVAS_HEIGHT-64);ctx.globalAlpha=1;}
   drawEndlessArenaMood(ctx,engine,f);
 
   for (const p of content.puddles) {
@@ -911,46 +915,55 @@ export function renderUI(engine: GameEngine) {
   ctx.scale(engine.uiScale, engine.uiScale);
   ctx.imageSmoothingEnabled = true;
 
+  const legacy=(draw:()=>void)=>{
+    ctx.save();
+    ctx.translate(UI_OFFSET_X,0);
+    draw();
+    ctx.restore();
+  };
+
   switch (s) {
-    case GameState.MENU: renderMenuUI(engine); break;
-    case GameState.DIFFICULTY: renderDifficultyUI(engine); break;
-    case GameState.DAILY_BRIEF: renderDailyBrief(engine); break;
-    case GameState.MAP:renderFloorMap(engine);break;
-    case GameState.COLLECTION:renderCollection(engine);break;
-    case GameState.HEIST_INTRO: {
-      const t=1-engine.heistIntroTimer/90;
-      ctx.globalAlpha=Math.max(0,1-t*3);drawTitleLogo(ctx,240,62,engine.frame);ctx.globalAlpha=1;
-      ctx.fillStyle=`rgba(255,226,154,${Math.max(0,(t-.4)*1.6)})`;ctx.fillRect(0,0,480,352);
-      if(t>.88) {ctx.fillStyle=`rgba(5,15,22,${(t-.88)/.12})`;ctx.fillRect(0,0,480,352);}break;
-    }
-    case GameState.HOW_TO_PLAY: renderHowToPlayUI(engine); break;
-    case GameState.SETTINGS: renderSettingsUI(engine); break;
-    case GameState.CONTROLS: renderControls(engine); break;
-    case GameState.CAREER: renderCareer(engine); break;
-    case GameState.WARDROBE: renderWardrobeUI(engine); break;
-    case GameState.UPGRADES: renderUpgradesUI(engine); break;
-    case GameState.GAME_OVER: renderGameOverUI(engine); break;
-    case GameState.VICTORY: renderVictoryUI(engine); break;
+    case GameState.MENU: legacy(()=>renderMenuUI(engine)); break;
+    case GameState.DIFFICULTY: legacy(()=>renderDifficultyUI(engine)); break;
+    case GameState.DAILY_BRIEF: legacy(()=>renderDailyBrief(engine)); break;
+    case GameState.MAP: legacy(()=>renderFloorMap(engine)); break;
+    case GameState.COLLECTION: legacy(()=>renderCollection(engine)); break;
+    case GameState.HEIST_INTRO:
+      legacy(()=>{
+        const t=1-engine.heistIntroTimer/90;
+        ctx.globalAlpha=Math.max(0,1-t*3);drawTitleLogo(ctx,UI_BASE_WIDTH/2,62,engine.frame);ctx.globalAlpha=1;
+        ctx.fillStyle=`rgba(255,226,154,${Math.max(0,(t-.4)*1.6)})`;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+        if(t>.88) {ctx.fillStyle=`rgba(5,15,22,${(t-.88)/.12})`;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);}
+      });
+      break;
+    case GameState.HOW_TO_PLAY: legacy(()=>renderHowToPlayUI(engine)); break;
+    case GameState.SETTINGS: legacy(()=>renderSettingsUI(engine)); break;
+    case GameState.CONTROLS: legacy(()=>renderControls(engine)); break;
+    case GameState.CAREER: legacy(()=>renderCareer(engine)); break;
+    case GameState.WARDROBE: legacy(()=>renderWardrobeUI(engine)); break;
+    case GameState.UPGRADES: legacy(()=>renderUpgradesUI(engine)); break;
+    case GameState.GAME_OVER: legacy(()=>renderGameOverUI(engine)); break;
+    case GameState.VICTORY: legacy(()=>renderVictoryUI(engine)); break;
     case GameState.PAUSED:
-      drawHUD(engine); renderPrompts(engine); renderPausedUI(engine); break;
+      drawHUD(engine); renderPrompts(engine); legacy(()=>renderPausedUI(engine)); break;
     case GameState.FLOOR_INTRO:
       drawHUD(engine); renderFloorIntroUI(engine); break;
     case GameState.BOSS_INTRO:
       drawHUD(engine); renderPrompts(engine); renderBossIntroUI(engine); break;
     case GameState.ENDLESS_REWARD:
-      drawHUD(engine); renderEndlessRewardUI(engine); break;
+      drawHUD(engine); legacy(()=>renderEndlessRewardUI(engine)); break;
     case GameState.ENDLESS_RESUME:
-      renderEndlessResumeUI(engine); break;
+      legacy(()=>renderEndlessResumeUI(engine)); break;
     case GameState.RUN_INFO:
-      renderRunInfoUI(engine); break;
+      legacy(()=>renderRunInfoUI(engine)); break;
     case GameState.CONFIRM:
-      renderConfirmUI(engine); break;
+      legacy(()=>renderConfirmUI(engine)); break;
     case GameState.FLOOR_CLEAR:
       renderFloorClearUI(engine); break;
     default:
       drawHUD(engine);
       renderPrompts(engine);
-      if(engine.keys.tab) renderRunStats(engine);
+      if(engine.keys.tab) legacy(()=>renderRunStats(engine));
       break;
   }
 
@@ -962,7 +975,7 @@ export function renderUI(engine: GameEngine) {
 // ---------------------------------------------------------------------------
 function renderRunStats(engine:GameEngine) {
   const ctx=engine.ui!,r=engine.run,s=engine.stats,p=engine.player;
-  ctx.save();ctx.fillStyle='rgba(2,6,12,.82)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  ctx.save();ctx.fillStyle='rgba(2,6,12,.82)';ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
   drawPanel(ctx,104,50,272,244,'rgba(8,16,25,.98)','#d6b45f');
   text(ctx,'ESTADÍSTICAS DE LA RUN',240,75,12,'#f4d03f','center',true);
   text(ctx,`PISO  ${r.floorReached}/${TOTAL_FLOORS}`,128,104,8,'#e9dfbd','left',true);
@@ -1022,7 +1035,7 @@ function renderPrompts(engine: GameEngine) {
 
   if (content.shopItems) {
     text(ctx, room.type===RoomType.GUN_VAN?'EL PROVEEDOR':content.cafe?'BARISTA MIGAJÓN':'DON MIGAJÓN', CANVAS_WIDTH/2, CANVAS_HEIGHT*.16, 11, room.type===RoomType.GUN_VAN?'#e79a45':content.cafe?'#e7b978':'#f4d03f', 'center', true);
-    if((content.merchantUntil ?? 0)>f) text(ctx,`“${content.merchantLine}”`,240,120,8,'#d5c8a2');
+    if((content.merchantUntil ?? 0)>f) text(ctx,`“${content.merchantLine}”`, CANVAS_WIDTH/2,120,8,'#d5c8a2');
     for (const s of content.shopItems) {
       if (s.sold) { text(ctx, T.sold, s.x, s.y + 26, 8, '#5c6472'); continue; }
       const price=shopPrice(engine,s),near=dist(p.x+7,p.y+8,s.x,s.y)<40;
@@ -1057,10 +1070,10 @@ function renderPrompts(engine: GameEngine) {
       prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    '+actionPrompt(engine,'interact')+' · CONFIRMAR');
     }
   }
-  if(content.challenge==='alarm' && !room.cleared) text(ctx,`ALARMA · ${Math.ceil((content.alarmTimer ?? 0)/60)} s`,240,64,9,'#e2a477','center',true);
-  if(content.challenge==='flawless' && !room.cleared) text(ctx,content.damaged?'DESAFÍO: SIN BONIFICACIÓN':'DESAFÍO: SIN RECIBIR DAÑO',240,64,8,'#cdaacb');
+  if(content.challenge==='alarm' && !room.cleared) text(ctx,`ALARMA · ${Math.ceil((content.alarmTimer ?? 0)/60)} s`, CANVAS_WIDTH/2,64,9,'#e2a477','center',true);
+  if(content.challenge==='flawless' && !room.cleared) text(ctx,content.damaged?'DESAFÍO: SIN BONIFICACIÓN':'DESAFÍO: SIN RECIBIR DAÑO', CANVAS_WIDTH/2,64,8,'#cdaacb');
   if(room.modifier && !room.cleared && engine.roomLabelTimer<=0) {
-    text(ctx,MODIFIER_LABELS[room.modifier]+(room.modifier==='cameras'&&!content.modifierResolved?` · ${Math.ceil((content.securityTimer ?? 0)/60)} s`:''),240,46,7,'#b9a58d');
+    text(ctx,MODIFIER_LABELS[room.modifier]+(room.modifier==='cameras'&&!content.modifierResolved?` · ${Math.ceil((content.securityTimer ?? 0)/60)} s`:''), CANVAS_WIDTH/2,46,7,'#b9a58d');
   }
 
   if (content.stairs) {
@@ -1088,7 +1101,7 @@ function renderPrompts(engine: GameEngine) {
     const endless=engine.gameMode==='endless';
     const a=endless?Math.min(1,t/14):(t > 75 ? (95 - t) / 20 : Math.min(1, t / 25));
     ctx.globalAlpha = clamp(a, 0, 1);
-    text(ctx,engine.roomLabel,240,endless?42:55,endless?6.5:10,endless?'#a9a17d':'#e3c989','center',!endless);
+    text(ctx,engine.roomLabel, CANVAS_WIDTH/2,endless?42:55,endless?6.5:10,endless?'#a9a17d':'#e3c989','center',!endless);
     ctx.globalAlpha = 1;
   }
 
@@ -1107,20 +1120,20 @@ function renderPrompts(engine: GameEngine) {
   }
   if(engine.synergyNotice) {
     const notice=engine.synergyNotice;ctx.globalAlpha=Math.min(1,notice.timer/20);
-    text(ctx,'SINERGIA · '+notice.name,240,282,10,'#d0a4ec','center',true);ctx.globalAlpha=1;
+    text(ctx,'SINERGIA · '+notice.name, CANVAS_WIDTH/2,282,10,'#d0a4ec','center',true);ctx.globalAlpha=1;
   }
   if(engine.tutorialHint && !engine.pickupCard && !engine.swap) {
     const hint=engine.tutorialHint;
     const key=hint.kind==='map'?actionPrompt(engine,'map'):hint.kind==='wheel'?actionPrompt(engine,'weapons'):actionPrompt(engine,'dash');
     const label=hint.kind==='map'?'ABRIR MAPA':hint.kind==='wheel'?'CAMBIAR ARMA':'ESQUIVAR';
-    ctx.globalAlpha=Math.min(1,hint.timer/30);text(ctx,`${hint.kind==='wheel'?'USA':'PRESIONA'} ${key} · ${label}`,240,266,8,'#ccddba','center',true);ctx.globalAlpha=1;
+    ctx.globalAlpha=Math.min(1,hint.timer/30);text(ctx,`${hint.kind==='wheel'?'USA':'PRESIONA'} ${key} · ${label}`, CANVAS_WIDTH/2,266,8,'#ccddba','center',true);ctx.globalAlpha=1;
   }
   for(const d of engine.damageNumbers) {
     ctx.globalAlpha=d.life;text(ctx,d.value===0?T.block:String(Math.round(d.value)),d.x,d.y,d.crit?11:8,d.crit?'#f9d889':'#f0ebd7','center',true);ctx.globalAlpha=1;
   }
   if(p.combo>=3 && p.comboTimer>0 && !engine.pickupCard) {
     ctx.globalAlpha=Math.min(.85,p.comboTimer/35);
-    text(ctx,`${p.combo} · ${p.combo>=10?'ATRACO PERFECTO':p.combo>=6?'IMPARABLE':'RACHA'}`,468,280,7,'#bca969','right');ctx.globalAlpha=1;
+    text(ctx,`${p.combo} · ${p.combo>=10?'ATRACO PERFECTO':p.combo>=6?'IMPARABLE':'RACHA'}`, CANVAS_WIDTH-12,280,7,'#bca969','right');ctx.globalAlpha=1;
   }
 
   // tarjeta de daño recibido
@@ -1155,7 +1168,7 @@ function renderPrompts(engine: GameEngine) {
 
   // pista de la rueda
   if (p.weapons.filter(Boolean).length > 1 && engine.run.time < 620 && engine.frame % 160 < 100) {
-    text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA`,240,244,7,'#8792a5');
+    text(ctx,`${actionPrompt(engine,'weapons')} · CAMBIAR ARMA`, CANVAS_WIDTH/2,244,7,'#8792a5');
   }
 
   if (engine.swap) renderSwapUI(engine);
@@ -1243,11 +1256,11 @@ function drawHUD(engine: GameEngine) {
   drawItemIcon(ctx,cx+4,18,'golden_crumb',11);text(ctx,engine.gameMode==='endless'?'DORADAS':'MONEDAS',cx+19,25,5.2,'#ac9a65','left');
   text(ctx,`${engine.totalGoldenCrumbs}`,cx+70,26,7.5,'#f4d03f','right',true);
   if(engine.gameMode==='endless'){
-    text(ctx,'ATRACO SIN FIN',240,10,6.5,'#d3c999','center',true);
-    text(ctx,`MISMA ARENA · ${endlessStage(Math.max(1,engine.endless.round))}`,240,19,5.4,'#829c98');
+    text(ctx,'ATRACO SIN FIN', CANVAS_WIDTH/2,10,6.5,'#d3c999','center',true);
+    text(ctx,`MISMA ARENA · ${endlessStage(Math.max(1,engine.endless.round))}`, CANVAS_WIDTH/2,19,5.4,'#829c98');
   } else {
-    text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`,240,10,6.2,'#d3c999','center',true);
-    text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],240,19,5.7,'#829c98');
+    text(ctx,`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`, CANVAS_WIDTH/2,10,6.2,'#d3c999','center',true);
+    text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex], CANVAS_WIDTH/2,19,5.7,'#829c98');
     drawMinimap(engine);
   }
   drawBossBar(engine);
@@ -1291,7 +1304,7 @@ function drawHUD(engine: GameEngine) {
   const dashReady=p.dashCooldown<=0,dashFlash=p.dashReadyFlash>0,dashW=46,dashX=CANVAS_WIDTH/2-dashW/2;
   ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(dashX,CANVAS_HEIGHT-15,dashW,3);
   ctx.fillStyle=dashFlash?'#a3f0c2':dashReady?'#1abc9c':'#4f586a';ctx.fillRect(dashX,CANVAS_HEIGHT-15,dashW*clamp(1-p.dashCooldown/(45*getBuild(p).dashCooldown),0,1),3);
-  text(ctx,engine.lastInput==='gamepad'?'B · ESQUIVE':'ESQUIVE',240,CANVAS_HEIGHT-5,5.3,dashReady?'#1abc9c':'#68717f','center',dashFlash);
+  text(ctx,engine.lastInput==='gamepad'?'B · ESQUIVE':'ESQUIVE', CANVAS_WIDTH/2,CANVAS_HEIGHT-5,5.3,dashReady?'#1abc9c':'#68717f','center',dashFlash);
 
   if(p.items.length){
     const n=Math.min(p.items.length,8);ctx.fillStyle='rgba(5,12,18,.38)';ctx.fillRect(5,CANVAS_HEIGHT-48,n*14+6,14);
@@ -1309,7 +1322,7 @@ function drawHUD(engine: GameEngine) {
     const pressureState=e.pressure>=75?'CRÍTICO':e.pressure>=50?'PELIGRO':e.pressure>=25?'ALERTA':'CONTROL';
     text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${pressureState}`,104,86,4.4,e.pressure>=75?'#ef8278':'#8fa1a8','right',e.pressure>=75);
     if(e.compositionLabel&&e.roundActive&&e.roundKind!=='boss'&&e.roundKind!=='subboss'&&e.roundKind!=='miniboss')text(ctx,e.compositionLabel,12,96,4.8,'#8ea9a2','left',true);
-    if(e.milestone)text(ctx,e.milestone,240,31,6.4,e.round>=100?'#ff6c66':'#f4d03f','center',true);
+    if(e.milestone)text(ctx,e.milestone, CANVAS_WIDTH/2,31,6.4,e.round>=100?'#ff6c66':'#f4d03f','center',true);
   }
   renderDailyHUD(engine);
 }
@@ -1445,9 +1458,9 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine: GameEngine) {
   const ctx=engine.ui!,meta=MENU_META[engine.menuIndex]??MENU_META[0],mf=menuFrame(engine);
-  ctx.save();ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);ctx.restore();
+  ctx.save();ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);ctx.restore();
   text(ctx,'v0.8.0',10,12,5.3,'#d8ca9c','left',true,false);
-  drawTitleLogo(ctx,CANVAS_WIDTH/2,58,mf);
+  drawTitleLogo(ctx,UI_BASE_WIDTH/2,58,mf);
   text(ctx,'ELIGE UNA OPERACIÓN',26,70,4.7,'#8aa09d','left',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
