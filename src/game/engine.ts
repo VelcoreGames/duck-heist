@@ -2062,9 +2062,9 @@ export function updateEngine(engine: GameEngine) {
         isWeapon: asWeapon, taken: false, bossLoot: true,rise:0,
       };
       if(random()<.4) {
-        content.choices=[{...pedestal,x:132,itemId:rollWeapon(engine,true),isWeapon:true},
-          {...pedestal,x:228,itemId:rollBossRewardItem(engine),isWeapon:false},
-          {...pedestal,x:324,itemId:'pan_dorado',isWeapon:false,isFood:true}];
+        content.choices=[{...pedestal,x:CANVAS_WIDTH/2-108,itemId:rollWeapon(engine,true),isWeapon:true},
+          {...pedestal,x:CANVAS_WIDTH/2-12,itemId:rollBossRewardItem(engine),isWeapon:false},
+          {...pedestal,x:CANVAS_WIDTH/2+84,itemId:'pan_dorado',isWeapon:false,isFood:true}];
       } else content.pedestal=pedestal;
       content.stairs = { x: CANVAS_WIDTH / 2 - 16, y: CANVAS_HEIGHT - TILE_SIZE * 2.6, unlocked: true, glow: 0 };
       spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 30, '#f4d03f');
@@ -3707,10 +3707,10 @@ function activateEvent(engine:GameEngine) {
   if((event.kind==='bakery'||event.kind==='injured') && p.hp<=1) {event.message='Necesitas más de un corazón.';playDeny();return;}
   p.crumbs-=cost;event.used=true;
   switch(event.kind) {
-    case 'safe':content.pedestal={x:228,y:142,itemId:rollBossRewardItem(engine),isWeapon:false,taken:false};event.message='Abierta. Sin dejar huellas.';break;
+    case 'safe':content.pedestal={x:CANVAS_WIDTH/2-12,y:142,itemId:rollBossRewardItem(engine),isWeapon:false,taken:false};event.message='Abierta. Sin dejar huellas.';break;
     case 'bakery': {
       p.hp--;const reward=pickPassive(engine) ?? fallbackActive(engine);
-      content.items.push({x:232,y:133,itemId:reward,isWeapon:false,isActive:!!ACTIVE_ITEMS[reward]});
+      content.items.push({x:CANVAS_WIDTH/2-8,y:133,itemId:reward,isWeapon:false,isActive:!!ACTIVE_ITEMS[reward]});
       event.message='Un intercambio muy crujiente.';break;
     }
     case 'vending':content.pickups.push({x:CANVAS_WIDTH/2,y:143,type:rollFood(),value:1,lifetime:99999});event.message='Sin cambio. Con pan.';break;
