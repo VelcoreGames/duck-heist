@@ -64,7 +64,7 @@ export default function App() {
     // físico de la pantalla, así que llenar 100% del ancho no deforma el juego.
     const widthScale=availW/CANVAS_WIDTH;
     const css=fullscreen
-      ? Math.max(.2,Math.min(widthScale,maxScale))
+      ? Math.max(.2,widthScale)
       : Math.max(.2,Math.min(widthScale,availH/CANVAS_HEIGHT,maxScale));
     const displayW=fullscreen?Math.max(1,Math.floor(availW)):Math.max(1,Math.floor(CANVAS_WIDTH*css));
     const displayH=Math.max(1,Math.floor(CANVAS_HEIGHT*css));
@@ -113,7 +113,6 @@ export default function App() {
     setHint(hintFor(engine));
     window.addEventListener('resize',scheduleSize,{passive:true});
     window.addEventListener('orientationchange',scheduleSize,{passive:true});
-    document.addEventListener('fullscreenchange',scheduleSize);
     window.visualViewport?.addEventListener('resize',scheduleSize,{passive:true});
     window.visualViewport?.addEventListener('scroll',scheduleSize,{passive:true});
 
