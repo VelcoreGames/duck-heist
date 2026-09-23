@@ -1,0 +1,88 @@
+name: v0.8.0 headed fullscreen proof
+on:
+  push:
+    branches: [feat/v080-responsive-fullscreen-world]
+    paths:
+      - '.github/workflows/v080-headed-fullscreen-proof.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-responsive-fullscreen-world
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install headed Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Prove F uses real Fullscreen API at full width
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/fullscreen-proof-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true; rm -f .fullscreen-proof.mjs' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          cat > .fullscreen-proof.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({
+            headless:false,
+            args:['--window-size=1920,1080','--disable-infobars','--no-first-run']
+          });
+          const context=await browser.newContext({viewport:null,screen:{width:1920,height:1080}});
+          const page=await context.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror '+e));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console '+m.text());});
+          await page.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+          await page.waitForFunction(()=>window.duckHeistAudit&&window.duckHeistEngine);
+          const before=await page.evaluate(()=>{
+            const wc=document.querySelector('canvas[aria-hidden="true"]');
+            const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+            return {innerW:innerWidth,innerH:innerHeight,logicalW:wc.width,logicalH:wc.height,stageW:stage.width,stageH:stage.height,roomCols:window.duckHeistEngine.map.rooms.get(window.duckHeistEngine.currentKey).layout[0].length};
+          });
+          await page.locator('canvas[role="application"]').focus();
+          await page.keyboard.press('f');
+          await page.waitForFunction(()=>!!document.fullscreenElement,{timeout:5000});
+          await page.waitForTimeout(250);
+          const after=await page.evaluate(()=>{
+            const wc=document.querySelector('canvas[aria-hidden="true"]');
+            const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+            const sx=stage.width/wc.width,sy=stage.height/wc.height;
+            return {innerW:innerWidth,innerH:innerHeight,logicalW:wc.width,logicalH:wc.height,stageW:stage.width,stageH:stage.height,sx,sy,fullscreen:!!document.fullscreenElement};
+          });
+          if(!after.fullscreen)throw new Error('F did not enter real Fullscreen API');
+          if(Math.abs(after.stageW-after.innerW)>1.5)throw new Error('stage not exact fullscreen width '+JSON.stringify(after));
+          if(Math.abs(after.sx-after.sy)>.015)throw new Error('sprites/world would be stretched '+JSON.stringify(after));
+          if(after.stageH>after.innerH+2)throw new Error('fullscreen height overflow '+JSON.stringify(after));
+          if(before.roomCols<=15)throw new Error('room did not become wider than legacy arena '+JSON.stringify(before));
+          if(errors.length)throw new Error(errors.join(' | '));
+          console.log(JSON.stringify({before,after,assertions:{realFullscreen:true,exactWidth:true,uniformScale:true,widerWorld:true},runtimeErrors:errors},null,2));
+          await page.keyboard.press('f');
+          await browser.close();
+          JS
+          xvfb-run -a -s "-screen 0 1920x1080x24" node .fullscreen-proof.mjs
+      - name: Remove temporary proof workflow
+        if: always()
+        shell: bash
+        run: |
+          rm -f .fullscreen-proof.mjs .github/workflows/v080-headed-fullscreen-proof.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: remove headed fullscreen proof'
+            git push origin HEAD:feat/v080-responsive-fullscreen-world
+          fi
