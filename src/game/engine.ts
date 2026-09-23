@@ -2020,11 +2020,11 @@ export function updateEngine(engine: GameEngine) {
     if(firstClear && (room.type===RoomType.COMBAT || room.type===RoomType.CHALLENGE)){
       if(!content.damaged){
         engine.roomStreak++;engine.toast='SALA PERFECTA';engine.toastTimer=90;
-        if(!content.perfectAwarded&&random()<.25)content.pickups.push({x:240,y:192,type:random()<.85?'crumb':'hp',value:5,lifetime:99999});
+        if(!content.perfectAwarded&&random()<.25)content.pickups.push({x:CANVAS_WIDTH/2,y:192,type:random()<.85?'crumb':'hp',value:5,lifetime:99999});
         if(engine.roomStreak===3||engine.roomStreak===5){player.perfectBuff=600;engine.toast=engine.roomStreak===3?'3 SALAS · IMPECABLE':'5 SALAS · PROFESIONAL';engine.toastTimer=110;}
       }else engine.roomStreak=0;
       content.perfectAwarded=true;
-      if(build.foodEvery&&engine.stats.roomsCleared%build.foodEvery===0)content.pickups.push({x:240,y:192,type:rollFood(),value:1,lifetime:99999});
+      if(build.foodEvery&&engine.stats.roomsCleared%build.foodEvery===0)content.pickups.push({x:CANVAS_WIDTH/2,y:192,type:rollFood(),value:1,lifetime:99999});
     }
     applyMapItemEffects(engine,false);
     spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 16, '#39d353');
@@ -2037,7 +2037,7 @@ export function updateEngine(engine: GameEngine) {
     }
     if(content.event?.kind==='interrogation') content.items.push({x:232,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     if(room.type===RoomType.BOSS) {content.rewardTimer=75;setMusic('run',engine.map.floorIndex);}
-    if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:240,y:198,type:'hp',value:1,lifetime:99999});
+    if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
 
   for (const d of room.doors) {
@@ -3707,12 +3707,12 @@ function activateEvent(engine:GameEngine) {
       content.items.push({x:232,y:133,itemId:reward,isWeapon:false,isActive:!!ACTIVE_ITEMS[reward]});
       event.message='Un intercambio muy crujiente.';break;
     }
-    case 'vending':content.pickups.push({x:240,y:143,type:rollFood(),value:1,lifetime:99999});event.message='Sin cambio. Con pan.';break;
+    case 'vending':content.pickups.push({x:CANVAS_WIDTH/2,y:143,type:rollFood(),value:1,lifetime:99999});event.message='Sin cambio. Con pan.';break;
     case 'injured':p.hp--;awardGolden(engine,8);event.message='Los cómplices no se olvidan.';break;
     case 'interrogation':event.message='No hemos visto ningún pato.';changeAlert(engine,-3);break;
     case 'atm':
       if(random()<.35) {awardGolden(engine,8);event.message='¡Error bancario a tu favor!';}
-      else {content.pickups.push({x:240,y:143,type:'crumb',value:4,lifetime:99999});event.message='Solo devuelve 4 migajas. Típico.';}break;
+      else {content.pickups.push({x:CANVAS_WIDTH/2,y:143,type:'crumb',value:4,lifetime:99999});event.message='Solo devuelve 4 migajas. Típico.';}break;
   }
   playPickup();
 }
