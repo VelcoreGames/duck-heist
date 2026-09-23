@@ -314,8 +314,9 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
         const index=Math.floor(random()*pool.length);
         selected.push(pool.splice(index,1)[0]);
       }
+      const center=CANVAS_WIDTH/2;
       content.shopItems=selected.map((id,i)=>({
-        itemId:id,cost:Math.max(8,WEAPONS[id].cost),sold:false,isWeapon:true,x:145+i*95,y:235,
+        itemId:id,cost:Math.max(8,WEAPONS[id].cost),sold:false,isWeapon:true,x:center+(i-1)*95,y:235,
       }));
       break;
     }
@@ -325,18 +326,19 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
         const foods = ['hp','croissant','sandwich','baguette','torta'];
         const selected = [...foods].sort(() => random() - .5).slice(0, 3);
         const foodCost = (id:string) => id === 'hp' ? 5 : id === 'croissant' ? 7 : (id === 'sandwich' || id === 'baguette') ? 9 : 14;
+        const center=CANVAS_WIDTH/2;
         content.shopItems = selected.map((id, i) => ({
-          itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:145+i*95,y:232,
+          itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:center+(i-1)*95,y:232,
         }));
       } else {
         const kind=pick(Object.keys(EVENTS)) as EventKind;
-        content.event={kind,x:232,y:170,used:false,selected:0,message:''};
+        content.event={kind,x:CANVAS_WIDTH/2-8,y:170,used:false,selected:0,message:''};
       }
       break;
     }
     case RoomType.CHOICE:
-      content.choices=diverseRewards(engine).map((id,i)=>({x:142+i*84,y:165,itemId:id,isWeapon:false,taken:false}));
-      if(!content.choices.length) content.choices=[{x:228,y:165,itemId:'pan_dorado',isWeapon:false,taken:false,isFood:true}];
+      content.choices=diverseRewards(engine).map((id,i,all)=>({x:CANVAS_WIDTH/2-12+(i-(all.length-1)/2)*84,y:165,itemId:id,isWeapon:false,taken:false}));
+      if(!content.choices.length) content.choices=[{x:CANVAS_WIDTH/2-12,y:165,itemId:'pan_dorado',isWeapon:false,taken:false,isFood:true}];
       break;
     default: break;
   }
@@ -2033,9 +2035,9 @@ export function updateEngine(engine: GameEngine) {
     }
     if (room.type === RoomType.CHALLENGE) {
       content.pickups.push({ x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 + 26, type: 'golden_crumb', value: 3, lifetime: 99999 });
-      if(content.challenge==='alarm' || !content.damaged) content.items.push({x:232,y:150,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+      if(content.challenge==='alarm' || !content.damaged) content.items.push({x:CANVAS_WIDTH/2-8,y:150,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     }
-    if(content.event?.kind==='interrogation') content.items.push({x:232,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+    if(content.event?.kind==='interrogation') content.items.push({x:CANVAS_WIDTH/2-8,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     if(room.type===RoomType.BOSS) {content.rewardTimer=75;setMusic('run',engine.map.floorIndex);}
     if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
