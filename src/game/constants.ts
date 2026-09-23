@@ -5,22 +5,41 @@ export const ROOM_HEIGHT = 11;
 export const UI_BASE_WIDTH = BASE_ROOM_WIDTH * TILE_SIZE; // 480
 
 /**
- * El mundo adopta el aspecto físico de la pantalla sin deformar el pixel art.
- * Se redondea hacia arriba a un número impar de tiles para mantener puertas,
- * centro de sala y patrones simétricos. En SSR/tests sin DOM conserva 15x11.
+ * El mundo adopta el aspecto del monitor donde se jugará en fullscreen sin
+ * deformar el pixel art. Elegimos el número impar de columnas MÁS CERCANO al
+ * aspect ratio objetivo; redondear siempre hacia arriba podía ensanchar de más
+ * la arena y dejar bandas horizontales al entrar en pantalla completa.
+ *
+ * En SSR/tests sin DOM conserva 15x11.
  */
 function responsiveRoomWidth(): number {
   if (typeof window === 'undefined') return BASE_ROOM_WIDTH;
-  const screenW = Math.max(1, window.screen?.width || window.innerWidth || UI_BASE_WIDTH);
-  const screenH = Math.max(1, window.screen?.height || window.innerHeight || ROOM_HEIGHT * TILE_SIZE);
-  const viewportW = Math.max(1, window.innerWidth || screenW);
-  const viewportH = Math.max(1, window.innerHeight || screenH);
-  const aspect = Math.max(screenW / screenH, viewportW / viewportH);
+
+  const viewport = window.visualViewport;
+  const viewportW = Math.max(1, viewport?.width ?? window.innerWidth ?? UI_BASE_WIDTH);
+  const viewportH = Math.max(1, viewport?.height ?? window.innerHeight ?? ROOM_HEIGHT * TILE_SIZE);
+
+  // Para fullscreen manda el monitor, no la relación de aspecto de una ventana
+  // del navegador que quizá estaba muy ancha o muy baja antes de pulsar F.
+  const screenW = Number(window.screen?.width) || 0;
+  const screenH = Number(window.screen?.height) || 0;
+  const rawAspect = screenW > 0 && screenH > 0 ? screenW / screenH : viewportW / viewportH;
+
   const baseAspect = BASE_ROOM_WIDTH / ROOM_HEIGHT;
-  const target = Math.max(baseAspect, Math.min(3.7, aspect));
-  let tiles = Math.max(BASE_ROOM_WIDTH, Math.ceil(ROOM_HEIGHT * target));
-  if (tiles % 2 === 0) tiles += 1;
-  return Math.min(41, tiles);
+  const targetAspect = Math.max(baseAspect, Math.min(3.7, rawAspect));
+  const targetTiles = ROOM_HEIGHT * targetAspect;
+
+  let lower = Math.floor(targetTiles);
+  if (lower % 2 === 0) lower -= 1;
+  lower = Math.max(BASE_ROOM_WIDTH, lower);
+
+  let upper = Math.ceil(targetTiles);
+  if (upper % 2 === 0) upper += 1;
+  upper = Math.min(41, Math.max(BASE_ROOM_WIDTH, upper));
+
+  const lowerError = Math.abs(lower / ROOM_HEIGHT - targetAspect);
+  const upperError = Math.abs(upper / ROOM_HEIGHT - targetAspect);
+  return upperError < lowerError ? upper : lower;
 }
 
 export const ROOM_WIDTH = responsiveRoomWidth();
