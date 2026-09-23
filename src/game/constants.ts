@@ -1,9 +1,32 @@
 // Game constants
 export const TILE_SIZE = 32;
-export const ROOM_WIDTH = 15;
+export const BASE_ROOM_WIDTH = 15;
 export const ROOM_HEIGHT = 11;
-export const CANVAS_WIDTH = ROOM_WIDTH * TILE_SIZE; // 480
+export const UI_BASE_WIDTH = BASE_ROOM_WIDTH * TILE_SIZE; // 480
+
+/**
+ * El mundo adopta el aspecto físico de la pantalla sin deformar el pixel art.
+ * Se redondea hacia arriba a un número impar de tiles para mantener puertas,
+ * centro de sala y patrones simétricos. En SSR/tests sin DOM conserva 15x11.
+ */
+function responsiveRoomWidth(): number {
+  if (typeof window === 'undefined') return BASE_ROOM_WIDTH;
+  const screenW = Math.max(1, window.screen?.width || window.innerWidth || UI_BASE_WIDTH);
+  const screenH = Math.max(1, window.screen?.height || window.innerHeight || ROOM_HEIGHT * TILE_SIZE);
+  const viewportW = Math.max(1, window.innerWidth || screenW);
+  const viewportH = Math.max(1, window.innerHeight || screenH);
+  const aspect = Math.max(screenW / screenH, viewportW / viewportH);
+  const baseAspect = BASE_ROOM_WIDTH / ROOM_HEIGHT;
+  const target = Math.max(baseAspect, Math.min(3.7, aspect));
+  let tiles = Math.max(BASE_ROOM_WIDTH, Math.ceil(ROOM_HEIGHT * target));
+  if (tiles % 2 === 0) tiles += 1;
+  return Math.min(41, tiles);
+}
+
+export const ROOM_WIDTH = responsiveRoomWidth();
+export const CANVAS_WIDTH = ROOM_WIDTH * TILE_SIZE;
 export const CANVAS_HEIGHT = ROOM_HEIGHT * TILE_SIZE; // 352
+export const UI_OFFSET_X = Math.floor((CANVAS_WIDTH - UI_BASE_WIDTH) / 2);
 export const SCALE = 2;
 
 export const PLAYER_SPEED = 2.2;

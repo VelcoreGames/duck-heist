@@ -1,3 +1,4 @@
+import { CANVAS_WIDTH } from './constants';
 import { DAILY_MODIFIERS, dailyMedalColor, medalForScore } from './dailyChallenge';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawSectionLabel, drawBar, text, titleText, wrappedText } from './ui';
 import { BACK_BUTTON, PRIMARY_BUTTON, endActionRect, inside } from './layout';
@@ -77,12 +78,12 @@ export function renderDailyResult(e:GameEngine){
 
 export function renderDailyHUD(e:GameEngine){
   if(e.gameMode!=='daily'||!e.ui)return;
-  const c=e.ui!,medal=medalForScore(e.daily.score),accent=dailyMedalColor(medal);
-  c.fillStyle='rgba(5,12,18,.68)';c.fillRect(182,30,116,23);
-  c.strokeStyle='rgba(201,140,255,.35)';c.strokeRect(182.5,30.5,115,22);
-  text(c,'DIARIO · '+e.daily.score,240,40,5.7,'#e3d5ec','center',true,false);
-  text(c,medal==='NONE'?'MEDALLA · 3000':medal,240,49,4.5,accent,'center',true,false);
+  const c=e.ui!,medal=medalForScore(e.daily.score),accent=dailyMedalColor(medal),cx=CANVAS_WIDTH/2;
+  c.fillStyle='rgba(5,12,18,.68)';c.fillRect(cx-58,30,116,23);
+  c.strokeStyle='rgba(201,140,255,.35)';c.strokeRect(cx-57.5,30.5,115,22);
+  text(c,'DIARIO · '+e.daily.score,cx,40,5.7,'#e3d5ec','center',true,false);
+  text(c,medal==='NONE'?'MEDALLA · 3000':medal,cx,49,4.5,accent,'center',true,false);
   const next=medal==='NONE'?3000:medal==='BRONZE'?6500:medal==='SILVER'?11000:medal==='GOLD'?16000:16000;
   const prev=medal==='NONE'?0:medal==='BRONZE'?3000:medal==='SILVER'?6500:medal==='GOLD'?11000:16000;
-  drawBar(c,196,51,88,medal==='PLATINUM'?1:Math.max(0,Math.min(1,(e.daily.score-prev)/(next-prev))),accent);
+  drawBar(c,cx-44,51,88,medal==='PLATINUM'?1:Math.max(0,Math.min(1,(e.daily.score-prev)/(next-prev))),accent);
 }

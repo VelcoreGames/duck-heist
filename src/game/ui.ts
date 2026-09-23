@@ -1,7 +1,7 @@
 // Componentes de interfaz + escena del menú principal.
 // CAPA DE UI  -> tipografía nítida (Bungee para títulos, Chakra Petch para texto)
 // CAPA MUNDO  -> pixel art; si lleva texto, usa una fuente monoespaciada diminuta.
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH } from './constants';
 import { drawDuck } from './sprites';
 import { drawPixelLogo } from './titleScene';
 
@@ -192,16 +192,16 @@ export const MENU_THEME = {
 export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_THEME.gold) {
   ctx.save();
   ctx.fillStyle=`rgba(3,8,12,${opacity})`;
-  ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-  const sweep=(frame*.55)%(CANVAS_WIDTH+120)-60;
+  ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  const sweep=(frame*.55)%(UI_BASE_WIDTH+120)-60;
   const g=ctx.createLinearGradient(sweep-70,0,sweep+70,0);
   g.addColorStop(0,'rgba(255,255,255,0)');
   g.addColorStop(.5,'rgba(255,255,255,.025)');
   g.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  ctx.fillStyle=g;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
   ctx.globalAlpha=.12;ctx.fillStyle=accent;
   ctx.fillRect(18,18,2,CANVAS_HEIGHT-36);
-  ctx.fillRect(CANVAS_WIDTH-20,18,2,CANVAS_HEIGHT-36);
+  ctx.fillRect(UI_BASE_WIDTH-20,18,2,CANVAS_HEIGHT-36);
   ctx.restore();
 }
 
@@ -211,14 +211,14 @@ export function drawMenuHeader(
   accent=MENU_THEME.gold,eyebrow='EXPEDIENTE DEL ATRACO',
 ) {
   ctx.save();
-  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,18,CANVAS_WIDTH-44,40);
+  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,18,UI_BASE_WIDTH-44,40);
   ctx.fillStyle=accent;ctx.fillRect(22,18,5,40);
-  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(31,22,CANVAS_WIDTH-58,1);
+  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(31,22,UI_BASE_WIDTH-58,1);
   text(ctx,eyebrow,34,30,5.4,accent,'left',true,false);
   titleText(ctx,title,34,48,15,MENU_THEME.paper,'left',false);
-  text(ctx,subtitle,CANVAS_WIDTH-34,46,5.8,MENU_THEME.muted,'right',false,false);
+  text(ctx,subtitle,UI_BASE_WIDTH-34,46,5.8,MENU_THEME.muted,'right',false,false);
   const pulse=.3+.25*Math.sin(frame*.08);
-  ctx.globalAlpha=pulse;ctx.fillStyle=accent;ctx.fillRect(CANVAS_WIDTH-48,25,11,2);
+  ctx.globalAlpha=pulse;ctx.fillStyle=accent;ctx.fillRect(UI_BASE_WIDTH-48,25,11,2);
   ctx.restore();
 }
 
@@ -265,10 +265,10 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
 /** Pie consistente de controles. */
 export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,CANVAS_HEIGHT-28,CANVAS_WIDTH-44,18);
+  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,CANVAS_HEIGHT-28,UI_BASE_WIDTH-44,18);
   ctx.fillStyle=accent;ctx.fillRect(22,CANVAS_HEIGHT-28,3,18);
   text(ctx,left,32,CANVAS_HEIGHT-16,5.7,'#91a7a5','left',true,false);
-  if(right) text(ctx,right,CANVAS_WIDTH-32,CANVAS_HEIGHT-16,5.7,accent,'right',true,false);
+  if(right) text(ctx,right,UI_BASE_WIDTH-32,CANVAS_HEIGHT-16,5.7,accent,'right',true,false);
   ctx.restore();
 }
 

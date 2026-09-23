@@ -314,8 +314,9 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
         const index=Math.floor(random()*pool.length);
         selected.push(pool.splice(index,1)[0]);
       }
+      const center=CANVAS_WIDTH/2;
       content.shopItems=selected.map((id,i)=>({
-        itemId:id,cost:Math.max(8,WEAPONS[id].cost),sold:false,isWeapon:true,x:145+i*95,y:235,
+        itemId:id,cost:Math.max(8,WEAPONS[id].cost),sold:false,isWeapon:true,x:center+(i-1)*95,y:235,
       }));
       break;
     }
@@ -325,18 +326,19 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
         const foods = ['hp','croissant','sandwich','baguette','torta'];
         const selected = [...foods].sort(() => random() - .5).slice(0, 3);
         const foodCost = (id:string) => id === 'hp' ? 5 : id === 'croissant' ? 7 : (id === 'sandwich' || id === 'baguette') ? 9 : 14;
+        const center=CANVAS_WIDTH/2;
         content.shopItems = selected.map((id, i) => ({
-          itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:145+i*95,y:232,
+          itemId:id,cost:foodCost(id),sold:false,isWeapon:false,isFood:true,x:center+(i-1)*95,y:232,
         }));
       } else {
         const kind=pick(Object.keys(EVENTS)) as EventKind;
-        content.event={kind,x:232,y:170,used:false,selected:0,message:''};
+        content.event={kind,x:CANVAS_WIDTH/2-8,y:170,used:false,selected:0,message:''};
       }
       break;
     }
     case RoomType.CHOICE:
-      content.choices=diverseRewards(engine).map((id,i)=>({x:142+i*84,y:165,itemId:id,isWeapon:false,taken:false}));
-      if(!content.choices.length) content.choices=[{x:228,y:165,itemId:'pan_dorado',isWeapon:false,taken:false,isFood:true}];
+      content.choices=diverseRewards(engine).map((id,i,all)=>({x:CANVAS_WIDTH/2-12+(i-(all.length-1)/2)*84,y:165,itemId:id,isWeapon:false,taken:false}));
+      if(!content.choices.length) content.choices=[{x:CANVAS_WIDTH/2-12,y:165,itemId:'pan_dorado',isWeapon:false,taken:false,isFood:true}];
       break;
     default: break;
   }
@@ -837,6 +839,10 @@ export function resumeEndlessGame(engine:GameEngine):boolean {
     activeDifficulty=engine.difficulty;
     engine.gameMode='endless';engine.pendingMode='endless';
     engine.player=cp.player;
+    // Checkpoints can travel between PCs with different aspect ratios.
+    // Clamp the saved position into the current responsive arena before resuming.
+    engine.player.x=clamp(Number(engine.player.x)||CANVAS_WIDTH/2-8,TILE_SIZE+4,CANVAS_WIDTH-TILE_SIZE-20);
+    engine.player.y=clamp(Number(engine.player.y)||CANVAS_HEIGHT/2-8,TILE_SIZE+4,CANVAS_HEIGHT-TILE_SIZE-22);
     engine.endless={...emptyEndlessState(),...cp.endless,roundActive:false,pendingEnemies:[],spawnCooldown:0,pressure:0};
     const freshRun=newRunStats(),savedRun=cp.run??{};
     engine.run={...freshRun,...savedRun,weaponIds:Array.isArray(savedRun.weaponIds)?savedRun.weaponIds:['quack_blaster'],
@@ -2020,11 +2026,11 @@ export function updateEngine(engine: GameEngine) {
     if(firstClear && (room.type===RoomType.COMBAT || room.type===RoomType.CHALLENGE)){
       if(!content.damaged){
         engine.roomStreak++;engine.toast='SALA PERFECTA';engine.toastTimer=90;
-        if(!content.perfectAwarded&&random()<.25)content.pickups.push({x:240,y:192,type:random()<.85?'crumb':'hp',value:5,lifetime:99999});
+        if(!content.perfectAwarded&&random()<.25)content.pickups.push({x:CANVAS_WIDTH/2,y:192,type:random()<.85?'crumb':'hp',value:5,lifetime:99999});
         if(engine.roomStreak===3||engine.roomStreak===5){player.perfectBuff=600;engine.toast=engine.roomStreak===3?'3 SALAS · IMPECABLE':'5 SALAS · PROFESIONAL';engine.toastTimer=110;}
       }else engine.roomStreak=0;
       content.perfectAwarded=true;
-      if(build.foodEvery&&engine.stats.roomsCleared%build.foodEvery===0)content.pickups.push({x:240,y:192,type:rollFood(),value:1,lifetime:99999});
+      if(build.foodEvery&&engine.stats.roomsCleared%build.foodEvery===0)content.pickups.push({x:CANVAS_WIDTH/2,y:192,type:rollFood(),value:1,lifetime:99999});
     }
     applyMapItemEffects(engine,false);
     spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 16, '#39d353');
@@ -2033,11 +2039,11 @@ export function updateEngine(engine: GameEngine) {
     }
     if (room.type === RoomType.CHALLENGE) {
       content.pickups.push({ x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 + 26, type: 'golden_crumb', value: 3, lifetime: 99999 });
-      if(content.challenge==='alarm' || !content.damaged) content.items.push({x:232,y:150,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+      if(content.challenge==='alarm' || !content.damaged) content.items.push({x:CANVAS_WIDTH/2-8,y:150,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     }
-    if(content.event?.kind==='interrogation') content.items.push({x:232,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
+    if(content.event?.kind==='interrogation') content.items.push({x:CANVAS_WIDTH/2-8,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     if(room.type===RoomType.BOSS) {content.rewardTimer=75;setMusic('run',engine.map.floorIndex);}
-    if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:240,y:198,type:'hp',value:1,lifetime:99999});
+    if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
 
   for (const d of room.doors) {
@@ -2056,9 +2062,9 @@ export function updateEngine(engine: GameEngine) {
         isWeapon: asWeapon, taken: false, bossLoot: true,rise:0,
       };
       if(random()<.4) {
-        content.choices=[{...pedestal,x:132,itemId:rollWeapon(engine,true),isWeapon:true},
-          {...pedestal,x:228,itemId:rollBossRewardItem(engine),isWeapon:false},
-          {...pedestal,x:324,itemId:'pan_dorado',isWeapon:false,isFood:true}];
+        content.choices=[{...pedestal,x:CANVAS_WIDTH/2-108,itemId:rollWeapon(engine,true),isWeapon:true},
+          {...pedestal,x:CANVAS_WIDTH/2-12,itemId:rollBossRewardItem(engine),isWeapon:false},
+          {...pedestal,x:CANVAS_WIDTH/2+84,itemId:'pan_dorado',isWeapon:false,isFood:true}];
       } else content.pedestal=pedestal;
       content.stairs = { x: CANVAS_WIDTH / 2 - 16, y: CANVAS_HEIGHT - TILE_SIZE * 2.6, unlocked: true, glow: 0 };
       spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 30, '#f4d03f');
@@ -3701,18 +3707,18 @@ function activateEvent(engine:GameEngine) {
   if((event.kind==='bakery'||event.kind==='injured') && p.hp<=1) {event.message='Necesitas más de un corazón.';playDeny();return;}
   p.crumbs-=cost;event.used=true;
   switch(event.kind) {
-    case 'safe':content.pedestal={x:228,y:142,itemId:rollBossRewardItem(engine),isWeapon:false,taken:false};event.message='Abierta. Sin dejar huellas.';break;
+    case 'safe':content.pedestal={x:CANVAS_WIDTH/2-12,y:142,itemId:rollBossRewardItem(engine),isWeapon:false,taken:false};event.message='Abierta. Sin dejar huellas.';break;
     case 'bakery': {
       p.hp--;const reward=pickPassive(engine) ?? fallbackActive(engine);
-      content.items.push({x:232,y:133,itemId:reward,isWeapon:false,isActive:!!ACTIVE_ITEMS[reward]});
+      content.items.push({x:CANVAS_WIDTH/2-8,y:133,itemId:reward,isWeapon:false,isActive:!!ACTIVE_ITEMS[reward]});
       event.message='Un intercambio muy crujiente.';break;
     }
-    case 'vending':content.pickups.push({x:240,y:143,type:rollFood(),value:1,lifetime:99999});event.message='Sin cambio. Con pan.';break;
+    case 'vending':content.pickups.push({x:CANVAS_WIDTH/2,y:143,type:rollFood(),value:1,lifetime:99999});event.message='Sin cambio. Con pan.';break;
     case 'injured':p.hp--;awardGolden(engine,8);event.message='Los cómplices no se olvidan.';break;
     case 'interrogation':event.message='No hemos visto ningún pato.';changeAlert(engine,-3);break;
     case 'atm':
       if(random()<.35) {awardGolden(engine,8);event.message='¡Error bancario a tu favor!';}
-      else {content.pickups.push({x:240,y:143,type:'crumb',value:4,lifetime:99999});event.message='Solo devuelve 4 migajas. Típico.';}break;
+      else {content.pickups.push({x:CANVAS_WIDTH/2,y:143,type:'crumb',value:4,lifetime:99999});event.message='Solo devuelve 4 migajas. Típico.';}break;
   }
   playPickup();
 }

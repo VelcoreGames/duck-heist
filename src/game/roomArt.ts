@@ -16,7 +16,7 @@ export function drawRichTile(
   theme: FloorTheme, gx: number, gy: number, frame: number,
 ) {
   const px = x * T, py = y * T;
-  const h = hash(x + gx * 15, y + gy * 11, theme.deco.charCodeAt(0));
+  const h = hash(x + gx * ROOM_WIDTH, y + gy * 11, theme.deco.charCodeAt(0));
   if (wall) {
     r(ctx, px, py, T, T, '#070910');
     r(ctx, px + 1, py + 1, T - 2, T - 2, theme.wall[(x + y) % 2]);
@@ -112,8 +112,9 @@ function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, dec
 }
 
 export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, frame: number, special = false) {
-  const lights = deco === 'lobby' ? [[120, 48], [360, 48]] : deco === 'security' ? [[80, 40], [240, 36], [400, 40]]
+  const baseLights = deco === 'lobby' ? [[120, 48], [360, 48]] : deco === 'security' ? [[80, 40], [240, 36], [400, 40]]
     : deco === 'bakery' ? [[90, 52], [390, 52]] : deco === 'vault' ? [[240, 40]] : deco === 'golden' ? [[160, 44], [320, 44]] : [[140, 50], [340, 50]];
+  const lights=baseLights.map(([x,y])=>[x/480*CANVAS_WIDTH,y] as [number,number]);
   for (const [lx, ly] of lights) {
     const g = ctx.createRadialGradient(lx, ly, 4, lx, ly + 40, 90);
     const col = deco === 'bakery' ? '255,140,60' : deco === 'golden' || deco === 'vault' ? '244,208,63' : deco === 'security' ? '79,157,216' : '200,220,240';
@@ -125,12 +126,12 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
     for (let i = 0; i < 10; i++) {
       const t = (frame * 0.4 + i * 37) % 220;
       ctx.globalAlpha = .12;
-      r(ctx, 40 + (i * 41 % 400), 300 - t * .6, 2, 2, deco === 'bakery' ? '#e8c99b' : '#cbb89a');
+      r(ctx, 40 + (i * 83 % Math.max(80,CANVAS_WIDTH-80)), 300 - t * .6, 2, 2, deco === 'bakery' ? '#e8c99b' : '#cbb89a');
     }
     ctx.globalAlpha = 1;
   }
   if (special) {
-    const g = ctx.createRadialGradient(240, 176, 20, 240, 176, 180);
+    const g = ctx.createRadialGradient(CANVAS_WIDTH/2, 176, 20, CANVAS_WIDTH/2, 176, 180);
     g.addColorStop(0, 'rgba(180,80,220,.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }

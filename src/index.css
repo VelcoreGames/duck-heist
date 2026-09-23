@@ -108,6 +108,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .duck-responsive-footer>*{pointer-events:auto}
 .duck-responsive-fullscreen{background:rgba(15,23,42,.74);backdrop-filter:blur(5px)}
 :fullscreen .duck-responsive-footer{display:none!important}
+:fullscreen .duck-responsive-shell{padding:0!important}
+:fullscreen .duck-responsive-stage{
+  max-width:none!important;
+  max-height:none!important;
+  width:100vw!important;
+  box-shadow:none;
+}
+:fullscreen .duck-responsive-frame{display:none!important}
 @media(max-width:760px),(max-height:500px){
   .duck-frame-far{display:none}
   .duck-frame-near{inset:-4px!important}
