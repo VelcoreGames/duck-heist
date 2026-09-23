@@ -56,8 +56,9 @@ export class UsernameTakenError extends Error {
   }
 }
 
+export function normalizeEmail(v:string){return v.trim().toLowerCase();}
 export function validateEmail(v:string){
-  const value=v.trim();
+  const value=normalizeEmail(v);
   if(value.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))return 'Escribe un correo válido.';
   return '';
 }
@@ -220,7 +221,7 @@ export async function signUpEmail(cfg:CloudConfig,email:string,password:string){
   const ee=validateEmail(email),pe=validatePassword(password);if(ee||pe)throw new Error(ee||pe);
   const target=encodeURIComponent(confirmationRedirect());
   const body=await authRequest<AuthTokenReply>(cfg,'/signup?redirect_to='+target,{
-    method:'POST',body:JSON.stringify({email:email.trim().toLowerCase(),password}),
+    method:'POST',body:JSON.stringify({email:normalizeEmail(email),password}),
   });
   const user=authUserFrom(body);
   const session=body.access_token?sessionFromToken(body):null;
@@ -230,13 +231,13 @@ export async function signUpEmail(cfg:CloudConfig,email:string,password:string){
 export async function resendVerification(cfg:CloudConfig,email:string){
   const target=encodeURIComponent(confirmationRedirect());
   await authRequest(cfg,'/resend?redirect_to='+target,{
-    method:'POST',body:JSON.stringify({type:'signup',email:email.trim().toLowerCase()}),
+    method:'POST',body:JSON.stringify({type:'signup',email:normalizeEmail(email)}),
   });
 }
 export async function loginEmail(cfg:CloudConfig,email:string,password:string){
   const ee=validateEmail(email);if(ee)throw new Error(ee);
   const body=await authRequest<AuthTokenReply>(cfg,'/token?grant_type=password',{
-    method:'POST',body:JSON.stringify({email:email.trim().toLowerCase(),password}),
+    method:'POST',body:JSON.stringify({email:normalizeEmail(email),password}),
   });
   const session=sessionFromToken(body);cacheSession(session);return session;
 }
@@ -256,7 +257,7 @@ export async function sendPasswordReset(cfg:CloudConfig,email:string){
   const ee=validateEmail(email);if(ee)throw new Error(ee);
   const target=encodeURIComponent(confirmationRedirect());
   await authRequest(cfg,'/recover?redirect_to='+target,{
-    method:'POST',body:JSON.stringify({email:email.trim().toLowerCase()}),
+    method:'POST',body:JSON.stringify({email:normalizeEmail(email)}),
   });
 }
 export async function updatePassword(cfg:CloudConfig,session:AccountSession,password:string){

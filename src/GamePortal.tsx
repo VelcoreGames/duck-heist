@@ -39,8 +39,8 @@ export default function GamePortal(){
         <a className="vg-brand" href="/" aria-label="Velcore Games">
           <span className="vg-brand-mark">V</span>
           <span>
-            <strong>VELCORE</strong>
-            <small>GAMES</small>
+            <strong>VELCORE GAMES</strong>
+            <small>GAME PLATFORM</small>
           </span>
         </a>
         <div className="vg-header-copy">
