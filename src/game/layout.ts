@@ -1,11 +1,17 @@
-import { CANVAS_WIDTH } from './constants';
+import { CANVAS_WIDTH, UI_BASE_WIDTH } from './constants';
 // Shared drawing and hit-test geometry. Every visible mouse control uses these exact rectangles.
 export type Rect={x:number;y:number;w:number;h:number};
 export const inside = (x:number,y:number,r:Rect) => x>=r.x && y>=r.y && x<=r.x+r.w && y<=r.y+r.h;
 
 export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
-export const mainMenuRect=(i:number):Rect=>({...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)});
-export function mainMenuHit(x:number,y:number){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i)))return i;return -1;}
+export function mainMenuRect(i:number,wide=false):Rect {
+  if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
+  const margin=Math.max(30,Math.round(CANVAS_WIDTH*.045));
+  const width=Math.min(224,Math.max(184,Math.round(CANVAS_WIDTH*.27)));
+  const height=26,gap=4,top=76;
+  return {x:margin,y:top+i*(height+gap),w:width,h:height};
+}
+export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i,wide)))return i;return -1;}
 
 export const DIFFICULTY_GRID={x:46,y:82,w:186,h:78,gapX:14,gapY:12,cols:2,count:4};
 export const difficultyRect=(i:number):Rect=>({x:DIFFICULTY_GRID.x+(i%2)*(DIFFICULTY_GRID.w+DIFFICULTY_GRID.gapX),y:DIFFICULTY_GRID.y+Math.floor(i/2)*(DIFFICULTY_GRID.h+DIFFICULTY_GRID.gapY),w:DIFFICULTY_GRID.w,h:DIFFICULTY_GRID.h});

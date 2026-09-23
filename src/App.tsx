@@ -29,7 +29,7 @@ import { careerClick, careerTab } from './game/careerUI';
 import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
-import { UI_OFFSET_X } from './game/constants';
+import { UI_OFFSET_X, UI_BASE_WIDTH } from './game/constants';
 
 
 export default function App() {
@@ -201,10 +201,24 @@ export default function App() {
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k)) {
+      const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement;
+      if (!fullscreenEscape && (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k))) {
         e.preventDefault();
       }
       if (e.repeat) return;
+
+      // En fullscreen, el primer ESC pertenece exclusivamente al navegador:
+      // sale de pantalla completa sin navegar/pausar también el juego.
+      // El siguiente ESC ya ejecuta la navegación universal de Duck Heist.
+      if (fullscreenEscape) return;
+
+      // F es un atajo global reservado: funciona también en menús mouse-first
+      // y vuelve a salir de fullscreen al pulsarlo de nuevo.
+      if (k === 'f' && !fromGamepad) {
+        e.preventDefault();
+        toggleFullscreen(engine, applySize);
+        return;
+      }
 
       if(engine.state===GameState.CONTROLS && engine.controlCapture){
         if(k==='escape'){engine.controlCapture=false;playUiBack();force(n=>n+1);return;}
@@ -277,11 +291,6 @@ export default function App() {
       const left = k === 'a' || k === 'arrowleft';
       const right = k === 'd' || k === 'arrowright';
       const yes = k === 'enter' || k === ' ';
-
-      if (k === 'f' && !e.ctrlKey && !e.metaKey && !inSwap()) {
-        toggleFullscreen(engine, applySize);
-        return;
-      }
 
       // --- MENÚ DE REEMPLAZO DE ARMA (prioridad máxima en juego) ---
       if (engine.activeSwap) {
@@ -466,13 +475,17 @@ export default function App() {
         y: (ev.clientY - r.top) * (CANVAS_HEIGHT / r.height),
       };
     };
-    const usesLegacyUiCoordinates=()=>!!engine.swap||!!engine.activeSwap||[
-      GameState.MENU,GameState.DIFFICULTY,GameState.DAILY_BRIEF,GameState.HEIST_INTRO,
-      GameState.MAP,GameState.COLLECTION,GameState.CAREER,GameState.HOW_TO_PLAY,
-      GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,
-      GameState.ENDLESS_RESUME,GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,
-      GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
-    ].includes(engine.state);
+    const wideFullscreenMenu=()=>engine.state===GameState.MENU&&!!document.fullscreenElement&&CANVAS_WIDTH>UI_BASE_WIDTH;
+    const usesLegacyUiCoordinates=()=>{
+      if(wideFullscreenMenu())return false;
+      return !!engine.swap||!!engine.activeSwap||[
+        GameState.MENU,GameState.DIFFICULTY,GameState.DAILY_BRIEF,GameState.HEIST_INTRO,
+        GameState.MAP,GameState.COLLECTION,GameState.CAREER,GameState.HOW_TO_PLAY,
+        GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,
+        GameState.ENDLESS_RESUME,GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,
+        GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
+      ].includes(engine.state);
+    };
     const uiPoint=(p:{x:number;y:number})=>usesLegacyUiCoordinates()?{x:p.x-UI_OFFSET_X,y:p.y}:p;
 
     const onMove = (ev: MouseEvent) => {
@@ -486,7 +499,7 @@ export default function App() {
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
       const st=engine.state;
       if(st===GameState.MENU){
-        const i=mainMenuHit(p.x,p.y);if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
+        const i=mainMenuHit(p.x,p.y,wideFullscreenMenu());if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
       }else if(st===GameState.DIFFICULTY){
         // La dificultad cambia solo al hacer clic; el hover se dibuja aparte.
       }else if(st===GameState.ENDLESS_RESUME){
@@ -561,7 +574,7 @@ export default function App() {
       }
       switch (engine.state) {
         case GameState.MENU: {
-          setMusic('menu');const i=mainMenuHit(x,y);
+          setMusic('menu');const i=mainMenuHit(x,y,wideFullscreenMenu());
           if(i>=0){engine.menuIndex=i;activateMenu();}
           break;
         }
