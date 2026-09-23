@@ -82,6 +82,42 @@ function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'
   ctx.fillStyle=kind==='van'?'#d58e42':kind==='cafe'?'#e7c493':'#66ba89';ctx.fillRect(x-14,y+10,28,2);
 }
 
+function drawVaultWings(ctx:CanvasRenderingContext2D,frame:number){
+  if(UI_OFFSET_X<=0)return;
+  ctx.save();
+  const coreLeft=UI_OFFSET_X,coreRight=UI_OFFSET_X+UI_BASE_WIDTH;
+  const regions:[[number,number],[number,number]]=[[0,coreLeft],[coreRight,CANVAS_WIDTH]];
+  for(const [left,right] of regions){
+    if(right<=left)continue;
+    ctx.fillStyle='#10191f';ctx.fillRect(left,0,right-left,CANVAS_HEIGHT);
+    for(let row=0;row<13;row++){
+      const y=row*20;
+      for(let x=left-24+(row%2?0:24);x<right;x+=48){
+        ctx.fillStyle=((Math.floor(x/48)+row)&1)?'#17262c':'#1a2a30';
+        ctx.fillRect(x,y,47,19);
+        ctx.fillStyle='#24353a';ctx.fillRect(x+2,y+2,43,1);
+      }
+    }
+    ctx.fillStyle='#172327';ctx.fillRect(left,258,right-left,94);
+    for(let j=0;j<6;j++){
+      const y=259+j*j*3;
+      ctx.fillStyle='#344347';ctx.fillRect(left,y,right-left,1);
+    }
+    for(let x=left+18;x<right;x+=96){
+      ctx.fillStyle='#0c1820';ctx.fillRect(x,0,14,280);
+      ctx.fillStyle='#30434a';ctx.fillRect(x+3,0,8,280);
+      ctx.fillStyle='#526268';ctx.fillRect(x+4,0,2,280);
+      for(let y=15;y<280;y+=36){
+        ctx.fillStyle='#829ba0';ctx.fillRect(x+6,y-1,3,3);
+      }
+      if((Math.floor(x/96)+Math.floor(frame/50))%3===0){
+        ctx.globalAlpha=.13;ctx.fillStyle='#356593';ctx.fillRect(x+14,100,Math.min(55,right-x-14),110);ctx.globalAlpha=1;
+      }
+    }
+  }
+  ctx.restore();
+}
+
 // ===========================================================================
 // CAPA DE MUNDO
 // ===========================================================================
@@ -166,6 +202,7 @@ export function renderWorld(engine: GameEngine) {
   if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.DAILY_BRIEF || s===GameState.HEIST_INTRO) {
     const opening=s===GameState.HEIST_INTRO?Math.max(0,(90-engine.heistIntroTimer-15)/75):0;
     ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    drawVaultWings(ctx,engine.frame);
     ctx.save();ctx.translate(UI_OFFSET_X,0);
     drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176);
     ctx.restore();
@@ -175,6 +212,7 @@ export function renderWorld(engine: GameEngine) {
   if (s === GameState.HOW_TO_PLAY || s === GameState.SETTINGS ||
       s === GameState.WARDROBE || s === GameState.UPGRADES || s===GameState.COLLECTION || s===GameState.CONTROLS || s===GameState.CAREER) {
     ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    drawVaultWings(ctx,engine.frame);
     ctx.save();ctx.translate(UI_OFFSET_X,0);drawVaultScene(ctx,engine.frame,engine.equippedSkin);ctx.restore();
     ctx.fillStyle = 'rgba(4,6,14,0.86)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
