@@ -60,14 +60,18 @@ export default function App() {
     const availH=Math.max(1,vh-safeY-padY*2-footer);
     const eng=engineRef.current;
     const maxScale=fullscreen?8:eng?Math.max(1.25,Math.min(7,eng.settings.uiScale+3)):7;
-    // En fullscreen el ancho manda. ROOM_WIDTH ya fue calculado para el aspecto
-    // físico de la pantalla, así que llenar 100% del ancho no deforma el juego.
     const widthScale=availW/CANVAS_WIDTH;
+    const heightScale=availH/CANVAS_HEIGHT;
+
+    // Fullscreen usa un único factor XY y modo "cover": llena ancho Y alto sin
+    // deformar sprites ni UI. Si sobra una franja mínima por la cuantización a
+    // tiles impares, se recorta simétricamente fuera del viewport en vez de
+    // mostrar bandas del shell.
     const css=fullscreen
-      ? Math.max(.2,widthScale)
-      : Math.max(.2,Math.min(widthScale,availH/CANVAS_HEIGHT,maxScale));
-    const displayW=fullscreen?Math.max(1,Math.floor(availW)):Math.max(1,Math.floor(CANVAS_WIDTH*css));
-    const displayH=Math.max(1,Math.floor(CANVAS_HEIGHT*css));
+      ? Math.max(.2,widthScale,heightScale)
+      : Math.max(.2,Math.min(widthScale,heightScale,maxScale));
+    const displayW=Math.max(1,fullscreen?Math.ceil(CANVAS_WIDTH*css):Math.floor(CANVAS_WIDTH*css));
+    const displayH=Math.max(1,fullscreen?Math.ceil(CANVAS_HEIGHT*css):Math.floor(CANVAS_HEIGHT*css));
     const dpr=Math.max(1,Math.min(2.25,window.devicePixelRatio||1));
     return {displayW,displayH,css,ui:Math.max(1,Math.min(6,Math.ceil(css*dpr)))};
   }, []);
