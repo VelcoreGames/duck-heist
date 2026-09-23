@@ -839,6 +839,10 @@ export function resumeEndlessGame(engine:GameEngine):boolean {
     activeDifficulty=engine.difficulty;
     engine.gameMode='endless';engine.pendingMode='endless';
     engine.player=cp.player;
+    // Checkpoints can travel between PCs with different aspect ratios.
+    // Clamp the saved position into the current responsive arena before resuming.
+    engine.player.x=clamp(Number(engine.player.x)||CANVAS_WIDTH/2-8,TILE_SIZE+4,CANVAS_WIDTH-TILE_SIZE-20);
+    engine.player.y=clamp(Number(engine.player.y)||CANVAS_HEIGHT/2-8,TILE_SIZE+4,CANVAS_HEIGHT-TILE_SIZE-22);
     engine.endless={...emptyEndlessState(),...cp.endless,roundActive:false,pendingEnemies:[],spawnCooldown:0,pressure:0};
     const freshRun=newRunStats(),savedRun=cp.run??{};
     engine.run={...freshRun,...savedRun,weaponIds:Array.isArray(savedRun.weaponIds)?savedRun.weaponIds:['quack_blaster'],
