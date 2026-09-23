@@ -48,6 +48,19 @@ export const BOSS_FAMILY_STYLE:Record<BossFamily,{accent:string;secondary:string
 const ATTACKS:BossAttackKind[]=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
 const MOBILITY:BossMobility[]=['hunter','orbit','skirmish','fortress','ambush'];
 
+// Cada familia tiene un lenguaje de combate reconocible. La secuencia individual
+// sigue siendo distinta por jefe, pero ya no se siente como una permutación aleatoria.
+const FAMILY_CORE:Record<BossFamily,BossAttackKind[]> = {
+  command:['crossfire','summon','sniper','rush'],
+  finance:['cage','fan','mines','ring'],
+  bakery:['mines','lanes','nova','spiral'],
+  tech:['ring','spiral','warp','sniper'],
+  riot:['rush','cage','ring','fan'],
+  war:['fan','crossfire','rush','summon'],
+  wealth:['ring','nova','cage','warp'],
+  vault:['cage','warp','lanes','ring'],
+};
+
 function permutationCount(n:number,k:number){
   let total=1;for(let i=0;i<k;i++)total*=n-i;return total;
 }
@@ -75,7 +88,15 @@ function uniqueAttackSequence(tier:BossTier,index:number,wanted:number):BossAtta
 function patternFor(tier:BossTier,index:number,family:BossFamily):BossPatternDef {
   const salt=tier==='mini'?0:tier==='sub'?4:8;
   const wanted=tier==='mini'?4:tier==='sub'?5:6;
-  const sequence=uniqueAttackSequence(tier,index,wanted);
+  const generated=uniqueAttackSequence(tier,index,wanted);
+  const core=FAMILY_CORE[family];
+  const rotation=(index+salt)%core.length;
+  const rotated=[...core.slice(rotation),...core.slice(0,rotation)];
+  const sequence:BossAttackKind[]=[];
+  for(const attack of [...rotated,...generated]){
+    if(!sequence.includes(attack))sequence.push(attack);
+    if(sequence.length>=wanted)break;
+  }
   const style=BOSS_FAMILY_STYLE[family];
   const mobility=MOBILITY[(index*2+salt)%MOBILITY.length];
   const tempo=Number((.82+(index%7)*.045+(tier==='mini'?.04:tier==='boss'?-0.035:0)).toFixed(3));
