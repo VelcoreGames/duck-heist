@@ -2985,6 +2985,79 @@ function bossSupport(engine:GameEngine,room:MapRoom,content:RoomContent,pool:str
   if(spot) content.enemies.push(makeEnemy(pick(pool),floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
 }
 
+function bossSignatureAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',ang:number,step:number) {
+  const bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
+  const px=engine.player.x+7,py=engine.player.y+8;
+  const accent=def.accent||'#f4d03f',secondary=def.secondary||accent;
+  const tierFx=tier==='boss'?10:tier==='sub'?7:5;
+
+  // Cada ataque importante tiene una firma audiovisual propia del jefe.
+  spawn(engine,bx,by,'spark',tierFx+phase*2,step%2?secondary:accent);
+  if(tier!=='mini') engine.shakeIntensity=Math.max(engine.shakeIntensity,(tier==='boss'?1.9:1.2)+phase*.35);
+
+  // Las firmas extra no salen en cada patrón: entran con mayor frecuencia al
+  // avanzar de fase para que el combate escale sin convertirse en una pared de balas.
+  const cadence=tier==='boss'?(phase>=2?2:phase?3:4):tier==='sub'?(phase?3:4):(phase?4:5);
+  if(step%cadence!==cadence-1)return;
+
+  const projectile=phase>0?def.pattern.altProjectile:def.pattern.projectile;
+  const extra=def.finalBoss?2:0;
+  switch(def.family){
+    case 'command':
+      // Orden de supresión: dos alas convergen sobre la ruta del jugador.
+      bossFan(engine,boss,ang-.5,3,.08,3.15+phase*.18,'enemy_bullet');
+      bossFan(engine,boss,ang+.5,3,.08,3.15+phase*.18,'enemy_bullet');
+      if(phase>=2)bossSupport(engine,room,content,def.pattern.support,7+extra);
+      break;
+    case 'finance':
+      // Embargo: monedas lentas cierran espacio mientras los maletines castigan el centro.
+      bossRing(engine,boss,6+phase*2+extra,2.05+phase*.15,'coin_proj',engine.frame*.021);
+      bossFan(engine,boss,ang,3+phase,.12,3.35,'briefcase');
+      break;
+    case 'bakery':
+      // Horno vivo: brasas alrededor del objetivo y masa atravesando el hueco.
+      bossHazardRing(content,px,py,4+phase+extra,48+phase*9,120+phase*25);
+      bossFan(engine,boss,ang,3+phase*2,.18,2.85+phase*.16,'dough_ball');
+      break;
+    case 'tech':
+      // Sobrecarga: pulsos contrarrotatorios fáciles de leer, pero difíciles de ignorar.
+      bossRing(engine,boss,6+phase*2+extra,2.65+phase*.18,'drone_shot',engine.frame*.06);
+      bossRing(engine,boss,4+phase+extra,1.85+phase*.12,projectile,-engine.frame*.04+Math.PI/6);
+      break;
+    case 'riot':
+      // Ariete: prepara una embestida corta detrás de una descarga frontal.
+      bossFan(engine,boss,ang,3+phase*2,.2,3.2+phase*.15,'buckshot');
+      boss.moveAngle=ang;boss.moveTimer=Math.max(boss.moveTimer,12+phase*5);
+      playDanger('charge');
+      break;
+    case 'war':
+      // Fuego escalonado: una salva rápida y una segunda capa más abierta.
+      bossFan(engine,boss,ang,5+phase*2,.12,3.45+phase*.18,'enemy_bullet');
+      bossFan(engine,boss,ang,3+phase,.28,2.7+phase*.14,'buckshot');
+      break;
+    case 'wealth':
+      // Capital orbital: corona dorada y ejecución por el centro.
+      bossRing(engine,boss,8+phase*3+extra,2.4+phase*.16,'coin_proj',-engine.frame*.035);
+      bossFan(engine,boss,ang,3+phase*2,.095,3.6+phase*.16,'briefcase');
+      break;
+    case 'vault':
+      // Cierre de bóveda: cuatro sellos delimitan el espacio y un pulso obliga a recolocarse.
+      for(let i=0;i<4+phase+extra;i++){
+        const a=i/(4+phase+extra)*Math.PI*2+(step%2)*.35;
+        content.puddles.push({
+          x:clamp(px+Math.cos(a)*(58+phase*8),42,CANVAS_WIDTH-42),
+          y:clamp(py+Math.sin(a)*(58+phase*8),42,CANVAS_HEIGHT-42),
+          life:135+phase*25,kind:'fire',radius:14+phase*2,
+        });
+      }
+      bossRing(engine,boss,6+phase*2,2.35+phase*.16,'drone_shot',engine.frame*.025);
+      break;
+  }
+
+  spawn(engine,bx,by,'smoke',tier==='boss'?6:4,accent);
+  engine.hitStop=Math.max(engine.hitStop,tier==='boss'?2:1);
+}
+
 function bossPatternAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,ang:number,phase:number,tier:'mini'|'sub'|'boss',def:BossDef) {
   const p=def.pattern;
   const step=boss.bossAttackIndex??0;
@@ -3089,7 +3162,7 @@ function bossPatternMove(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,a
     Math.cos(ang)*spd*forward+Math.cos(ang+Math.PI/2)*spd*wobble,
     Math.sin(ang)*spd*forward+Math.sin(ang+Math.PI/2)*spd*wobble);
 }
-function bossPhaseTransition(engine:GameEngine,boss:Enemy,name:string,phase:number,tier:'mini'|'sub'|'boss') {
+function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:number,tier:'mini'|'sub'|'boss') {
   boss.bossPhase=phase;
   boss.attackTimer=tier==='boss'?78:tier==='sub'?62:38;
   boss.stunned=tier==='boss'?50:tier==='sub'?38:18;
@@ -3097,13 +3170,17 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,name:string,phase:numb
   boss.telegraph=0;
   boss.phaseTransition=tier==='boss'?54:tier==='sub'?42:30;
   engine.hitStop=Math.max(engine.hitStop,tier==='boss'?5:tier==='sub'?3:2);
-  const label=tier==='mini'?('ENRAGE · '+name):('FASE '+(phase+1)+' · '+name);
+  const label=tier==='mini'?('ENRAGE · '+def.name):('FASE '+(phase+1)+' · '+def.name);
   engine.roomLabel=label;
   engine.roomLabelTimer=tier==='boss'?100:tier==='sub'?82:62;
   engine.shakeIntensity=Math.max(engine.shakeIntensity,tier==='boss'?8:tier==='sub'?5:3);
   const cx=boss.x+boss.size/2,cy=boss.y+boss.size/2;
-  spawn(engine,cx,cy,'spark',tier==='boss'?28:tier==='sub'?20:12,tier==='boss'?'#ff6b5b':tier==='sub'?'#f0a36f':'#f4d03f');
-  spawn(engine,cx,cy,'smoke',tier==='boss'?16:10,'#6c7684');
+  spawn(engine,cx,cy,'spark',tier==='boss'?32:tier==='sub'?22:14,def.accent);
+  spawn(engine,cx,cy,'spark',tier==='boss'?18:tier==='sub'?12:8,def.secondary);
+  spawn(engine,cx,cy,'smoke',tier==='boss'?16:10,def.family==='bakery'?'#7a4732':def.family==='tech'?'#4f7380':'#6c7684');
+  // La transición de fase comunica la nueva identidad antes del siguiente ataque.
+  if(def.family==='tech'||def.family==='vault')bossRing(engine,boss,6+phase*2,1.65+phase*.12,def.pattern.projectile,engine.frame*.02);
+  else if(def.family==='wealth'||def.family==='finance')bossRing(engine,boss,6+phase*2,1.5+phase*.12,'coin_proj',-engine.frame*.018);
   playBossPhase(tier);
 }
 
@@ -3122,7 +3199,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   if(!def) return;
 
   const nextPhase=tier==='boss'?(pct<=.33?2:pct<=.66?1:0):tier==='sub'?(pct<=.5?1:0):(pct<=.35?1:0);
-  if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def.name,nextPhase,tier);
+  if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def,nextPhase,tier);
 
   const phase=boss.bossPhase;
   const ang=Math.atan2(py-by,px-bx);
@@ -3136,6 +3213,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   if(boss.attackTimer<=0) {
     boss.telegraph=0;
     const atk=rngInt(0,tier==='boss'?2+phase:tier==='sub'?2+phase:2+(phase>0?1:0));
+    const attackStep=boss.bossAttackIndex??0;
 
     if(def.pattern&&!def.legacy) {
       bossPatternAttack(engine,boss,room,content,ang,phase,tier,def);
@@ -3252,6 +3330,8 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       }
       boss.attackTimer=Math.max(32,boss.attackCooldown*(1-phase*.2));
     }
+    if(def.legacy)boss.bossAttackIndex=attackStep+1;
+    bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
     applyBossMutationAttack(engine,boss,room,content,ang,tier);
   }
 
