@@ -203,21 +203,57 @@ export default function App() {
       else { engine.menuIndex = 0; setMusic('menu'); goTo(GameState.MENU); }
     };
 
+    type KeyboardLockApi={lock?:(keys?:string[])=>Promise<void>;unlock?:()=>void};
+    const keyboardApi=()=>((navigator as Navigator & {keyboard?:KeyboardLockApi}).keyboard);
+    let fullscreenEscapeArmedUntil=0;
+    let fullscreenHintTimer=0;
+    const lockFullscreenEscape=async()=>{
+      if(!document.fullscreenElement)return;
+      try{await keyboardApi()?.lock?.(['Escape']);}catch{/* Keyboard Lock no disponible o bloqueado */}
+    };
+    const clearFullscreenExitArm=()=>{
+      fullscreenEscapeArmedUntil=0;
+      if(fullscreenHintTimer){window.clearTimeout(fullscreenHintTimer);fullscreenHintTimer=0;}
+    };
+    const armFullscreenExit=()=>{
+      fullscreenEscapeArmedUntil=performance.now()+1400;
+      setHint('ESC OTRA VEZ PARA SALIR DE PANTALLA COMPLETA · F SALIR');
+      if(fullscreenHintTimer)window.clearTimeout(fullscreenHintTimer);
+      fullscreenHintTimer=window.setTimeout(()=>{
+        fullscreenHintTimer=0;
+        if(document.fullscreenElement&&performance.now()>fullscreenEscapeArmedUntil){
+          fullscreenEscapeArmedUntil=0;
+          setHint(hintFor(engine));
+        }
+      },1450);
+    };
+
     const onKeyDown = (e: KeyboardEvent,fromGamepad=false) => {
       if(e.ctrlKey || e.metaKey || e.altKey) return;
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
       const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement;
-      if (!fullscreenEscape && (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k))) {
+      if ((['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k))) {
         e.preventDefault();
       }
       if (e.repeat) return;
 
-      // En fullscreen, el primer ESC pertenece exclusivamente al navegador:
-      // sale de pantalla completa sin navegar/pausar también el juego.
-      // El siguiente ESC ya ejecuta la navegación universal de Duck Heist.
-      if (fullscreenEscape) return;
+      // En navegadores Chromium compatibles bloqueamos ESC mientras el documento
+      // está en fullscreen. El primer ESC sólo arma la salida; el segundo ESC,
+      // pulsado de nuevo en un intervalo corto, sí sale. F sigue siendo salida
+      // inmediata y reversible.
+      if (fullscreenEscape) {
+        e.preventDefault();
+        const now=performance.now();
+        if(fullscreenEscapeArmedUntil&&now<=fullscreenEscapeArmedUntil){
+          clearFullscreenExitArm();
+          void document.exitFullscreen?.();
+        }else{
+          armFullscreenExit();
+        }
+        return;
+      }
 
       // F es un atajo global reservado: funciona también en menús mouse-first
       // y vuelve a salir de fullscreen al pulsarlo de nuevo.
@@ -723,8 +759,12 @@ export default function App() {
       if(action!=='interact')engine.keys[key.toLowerCase()]=false;
     };
     const onFsChange = () => {
-      engine.settings.fullscreen = !!document.fullscreenElement;
+      const active=!!document.fullscreenElement;
+      engine.settings.fullscreen = active;
       saveSettings(engine);
+      clearFullscreenExitArm();
+      if(active)void lockFullscreenEscape();
+      else keyboardApi()?.unlock?.();
       applySize();
     };
     document.addEventListener('fullscreenchange', onFsChange);
@@ -775,6 +815,8 @@ export default function App() {
       setMusic('off');
       padInput.reset(engine);
       document.removeEventListener('fullscreenchange', onFsChange);
+      clearFullscreenExitArm();
+      keyboardApi()?.unlock?.();
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
