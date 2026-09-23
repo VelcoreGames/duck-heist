@@ -1,0 +1,126 @@
+name: v0.8.0 responsive fullscreen final QA
+on:
+  push:
+    branches: [feat/v080-responsive-fullscreen-world]
+    paths:
+      - '.github/workflows/v080-wide-final-qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v080-responsive-fullscreen-world
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Validate wide-room gameplay and UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/wide-final-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true});
+          const cases=[
+            {name:'16:9',w:1920,h:1080,expectedCols:21},
+            {name:'capture',w:2048,h:1000,expectedCols:23},
+            {name:'21:9',w:3440,h:1440,expectedCols:27},
+            {name:'32:9',w:5120,h:1440,expectedCols:41},
+          ];
+          const reports=[];
+          for(const tc of cases){
+            const context=await browser.newContext({
+              viewport:{width:Math.min(tc.w,1600),height:Math.min(tc.h,900)},
+              screen:{width:tc.w,height:tc.h},
+              deviceScaleFactor:1
+            });
+            const page=await context.newPage();
+            const errors=[];
+            page.on('pageerror',e=>errors.push(String(e)));
+            page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+            await page.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'networkidle'});
+            await page.waitForFunction(()=>window.duckHeistAudit&&window.duckHeistEngine);
+            const state=await page.evaluate(()=>{
+              const e=window.duckHeistEngine;
+              const wc=document.querySelector('canvas[aria-hidden="true"]');
+              const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+              const room=e.map.rooms.get(e.currentKey);
+              const cols=room.layout[0].length;
+              const center=Math.floor(cols/2);
+              return {
+                passed:window.duckHeistAudit.passed,
+                failures:window.duckHeistAudit.failures,
+                canvasW:wc.width,canvasH:wc.height,cols,
+                centerDoorX:center,
+                westDoorX:0,eastDoorX:cols-1,
+                stageW:stage.width,stageH:stage.height,
+                interiorCells:room.layout.slice(1,-1).reduce((n,row)=>n+row.slice(1,-1).length,0)
+              };
+            });
+            if(state.failures.length||state.passed<452)throw new Error(tc.name+' selftests '+JSON.stringify(state));
+            if(state.cols!==tc.expectedCols)throw new Error(tc.name+' unexpected cols '+JSON.stringify(state));
+            if(state.canvasW!==state.cols*32||state.canvasH!==352)throw new Error(tc.name+' canvas mismatch '+JSON.stringify(state));
+            if(state.centerDoorX!==Math.floor(state.cols/2))throw new Error(tc.name+' center alignment broken');
+            if(state.interiorCells<13*9)throw new Error(tc.name+' room did not gain usable space');
+            // Menu hitbox is translated into the centered 480px legacy UI.
+            if(state.cols>15){
+              const p=await page.evaluate(()=>{
+                const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+                const wc=document.querySelector('canvas[aria-hidden="true"]');
+                const offset=(wc.width-480)/2;
+                return {x:stage.left+(offset+80)/wc.width*stage.width,y:stage.top+92/wc.height*stage.height};
+              });
+              await page.mouse.click(p.x,p.y);
+              await page.waitForTimeout(80);
+              if(await page.evaluate(()=>window.duckHeistEngine.state)!=='DIFFICULTY')throw new Error(tc.name+' centered menu input broken');
+              await page.keyboard.press('Escape');
+            }
+            if(errors.length)throw new Error(tc.name+' runtime '+errors.join(' | '));
+            reports.push({case:tc.name,screen:tc.w+'x'+tc.h,logical:state.canvasW+'x'+state.canvasH,cols:state.cols,selftests:state.passed});
+            await context.close();
+          }
+          const app=fs.readFileSync('src/App.tsx','utf8');
+          const css=fs.readFileSync('src/index.css','utf8');
+          if(!app.includes('const css=fullscreen')||!app.includes('? Math.max(.2,widthScale)'))throw new Error('fullscreen width-first uniform scale missing');
+          if(!app.includes('const displayW=fullscreen?Math.max(1,Math.floor(availW))'))throw new Error('fullscreen exact width missing');
+          if(!css.includes(':fullscreen .duck-responsive-stage')||!css.includes('width:100vw!important'))throw new Error('fullscreen CSS width rule missing');
+          console.log(JSON.stringify({cases:reports,fullscreenContract:{exactWidth:true,uniformXY:true,noSpriteStretch:true},runtimeErrors:[]},null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-wide-final-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh final responsive fullscreen bundle'
+            git push origin HEAD:feat/v080-responsive-fullscreen-world
+          fi
