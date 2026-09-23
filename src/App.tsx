@@ -46,9 +46,12 @@ export default function App() {
   /** Escala responsive exacta del release aprobado v0.4.3. */
   const computeScale = useCallback(() => {
     const viewport=window.visualViewport;
-    const vw=Math.max(1,viewport?.width ?? window.innerWidth);
-    const vh=Math.max(1,viewport?.height ?? window.innerHeight);
     const fullscreen=!!document.fullscreenElement;
+    // En fullscreen usamos el viewport real de la ventana. Algunos navegadores
+    // tardan un frame en actualizar visualViewport al entrar/salir y eso puede
+    // dejar una franja visible alrededor del canvas.
+    const vw=Math.max(1,fullscreen?window.innerWidth:(viewport?.width ?? window.innerWidth));
+    const vh=Math.max(1,fullscreen?window.innerHeight:(viewport?.height ?? window.innerHeight));
     const rootStyle=getComputedStyle(document.documentElement);
     const cssVar=(name:string)=>parseFloat(rootStyle.getPropertyValue(name))||0;
     const safeX=cssVar('--duck-safe-left')+cssVar('--duck-safe-right');
