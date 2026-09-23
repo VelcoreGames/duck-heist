@@ -179,7 +179,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 }
 .vg-brand strong,.vg-brand small{display:block;line-height:.9;letter-spacing:.08em}
 .vg-brand strong{font-family:'Sora',Arial,sans-serif;font-size:20px;color:var(--vg-light)}
-.vg-brand small{margin-top:7px;font-size:10px;color:var(--vg-cyan);letter-spacing:.28em}
+.vg-brand small{margin-top:7px;font-family:'Sora',Arial,sans-serif;font-size:10px;font-weight:600;color:var(--vg-cyan);letter-spacing:.28em}
 .vg-header-copy{display:flex;gap:24px;font-size:11px;font-weight:700;color:var(--vg-muted);letter-spacing:.12em}
 .vg-hero{width:min(1180px,calc(100% - 48px));margin:76px auto 44px;position:relative;z-index:2}
 .vg-kicker{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--vg-cyan)}
@@ -253,7 +253,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .is-coming .vg-status{color:rgba(243,244,248,.52)}
 .vg-game-card h2,.vg-game-card h3{margin:0;line-height:.98}
 .vg-game-card h2{font-family:'Sora',Arial,sans-serif;font-size:29px;color:var(--vg-light)}
-.vg-game-card h3{margin-top:7px;font-size:12px;letter-spacing:.16em;color:var(--vg-cyan)}
+.vg-game-card h3{margin-top:7px;font-family:'Sora',Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:.16em;color:var(--vg-cyan)}
 .vg-game-mobile h3{color:var(--vg-purple)}
 .vg-game-eca h3{color:var(--vg-magenta)}
 .vg-arrow{display:grid;place-items:center;width:37px;height:37px;border:1px solid rgba(0,168,255,.34);font-size:18px;color:var(--vg-cyan);background:rgba(10,27,94,.34)}
@@ -325,7 +325,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 }
 .vg-account-brand b,.vg-account-brand small{display:block;line-height:.95;letter-spacing:.09em}
 .vg-account-brand b{color:var(--vg-light)}
-.vg-account-brand small{margin-top:5px;font-size:9px;color:var(--vg-cyan);letter-spacing:.22em}
+.vg-account-brand small{margin-top:5px;font-family:'Sora',Arial,sans-serif;font-size:9px;font-weight:600;color:var(--vg-cyan);letter-spacing:.22em}
 .vg-account-kicker{position:relative;font-size:9px;font-weight:700;letter-spacing:.18em;color:var(--vg-cyan)}
 .vg-account-card h1{position:relative;margin:13px 0 10px;font-family:'Sora',Arial,sans-serif;font-size:clamp(28px,8vw,44px);line-height:.94;color:var(--vg-light)}
 .vg-account-sub{position:relative;margin:0 0 27px;line-height:1.55;color:var(--vg-muted);font-size:13px}
