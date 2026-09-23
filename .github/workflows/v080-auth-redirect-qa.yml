@@ -1,0 +1,106 @@
+name: v0.8.0 auth redirect QA
+on:
+  push:
+    branches: [fix/v080-auth-production-redirect]
+    paths:
+      - '.github/workflows/v080-auth-redirect-qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v080-auth-production-redirect
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Verify redirect configuration in source
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const cloud=fs.readFileSync('src/cloud/cloudClient.ts','utf8');
+          const deploy=fs.readFileSync('scripts/apply-auth-email-templates.mjs','utf8');
+          const prod='https://velcoregames.com/duck-heist';
+          if(!cloud.includes("PRODUCTION_AUTH_REDIRECT='"+prod+"'"))throw new Error('production auth redirect missing');
+          if(cloud.includes("window.location.origin+'/duck-heist'"))throw new Error('runtime origin redirect still present');
+          if(!deploy.includes("site_url:PRODUCTION_REDIRECT"))throw new Error('hosted site_url update missing');
+          if(!deploy.includes("uri_allow_list:PRODUCTION_REDIRECT"))throw new Error('hosted redirect allow list missing');
+          if(!deploy.includes("siteUrl:verify.site_url===PRODUCTION_REDIRECT"))throw new Error('hosted site_url verification missing');
+          console.log(JSON.stringify({productionRedirect:prod,siteUrl:true,allowList:true,version:'0.8.0'},null,2));
+          JS
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Browser signup and recovery use production redirect
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/auth-redirect-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage();
+          const redirects=[];
+          await page.route('http://127.0.0.1:4173/velcore-cloud.json',r=>r.fulfill({
+            status:200,contentType:'application/json',
+            body:JSON.stringify({supabaseUrl:'https://cloud.test',anonKey:'sb_publishable_test_12345678901234567890'})
+          }));
+          await page.route('https://cloud.test/auth/v1/**',async route=>{
+            const u=new URL(route.request().url());
+            redirects.push({path:u.pathname+u.search.split('&')[0],redirect:u.searchParams.get('redirect_to')});
+            if(u.pathname.endsWith('/signup'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'1',email:'qa@example.com',email_confirmed_at:null})});
+            if(u.pathname.endsWith('/recover'))return route.fulfill({status:200,contentType:'application/json',body:'{}'});
+            return route.fulfill({status:200,contentType:'application/json',body:'{}'});
+          });
+
+          await page.goto('http://127.0.0.1:4173/duck-heist/',{waitUntil:'networkidle'});
+          await page.getByRole('button',{name:'CREAR CUENTA',exact:true}).click();
+          await page.locator('input[name="email"]').fill('qa@example.com');
+          await page.locator('input[name="password"]').fill('ExamplePass_123');
+          await page.locator('.vg-account-primary').click();
+          await page.getByText('VERIFICA TU CORREO',{exact:true}).waitFor();
+
+          await page.getByRole('button',{name:'USAR OTRO CORREO'}).click();
+          await page.getByRole('button',{name:'RECUPERAR',exact:true}).click();
+          await page.locator('input[name="email"]').fill('qa@example.com');
+          await page.locator('.vg-account-primary').click();
+
+          const target='https://velcoregames.com/duck-heist';
+          const bad=redirects.filter(x=>x.redirect&&x.redirect!==target);
+          if(bad.length)throw new Error('non-production auth redirect '+JSON.stringify(bad));
+          if(redirects.filter(x=>x.redirect===target).length<2)throw new Error('signup/recovery production redirects not both observed '+JSON.stringify(redirects));
+          console.log(JSON.stringify({redirects,target},null,2));
+          await browser.close();
+          JS
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-auth-redirect-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh auth redirect bundle'
+            git push origin HEAD:fix/v080-auth-production-redirect
+          fi
