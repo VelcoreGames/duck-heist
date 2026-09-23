@@ -483,9 +483,9 @@ export function renderWorld(engine: GameEngine) {
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   if(p.hp<=1) {
-    const danger=ctx.createRadialGradient(240,176,130,240,176,275);
+    const danger=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,130,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,Math.max(275,CANVAS_WIDTH*.58));
     danger.addColorStop(0,'rgba(145,25,32,0)');danger.addColorStop(1,`rgba(145,25,32,${.16+Math.sin(f*.05)*.035})`);
-    ctx.fillStyle=danger;ctx.fillRect(0,0,480,352);
+    ctx.fillStyle=danger;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   }
 
   // aviso de bloqueo
@@ -1213,15 +1213,15 @@ function renderDangerEventHUD(engine: GameEngine) {
   const total=Math.max(1,content.dangerEventTotal ?? 1);
   const seconds=(timer/60).toFixed(1);
   const pulse=.55+.45*Math.sin(engine.frame*.13);
-  const x=92,y=27,w=296,h=61;
+  const x=CANVAS_WIDTH/2-148,y=27,w=296,h=61;
   ctx.save();
   ctx.fillStyle='rgba(14,8,10,.90)';ctx.fillRect(x,y,w,h);
   ctx.strokeStyle=`rgba(255,79,67,${.7+pulse*.3})`;ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,w-2,h-2);
   ctx.fillStyle='rgba(255,79,67,.16)';ctx.fillRect(x+5,y+5,w-10,11);
-  text(ctx,'EVENTO DE ALTO RIESGO',240,y+13,7.2,'#ff786b','center',true);
-  if(timer>0) titleText(ctx,`SOBREVIVE ${seconds} s`,240,y+36,13.5,'#fff0c2');
-  else titleText(ctx,'ELIMINA A LOS RESTANTES',240,y+36,11.5,'#fff0c2');
-  text(ctx,`SEGURIDAD RESTANTE: ${enemies}`,240,y+49,6.8,enemies>0?'#ffb36b':'#86e3a0','center',true);
+  text(ctx,'EVENTO DE ALTO RIESGO',CANVAS_WIDTH/2,y+13,7.2,'#ff786b','center',true);
+  if(timer>0) titleText(ctx,`SOBREVIVE ${seconds} s`,CANVAS_WIDTH/2,y+36,13.5,'#fff0c2');
+  else titleText(ctx,'ELIMINA A LOS RESTANTES',CANVAS_WIDTH/2,y+36,11.5,'#fff0c2');
+  text(ctx,`SEGURIDAD RESTANTE: ${enemies}`,CANVAS_WIDTH/2,y+49,6.8,enemies>0?'#ffb36b':'#86e3a0','center',true);
   ctx.fillStyle='rgba(255,255,255,.10)';ctx.fillRect(x+14,y+54,w-28,4);
   ctx.fillStyle=timer>0?'#e75c4c':'#d7ae4b';ctx.fillRect(x+14,y+54,(w-28)*(timer>0?timer/total:Math.min(1,enemies?0:1)),4);
   ctx.restore();
@@ -1790,7 +1790,7 @@ function renderFloorClearUI(engine: GameEngine) {
   titleText(ctx, T.floorComplete, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 14, 22, '#39d353');
   text(ctx, T.descending, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 8, 12, '#a9b3c4', 'center', true);
   const dots = '.'.repeat(1 + Math.floor(engine.frame / 14) % 3);
-  text(ctx,engine.map.floorIndex+1>=TOTAL_FLOORS?'SALIDA DEL BANCO':`${T.floor} ${engine.map.floorIndex+2}/6${dots}`,240,206,12,'#f4d03f','center',true);
+  text(ctx,engine.map.floorIndex+1>=TOTAL_FLOORS?'SALIDA DEL BANCO':`${T.floor} ${engine.map.floorIndex+2}/6${dots}`,CANVAS_WIDTH/2,206,12,'#f4d03f','center',true);
   ctx.globalAlpha = 1;
 }
 
