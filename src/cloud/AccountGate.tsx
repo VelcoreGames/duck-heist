@@ -299,7 +299,7 @@ function AccountShell({title,subtitle,children}:{title:string;subtitle:ReactNode
   return <main className="vg-account-page">
     <div className="vg-account-noise" aria-hidden="true" />
     <section className="vg-account-card">
-      <a className="vg-account-brand" href="/"><span>V</span><div><b>VELCORE</b><small>GAMES ID</small></div></a>
+      <a className="vg-account-brand" href="/"><span>V</span><div><b>VELCORE GAMES</b><small>GAMES ID</small></div></a>
       <div className="vg-account-kicker">DUCK HEIST · CUENTA EN LA NUBE</div>
       <h1>{title}</h1><p className="vg-account-sub">{subtitle}</p>
       {children}
