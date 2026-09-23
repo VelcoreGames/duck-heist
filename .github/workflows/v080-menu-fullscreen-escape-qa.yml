@@ -1,0 +1,161 @@
+name: v0.8.0 fullscreen menu escape QA
+on:
+  push:
+    branches: [fix/v080-menu-fullscreen-escape]
+    paths:
+      - '.github/workflows/v080-menu-fullscreen-escape-qa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v080-menu-fullscreen-escape
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Guard v0.8.0
+        run: |
+          node -e "const p=require('./package.json'); if(p.version!=='0.8.0') throw new Error('version changed')"
+          test "$(tr -d '\r\n' < VERSION)" = "0.8.0"
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+      - name: Source guards
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const app=fs.readFileSync('src/App.tsx','utf8');
+          const render=fs.readFileSync('src/game/render.ts','utf8');
+          const layout=fs.readFileSync('src/game/layout.ts','utf8');
+          if(!app.includes("const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement"))
+            throw new Error('fullscreen ESC guard missing');
+          if(!app.includes("if (fullscreenEscape) return;"))throw new Error('first ESC not reserved for fullscreen');
+          const globalF=app.indexOf("if (k === 'f' && !fromGamepad)");
+          const mouseGate=app.indexOf("if(mouseOnlyMenu)return;");
+          if(globalF<0||mouseGate<0||globalF>mouseGate)throw new Error('F is still blocked by mouse-only menus');
+          if(!render.includes("if(wide)renderMenuUI(engine,true)"))throw new Error('fullscreen menu wide renderer missing');
+          if(!layout.includes("mainMenuRect(i:number,wide=false)"))throw new Error('wide menu geometry missing');
+          console.log(JSON.stringify({globalF:true,doubleEscapeFlow:true,wideMenu:true,version:'0.8.0'},null,2));
+          JS
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Real fullscreen keyboard QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/fs-menu-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..60}; do curl -fsS http://127.0.0.1:4173/duck-heist/ >/dev/null && break; sleep .25; done
+          cat > /tmp/fs-menu-proof.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({
+            headless:false,
+            args:['--window-size=1920,1080','--disable-infobars','--no-first-run']
+          });
+          const context=await browser.newContext({viewport:null,screen:{width:1920,height:1080}});
+          const page=await context.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push('pageerror '+String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push('console '+m.text());});
+          await page.goto('http://127.0.0.1:4173/duck-heist/?auditoria=1',{waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.duckHeistEngine&&window.duckHeistAudit,{timeout:10000});
+          await page.locator('canvas[role="application"]').focus();
+
+          const before=await page.evaluate(()=>{
+            const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+            return {state:window.duckHeistEngine.state,fullscreen:!!document.fullscreenElement,stageW:stage.width,innerW:innerWidth};
+          });
+          if(before.state!=='MENU')throw new Error('expected MENU '+JSON.stringify(before));
+
+          // F must work from the mouse-first MENU.
+          await page.keyboard.press('f');
+          await page.waitForFunction(()=>!!document.fullscreenElement,{timeout:5000});
+          await page.waitForTimeout(180);
+          const fsMenu=await page.evaluate(()=>{
+            const e=window.duckHeistEngine;
+            const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+            const wc=document.querySelector('canvas[aria-hidden="true"]');
+            return {state:e.state,fullscreen:!!document.fullscreenElement,stageW:stage.width,innerW:innerWidth,logicalW:wc.width,logicalH:wc.height};
+          });
+          if(!fsMenu.fullscreen)throw new Error('F did not enter fullscreen from menu');
+          if(Math.abs(fsMenu.stageW-fsMenu.innerW)>2)throw new Error('fullscreen menu stage not full width '+JSON.stringify(fsMenu));
+
+          // Wide menu hitbox: world x=200 is outside old 145px card but inside new fullscreen card.
+          const point=await page.evaluate(()=>{
+            const stage=document.querySelector('.duck-responsive-stage').getBoundingClientRect();
+            const wc=document.querySelector('canvas[aria-hidden="true"]');
+            return {
+              x:stage.left+200/wc.width*stage.width,
+              y:stage.top+118/wc.height*stage.height
+            };
+          });
+          await page.mouse.move(point.x,point.y);
+          await page.waitForTimeout(80);
+          const hoverIndex=await page.evaluate(()=>window.duckHeistEngine.menuIndex);
+          if(hoverIndex!==1)throw new Error('fullscreen wide menu hit geometry not active; index='+hoverIndex);
+
+          // F again must leave fullscreen and must not change menu state.
+          await page.keyboard.press('f');
+          await page.waitForFunction(()=>!document.fullscreenElement,{timeout:5000});
+          if(await page.evaluate(()=>window.duckHeistEngine.state)!=='MENU')throw new Error('F exit changed menu state');
+
+          // Double-ESC behavior: first ESC only exits fullscreen; second ESC pauses game.
+          await page.evaluate(()=>{window.duckHeistEngine.state='PLAYING';window.duckHeistEngine.onStateChange?.('PLAYING');});
+          await page.keyboard.press('f');
+          await page.waitForFunction(()=>!!document.fullscreenElement,{timeout:5000});
+          await page.keyboard.press('Escape');
+          await page.waitForFunction(()=>!document.fullscreenElement,{timeout:5000});
+          await page.waitForTimeout(120);
+          const afterFirstEsc=await page.evaluate(()=>window.duckHeistEngine.state);
+          if(afterFirstEsc!=='PLAYING')throw new Error('first ESC also navigated game: '+afterFirstEsc);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(120);
+          const afterSecondEsc=await page.evaluate(()=>window.duckHeistEngine.state);
+          if(afterSecondEsc!=='PAUSED')throw new Error('second ESC did not pause: '+afterSecondEsc);
+
+          const audit=await page.evaluate(()=>window.duckHeistAudit);
+          if(audit.failures.length||audit.passed<452)throw new Error('selftests '+JSON.stringify(audit));
+          if(errors.length)throw new Error(errors.join(' | '));
+
+          console.log(JSON.stringify({
+            fFromMenu:true,
+            fullscreenMenuExactWidth:true,
+            wideMenuHoverIndex:hoverIndex,
+            fAgainExits:true,
+            firstEsc:'fullscreen-only',
+            secondEsc:'pause',
+            selftests:audit.passed,
+            runtimeErrors:errors
+          },null,2));
+          await browser.close();
+          JS
+          xvfb-run -a -s "-screen 0 1920x1080x24" node /tmp/fs-menu-proof.mjs
+
+      - name: Refresh dist and remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          rm -f .github/workflows/v080-menu-fullscreen-escape-qa.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: refresh fullscreen menu fix bundle'
+            git push origin HEAD:fix/v080-menu-fullscreen-escape
+          fi
