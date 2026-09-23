@@ -20,7 +20,6 @@ const [
 ]);
 
 const payload={
-  smtp_sender_name:'Velcore Games',
   mailer_subjects_confirmation:'Confirma tu correo | Velcore Games',
   mailer_templates_confirmation_content:confirmation,
   mailer_subjects_recovery:'Recupera tu acceso | Velcore Games',
@@ -49,7 +48,6 @@ const result=text?JSON.parse(text):{};
 console.log(JSON.stringify({
   applied:true,
   project:PROJECT_REF,
-  senderName:result.smtp_sender_name||payload.smtp_sender_name,
   subjects:{
     confirmation:result.mailer_subjects_confirmation||payload.mailer_subjects_confirmation,
     recovery:result.mailer_subjects_recovery||payload.mailer_subjects_recovery,
