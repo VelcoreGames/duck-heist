@@ -344,57 +344,61 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     layout[y][x] = id ?? obstacle();
   };
 
+  // Los patrones históricos fueron diseñados para 15 tiles. En salas anchas
+  // conservamos su escala y silueta alrededor del centro, sin estirar props.
+  const lx=(x:number)=>x+Math.floor((ROOM_WIDTH-15)/2);
+
   switch (pattern) {
     case 'deskMaze':
-      for(const[x,y]of[[2,2],[3,2],[4,2],[4,3],[9,2],[10,2],[10,3],[11,3],[2,7],[3,7],[3,8],[9,8],[10,8],[11,8]])place(x,y);break;
+      for(const[x,y]of[[2,2],[3,2],[4,2],[4,3],[9,2],[10,2],[10,3],[11,3],[2,7],[3,7],[3,8],[9,8],[10,8],[11,8]])place(lx(x),y);break;
     case 'tellerBooths':
-      for(const x of [2,5,9,12])for(const y of [2,3,7,8])place(x,y);break;
+      for(const x of [cx-5,cx-2,cx+2,cx+5])for(const y of [2,3,7,8])place(x,y);break;
     case 'safeDiamond':
-      for(const[x,y]of[[5,2],[9,2],[3,4],[11,4],[3,6],[11,6],[5,8],[9,8]])place(x,y,OBSTACLE_BASE+6);break;
+      for(const[x,y]of[[cx-2,2],[cx+2,2],[cx-4,4],[cx+4,4],[cx-4,6],[cx+4,6],[cx-2,8],[cx+2,8]])place(x,y,OBSTACLE_BASE+6);break;
     case 'twinLanes':
-      for(let y=2;y<9;y++){place(4,y);place(10,y);}break;
+      for(let y=2;y<9;y++){place(cx-3,y);place(cx+3,y);}break;
     case 'loadingDocks':
-      for(const[x,y]of[[2,2],[3,2],[2,3],[11,7],[12,7],[12,8],[9,2],[10,2],[4,8],[5,8]])place(x,y);break;
+      for(const[x,y]of[[2,2],[3,2],[2,3],[11,7],[12,7],[12,8],[9,2],[10,2],[4,8],[5,8]])place(lx(x),y);break;
     case 'brokenOffice':
-      for(const[x,y]of[[2,3],[4,2],[6,2],[9,4],[12,2],[11,7],[8,8],[4,7],[2,8],[12,8]])place(x,y,random()<.5?OBSTACLE_BASE+7:obstacle());break;
+      for(const[x,y]of[[2,3],[4,2],[6,2],[9,4],[12,2],[11,7],[8,8],[4,7],[2,8],[12,8]])place(lx(x),y,random()<.5?OBSTACLE_BASE+7:obstacle());break;
     case 'horseshoes':
-      for(const ox of [2,9])for(const oy of [2,7]){place(ox,oy);place(ox+1,oy);place(ox+2,oy);place(ox,oy+1);place(ox+2,oy+1);}break;
+      for(const ox of [cx-5,cx+2])for(const oy of [2,7]){place(ox,oy);place(ox+1,oy);place(ox+2,oy);place(ox,oy+1);place(ox+2,oy+1);}break;
     case 'crossCover':
-      for(const[x,y]of[[4,3],[5,3],[9,3],[10,3],[4,7],[5,7],[9,7],[10,7],[3,4],[3,6],[11,4],[11,6]])place(x,y);break;
+      for(const[x,y]of[[4,3],[5,3],[9,3],[10,3],[4,7],[5,7],[9,7],[10,7],[3,4],[3,6],[11,4],[11,6]])place(lx(x),y);break;
     case 'checkerCover':
-      for(let y=2;y<9;y+=2)for(let x=2;x<13;x+=3)if((x+y)%3!==0)place(x,y);break;
+      for(let y=2;y<9;y+=2)for(let x=2;x<ROOM_WIDTH-2;x+=3)if((x+y)%3!==0)place(x,y);break;
     case 'centralPillars':
-      for(const x of [5,9])for(const y of [3,7]){place(x,y,OBSTACLE_BASE+5);place(x+(x===5?-1:1),y,OBSTACLE_BASE+5);}break;
+      for(const x of [cx-2,cx+2])for(const y of [3,7]){place(x,y,OBSTACLE_BASE+5);place(x+(x<cx?-1:1),y,OBSTACLE_BASE+5);}break;
     case 'outerShelves':
-      for(let x=2;x<13;x++){place(x,2);place(x,8);}break;
+      for(let x=2;x<ROOM_WIDTH-2;x++){place(x,2);place(x,8);}break;
     case 'staggeredSafes':
-      for(const[x,y]of[[3,2],[6,3],[10,2],[12,4],[3,6],[5,8],[9,7],[12,8]])place(x,y,OBSTACLE_BASE+6);break;
+      for(const[x,y]of[[3,2],[6,3],[10,2],[12,4],[3,6],[5,8],[9,7],[12,8]])place(lx(x),y,OBSTACLE_BASE+6);break;
     case 'splitIslands':
-      for(const[ox,oy]of[[3,2],[10,7]])for(let x=ox;x<ox+2;x++)for(let y=oy;y<oy+2;y++)place(x,y);
-      place(10,3);place(4,7);break;
+      for(const[ox,oy]of[[cx-4,2],[cx+3,7]])for(let x=ox;x<ox+2;x++)for(let y=oy;y<oy+2;y++)place(x,y);
+      place(cx+3,3);place(cx-3,7);break;
     case 'diagonalBarricade':
-      for(const[x,y]of[[2,2],[3,3],[4,4],[10,6],[11,7],[12,8],[11,2],[3,8]])place(x,y,OBSTACLE_BASE+1);break;
+      for(const[x,y]of[[2,2],[3,3],[4,4],[10,6],[11,7],[12,8],[11,2],[3,8]])place(lx(x),y,OBSTACLE_BASE+1);break;
     case 'islands':
-      for(const [x,y] of [[3,3],[10,3],[4,7],[10,7]]) {place(x,y,OBSTACLE_BASE+6);place(x+1,y,OBSTACLE_BASE+3);}break;
+      for(const [x,y] of [[cx-4,3],[cx+3,3],[cx-3,7],[cx+3,7]]) {place(x,y,OBSTACLE_BASE+6);place(x+1,y,OBSTACLE_BASE+3);}break;
     case 'zigzag':
-      for(let y=2;y<9;y+=2) for(let x=2;x<5;x++) {place(y%4===0?x+7:x,y,OBSTACLE_BASE+1);}break;
+      for(let y=2;y<9;y+=2) for(let x=0;x<3;x++) {place((y%4===0?cx+2:cx-5)+x,y,OBSTACLE_BASE+1);}break;
     case 'corners':
-      for(const [x,y] of [[3,3],[11,3],[3,7],[11,7]]) {place(x,y);place(x+(x<7?1:-1),y);place(x,y+(y<5?1:-1));}break;
+      for(const [x,y] of [[3,3],[ROOM_WIDTH-4,3],[3,7],[ROOM_WIDTH-4,7]]) {place(x,y);place(x+(x<cx?1:-1),y);place(x,y+(y<5?1:-1));}break;
     case 'pillars': {
-      const id = OBSTACLE_BASE + 5; // columna
+      const id = OBSTACLE_BASE + 5;
       for (const x of [3, ROOM_WIDTH - 4]) {
         for (const y of [2, ROOM_HEIGHT - 3]) { place(x, y, id); place(x, y + (y < cy ? 1 : -1), id); }
       }
       break;
     }
     case 'desks': {
-      const id = OBSTACLE_BASE + 0; // mostrador
+      const id = OBSTACLE_BASE + 0;
       for (let x = 2; x <= 4; x++) { place(x, 2, id); place(x, ROOM_HEIGHT - 3, id); }
       for (let x = ROOM_WIDTH - 5; x <= ROOM_WIDTH - 3; x++) { place(x, 2, id); place(x, ROOM_HEIGHT - 3, id); }
       break;
     }
     case 'vault': {
-      const id = OBSTACLE_BASE + 6; // caja fuerte
+      const id = OBSTACLE_BASE + 6;
       place(cx - 3, cy - 2, id); place(cx + 3, cy - 2, id);
       place(cx - 3, cy + 2, id); place(cx + 3, cy + 2, id);
       place(cx - 4, cy - 2, OBSTACLE_BASE + 3);
@@ -402,7 +406,7 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
       break;
     }
     case 'shelves': {
-      const id = OBSTACLE_BASE + 2; // estantería
+      const id = OBSTACLE_BASE + 2;
       for (let y = 2; y <= ROOM_HEIGHT - 3; y++) { place(3, y, id); place(ROOM_WIDTH - 4, y, id); }
       break;
     }
@@ -413,15 +417,15 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
       break;
     }
     case 'scatter': {
-      const count = rInt(5, 9);
+      const extra=Math.max(0,Math.floor((ROOM_WIDTH-15)/4));
+      const count = rInt(5+extra, 9+extra);
       for (let i = 0; i < count; i++) {
         place(rInt(2, ROOM_WIDTH - 3), rInt(2, ROOM_HEIGHT - 3));
       }
       break;
     }
-    default: break; // 'open'
+    default: break;
   }
-
   // Toque decorativo: algún saco de dinero / escombro suelto
   if (random() < 0.6) {
     for (let i = 0; i < rInt(1, 3); i++) {
