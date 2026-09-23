@@ -595,7 +595,7 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
     ctx.globalAlpha = 1;
   } else if (room.type === RoomType.GUN_VAN) {
     ctx.fillStyle='rgba(3,5,8,.38)';ctx.fillRect(TILE_SIZE,TILE_SIZE,CANVAS_WIDTH-TILE_SIZE*2,CANVAS_HEIGHT-TILE_SIZE*2);
-    ctx.fillStyle='rgba(231,154,69,.12)';for(let x=90;x<410;x+=70)ctx.fillRect(x,286,34,3);
+    ctx.fillStyle='rgba(231,154,69,.12)';for(let x=90;x<CANVAS_WIDTH-70;x+=70)ctx.fillRect(x,286,34,3);
   } else if (room.type === RoomType.SHOP) {
     ctx.fillStyle = 'rgba(120,72,30,0.28)';
     ctx.fillRect(TILE_SIZE + 20, TILE_SIZE + 40, CANVAS_WIDTH - TILE_SIZE * 2 - 40, CANVAS_HEIGHT - TILE_SIZE * 2 - 60);
