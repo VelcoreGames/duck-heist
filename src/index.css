@@ -112,7 +112,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 :fullscreen .duck-responsive-stage{
   max-width:none!important;
   max-height:none!important;
-  width:100vw!important;
+  flex:none;
   box-shadow:none;
 }
 :fullscreen .duck-responsive-frame{display:none!important}
