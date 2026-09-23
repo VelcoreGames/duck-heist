@@ -29,6 +29,7 @@ import { careerClick, careerTab } from './game/careerUI';
 import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
+import { UI_OFFSET_X } from './game/constants';
 
 
 export default function App() {
@@ -59,8 +60,13 @@ export default function App() {
     const availH=Math.max(1,vh-safeY-padY*2-footer);
     const eng=engineRef.current;
     const maxScale=fullscreen?8:eng?Math.max(1.25,Math.min(7,eng.settings.uiScale+3)):7;
-    const css=Math.max(.2,Math.min(availW/CANVAS_WIDTH,availH/CANVAS_HEIGHT,maxScale));
-    const displayW=Math.max(1,Math.floor(CANVAS_WIDTH*css));
+    // En fullscreen el ancho manda. ROOM_WIDTH ya fue calculado para el aspecto
+    // físico de la pantalla, así que llenar 100% del ancho no deforma el juego.
+    const widthScale=availW/CANVAS_WIDTH;
+    const css=fullscreen
+      ? Math.max(.2,Math.min(widthScale,maxScale))
+      : Math.max(.2,Math.min(widthScale,availH/CANVAS_HEIGHT,maxScale));
+    const displayW=fullscreen?Math.max(1,Math.floor(availW)):Math.max(1,Math.floor(CANVAS_WIDTH*css));
     const displayH=Math.max(1,Math.floor(CANVAS_HEIGHT*css));
     const dpr=Math.max(1,Math.min(2.25,window.devicePixelRatio||1));
     return {displayW,displayH,css,ui:Math.max(1,Math.min(6,Math.ceil(css*dpr)))};
@@ -107,6 +113,7 @@ export default function App() {
     setHint(hintFor(engine));
     window.addEventListener('resize',scheduleSize,{passive:true});
     window.addEventListener('orientationchange',scheduleSize,{passive:true});
+    document.addEventListener('fullscreenchange',scheduleSize);
     window.visualViewport?.addEventListener('resize',scheduleSize,{passive:true});
     window.visualViewport?.addEventListener('scroll',scheduleSize,{passive:true});
 
@@ -460,8 +467,18 @@ export default function App() {
         y: (ev.clientY - r.top) * (CANVAS_HEIGHT / r.height),
       };
     };
+    const usesLegacyUiCoordinates=()=>!!engine.swap||!!engine.activeSwap||[
+      GameState.MENU,GameState.DIFFICULTY,GameState.DAILY_BRIEF,GameState.HEIST_INTRO,
+      GameState.MAP,GameState.COLLECTION,GameState.CAREER,GameState.HOW_TO_PLAY,
+      GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,
+      GameState.ENDLESS_RESUME,GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,
+      GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
+    ].includes(engine.state);
+    const uiPoint=(p:{x:number;y:number})=>usesLegacyUiCoordinates()?{x:p.x-UI_OFFSET_X,y:p.y}:p;
+
     const onMove = (ev: MouseEvent) => {
-      const p = toWorld(ev);
+      const raw = toWorld(ev);
+      const p = uiPoint(raw);
       engine.mouseX = p.x; engine.mouseY = p.y;
       if(Math.abs(ev.movementX)+Math.abs(ev.movementY)>1)engine.lastInput='keyboard';
       if(engine.state===GameState.PLAYING)setCursor(inside(p.x,p.y,HUD_MENU)?'pointer':'crosshair');
@@ -526,7 +543,7 @@ export default function App() {
       // Sólo procesamos click izquierdo para interactuar / disparar
       if (ev.button !== 0) return;
 
-      const { x, y } = toWorld(ev);
+      const { x, y } = uiPoint(toWorld(ev));
       engine.mouseX=x;engine.mouseY=y;
       if(engine.state===GameState.MAP){if(inside(x,y,MAP_CLOSE))closeFloorMap(engine);else mapClick(engine,x,y);return;}
       if (engine.activeSwap) {
