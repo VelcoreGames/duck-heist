@@ -17,10 +17,10 @@ function responsiveRoomWidth(): number {
   const viewportH = Math.max(1, window.innerHeight || screenH);
   const aspect = Math.max(screenW / screenH, viewportW / viewportH);
   const baseAspect = BASE_ROOM_WIDTH / ROOM_HEIGHT;
-  const target = Math.max(baseAspect, Math.min(3.55, aspect));
+  const target = Math.max(baseAspect, Math.min(3.7, aspect));
   let tiles = Math.max(BASE_ROOM_WIDTH, Math.ceil(ROOM_HEIGHT * target));
   if (tiles % 2 === 0) tiles += 1;
-  return Math.min(39, tiles);
+  return Math.min(41, tiles);
 }
 
 export const ROOM_WIDTH = responsiveRoomWidth();
