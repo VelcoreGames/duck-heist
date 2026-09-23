@@ -19,7 +19,11 @@ const [
   read('reauthentication.html'),
 ]);
 
+const PRODUCTION_REDIRECT='https://velcoregames.com/duck-heist';
+
 const payload={
+  site_url:PRODUCTION_REDIRECT,
+  uri_allow_list:PRODUCTION_REDIRECT,
   mailer_subjects_confirmation:'Confirma tu correo | Velcore Games',
   mailer_templates_confirmation_content:confirmation,
   mailer_subjects_recovery:'Recupera tu acceso | Velcore Games',
@@ -67,6 +71,8 @@ const checks={
   confirmationSubject:verify.mailer_subjects_confirmation==='Confirma tu correo | Velcore Games',
   recoverySubject:verify.mailer_subjects_recovery==='Recupera tu acceso | Velcore Games',
   emailChangeSubject:verify.mailer_subjects_email_change==='Confirma tu nuevo correo | Velcore Games',
+  siteUrl:verify.site_url===PRODUCTION_REDIRECT,
+  redirectAllowList:String(verify.uri_allow_list||'').split(',').map(v=>v.trim()).includes(PRODUCTION_REDIRECT),
   confirmationBranding:hostedConfirmation.includes('VELCORE GAMES')&&hostedConfirmation.includes('GAMES ID')&&hostedConfirmation.includes('CONFIRMAR CORREO'),
   recoveryBranding:hostedRecovery.includes('Velcore Games')&&hostedRecovery.includes('CAMBIAR CONTRASEÑA'),
   agencyReferenceRemoved:!hostedConfirmation.includes('PARTE DEL ECOSISTEMA VELCORE'),

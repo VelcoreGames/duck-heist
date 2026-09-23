@@ -99,7 +99,12 @@ function deviceId(){
   if(!id){id=crypto.randomUUID();localStorage.setItem(DEVICE_KEY,id);}
   return id;
 }
-function confirmationRedirect(){return isBrowser()?window.location.origin+'/duck-heist':'https://velcoregames.com/duck-heist';}
+const PRODUCTION_AUTH_REDIRECT='https://velcoregames.com/duck-heist';
+function confirmationRedirect(){
+  const override=env().VITE_AUTH_REDIRECT_URL?.trim()||'';
+  if(/^https:\/\//.test(override)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/.test(override))return cleanUrl(override);
+  return PRODUCTION_AUTH_REDIRECT;
+}
 
 async function decodeBody(res:Response){
   const text=await res.text();
