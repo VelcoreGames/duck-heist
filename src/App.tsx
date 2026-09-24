@@ -29,7 +29,6 @@ import { careerClick, careerTab } from './game/careerUI';
 import { SKINS, BOSSES } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
-import { UI_OFFSET_X, UI_BASE_WIDTH } from './game/constants';
 
 
 export default function App() {
