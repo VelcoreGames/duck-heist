@@ -1847,11 +1847,12 @@ export function updateEngine(engine: GameEngine) {
     const explosiveRate=w.explode?build.explosiveRate:1;
     player.fireCooldown = Math.max(2,Math.round(w.fireRate/(build.fireRate*explosiveRate*synergyRate*(player.fireBoost>0?player.fireBoostPower:1))));
     player.facingAngle=Math.atan2(sy,sx);
-    const kick=w.id==='baguette_launcher'||w.id==='rubber_duck_cannon'||w.id==='egg_cannon'?2.2:
-      w.id==='breadcrumb_shotgun'||w.id==='baguette_sniper'||w.id==='golden_egg_revolver'?1.45:.55;
-    player.shootFlash = kick>2?6:kick>1?5:4;
+    const kick=w.id==='plasma_baker'?2.7:w.id==='baguette_launcher'?2.35:w.id==='breadcrumb_shotgun'?2.1:
+      w.id==='baguette_sniper'?1.75:w.id==='rubber_duck_cannon'||w.id==='egg_cannon'||w.id==='golden_egg_revolver'?1.4:
+      w.id==='quack_laser'||w.id==='feather_gun'||w.id==='homing_crumbs'?.55:.85;
+    player.shootFlash = kick>2?6:kick>1.2?5:4;
     engine.shakeIntensity=Math.max(engine.shakeIntensity,kick);
-    const muzzleColor=w.id==='quack_laser'||w.id==='plasma_baker'?'#82e7ff':w.id==='golden_egg_revolver'?'#ffd85a':'#fff0b0';
+    const muzzleColor=w.id==='baguette_launcher'?'#ffcf82':w.id==='tactical_toaster'?'#b9b09b':w.id==='plasma_baker'?'#ffe1a3':'#fff0b0';
     spawn(engine,player.x+7+sx*12,player.y+8+sy*12,'spark',kick>2?4:kick>1?3:1,muzzleColor);
     if (Math.abs(sx) > Math.abs(sy)) player.dir = sx > 0 ? 'right' : 'left';
     else if (sy !== 0) player.dir = sy > 0 ? 'down' : 'up';
@@ -2609,19 +2610,26 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
     let burning = false;
     if (p.items.includes('toaster') && p.shotCounter % 5 === 0) { type = 'toast'; dmg *= 1.5; burning = true; }
     if (b.burn>0 || random()<b.burnChance || (w.id==='baguette_launcher'&&b.burnChance>0)) burning = true;
-    if (w.id === 'quack_blaster' && p.shotCounter % 6 === 0) { dmg *= 1.4; type = 'quack_power'; }
     if (w.id === 'feather_gun') {
-      p.heat = Math.min(100, p.heat + 8);
-      a += rng(-.04, .04) * (p.heat / 40);
-      if (p.heat >= 100) { p.overheat = 50; p.heat = 70; }
+      p.heat = Math.min(100, p.heat + 5);
+      a += rng(-.035, .035) * (p.heat / 45);
+      if (p.heat >= 100) { p.overheat = 34; p.heat = 74; }
     }
     if (w.id === 'plasma_baker' && p.charge > 20) {
-      const charge = Math.min(1, p.charge / 50);
-      dmg *= 1 + charge * 1.8;
-      projRadius = 3 + charge * 6;
-      if (charge > .7) piercingShot = true;
+      const charge = Math.min(1, p.charge / 55);
+      // Rifle pesado .50: sostener la mira representa estabilizar el arma.
+      dmg *= 1 + charge * .55;
+      projRadius = 3 + charge * 2;
+      if (charge > .55) piercingShot = true;
     }
-    if (w.id === 'golden_egg_revolver' && p.charge > 28) dmg *= 1.35;
+    if (w.id === 'golden_egg_revolver' && p.charge > 24) {
+      const steady=Math.min(1,p.charge/55);
+      dmg *= 1 + steady*.30;
+    }
+    if (w.id === 'baguette_sniper' && p.charge > 18) {
+      const steady=Math.min(1,p.charge/55);
+      dmg *= 1 + steady*.22;
+    }
 
     p.projectileCounter++;
     const bounces=w.bounces+b.bounces+(b.fifthBounce && p.projectileCounter%5===0?1:0)+(w.bounces>0 && (p.items.includes('butter') || p.items.includes('industrial_butter'))?2:0);
@@ -2631,21 +2639,23 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
     const proj = makeProjectile(
       p.x + 7, p.y + 8,
       Math.cos(a)*speed, Math.sin(a)*speed,
-      type, dmg, true, w.boomerang?62:continuous?46:w.projectileType==='breadcrumb'?24:80,
+      type, dmg, true, w.boomerang?62:continuous?46:w.projectileType==='buckshot_player'?26:80,
       {bounces,piercing:w.piercing,boomerang:w.boomerang,burning,explode:radius,sourceWeapon:w.id,baseSpeed:speed,
-        penetration:b.penetration+(piercingShot&&w.id==='plasma_baker'?2:0),knockback:w.knockback+(w.id==='quack_blaster'&&p.shotCounter%6===0?1:0),orbit:b.spiral?30:b.orbit?21:0,radius:projRadius,nuclear:b.uranium>0,damageScaled:true,bounceBoost:0,originDamage:dmg},
+        penetration:b.penetration+(piercingShot&&w.id==='plasma_baker'?2:0),knockback:w.knockback,orbit:b.spiral?30:b.orbit?21:0,radius:projRadius,nuclear:b.uranium>0,damageScaled:true,bounceBoost:0,originDamage:dmg},
     );
     engine.projectiles.push(proj);
     proj.ricochetBoost=p.items.includes('industrial_butter');
 
     if (random()<b.duplicates) {
-      engine.projectiles.push({ ...proj, hitEnemies: new Set(),bounces:proj.bounces+(w.id==='rubber_duck_cannon'?1:0), vx: proj.vx + rng(-0.6, 0.6), vy: proj.vy + rng(-0.6, 0.6) });
+      engine.projectiles.push({ ...proj, hitEnemies: new Set(),bounces:proj.bounces, vx: proj.vx + rng(-0.45, 0.45), vy: proj.vy + rng(-0.45, 0.45) });
     }
   }
 
-  spawn(engine, p.x + 7 + dx * 10, p.y + 8 + dy * 10, 'spark', w.id === 'breadcrumb_shotgun' ? 6 : 2, w.id === 'golden_egg_revolver' ? '#f4d03f' : '#fff3b0');
-  if(w.knockback>=3 || w.id==='breadcrumb_shotgun') {p.vx-=dx*.45*w.knockback;p.vy-=dy*.45*w.knockback;}
-  if (w.knockback >= 5 || w.id === 'breadcrumb_shotgun') engine.shakeIntensity = Math.max(engine.shakeIntensity, w.id === 'breadcrumb_shotgun' ? 2.4 : 2.2);
+  const muzzleCount=w.id==='breadcrumb_shotgun'?5:w.id==='baguette_launcher'||w.id==='plasma_baker'?4:w.id==='rubber_duck_cannon'||w.id==='baguette_sniper'?3:2;
+  const muzzleColor=w.id==='baguette_launcher'?'#ffcf82':w.id==='tactical_toaster'?'#c6baa1':w.id==='plasma_baker'?'#ffe0a3':'#fff1bf';
+  spawn(engine,p.x+7+dx*10,p.y+8+dy*10,'spark',muzzleCount,muzzleColor);
+  if(w.knockback>=2.4 || w.id==='breadcrumb_shotgun') {p.vx-=dx*.32*w.knockback;p.vy-=dy*.32*w.knockback;}
+  if (w.knockback >= 4 || w.id === 'breadcrumb_shotgun') engine.shakeIntensity = Math.max(engine.shakeIntensity,w.id==='plasma_baker'?2.7:w.id==='baguette_launcher'?2.35:w.id==='breadcrumb_shotgun'?2.1:1.8);
   p.charge = 0;
 }
 
@@ -2778,7 +2788,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
           }
         }
         let crit = false;
-        let critChance = p.type === 'golden_egg' ? 0.3 : 0.05;
+        let critChance = p.sourceWeapon==='golden_egg_revolver' ? .18 : p.sourceWeapon==='baguette_sniper'||p.sourceWeapon==='plasma_baker' ? .08 : .05;
         critChance+=build.crit;
         if (random() < critChance) { dmg *= 2; crit = true; }
         if(crit && build.sneeze) {e.stunned=Math.max(e.stunned ?? 0,build.sneeze);e.fireCooldown=Math.max(45,e.fireCooldown);e.windup=0;e.chargeTimer=0;e.recover=40;}
