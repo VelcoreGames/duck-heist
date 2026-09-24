@@ -56,6 +56,11 @@ export const DASH_COOLDOWN = 45;
 /** Frames required holding R to restart (~0.8s at 60fps) */
 export const RESTART_HOLD_FRAMES = 48;
 
+/** Intro cinematográfica al comenzar una operación (~2.1 s a 60 fps). */
+export const HEIST_INTRO_FRAMES = 126;
+/** Momento a partir del cual Enter/Espacio/clic pueden omitirla. */
+export const HEIST_INTRO_SKIP_AFTER = 24;
+
 export const COLORS = {
   bg: '#0a0a1a',
   wall: '#1a1a2e',
