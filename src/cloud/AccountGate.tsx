@@ -207,7 +207,7 @@ export default function AccountGate({children}:{children:ReactNode}){
   };
 
   if(audit)return <>{children}</>;
-  if(gate==='boot')return <AccountShell title="ABRIENDO LA BÓVEDA" subtitle="Preparando tu cuenta Velcore Games…"><div className="vg-account-loader" /></AccountShell>;
+  if(gate==='boot')return <AccountShell title="ABRIENDO LA BÓVEDA" subtitle="Preparando el atraco y sincronizando tu progreso…"><div className="vg-account-loader"><span /></div></AccountShell>;
 
   if(gate==='auth')return (
     <AccountShell
@@ -298,12 +298,16 @@ function PasswordField({value,onChange,show,onToggle,autoComplete,label='CONTRAS
 function AccountShell({title,subtitle,children}:{title:string;subtitle:ReactNode;children:ReactNode}){
   return <main className="vg-account-page">
     <div className="vg-account-noise" aria-hidden="true" />
+    <div className="vg-account-vault-lines" aria-hidden="true" />
     <section className="vg-account-card">
-      <a className="vg-account-brand" href="/"><span>V</span><div><b>VELCORE GAMES</b><small>GAMES ID</small></div></a>
-      <div className="vg-account-kicker">DUCK HEIST · CUENTA EN LA NUBE</div>
+      <a className="vg-account-brand" href="/">
+        <span className="vg-account-duck-mark">DH</span>
+        <div><b>DUCK HEIST</b><small>VELCORE GAMES</small></div>
+      </a>
+      <div className="vg-account-kicker">BANCO DEL PAN · CUENTA EN LA NUBE</div>
       <h1>{title}</h1><p className="vg-account-sub">{subtitle}</p>
       {children}
-      <p className="vg-account-version">DUCK HEIST v0.8.0</p>
+      <p className="vg-account-version">BANCO DEL PAN // DUCK HEIST v0.8.0</p>
     </section>
   </main>;
 }
