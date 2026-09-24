@@ -65,15 +65,15 @@ export default function App() {
     const widthScale=availW/CANVAS_WIDTH;
     const heightScale=availH/CANVAS_HEIGHT;
 
-    // Fullscreen usa un único factor XY y modo "cover": llena ancho Y alto sin
-    // deformar sprites ni UI. Si sobra una franja mínima por la cuantización a
-    // tiles impares, se recorta simétricamente fuera del viewport en vez de
-    // mostrar bandas del shell.
+    // En fullscreen priorizamos que TODO el canvas sea visible. La arena ya
+    // aproxima el aspect ratio del monitor por tiles, así que sólo queda una
+    // corrección CSS pequeña e independiente por eje. Esto llena 100% del
+    // viewport sin recortar puertas, HUD, minimapa ni controles.
     const css=fullscreen
-      ? Math.max(.2,widthScale,heightScale)
+      ? Math.max(.2,Math.min(widthScale,heightScale))
       : Math.max(.2,Math.min(widthScale,heightScale,maxScale));
-    const displayW=Math.max(1,fullscreen?Math.ceil(CANVAS_WIDTH*css):Math.floor(CANVAS_WIDTH*css));
-    const displayH=Math.max(1,fullscreen?Math.ceil(CANVAS_HEIGHT*css):Math.floor(CANVAS_HEIGHT*css));
+    const displayW=Math.max(1,fullscreen?Math.round(availW):Math.floor(CANVAS_WIDTH*css));
+    const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
     const dpr=Math.max(1,Math.min(2.25,window.devicePixelRatio||1));
     return {displayW,displayH,css,ui:Math.max(1,Math.min(6,Math.ceil(css*dpr)))};
   }, []);
