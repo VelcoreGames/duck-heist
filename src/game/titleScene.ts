@@ -64,13 +64,14 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   for(let x=236;x<441;x+=20) { bolt(c,x,94); bolt(c,x,250); }
   for(let y=110;y<246;y+=20) { bolt(c,233,y); bolt(c,439,y); }
   const vx=336,vy=170;
+  const intro=Math.max(0,Math.min(1,opening));
   const glow=c.createRadialGradient(vx,vy,30,vx,vy,154);
-  glow.addColorStop(0,`rgba(255,189,64,${.15+opening*.6})`); glow.addColorStop(1,'rgba(255,189,64,0)');
+  glow.addColorStop(0,`rgba(255,189,64,${.15+intro*.72})`); glow.addColorStop(.52,`rgba(230,181,83,${intro*.10})`); glow.addColorStop(1,'rgba(255,189,64,0)');
   c.fillStyle=glow; c.fillRect(170,20,310,315);
   disc(c,vx,vy,83,'#0c2028'); disc(c,vx,vy,79,'#8c9d91'); disc(c,vx,vy,75,'#364e52');
   disc(c,vx,vy,72,'#172f34'); disc(c,vx,vy,68,'#eeb553'); disc(c,vx,vy,66,'#5b5140');
   // Opening is real visual movement of the door, timed by the engine.
-  c.save(); c.translate(opening*69,0); c.scale(1-opening*.16,1);
+  c.save(); c.translate(intro*72,Math.sin(intro*Math.PI)*-1); c.scale(1-intro*.17,1);
   disc(c,vx,vy,64,'#5c7271'); disc(c,vx,vy,61,'#314c53'); disc(c,vx,vy,57,'#273f45');
   for(let a=0;a<Math.PI*2;a+=Math.PI/8) {
     const xx=vx+Math.cos(a)*72,yy=vy+Math.sin(a)*72; bolt(c,xx,yy);
@@ -82,7 +83,7 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   r(c,vx-14,vy-43,28,13,'#d8c28c');
   for(let i=0;i<3;i++) { r(c,vx-11+i*9,vy-43,3,7,'#887443'); r(c,vx-9+i*9,vy-41,2,6,'#887443'); }
   // Six locking bars meet a rotating wheel.
-  const angle=frame*.002+opening*3;
+  const angle=frame*.002+intro*5.2+Math.sin(intro*Math.PI)*.18;
   for(let i=0;i<6;i++) {
     const a=angle+i*Math.PI/3, x1=vx+Math.cos(a)*15,y1=vy+12+Math.sin(a)*15;
     const x2=vx+Math.cos(a)*43,y2=vy+12+Math.sin(a)*43;
@@ -94,13 +95,29 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   disc(c,vx,vy+12,7,'#d5be78'); r(c,vx-2,vy+8,4,8,'#374b4b');
   r(c,vx+48,vy-21,9,43,'#172c31'); r(c,vx+50,vy-19,4,40,'#698177');
   c.restore();
-  if(opening>0) { c.globalAlpha=opening*.8; r(c,vx-7,102,14+opening*24,135,'#ffe4a3'); c.globalAlpha=1; }
+  if(intro>0) {
+    const beam=c.createLinearGradient(vx-12,0,vx+54,0);
+    beam.addColorStop(0,'rgba(255,228,163,0)');
+    beam.addColorStop(.28,`rgba(255,228,163,${intro*.62})`);
+    beam.addColorStop(.72,`rgba(255,244,196,${intro*.82})`);
+    beam.addColorStop(1,'rgba(255,228,163,0)');
+    c.globalAlpha=.92;c.fillStyle=beam;c.fillRect(vx-18,101,72+intro*20,137);c.globalAlpha=1;
+
+    // Reflejo que cruza el acero al desbloquearse.
+    const sweep=Math.max(0,Math.min(1,(intro-.12)/.68));
+    const sx=268+sweep*164;
+    const shine=c.createLinearGradient(sx-24,0,sx+24,0);
+    shine.addColorStop(0,'rgba(255,244,196,0)');
+    shine.addColorStop(.5,`rgba(255,244,196,${.22*Math.sin(sweep*Math.PI)})`);
+    shine.addColorStop(1,'rgba(255,244,196,0)');
+    c.fillStyle=shine;c.fillRect(245,92,206,164);
+  }
   // Warm spill reaches the floor, without obscuring menu controls.
-  c.globalAlpha=.12+opening*.32; c.fillStyle='#e5b257'; c.beginPath();
-  c.moveTo(315,247);c.lineTo(363,247);c.lineTo(430,334);c.lineTo(249,334);c.fill();c.globalAlpha=1;
+  c.globalAlpha=.12+intro*.38; c.fillStyle='#e5b257'; c.beginPath();
+  c.moveTo(315,247);c.lineTo(363,247);c.lineTo(440,337);c.lineTo(239,337);c.fill();c.globalAlpha=1;
   r(c,283,77,108,8,'#0f2329');
   for(let i=0;i<5;i++) r(c,298+i*17,79,8,3,(frame+i*8)%80<44?'#b4c88a':'#4d725c');
-  if(opening>0) r(c,320,79,28,3,frame%10<5?'#f07763':'#572e32');
+  if(intro>0) r(c,320,79,28,3,frame%10<5?'#f07763':'#572e32');
   // Keypad and monitor mounted beside the vault.
   r(c,447,145,12,35,'#0d1d25');r(c,449,148,8,8,'#74a88b');
   for(let i=0;i<6;i++) r(c,449+(i%2)*5,160+Math.floor(i/2)*5,3,3,'#778783');
@@ -114,8 +131,21 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
     r(c,x,y,29,21,'#543b2b');r(c,x+1,y+1,27,4,'#966a3d');r(c,x+4,y+9,21,2,'#aa7a41');r(c,x+4,y+2,3,18,'#3b302b');
   }
   coinPile(c,272,278,22,frame);coinPile(c,397,281,32,frame+77);coinPile(c,363,301,18,frame+99);
-  // The equipped cosmetic always appears in the title scene.
-  c.save();c.translate(331,270+Math.round(Math.sin(frame*.036)));c.scale(2.6,2.6);
+  if(intro>.28){
+    for(let i=0;i<6;i++){
+      const phase=(frame*.018+i*.91)%1;
+      const xx=278+(i*41)%145;
+      const yy=302-phase*38-(i%2)*7;
+      c.globalAlpha=(1-phase)*intro*.55;
+      r(c,xx,yy,i%3===0?2:1,1,i%2?'#fff0a0':'#e6c56f');
+    }
+    c.globalAlpha=1;
+  }
+  // The equipped cosmetic always appears in the title scene. During the intro
+  // it settles into position with a tiny heroic bounce instead of appearing static.
+  const duckSettle=intro>0?(1-intro)*6:0;
+  const duckPulse=intro>0?1+Math.sin(intro*Math.PI)*.025:1;
+  c.save();c.translate(331,270+duckSettle+Math.round(Math.sin(frame*.036)));c.scale(2.6*duckPulse,2.6*duckPulse);
   drawDuckSkin(c,-8,-8,frame,skin,frame%660>520?'left':'down',false,false,false);c.restore();
   const pigeonT=frame%1400;
   if(pigeonT>1040) { const xx=470-Math.min(40,(pigeonT-1040)*.25); drawShopPigeon(c,xx,304,frame); }
