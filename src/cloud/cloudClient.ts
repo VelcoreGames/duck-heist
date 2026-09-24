@@ -203,6 +203,10 @@ export function hasMeaningfulLocalProgress(payload=captureLocalGameSave()){
   if(safeJson<unknown[]>(payload.storage.duckheist_history??null)?.length)return true;
   const daily=get('duckheist_daily');
   if(daily&&(Number(daily.totalCompleted||0)>0||Number((daily.current as Record<string,unknown>|undefined)?.attempts||0)>0))return true;
+  const heistCheckpoint=get('duckheist_heist_checkpoint');
+  if(heistCheckpoint&&Number.isInteger(Number(heistCheckpoint.floorIndex))&&Number(heistCheckpoint.floorIndex)>=0)return true;
+  const endlessCheckpoint=get('duckheist_endless_checkpoint');
+  if(endlessCheckpoint&&Number((endlessCheckpoint.endless as Record<string,unknown>|undefined)?.round||0)>0)return true;
   const endless=get('duckheist_endless_records');
   return !!(endless&&Object.values(endless).some(v=>Number((v as Record<string,unknown>)?.round||0)>0));
 }
