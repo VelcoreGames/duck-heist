@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, HUD_MENU, activeSwapHit, endlessRewardHit, endActionHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, hudMenuRect, useWideMainMenu, activeSwapHit, endlessRewardHit, endActionHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -522,7 +522,7 @@ export default function App() {
         y: (ev.clientY - r.top) * (CANVAS_HEIGHT / r.height),
       };
     };
-    const wideFullscreenMenu=()=>engine.state===GameState.MENU&&CANVAS_WIDTH>UI_BASE_WIDTH+64;
+    const wideFullscreenMenu=()=>engine.state===GameState.MENU&&useWideMainMenu();
     const usesLegacyUiCoordinates=()=>{
       if(wideFullscreenMenu())return false;
       return !!engine.swap||!!engine.activeSwap||[
@@ -540,7 +540,7 @@ export default function App() {
       const p = uiPoint(raw);
       engine.mouseX = p.x; engine.mouseY = p.y;
       if(Math.abs(ev.movementX)+Math.abs(ev.movementY)>1)engine.lastInput='keyboard';
-      if(engine.state===GameState.PLAYING)setCursor(inside(p.x,p.y,HUD_MENU)?'pointer':'crosshair');
+      if(engine.state===GameState.PLAYING)setCursor(inside(p.x,p.y,hudMenuRect())?'pointer':'crosshair');
       if(engine.state===GameState.MAP) {mapHit(engine,p.x,p.y);return;}
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
@@ -616,7 +616,7 @@ export default function App() {
         const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
       if(engine.state===GameState.PLAYING){
-        if(inside(x,y,HUD_MENU)){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);setMusic('menu');return;}
+        if(inside(x,y,hudMenuRect())){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);setMusic('menu');return;}
         engine.mouseDown=true;return;
       }
       switch (engine.state) {
