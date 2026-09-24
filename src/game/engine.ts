@@ -2674,7 +2674,12 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     } else p.lifetime--;
 
     if (p.type === 'homing_crumb' && p.friendly) {
-      const target = content.enemies.filter(en => en.hp > 0).sort((a,b)=>dist(p.x,p.y,a.x,a.y)-dist(p.x,p.y,b.x,b.y))[0];
+      let target:Enemy|undefined,best=Infinity;
+      for(const en of content.enemies){
+        if(en.hp<=0)continue;
+        const dx=en.x+en.size/2-p.x,dy=en.y+en.size/2-p.y,d2=dx*dx+dy*dy;
+        if(d2<best){best=d2;target=en;}
+      }
       if (target) {
         const a = Math.atan2(target.y + target.size / 2 - p.y, target.x + target.size / 2 - p.x);
         p.vx = p.vx * .86 + Math.cos(a) * (p.baseSpeed ?? 3.6) * .14;
@@ -2735,10 +2740,13 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
 
     if (p.friendly) {
       let removed = false;
-      for (const e of [...content.enemies]) {
-        if(e.hp<=0) continue;
+      for (let ei=content.enemies.length-1;ei>=0;ei--) {
+        const e=content.enemies[ei];
+        if(!e||e.hp<=0) continue;
         if (p.hitEnemies.has(e.id)) continue;
-        if (dist(p.x, p.y, e.x + e.size / 2, e.y + e.size / 2) > e.size / 2 + (p.radius ?? 4)) continue;
+        const ex=e.x+e.size/2,ey=e.y+e.size/2;
+        const rr=e.size/2+(p.radius ?? 4),dx=p.x-ex,dy=p.y-ey;
+        if (dx*dx+dy*dy > rr*rr) continue;
         if(p.explode>0) {explode(engine,p,content);engine.projectiles.splice(i,1);removed=true;break;}
 
         if ((e.behavior === 'shielded' || e.bossType === 'ganso_antidisturbios') && e.recover <= 0) {
@@ -2817,31 +2825,50 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
   }
 }
 
+let lastExplosionSfxFrame=-999;
 function explode(engine: GameEngine, p: Projectile, content: RoomContent, hurtPlayer = p.sourceWeapon !== 'bread_grenade') {
   const radius = p.explode;
-  spawn(engine, p.x, p.y, 'smoke', 12, '#d4a574');
-  spawn(engine, p.x, p.y, 'crumb', 10, '#a67c52');
-  spawn(engine, p.x, p.y, 'spark', 8, '#ff9f43');
+  const nuclear=!!p.nuclear;
+
+  // Mantiene una explosión visible, pero evita crear 30+ partículas por impacto
+  // en builds rápidas/explosivas.
+  spawn(engine, p.x, p.y, 'smoke', nuclear?5:7, nuclear?'#7b9566':'#d4a574');
+  spawn(engine, p.x, p.y, 'crumb', nuclear?4:6, '#a67c52');
+  spawn(engine, p.x, p.y, 'spark', nuclear?5:6, nuclear?'#b9ef79':'#ff9f43');
+
   if (p.burning) {
     content.puddles.push({ x: p.x, y: p.y, life: 180, kind:'fire',radius:32 });
-    for (let i = 0; i < 5; i++) spawn(engine, p.x + rng(-20, 20), p.y + rng(-20, 20), 'spark', 1, '#ff6b3d');
+    for (let i = 0; i < 3; i++) spawn(engine, p.x + rng(-20, 20), p.y + rng(-20, 20), 'spark', 1, '#ff6b3d');
   }
-  for (const e of [...content.enemies]) {
-    if (dist(p.x, p.y, e.x + e.size / 2, e.y + e.size / 2) < radius + e.size / 2) {
+
+  const r2=radius*radius;
+  for(let ei=content.enemies.length-1;ei>=0;ei--){
+    const e=content.enemies[ei];
+    if(!e||e.hp<=0)continue;
+    const dx=p.x-(e.x+e.size/2),dy=p.y-(e.y+e.size/2);
+    const reach=radius+e.size/2;
+    if(dx*dx+dy*dy<reach*reach){
       const shielded=e.behavior==='shielded' && e.recover<=0;
       const amount=Math.max(1,Math.round(p.damage*(shielded?.4:1)));
       trackWeaponDamage(engine,p.sourceWeapon,Math.min(e.hp,amount),amount>=e.hp);
       damageEnemy(engine,e,amount,false,content);
       if (p.burning) e.burn = Math.max(e.burn, 180);
-      if(p.nuclear) {e.slowTimer=180;e.slowPower=.35;}
+      if(nuclear) {e.slowTimer=180;e.slowPower=.35;}
     }
   }
-  if (hurtPlayer && dist(p.x, p.y, engine.player.x + 7, engine.player.y + 8) < radius) {
-    damagePlayer(engine, .5, 'projectile');
+
+  if (hurtPlayer) {
+    const dx=p.x-(engine.player.x+7),dy=p.y-(engine.player.y+8);
+    if(dx*dx+dy*dy<r2) damagePlayer(engine,.5,'projectile');
   }
-  engine.shakeIntensity = Math.max(engine.shakeIntensity, 5);
-  engine.hitStop=Math.max(engine.hitStop,3);
-  playExplosion();
+
+  engine.shakeIntensity = Math.max(engine.shakeIntensity, nuclear?3.2:4.2);
+  // Varias explosiones del mismo frame comparten audio en vez de crear pares
+  // de nodos WebAudio para cada proyectil.
+  if(engine.frame-lastExplosionSfxFrame>=4){
+    lastExplosionSfxFrame=engine.frame;
+    playExplosion();
+  }
 }
 
 function updateParticles(engine: GameEngine) {
@@ -3534,26 +3561,40 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
 // DAÑO
 // ---------------------------------------------------------------------------
 export function damageEnemy(engine: GameEngine, e: Enemy, dmg: number, crit: boolean, content: RoomContent) {
-  if(e.hp<=0 || !content.enemies.includes(e)) return;
+  if(e.hp<=0) return;
   const actual=Math.min(e.hp,dmg);
+  const repeatedBossHit=e.isBoss&&e.hurtTimer>3;
   e.hp -= dmg;
   e.hurtTimer = 8;
   engine.run.dmgDealt += actual;
+
   if (engine.settings.damageNumbers) {
-    if(engine.damageNumbers.length>=80)engine.damageNumbers.shift();
-    engine.damageNumbers.push({ x: e.x + e.size / 2 + rng(-4, 4), y: e.y - 4, value: dmg, life: 1, crit });
+    // En jefes, ráfagas rápidas antes podían crear decenas de números de daño
+    // superpuestos. Agrupamos impactos consecutivos cercanos sin perder información.
+    const last=engine.damageNumbers[engine.damageNumbers.length-1];
+    const cx=e.x+e.size/2,cy=e.y-4;
+    if(e.isBoss&&last&&last.life>.76&&Math.abs(last.x-cx)<18&&Math.abs(last.y-cy)<14&&last.crit===crit){
+      last.value+=dmg;last.life=1;last.x=cx;last.y=cy;
+    }else{
+      if(engine.damageNumbers.length>=42)engine.damageNumbers.shift();
+      engine.damageNumbers.push({ x: cx + rng(-4, 4), y: cy, value: dmg, life: 1, crit });
+    }
   }
-  spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'hit', dmg>=8?5:3);
-  if(dmg>=8){
-    spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',e.isBoss?6:4,e.isBoss?'#ffd7a3':'#fff0c4');
-    engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?1.4:.75);
-    // Los golpes fuertes mantienen partículas y cámara, pero no congelan
-    // el mundo. Esto evita microparones cuando el daño base supera 10.
+
+  // Un boss bajo fuego sostenido ya mantiene hurtTimer activo. No necesitamos
+  // generar 9-17 partículas nuevas por cada proyectil para comunicar el impacto.
+  const hitCount=e.isBoss?(repeatedBossHit?1:2):(dmg>=8?4:3);
+  spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'hit', hitCount);
+
+  if(dmg>=8&&!repeatedBossHit){
+    spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',e.isBoss?3:4,e.isBoss?'#ffd7a3':'#fff0c4');
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?1.15:.75);
   }
   playHit();
+
   if (crit) {
-    spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 8, '#f4d03f');
-    engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?2.2:1.1);
+    spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', e.isBoss?4:7, '#f4d03f');
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?1.8:1.1);
     playCritical();
   }
   if (e.hp <= 0) killEnemy(engine, e, content);
@@ -3810,7 +3851,7 @@ export function handleActiveItem(engine: GameEngine) {
 }
 
 function spawn(engine: GameEngine, x: number, y: number, type: string, count: number, color?: string) {
-  count=Math.min(count,Math.max(0,240-engine.particles.length));
+  count=Math.min(count,Math.max(0,200-engine.particles.length));
   for (let i = 0; i < count; i++) {
     engine.particles.push({
       x: x + rng(-3, 3), y: y + rng(-3, 3),
