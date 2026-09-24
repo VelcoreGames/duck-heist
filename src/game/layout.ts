@@ -26,6 +26,27 @@ export function visibleCanvasRect(padding=0):Rect {
   return coverVisibleCanvasRect(window.innerWidth,window.innerHeight,padding);
 }
 
+/**
+ * Transformación compartida para las pantallas históricas diseñadas en 480x352.
+ * En formatos estrechos las reduce lo mínimo necesario para que ninguna tarjeta,
+ * botón o encabezado quede fuera del viewport visible.
+ */
+export function legacyUiTransform():{x:number;y:number;scale:number} {
+  const safe=visibleCanvasRect(0);
+  const scale=Math.max(.2,Math.min(1,safe.w/UI_BASE_WIDTH,safe.h/CANVAS_HEIGHT));
+  const w=UI_BASE_WIDTH*scale,h=CANVAS_HEIGHT*scale;
+  return {
+    x:safe.x+(safe.w-w)/2,
+    y:safe.y+(safe.h-h)/2,
+    scale,
+  };
+}
+
+export function legacyUiPoint(x:number,y:number):{x:number;y:number} {
+  const t=legacyUiTransform();
+  return {x:(x-t.x)/t.scale,y:(y-t.y)/t.scale};
+}
+
 /** Usa la composición amplia sólo cuando realmente hay espacio físico para leerla. */
 export function useWideMainMenu():boolean {
   if(CANVAS_WIDTH<=UI_BASE_WIDTH+64)return false;
