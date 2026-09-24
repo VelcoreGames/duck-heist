@@ -20,10 +20,10 @@ export function coverVisibleCanvasRect(vw:number,vh:number,padding=0):Rect {
 }
 
 export function visibleCanvasRect(padding=0):Rect {
-  if(typeof window==='undefined'||typeof document==='undefined'||!document.fullscreenElement){
-    return {x:padding,y:padding,w:Math.max(1,CANVAS_WIDTH-padding*2),h:Math.max(1,CANVAS_HEIGHT-padding*2)};
-  }
-  return coverVisibleCanvasRect(window.innerWidth,window.innerHeight,padding);
+  // El canvas actual se muestra completo tanto en ventana como en fullscreen.
+  // coverVisibleCanvasRect se conserva como utilidad de auditoría/regresión,
+  // pero ya no debe desplazar la UI durante el juego.
+  return {x:padding,y:padding,w:Math.max(1,CANVAS_WIDTH-padding*2),h:Math.max(1,CANVAS_HEIGHT-padding*2)};
 }
 
 /**
