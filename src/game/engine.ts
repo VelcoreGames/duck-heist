@@ -3132,8 +3132,10 @@ function bossRing(engine:GameEngine,boss:Enemy,count:number,speed:number,type:st
   const allowed=bossProjectileAllowance(engine,count);
   if(allowed<=0)return;
   for(let i=0;i<allowed;i++) {
-    // Conservamos la geometría usando el count original; sólo reducimos exceso.
-    enemyShoot(engine,boss,(i/count)*Math.PI*2+offset,speed,type,0,i===0);
+    // Si entra el presupuesto de seguridad, distribuimos las balas permitidas
+    // por todo el anillo; nunca dejamos un "hueco" artificial en un solo lado.
+    const sourceIndex=Math.floor(i*count/allowed);
+    enemyShoot(engine,boss,(sourceIndex/count)*Math.PI*2+offset,speed,type,0,i===0);
   }
 }
 function bossFan(engine:GameEngine,boss:Enemy,angle:number,count:number,spread:number,speed:number,type:string) {
