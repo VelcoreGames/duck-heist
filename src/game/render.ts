@@ -998,6 +998,67 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
 // ===========================================================================
 // CAPA DE UI
 // ===========================================================================
+
+function drawWideMenuChrome(engine:GameEngine,label:string,accent='#e6c56f') {
+  if(CANVAS_WIDTH<=UI_BASE_WIDTH+16)return;
+  const ctx=engine.ui!;
+  const left=UI_OFFSET_X,right=UI_OFFSET_X+UI_BASE_WIDTH;
+  const wing=Math.max(0,left);
+  const mode=engine.gameMode==='endless'?'SIN FIN':engine.gameMode==='daily'?'DESAFÍO DIARIO':'ATRACO';
+  const progress=engine.gameMode==='endless'?'RONDA '+engine.endless.round:'PISO '+(engine.map.floorIndex+1)+'/6';
+
+  ctx.save();
+  // Las alas laterales forman parte del menú, no son espacio sobrante.
+  ctx.fillStyle='rgba(3,8,12,.82)';
+  if(left>0)ctx.fillRect(0,0,left,CANVAS_HEIGHT);
+  if(right<CANVAS_WIDTH)ctx.fillRect(right,0,CANVAS_WIDTH-right,CANVAS_HEIGHT);
+
+  ctx.globalAlpha=.08;ctx.fillStyle=accent;
+  for(let x=12;x<left;x+=28)ctx.fillRect(x,20,1,CANVAS_HEIGHT-40);
+  for(let x=right+12;x<CANVAS_WIDTH;x+=28)ctx.fillRect(x,20,1,CANVAS_HEIGHT-40);
+  ctx.globalAlpha=1;
+
+  ctx.fillStyle='rgba(5,13,18,.92)';ctx.fillRect(0,5,CANVAS_WIDTH,18);
+  ctx.fillStyle=accent;ctx.globalAlpha=.42;ctx.fillRect(0,22,CANVAS_WIDTH,1);ctx.globalAlpha=1;
+  text(ctx,'VELCORE GAMES // DUCK HEIST',12,17,4.6,'#8aa09d','left',true,false);
+  text(ctx,label,CANVAS_WIDTH-12,17,4.8,accent,'right',true,false);
+
+  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(0,CANVAS_HEIGHT-22,CANVAS_WIDTH,17);
+  ctx.globalAlpha=.36;ctx.fillStyle=accent;ctx.fillRect(0,CANVAS_HEIGHT-22,CANVAS_WIDTH,1);ctx.globalAlpha=1;
+  text(ctx,'ESC · VOLVER / PAUSA',12,CANVAS_HEIGHT-10,4.5,'#788f93','left',true,false);
+  text(ctx,'F · PANTALLA COMPLETA',CANVAS_WIDTH-12,CANVAS_HEIGHT-10,4.5,'#788f93','right',true,false);
+
+  if(wing>=52){
+    // En 16:9 las alas son estrechas: el texto vertical mantiene la composición
+    // limpia sin reducir el área útil del menú central.
+    ctx.save();
+    ctx.translate(Math.max(14,wing*.48),CANVAS_HEIGHT*.54);ctx.rotate(-Math.PI/2);
+    text(ctx,'BANCO DEL PAN · '+mode,0,0,4.4,accent,'center',true,false);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(CANVAS_WIDTH-Math.max(14,wing*.48),CANVAS_HEIGHT*.54);ctx.rotate(Math.PI/2);
+    text(ctx,progress+' · '+difficultyLabel(engine),0,0,4.4,'#93a6a6','center',true,false);
+    ctx.restore();
+  }
+
+  if(wing>=118){
+    const cardW=wing-28;
+    drawMenuCard(ctx,14,72,cardW,78,false,accent,'rgba(8,19,25,.92)');
+    text(ctx,'OPERACIÓN',26,91,4.2,'#667d82','left',true,false);
+    text(ctx,mode,26,108,6.2,'#e3e9e3','left',true,false);
+    text(ctx,'DIFICULTAD',26,126,4.2,'#667d82','left',true,false);
+    text(ctx,difficultyLabel(engine),26,143,5.8,accent,'left',true,false);
+
+    drawMenuCard(ctx,right+14,72,cardW,78,false,accent,'rgba(8,19,25,.92)');
+    text(ctx,'PROGRESO',right+26,91,4.2,'#667d82','left',true,false);
+    text(ctx,progress,right+26,108,6.2,'#e3e9e3','left',true,false);
+    text(ctx,'ESTADO',right+26,126,4.2,'#667d82','left',true,false);
+    text(ctx,engine.state===GameState.PAUSED?'EN PAUSA':'LISTO',right+26,143,5.8,engine.state===GameState.PAUSED?'#d8c57d':'#78c99a','left',true,false);
+  }
+  ctx.restore();
+}
+
 export function renderUI(engine: GameEngine) {
   const ctx = engine.ui;
   if (!ctx) return;
@@ -1012,17 +1073,22 @@ export function renderUI(engine: GameEngine) {
     draw();
     ctx.restore();
   };
+  const framedLegacy=(draw:()=>void,label:string,accent:string)=>{
+    drawWideMenuChrome(engine,label,accent);
+    legacy(draw);
+  };
 
   switch (s) {
     case GameState.MENU: {
       const wide=typeof document!=='undefined'&&!!document.fullscreenElement&&CANVAS_WIDTH>UI_BASE_WIDTH;
+      drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');
       if(wide)renderMenuUI(engine,true);else legacy(()=>renderMenuUI(engine,false));
       break;
     }
-    case GameState.DIFFICULTY: legacy(()=>renderDifficultyUI(engine)); break;
-    case GameState.DAILY_BRIEF: legacy(()=>renderDailyBrief(engine)); break;
-    case GameState.MAP: legacy(()=>renderFloorMap(engine)); break;
-    case GameState.COLLECTION: legacy(()=>renderCollection(engine)); break;
+    case GameState.DIFFICULTY: framedLegacy(()=>renderDifficultyUI(engine),'SELECCIÓN DE RIESGO','#d86b58'); break;
+    case GameState.DAILY_BRIEF: framedLegacy(()=>renderDailyBrief(engine),'DESAFÍO DIARIO','#79b9d2'); break;
+    case GameState.MAP: framedLegacy(()=>renderFloorMap(engine),'PLANO DEL BANCO','#79b9d2'); break;
+    case GameState.COLLECTION: framedLegacy(()=>renderCollection(engine),'ARCHIVO DEL ATRACO','#b992d8'); break;
     case GameState.HEIST_INTRO:
       legacy(()=>{
         const t=1-engine.heistIntroTimer/90;
@@ -1031,28 +1097,28 @@ export function renderUI(engine: GameEngine) {
         if(t>.88) {ctx.fillStyle=`rgba(5,15,22,${(t-.88)/.12})`;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);}
       });
       break;
-    case GameState.HOW_TO_PLAY: legacy(()=>renderHowToPlayUI(engine)); break;
-    case GameState.SETTINGS: legacy(()=>renderSettingsUI(engine)); break;
-    case GameState.CONTROLS: legacy(()=>renderControls(engine)); break;
-    case GameState.CAREER: legacy(()=>renderCareer(engine)); break;
-    case GameState.WARDROBE: legacy(()=>renderWardrobeUI(engine)); break;
-    case GameState.UPGRADES: legacy(()=>renderUpgradesUI(engine)); break;
-    case GameState.GAME_OVER: legacy(()=>renderGameOverUI(engine)); break;
-    case GameState.VICTORY: legacy(()=>renderVictoryUI(engine)); break;
+    case GameState.HOW_TO_PLAY: framedLegacy(()=>renderHowToPlayUI(engine),'MANUAL DEL LADRÓN','#d7b56c'); break;
+    case GameState.SETTINGS: framedLegacy(()=>renderSettingsUI(engine),'SISTEMA DEL ATRACO','#8fb7c8'); break;
+    case GameState.CONTROLS: framedLegacy(()=>renderControls(engine),'CONFIGURACIÓN DE CONTROLES','#79b9d2'); break;
+    case GameState.CAREER: framedLegacy(()=>renderCareer(engine),'EXPEDIENTE DE CARRERA','#78c99a'); break;
+    case GameState.WARDROBE: framedLegacy(()=>renderWardrobeUI(engine),'ARMARIO DEL LADRÓN','#79b9d2'); break;
+    case GameState.UPGRADES: framedLegacy(()=>renderUpgradesUI(engine),'MEJORAS PERMANENTES','#e6c56f'); break;
+    case GameState.GAME_OVER: framedLegacy(()=>renderGameOverUI(engine),'OPERACIÓN FALLIDA','#d85d58'); break;
+    case GameState.VICTORY: framedLegacy(()=>renderVictoryUI(engine),'OPERACIÓN COMPLETADA','#78c99a'); break;
     case GameState.PAUSED:
-      drawHUD(engine); renderPrompts(engine); legacy(()=>renderPausedUI(engine)); break;
+      drawHUD(engine); renderPrompts(engine); framedLegacy(()=>renderPausedUI(engine),'ATRACO EN PAUSA','#e6c56f'); break;
     case GameState.FLOOR_INTRO:
       drawHUD(engine); renderFloorIntroUI(engine); break;
     case GameState.BOSS_INTRO:
       drawHUD(engine); renderPrompts(engine); renderBossIntroUI(engine); break;
     case GameState.ENDLESS_REWARD:
-      drawHUD(engine); legacy(()=>renderEndlessRewardUI(engine)); break;
+      drawHUD(engine); framedLegacy(()=>renderEndlessRewardUI(engine),'RECOMPENSA DE RONDA','#d8c57d'); break;
     case GameState.ENDLESS_RESUME:
-      legacy(()=>renderEndlessResumeUI(engine)); break;
+      framedLegacy(()=>renderEndlessResumeUI(engine),'REINGRESO SIN FIN','#d86b58'); break;
     case GameState.RUN_INFO:
-      legacy(()=>renderRunInfoUI(engine)); break;
+      framedLegacy(()=>renderRunInfoUI(engine),'DOSSIER EN CURSO','#79b9d2'); break;
     case GameState.CONFIRM:
-      legacy(()=>renderConfirmUI(engine)); break;
+      framedLegacy(()=>renderConfirmUI(engine),'CONFIRMACIÓN REQUERIDA','#d85d58'); break;
     case GameState.FLOOR_CLEAR:
       renderFloorClearUI(engine); break;
     default:
