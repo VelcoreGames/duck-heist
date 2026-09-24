@@ -1081,7 +1081,7 @@ export function renderUI(engine: GameEngine) {
 
   switch (s) {
     case GameState.MENU: {
-      const wide=typeof document!=='undefined'&&!!document.fullscreenElement&&CANVAS_WIDTH>UI_BASE_WIDTH;
+      const wide=CANVAS_WIDTH>UI_BASE_WIDTH+64;
       drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');
       if(wide)renderMenuUI(engine,true);else legacy(()=>renderMenuUI(engine,false));
       break;
