@@ -289,6 +289,30 @@ export function playDoorUnlock() {
   blip('sine', 780, 1100, 0.14, 0.04, 0.16);
   noise(0.12, 0.025, 0.02);
 }
+
+/** Secuencia propia de la intro: motor, cerrojos, revelado de la bóveda y autorización. */
+export function playVaultIntroCue(stage:'motor'|'unlock'|'reveal'|'ready') {
+  if(!enabled()) return;
+  priorityUntil=performance.now()+420;
+  if(stage==='motor'){
+    noise(.34,.020,0,.55);
+    blip('sine',92,58,.36,.038);
+    blip('triangle',184,122,.22,.018,.05);
+  }else if(stage==='unlock'){
+    noise(.16,.052,0,.20);
+    blip('square',250,74,.18,.050);
+    blip('square',170,54,.24,.042,.07);
+    blip('triangle',86,62,.30,.026,.02);
+  }else if(stage==='reveal'){
+    noise(.24,.030,0,.42);
+    blip('sine',145,315,.34,.034);
+    blip('triangle',420,760,.20,.026,.06);
+    blip('sine',760,1180,.18,.018,.16);
+  }else{
+    [392,523,659].forEach((n,i)=>blip('triangle',n,n,.15,.026,i*.055));
+    blip('sine',1046,1320,.16,.018,.12);
+  }
+}
 export function playUiMove() { if(allow('ui',50)) {noise(.022,.011);blip('triangle',240,145,.033,.022);} }
 export function playUiSelect() {
   noise(.04,.018);
