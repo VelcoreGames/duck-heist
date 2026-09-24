@@ -1029,33 +1029,27 @@ function drawWideMenuChrome(engine:GameEngine,label:string,accent='#e6c56f') {
   text(ctx,'ESC · VOLVER / PAUSA',safeLeft+10,bottomY+12,4.25,'#788f93','left',true,false);
   text(ctx,'F · PANTALLA COMPLETA',safeRight-10,bottomY+12,4.25,'#788f93','right',true,false);
 
-  // Railes laterales sólo si hay espacio suficiente. Si el cover recorta los
-  // bordes, sus anchos se recalculan a partir del área visible.
-  if(leftRegion>=58){
-    const pad=7,cardX=safeLeft+pad,cardW=Math.max(44,leftRegion-pad*2);
-    drawMenuCard(ctx,cardX,50,cardW,92,false,accent,'rgba(8,19,25,.94)');
-    text(ctx,'OPERACIÓN',cardX+8,66,3.7,'#667d82','left',true,false);
-    wrappedText(ctx,mode,cardX+8,82,cardW-16,5.25,6.1,2,'#e4e9e4',true);
-    ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(cardX+8,95,cardW-16,1);
-    text(ctx,'DIFICULTAD',cardX+8,109,3.7,'#667d82','left',true,false);
-    wrappedText(ctx,difficultyLabel(engine),cardX+8,125,cardW-16,4.95,5.9,2,accent,true);
-    ctx.globalAlpha=.22;ctx.fillStyle=accent;ctx.fillRect(coreLeft-2,46,1,CANVAS_HEIGHT-92);ctx.globalAlpha=1;
+  // Los costados sólo muestran contexto mínimo. Evitamos tarjetas grandes que
+  // compitan con el menú central o parezcan relleno en monitores anchos.
+  if(leftRegion>=42){
+    const lx=safeLeft+Math.max(10,leftRegion*.18);
+    const ly=Math.max(66,safe.y+78);
+    ctx.globalAlpha=.18;ctx.fillStyle=accent;ctx.fillRect(lx-5,ly-11,1,28);ctx.globalAlpha=1;
+    text(ctx,'MODO',lx,ly-2,3.65,'#62787c','left',true,false);
+    text(ctx,mode+' · '+difficultyLabel(engine),lx,ly+12,4.7,'#cfd9d5','left',true,false);
   }
 
-  if(rightRegion>=58){
-    const pad=7,cardX=coreRight+pad,cardW=Math.max(44,rightRegion-pad*2);
-    drawMenuCard(ctx,cardX,50,cardW,92,false,accent,'rgba(8,19,25,.94)');
-    text(ctx,'PROGRESO',cardX+8,66,3.7,'#667d82','left',true,false);
-    wrappedText(ctx,progress,cardX+8,82,cardW-16,5.25,6.1,2,'#e4e9e4',true);
-    ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(cardX+8,95,cardW-16,1);
-    text(ctx,'ESTADO',cardX+8,109,3.7,'#667d82','left',true,false);
-    wrappedText(ctx,state,cardX+8,125,cardW-16,4.95,5.9,2,state==='EN PAUSA'?'#d8c57d':'#78c99a',true);
-    ctx.globalAlpha=.22;ctx.fillStyle=accent;ctx.fillRect(coreRight+1,46,1,CANVAS_HEIGHT-92);ctx.globalAlpha=1;
+  if(rightRegion>=42){
+    const rx=safeRight-Math.max(10,rightRegion*.18);
+    const ry=Math.max(66,safe.y+78);
+    const stateColor=state==='EN PAUSA'?'#d8c57d':state==='CONFIRMAR'?'#d86b58':'#78c99a';
+    ctx.globalAlpha=.18;ctx.fillStyle=accent;ctx.fillRect(rx+4,ry-11,1,28);ctx.globalAlpha=1;
+    text(ctx,'PROGRESO',rx,ry-2,3.65,'#62787c','right',true,false);
+    text(ctx,progress+' · '+state,rx,ry+12,4.7,stateColor,'right',true,false);
   }
 
-  // En formatos con rail estrecho conservamos un identificador compacto.
-  if(leftRegion>=36&&leftRegion<58)text(ctx,'VC',safeLeft+leftRegion/2,176,4.1,accent,'center',true,false);
-  if(rightRegion>=36&&rightRegion<58)text(ctx,'RUN',coreRight+rightRegion/2,176,4.1,accent,'center',true,false);
+  // Si el rail es demasiado estrecho, no dibujamos nada: es mejor aire limpio.
+
 
   ctx.restore();
 }
