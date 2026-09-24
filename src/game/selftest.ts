@@ -100,6 +100,15 @@ export function runSelfChecks():CheckReport {
       assert(e.player.weapons[slot]?.id==='feather_gun','wrong slot replaced');assert(c.items.some(i=>i.itemId===old),'old weapon not dropped');
       assert(!c.items.some(i=>i.itemId==='feather_gun'),'source remains');
     });
+    check('Impact feedback never freezes the gameplay update',()=>{
+      const e=setup();
+      e.hitStop=4;
+      e.keys.d=true;
+      const before=e.player.x;
+      tick(e);
+      assert(e.hitStop===3,'impact feedback counter did not advance');
+      assert(e.player.x!==before || e.player.vx!==0,'hit feedback froze player movement');
+    });
     check('Dash does not create shots',()=>{const e=setup();handleDash(e);tick(e);assert(e.player.dashCooldown>0 && e.projectiles.length===0,'dash fired');});
     check('Ready transitions do not retrigger',()=>{
       const e=setup();e.player.dashCooldown=1;e.player.activeItemCooldown=1;tick(e);
