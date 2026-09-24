@@ -471,9 +471,32 @@ export function renderWorld(engine: GameEngine) {
     ctx.restore();
   }
   for (const p of engine.projectiles) {
-    ctx.save();ctx.translate(p.x,p.y);ctx.scale(p.nuclear?1.65:1,p.nuclear?1.65:1);
-    if(p.nuclear) {ctx.fillStyle='rgba(150,224,94,.2)';ctx.fillRect(-7,-7,14,14);}
-    drawProjectile(ctx,0,0,p.type,f);ctx.restore();
+    ctx.save();
+    ctx.translate(p.x,p.y);
+
+    if(p.nuclear){
+      // El antiguo aura era un fillRect verde y se veía como un cuadrado
+      // pegado al proyectil. Ahora el efecto es radial, pixel-art y barato:
+      // dos halos circulares + una estela corta en la dirección del disparo.
+      const len=Math.hypot(p.vx,p.vy)||1;
+      const dx=p.vx/len,dy=p.vy/len;
+      ctx.globalAlpha=.12;
+      ctx.fillStyle='#96e05e';
+      ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.20;
+      ctx.beginPath();ctx.arc(0,0,5.5,0,Math.PI*2);ctx.fill();
+
+      ctx.globalAlpha=.18;
+      ctx.fillStyle='#c9f58f';
+      ctx.beginPath();ctx.arc(-dx*6,-dy*6,2.6,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.10;
+      ctx.beginPath();ctx.arc(-dx*10,-dy*10,1.8,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.scale(1.42,1.42);
+    }
+
+    drawProjectile(ctx,0,0,p.type,f);
+    ctx.restore();
   }
   for (const g of engine.grenades) {
     ctx.fillStyle = 'rgba(0,0,0,.28)';
