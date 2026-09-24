@@ -7,7 +7,8 @@ const games=[
     status:'JUGAR AHORA',
     live:true,
     className:'duck',
-    description:'El atraco principal de Velcore Games.',
+    description:'Atraca el Banco del Pan, construye tu build y sobrevive a una seguridad que escala piso a piso.',
+    platform:'PC · WEB',
   },
   {
     id:'duck-heist-movil',
@@ -17,7 +18,8 @@ const games=[
     status:'EN DESARROLLO',
     live:false,
     className:'mobile',
-    description:'Versión independiente preparada para móvil.',
+    description:'Una versión independiente pensada desde cero para controles táctiles y sesiones móviles.',
+    platform:'MÓVIL',
   },
   {
     id:'eca',
@@ -27,11 +29,15 @@ const games=[
     status:'EN DESARROLLO',
     live:false,
     className:'eca',
-    description:'Nuevo espacio reservado dentro de Velcore Games.',
+    description:'El siguiente universo de Velcore Games. Su espacio ya está preparado para crecer sin limitar el catálogo.',
+    platform:'PRÓXIMAMENTE',
   },
 ] as const;
 
 export default function GamePortal(){
+  const liveCount=games.filter(game=>game.live).length;
+  const developmentCount=games.length-liveCount;
+
   return (
     <main className="vg-page vg-hub">
       <div className="vg-grid-bg" aria-hidden="true" />
@@ -46,42 +52,58 @@ export default function GamePortal(){
         <div className="vg-header-copy">
           <span>CATÁLOGO</span>
           <span>{games.length.toString().padStart(2,'0')} PROYECTOS</span>
+          <span>{liveCount.toString().padStart(2,'0')} JUGABLE</span>
         </div>
       </header>
 
       <section className="vg-hero">
-        <div className="vg-kicker">VELCORE GAMES · BIBLIOTECA</div>
-        <h1>UN LUGAR.<br/><em>MUCHOS JUEGOS.</em></h1>
-        <p>Elige un proyecto. Cada juego vive en su propia ruta y puede crecer de forma independiente.</p>
+        <div className="vg-hero-copy">
+          <div className="vg-kicker">VELCORE GAMES · BIBLIOTECA</div>
+          <h1>UN LUGAR.<br/><em>MUCHOS JUEGOS.</em></h1>
+          <p>Una biblioteca propia para jugar, descubrir proyectos y seguir cómo crece cada universo de Velcore Games.</p>
+        </div>
+        <div className="vg-hero-stats" aria-label="Estado del catálogo">
+          <div><strong>{String(liveCount).padStart(2,'0')}</strong><span>JUGABLE</span></div>
+          <div><strong>{String(developmentCount).padStart(2,'0')}</strong><span>EN DESARROLLO</span></div>
+          <div><strong>WEB</strong><span>PLATAFORMA</span></div>
+        </div>
       </section>
 
       <section className="vg-library" aria-label="Juegos de Velcore Games">
         {games.map((game,index)=>(
           <a
             key={game.id}
-            className={`vg-game-card vg-game-${game.className} ${game.live?'is-live':'is-coming'}`}
+            className={`vg-game-card vg-game-${game.className} ${game.live?'is-live':'is-coming'} ${index===0?'is-featured':'is-secondary'}`}
             href={game.href}
           >
             <div className="vg-card-number">{String(index+1).padStart(2,'0')}</div>
             <div className="vg-card-art" aria-hidden="true">
               <div className="vg-pixel-shape" />
               <div className="vg-card-glow" />
+              <div className="vg-art-caption">
+                <span>{game.live?'DISPONIBLE AHORA':'EN PRODUCCIÓN'}</span>
+                <strong>{game.platform}</strong>
+              </div>
             </div>
             <div className="vg-card-meta">
               <div>
-                <span className="vg-status">{game.status}</span>
+                <span className="vg-status"><i />{game.status}</span>
                 <h2>{game.title}</h2>
                 <h3>{game.subtitle}</h3>
               </div>
               <span className="vg-arrow">↗</span>
             </div>
-            <p>{game.description}</p>
+            <div className="vg-card-footer">
+              <p>{game.description}</p>
+              <span className="vg-card-cta">{game.live?'ABRIR JUEGO':'VER PROYECTO'}</span>
+            </div>
           </a>
         ))}
       </section>
 
       <footer className="vg-footer">
         <span>VELCORE GAMES</span>
+        <span>PLAY · BUILD · EXPAND</span>
         <span>WEB GAME PLATFORM</span>
       </footer>
     </main>
