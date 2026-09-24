@@ -69,11 +69,19 @@ export default function GamePortal(){
         </div>
       </section>
 
+      <div className="vg-library-head">
+        <div>
+          <span>CATÁLOGO</span>
+          <strong>PROYECTOS DE VELCORE GAMES</strong>
+        </div>
+        <small>{games.length.toString().padStart(2,'0')} EN BIBLIOTECA · {liveCount.toString().padStart(2,'0')} DISPONIBLE</small>
+      </div>
+
       <section className="vg-library" aria-label="Juegos de Velcore Games">
         {games.map((game,index)=>(
           <a
             key={game.id}
-            className={`vg-game-card vg-game-${game.className} ${game.live?'is-live':'is-coming'} ${index===0?'is-featured':'is-secondary'}`}
+            className={`vg-game-card vg-game-${game.className} ${game.live?'is-live':'is-coming'} ${index===0?'is-featured':index<3?'is-secondary':'is-library'}`}
             href={game.href}
           >
             <div className="vg-card-number">{String(index+1).padStart(2,'0')}</div>
