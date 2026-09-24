@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, hudMenuRect, useWideMainMenu, activeSwapHit, endlessRewardHit, endActionHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, hudMenuRect, useWideMainMenu, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -533,7 +533,7 @@ export default function App() {
         GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
       ].includes(engine.state);
     };
-    const uiPoint=(p:{x:number;y:number})=>usesLegacyUiCoordinates()?{x:p.x-UI_OFFSET_X,y:p.y}:p;
+    const uiPoint=(p:{x:number;y:number})=>usesLegacyUiCoordinates()?legacyUiPoint(p.x,p.y):p;
 
     const onMove = (ev: MouseEvent) => {
       const raw = toWorld(ev);
