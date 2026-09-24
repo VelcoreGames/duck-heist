@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -17,6 +17,7 @@ import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endless
 import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect } from './layout';
+import { drawVaultScene } from './titleScene';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -48,6 +49,18 @@ export function runSelfChecks():CheckReport {
     return e;
   };
   try {
+    check('Intro de atraco tiene duración y skip válidos',()=>{
+      assert(HEIST_INTRO_FRAMES>=120&&HEIST_INTRO_FRAMES<=180,'duración fuera de rango');
+      assert(HEIST_INTRO_SKIP_AFTER>=12&&HEIST_INTRO_SKIP_AFTER<HEIST_INTRO_FRAMES*.35,'skip fuera de rango');
+    });
+    check('Escena de bóveda renderiza todas las fases cinematográficas',()=>{
+      const scene=document.createElement('canvas');scene.width=480;scene.height=352;
+      const sceneCtx=scene.getContext('2d')!;
+      for(const phase of [0,.12,.28,.48,.72,.9,1]){
+        sceneCtx.clearRect(0,0,480,352);
+        drawVaultScene(sceneCtx,120,'robber',phase,240,176,phase,'#e6c56f');
+      }
+    });
     check('UI legacy cabe completa en el área segura calculada',()=>{
       for(const [w,h] of [[1920,1080],[1366,768],[1600,900],[1920,1200],[1280,1024],[2560,1080]]){
         const safe=coverVisibleCanvasRect(w,h);
