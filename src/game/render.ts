@@ -1083,9 +1083,11 @@ export function renderUI(engine: GameEngine) {
 
   switch (s) {
     case GameState.MENU: {
-      const wide=useWideMainMenu();
-      if(wide){drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');renderMenuUI(engine,true);}
-      else legacy(()=>renderMenuUI(engine,false));
+      // El layout aprobado usa el bloque clásico 480x352 centrado y reserva
+      // el ancho adicional para los railes laterales. Así no se estira el panel
+      // principal ni cambia la jerarquía al entrar en fullscreen.
+      if(useWideMainMenu())drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');
+      legacy(()=>renderMenuUI(engine,false));
       break;
     }
     case GameState.DIFFICULTY: framedLegacy(()=>renderDifficultyUI(engine),'SELECCIÓN DE RIESGO','#d86b58'); break;
