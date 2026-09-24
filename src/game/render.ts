@@ -2006,8 +2006,9 @@ function renderBossIntroUI(engine: GameEngine) {
 
   // Layout fluido: en widescreen el dossier crece de verdad, no queda pegado
   // a los primeros 480 px del canvas.
-  const totalW=Math.min(CANVAS_WIDTH-40,620);
-  const x0=(CANVAS_WIDTH-totalW)/2;
+  const safe=visibleCanvasRect(10);
+  const totalW=Math.min(safe.w,620);
+  const x0=safe.x+(safe.w-totalW)/2;
   const gap=Math.max(12,Math.min(18,totalW*.025));
   const leftW=Math.round(totalW*.60);
   const rightW=totalW-leftW-gap;
