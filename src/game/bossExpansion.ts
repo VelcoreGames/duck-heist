@@ -48,19 +48,6 @@ export const BOSS_FAMILY_STYLE:Record<BossFamily,{accent:string;secondary:string
 const ATTACKS:BossAttackKind[]=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
 const MOBILITY:BossMobility[]=['hunter','orbit','skirmish','fortress','ambush'];
 
-// Cada familia tiene un lenguaje de combate reconocible. La secuencia individual
-// sigue siendo distinta por jefe, pero ya no se siente como una permutación aleatoria.
-const FAMILY_CORE:Record<BossFamily,BossAttackKind[]> = {
-  command:['crossfire','summon','sniper','rush'],
-  finance:['cage','fan','mines','ring'],
-  bakery:['mines','lanes','nova','spiral'],
-  tech:['ring','spiral','warp','sniper'],
-  riot:['rush','cage','ring','fan'],
-  war:['fan','crossfire','rush','summon'],
-  wealth:['ring','nova','cage','warp'],
-  vault:['cage','warp','lanes','ring'],
-};
-
 function permutationCount(n:number,k:number){
   let total=1;for(let i=0;i<k;i++)total*=n-i;return total;
 }
