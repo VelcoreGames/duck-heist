@@ -233,27 +233,27 @@ export default function App() {
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
-      // ESC conserva su función de juego (pausa, reanudar y volver) incluso en
-      // fullscreen. La salida con doble ESC sólo se habilita desde el menú raíz;
-      // F sigue alternando fullscreen desde cualquier pantalla.
-      const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement && engine.state===GameState.MENU;
+      // ESC mantiene su acción normal del juego. En fullscreen además arma
+      // una salida: dos pulsaciones rápidas salen, una sola pausa/reanuda/vuelve.
+      const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement;
       if ((['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k))) {
         e.preventDefault();
       }
       if (e.repeat) return;
 
-      // En el menú raíz, el primer ESC arma la salida y el segundo sale de
-      // fullscreen. Dentro del juego ESC siempre pertenece a Duck Heist.
+      // Primer ESC: ejecuta también la acción normal de Duck Heist y arma la
+      // salida. Segundo ESC rápido: sale de fullscreen sin cambiar de nuevo el
+      // estado del juego. Así PLAYING -> PAUSED con un ESC, PAUSED -> PLAYING
+      // con un ESC normal, y ESC ESC funciona desde cualquier pantalla.
       if (fullscreenEscape) {
         e.preventDefault();
         const now=performance.now();
         if(fullscreenEscapeArmedUntil&&now<=fullscreenEscapeArmedUntil){
           clearFullscreenExitArm();
           void document.exitFullscreen?.();
-        }else{
-          armFullscreenExit();
+          return;
         }
-        return;
+        armFullscreenExit();
       }
 
       // F es un atajo global reservado: funciona también en menús mouse-first
