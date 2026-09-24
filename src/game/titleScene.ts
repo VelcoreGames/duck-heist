@@ -27,9 +27,73 @@ function camera(c:Ctx,x:number,y:number,t:number,flip=1) {
   c.globalAlpha=.035; c.fillStyle='#72b7b6'; c.beginPath(); c.moveTo(12,4); c.lineTo(95,70); c.lineTo(115,15); c.fill(); c.restore();
 }
 
-export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX=240,mouseY=176) {
+const smooth01=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
+
+function drawVaultInterior(c:Ctx,vx:number,vy:number,reveal:number,frame:number) {
+  c.save();
+  c.beginPath();c.arc(vx,vy,58,0,Math.PI*2);c.clip();
+  r(c,vx-62,vy-62,124,124,'#061015');
+
+  const inner=c.createRadialGradient(vx,vy,4,vx,vy,66);
+  inner.addColorStop(0,`rgba(255,218,123,${.18+reveal*.30})`);
+  inner.addColorStop(.58,`rgba(111,87,44,${.16+reveal*.18})`);
+  inner.addColorStop(1,'rgba(0,0,0,.72)');
+  c.fillStyle=inner;c.fillRect(vx-64,vy-64,128,128);
+
+  // Estantes y cajas de seguridad: el interior se descubre de verdad al correrse la puerta.
+  for(let row=0;row<3;row++){
+    const y=vy-40+row*27;
+    r(c,vx-47,y,94,3,'#695f46');
+    for(let col=0;col<5;col++){
+      const x=vx-43+col*19;
+      r(c,x,y+4,15,18,row===1&&col===2?'#7a5d2f':'#253a3e');
+      r(c,x+1,y+5,13,2,row===1&&col===2?'#d2a84f':'#526569');
+      r(c,x+6,y+12,3,2,row===1&&col===2?'#f2cf67':'#8ca0a0');
+    }
+  }
+
+  // Pan dorado como recompensa visual central, nunca como un simple rectángulo de luz.
+  const bob=Math.round(Math.sin(frame*.035)*1);
+  r(c,vx-13,vy-16+bob,26,18,'#8f6827');
+  r(c,vx-11,vy-20+bob,22,7,'#f1cf66');
+  r(c,vx-9,vy-17+bob,18,14,'#e7b84d');
+  for(let i=0;i<3;i++){r(c,vx-7+i*7,vy-16+bob,2,7,'#98702e');}
+  r(c,vx-8,vy-4+bob,16,2,'#c79134');
+
+  for(let i=0;i<8;i++){
+    const a=i*.81+frame*.004;
+    const rad=31+(i%3)*7;
+    const x=vx+Math.cos(a)*rad,y=vy+Math.sin(a)*rad;
+    c.globalAlpha=(.10+(i%3)*.06)*reveal;
+    r(c,x,y,i%4===0?2:1,1,i%2?'#fff0a0':'#e6c56f');
+  }
+  c.globalAlpha=1;
+  c.restore();
+}
+
+function drawVaultClamps(c:Ctx,vx:number,vy:number,release:number) {
+  const pull=smooth01(release)*11;
+  const clamps=[
+    {x:vx-8,y:vy-78,w:16,h:12,dx:0,dy:-pull},
+    {x:vx-8,y:vy+66,w:16,h:12,dx:0,dy:pull},
+    {x:vx-78,y:vy-8,w:12,h:16,dx:-pull,dy:0},
+    {x:vx+66,y:vy-8,w:12,h:16,dx:pull,dy:0},
+  ];
+  for(const q of clamps){
+    const x=q.x+q.dx,y=q.y+q.dy;
+    r(c,x+2,y+2,q.w,q.h,'#07131a');
+    r(c,x,y,q.w,q.h,'#657b79');
+    r(c,x+2,y+2,q.w-4,2,'#aeb9a7');
+    r(c,x+3,y+q.h-4,q.w-6,2,'#31474c');
+  }
+}
+
+
+export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX=240,mouseY=176,cinematic=0,accent='#e6c56f') {
   r(c,0,0,480,352,'#10191f');
-  const parX=(mouseX-240)/180,parY=(mouseY-176)/250;
+  const cin=Math.max(0,Math.min(1,cinematic));
+  const parallaxMul=cin>0?Math.max(.18,1-cin*.82):1;
+  const parX=(mouseX-240)/180*parallaxMul,parY=(mouseY-176)/250*parallaxMul;
   c.save(); c.translate(parX,parY);
   // Deep masonry, steel ribs and a glass security office.
   for(let row=0;row<12;row++) for(let col=0;col<11;col++) {
@@ -43,8 +107,11 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   const px=12+(frame*.12)%67;
   drawSecurityPigeon(c,px,174,frame,false); c.restore();
   r(c,31,103,3,120,'#18272e');
-  const police=Math.sin(frame*.045)>0?'#356593':'#91433f';
-  if(frame%600>460) { c.globalAlpha=.13; r(c,10,110,49,107,police); c.restore(); c.save(); c.translate(parX,parY); }
+  const police=cin>0?(cin<.52?'#91433f':'#537f78'):(Math.sin(frame*.045)>0?'#356593':'#91433f');
+  if(cin>0 || frame%600>460) {
+    c.globalAlpha=cin>0?.07+.09*(1-smooth01((cin-.56)/.24)):.13;
+    r(c,10,110,49,107,police);c.globalAlpha=1;
+  }
   for(const x of [2,190,464]) {
     r(c,x,0,14,280,'#0c1820'); r(c,x+3,0,8,280,'#30434a'); r(c,x+4,0,2,280,'#526268');
     for(let y=15;y<280;y+=36) bolt(c,x+7,y);
@@ -70,8 +137,15 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   c.fillStyle=glow; c.fillRect(170,20,310,315);
   disc(c,vx,vy,83,'#0c2028'); disc(c,vx,vy,79,'#8c9d91'); disc(c,vx,vy,75,'#364e52');
   disc(c,vx,vy,72,'#172f34'); disc(c,vx,vy,68,'#eeb553'); disc(c,vx,vy,66,'#5b5140');
+
+  // Interior físico detrás de la puerta: estantes, cajas y el botín central.
+  drawVaultInterior(c,vx,vy,intro,frame);
+  drawVaultClamps(c,vx,vy,Math.max(0,(cin-.16)/.30));
+
   // Opening is real visual movement of the door, timed by the engine.
-  c.save(); c.translate(intro*72,Math.sin(intro*Math.PI)*-1); c.scale(1-intro*.17,1);
+  const doorEase=smooth01(intro);
+  const heavyKick=cin>0?Math.sin(Math.max(0,Math.min(1,(cin-.24)/.16))*Math.PI)*2:0;
+  c.save(); c.translate(doorEase*75+heavyKick,Math.sin(doorEase*Math.PI)*-1); c.scale(1-doorEase*.18,1);
   disc(c,vx,vy,64,'#5c7271'); disc(c,vx,vy,61,'#314c53'); disc(c,vx,vy,57,'#273f45');
   for(let a=0;a<Math.PI*2;a+=Math.PI/8) {
     const xx=vx+Math.cos(a)*72,yy=vy+Math.sin(a)*72; bolt(c,xx,yy);
@@ -83,7 +157,8 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   r(c,vx-14,vy-43,28,13,'#d8c28c');
   for(let i=0;i<3;i++) { r(c,vx-11+i*9,vy-43,3,7,'#887443'); r(c,vx-9+i*9,vy-41,2,6,'#887443'); }
   // Six locking bars meet a rotating wheel.
-  const angle=frame*.002+intro*5.2+Math.sin(intro*Math.PI)*.18;
+  const wheelSpin=cin>0?smooth01(Math.max(0,Math.min(1,(cin-.08)/.34))):intro;
+  const angle=frame*.0015+wheelSpin*7.1+Math.sin(wheelSpin*Math.PI)*.26;
   for(let i=0;i<6;i++) {
     const a=angle+i*Math.PI/3, x1=vx+Math.cos(a)*15,y1=vy+12+Math.sin(a)*15;
     const x2=vx+Math.cos(a)*43,y2=vy+12+Math.sin(a)*43;
@@ -116,8 +191,14 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   c.globalAlpha=.12+intro*.38; c.fillStyle='#e5b257'; c.beginPath();
   c.moveTo(315,247);c.lineTo(363,247);c.lineTo(440,337);c.lineTo(239,337);c.fill();c.globalAlpha=1;
   r(c,283,77,108,8,'#0f2329');
-  for(let i=0;i<5;i++) r(c,298+i*17,79,8,3,(frame+i*8)%80<44?'#b4c88a':'#4d725c');
-  if(intro>0) r(c,320,79,28,3,frame%10<5?'#f07763':'#572e32');
+  for(let i=0;i<5;i++){
+    const phase=cin>0?cin:(frame+i*8)%80/80;
+    const online=cin>0?phase>(.16+i*.055):(frame+i*8)%80<44;
+    r(c,298+i*17,79,8,3,online?(cin>.66?accent:'#b4c88a'):'#4d725c');
+  }
+  if(cin>0){
+    r(c,320,79,28,3,cin<.58?(frame%8<4?'#f07763':'#572e32'):'#78c99a');
+  }else if(intro>0) r(c,320,79,28,3,frame%10<5?'#f07763':'#572e32');
   // Keypad and monitor mounted beside the vault.
   r(c,447,145,12,35,'#0d1d25');r(c,449,148,8,8,'#74a88b');
   for(let i=0;i<6;i++) r(c,449+(i%2)*5,160+Math.floor(i/2)*5,3,3,'#778783');
@@ -141,18 +222,34 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
     }
     c.globalAlpha=1;
   }
-  // The equipped cosmetic always appears in the title scene. During the intro
-  // it settles into position with a tiny heroic bounce instead of appearing static.
-  const duckSettle=intro>0?(1-intro)*6:0;
-  const duckPulse=intro>0?1+Math.sin(intro*Math.PI)*.025:1;
-  c.save();c.translate(331,270+duckSettle+Math.round(Math.sin(frame*.036)));c.scale(2.6*duckPulse,2.6*duckPulse);
-  drawDuckSkin(c,-8,-8,frame,skin,frame%660>520?'left':'down',false,false,false);c.restore();
+  // Coreografía del protagonista: entra al cono de luz, observa la bóveda y
+  // termina mirando al jugador cuando la infiltración queda autorizada.
+  const walk=smooth01(Math.max(0,Math.min(1,(cin-.30)/.28)));
+  const ready=smooth01(Math.max(0,Math.min(1,(cin-.68)/.18)));
+  const duckX=cin>0?326+walk*5:331;
+  const duckY=cin>0?278-walk*8:270;
+  const duckBob=cin>0&&cin<.62?Math.round(Math.sin(frame*.42)):Math.round(Math.sin(frame*.036));
+  const duckPulse=cin>0?1+Math.sin(ready*Math.PI)*.035:1;
+  const duckDir=cin>0?(ready>.55?'down':'up'):(frame%660>520?'left':'down');
+  const duckMoving=cin>0&&cin>.30&&cin<.58;
+
+  if(cin>0){
+    const spot=c.createRadialGradient(duckX,duckY+7,3,duckX,duckY+7,38);
+    spot.addColorStop(0,`rgba(255,222,133,${.11+.16*ready})`);
+    spot.addColorStop(1,'rgba(255,222,133,0)');
+    c.fillStyle=spot;c.fillRect(duckX-42,duckY-30,84,72);
+  }
+
+  c.save();c.translate(duckX,duckY+duckBob);c.scale(2.6*duckPulse,2.6*duckPulse);
+  drawDuckSkin(c,-8,-8,frame,skin,duckDir,duckMoving,false,false,false);c.restore();
   const pigeonT=frame%1400;
   if(pigeonT>1040) { const xx=470-Math.min(40,(pigeonT-1040)*.25); drawShopPigeon(c,xx,304,frame); }
   for(let i=0;i<27;i++) {
     const x=230+(i*47)%225+Math.sin(frame*.011+i)*5;
-    const y=70+((i*39-frame*.12+6000)%260);
-    c.globalAlpha=.16+(i%3)*.11;r(c,x,y,i%7===0?2:1,1,'#eed28b');
+    const speed=cin>0?.12+.13*smooth01((cin-.34)/.34):.12;
+    const y=70+((i*39-frame*speed+6000)%260);
+    c.globalAlpha=(.12+(i%3)*.09)*(cin>0?.55+.55*intro:1);
+    r(c,x,y,i%7===0?2:1,1,i%4===0?'#fff0a0':'#eed28b');
   }
   c.globalAlpha=1;c.restore();
   const veil=c.createLinearGradient(0,0,225,0);veil.addColorStop(0,'rgba(8,18,24,.83)');veil.addColorStop(1,'rgba(8,18,24,0)');
