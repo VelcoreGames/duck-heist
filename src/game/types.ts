@@ -466,6 +466,8 @@ export interface GameEngine {
   endlessRecords: Record<DifficultyMode,EndlessRecord>;
   endlessCheckpointRound:number;
   endlessCheckpointDifficulty:DifficultyMode|null;
+  heistCheckpointFloor:number;
+  heistCheckpointDifficulty:DifficultyMode|null;
   endlessResumeIndex:number;
   madUnlocked: boolean;
 
@@ -473,7 +475,7 @@ export interface GameEngine {
   pauseIndex: number;
   runInfoTab: number;
   confirmIndex: number;
-  confirmKind: 'restart'|'quit'|'new_endless'|null;
+  confirmKind: 'restart'|'quit'|'new_endless'|'new_heist'|null;
   confirmReturnState: GameState;
   settingsIndex: number;
   upgradeIndex: number;
