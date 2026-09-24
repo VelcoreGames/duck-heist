@@ -1,18 +1,35 @@
-import { CANVAS_WIDTH, UI_BASE_WIDTH } from './constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH } from './constants';
 // Shared drawing and hit-test geometry. Every visible mouse control uses these exact rectangles.
 export type Rect={x:number;y:number;w:number;h:number};
 export const inside = (x:number,y:number,r:Rect) => x>=r.x && y>=r.y && x<=r.x+r.w && y<=r.y+r.h;
 
+/**
+ * Área lógica realmente visible cuando fullscreen usa CSS "cover".
+ * El mundo puede recortarse unos píxeles para llenar el monitor, pero todos
+ * los controles y textos importantes deben vivir dentro de este rectángulo.
+ */
+export function visibleCanvasRect(padding=0):Rect {
+  if(typeof window==='undefined'||typeof document==='undefined'||!document.fullscreenElement){
+    return {x:padding,y:padding,w:Math.max(1,CANVAS_WIDTH-padding*2),h:Math.max(1,CANVAS_HEIGHT-padding*2)};
+  }
+  const vw=Math.max(1,window.innerWidth),vh=Math.max(1,window.innerHeight);
+  const scale=Math.max(vw/CANVAS_WIDTH,vh/CANVAS_HEIGHT);
+  const visibleW=Math.min(CANVAS_WIDTH,vw/scale);
+  const visibleH=Math.min(CANVAS_HEIGHT,vh/scale);
+  const cropX=(CANVAS_WIDTH-visibleW)/2;
+  const cropY=(CANVAS_HEIGHT-visibleH)/2;
+  const x=cropX+padding,y=cropY+padding;
+  return {x,y,w:Math.max(1,visibleW-padding*2),h:Math.max(1,visibleH-padding*2)};
+}
+
 export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
 export function mainMenuRect(i:number,wide=false):Rect {
   if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
-  // Fullscreen no estira el menú hasta los bordes. Toda la navegación vive
-  // dentro de una composición central de 510 px lógicos, con margen seguro
-  // para el recorte "cover" de monitores 16:9.
-  const totalW=Math.min(510,CANVAS_WIDTH-64);
-  const x0=Math.round((CANVAS_WIDTH-totalW)/2);
-  const width=Math.min(176,Math.max(164,Math.round(totalW*.34)));
-  const height=25,gap=3,top=91;
+  const safe=visibleCanvasRect(10);
+  const totalW=Math.min(540,safe.w);
+  const x0=Math.round(safe.x+(safe.w-totalW)/2);
+  const width=Math.min(184,Math.max(170,Math.round(totalW*.34)));
+  const height=27,gap=3,top=Math.max(78,safe.y+74);
   return {x:x0,y:top+i*(height+gap),w:width,h:height};
 }
 export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i,wide)))return i;return -1;}
