@@ -563,8 +563,10 @@ export function renderWorld(engine: GameEngine) {
       ctx.restore();
     }
     const currentWeapon=activeWeapon(p);
-    const recoilPower=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'?2.8:
-      currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_sniper'||currentWeapon.id==='golden_egg_revolver'?2.0:1.15;
+    const recoilPower=currentWeapon.id==='plasma_baker'?3.15:currentWeapon.id==='baguette_launcher'?2.8:
+      currentWeapon.id==='breadcrumb_shotgun'?2.55:currentWeapon.id==='baguette_sniper'?2.25:
+      currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'||currentWeapon.id==='golden_egg_revolver'?1.75:
+      currentWeapon.id==='quack_laser'||currentWeapon.id==='feather_gun'||currentWeapon.id==='homing_crumbs'?.75:1.15;
     const recoil=p.shootFlash>0?(p.shootFlash/6)*recoilPower:0;
     const drawX=p.x-Math.cos(p.facingAngle)*recoil,drawY=p.y-Math.sin(p.facingAngle)*recoil;
     const dashHorizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
@@ -576,10 +578,33 @@ export function renderWorld(engine: GameEngine) {
     drawDuckSkin(ctx, -7, -9, f, engine.equippedSkin, p.dir, p.moving,
       p.hurtTimer > 0, p.dashTimer > 0, p.shootFlash > 0);
     ctx.restore();
+
+    // El arma equipada ahora se ve físicamente en las manos del pato. Cada ID
+    // usa el nuevo arte balístico del atlas y rota con la dirección de apuntado.
+    ctx.save();
+    ctx.translate(drawX+7,drawY+9);
+    ctx.rotate(p.facingAngle);
+    const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
+      currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
+    const gunSize=longGun?16:14;
+    drawItemIcon(ctx,3,-Math.round(gunSize/2),currentWeapon.id,gunSize);
+    ctx.restore();
+
     if(p.shootFlash>0){
-      const mx=p.x+7+Math.cos(p.facingAngle)*14,my=p.y+8+Math.sin(p.facingAngle)*14;
-      ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);ctx.globalAlpha=.7;
-      ctx.fillStyle='#fff4bd';ctx.fillRect(0,-2,7,4);ctx.fillStyle='#f4d03f';ctx.fillRect(5,-1,5,2);ctx.restore();
+      const barrel=longGun?18:15;
+      const mx=drawX+7+Math.cos(p.facingAngle)*barrel,my=drawY+9+Math.sin(p.facingAngle)*barrel;
+      ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);
+      const heavy=currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='breadcrumb_shotgun';
+      const flash=heavy?9:currentWeapon.id==='baguette_sniper'||currentWeapon.id==='rubber_duck_cannon'?7:5;
+      ctx.globalAlpha=.76;
+      ctx.fillStyle='#fff4c4';
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-3);ctx.lineTo(flash-2,0);ctx.lineTo(flash,3);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#f0ad43';ctx.fillRect(1,-1,Math.max(2,flash-3),2);
+      // Vaina visual: sólo dibujo, sin entidad física ni coste en la simulación.
+      if(currentWeapon.id!=='baguette_launcher'&&currentWeapon.id!=='tactical_toaster'){
+        ctx.globalAlpha=.72;ctx.fillStyle='#c9a44e';ctx.fillRect(-4,-5,2,1);
+      }
+      ctx.restore();
     }
     if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
       ctx.globalAlpha = 0.2;
