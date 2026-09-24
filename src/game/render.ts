@@ -2022,15 +2022,24 @@ function renderBossIntroUI(engine: GameEngine) {
   const pulse=.5+.5*Math.sin(f*.12);
   const introAlpha=clamp((170-Math.min(170,t))/18,0,1);
 
-  // Fondo cinematográfico: oscuro, con escaneo y resplandor de la firma del jefe.
+  // Layout fluido: en widescreen el dossier crece de verdad, no queda pegado
+  // a los primeros 480 px del canvas.
+  const totalW=Math.min(CANVAS_WIDTH-40,620);
+  const x0=(CANVAS_WIDTH-totalW)/2;
+  const gap=Math.max(12,Math.min(18,totalW*.025));
+  const leftW=Math.round(totalW*.60);
+  const rightW=totalW-leftW-gap;
+  const leftX=x0,rightX=leftX+leftW+gap;
+  const top=50,panelH=244;
+  const portraitCx=rightX+rightW/2,portraitCy=171;
+
   ctx.save();
   ctx.fillStyle='rgba(3,5,12,.965)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-  const glow=ctx.createRadialGradient(360,160,10,360,160,240);
-  glow.addColorStop(0,accent+'30');glow.addColorStop(.46,accent+'12');glow.addColorStop(1,'rgba(0,0,0,0)');
+  const glow=ctx.createRadialGradient(portraitCx,160,10,portraitCx,160,Math.max(220,rightW*1.5));
+  glow.addColorStop(0,accent+'32');glow.addColorStop(.46,accent+'12');glow.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=glow;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   for(let y=0;y<CANVAS_HEIGHT;y+=7){ctx.fillStyle='rgba(255,255,255,.018)';ctx.fillRect(0,y,CANVAS_WIDTH,1);}
-  ctx.globalAlpha=.11;
-  ctx.strokeStyle=accent;ctx.lineWidth=1;
+  ctx.globalAlpha=.10;ctx.strokeStyle=accent;ctx.lineWidth=1;
   for(let x=-80;x<CANVAS_WIDTH+80;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+88,44);ctx.stroke();}
   ctx.globalAlpha=1;
 
@@ -2038,82 +2047,84 @@ function renderBossIntroUI(engine: GameEngine) {
   ctx.fillStyle='rgba(5,10,17,.96)';ctx.fillRect(0,0,CANVAS_WIDTH,34);
   ctx.fillStyle=accent;ctx.fillRect(0,31,CANVAS_WIDTH,3);
   ctx.globalAlpha=.16+.1*pulse;ctx.fillStyle=accent;ctx.fillRect(0,0,CANVAS_WIDTH,31);ctx.globalAlpha=1;
-  text(ctx,'PROTOCOLO DE SEGURIDAD // AMENAZA DETECTADA',18,20,5.7,'#d9e0df','left',true,false);
-  text(ctx,tierLabel,CANVAS_WIDTH-18,20,7,accent,'right',true,false);
+  text(ctx,'PROTOCOLO DE SEGURIDAD // AMENAZA DETECTADA',x0,20,5.7,'#d9e0df','left',true,false);
+  text(ctx,tierLabel,x0+totalW,20,7,accent,'right',true,false);
 
-  // Panel de dossier.
-  drawPanel(ctx,18,50,270,244,'rgba(7,14,21,.965)',accent,'rgba(255,255,255,.035)');
-  ctx.fillStyle=accent;ctx.fillRect(18,50,5,244);
-  ctx.globalAlpha=.2;ctx.fillStyle=secondary;ctx.fillRect(23,77,265,1);ctx.globalAlpha=1;
+  // Dossier informativo.
+  drawPanel(ctx,leftX,top,leftW,panelH,'rgba(7,14,21,.965)',accent,'rgba(255,255,255,.035)');
+  ctx.fillStyle=accent;ctx.fillRect(leftX,top,5,panelH);
+  ctx.globalAlpha=.2;ctx.fillStyle=secondary;ctx.fillRect(leftX+5,top+27,leftW-5,1);ctx.globalAlpha=1;
 
   const name=engine.bossIntroName||def?.name||'AMENAZA DESCONOCIDA';
-  const nameSize=name.length>26?12.5:name.length>20?15:name.length>14?18:21;
-  text(ctx,tierLabel,34,69,5.3,accent,'left',true,false);
-  titleText(ctx,name,34,103,nameSize,secondary,'left',true);
-  wrappedText(ctx,engine.bossIntroSubtitle||def?.subtitle||'',34,119,232,6.2,9,3,'#b7c3c4',false);
+  const nameSize=name.length>28?12.5:name.length>22?15:name.length>15?18:21;
+  text(ctx,tierLabel,leftX+16,top+19,5.3,accent,'left',true,false);
+  titleText(ctx,name,leftX+16,top+53,nameSize,secondary,'left',true);
+  wrappedText(ctx,engine.bossIntroSubtitle||def?.subtitle||'',leftX+16,top+69,leftW-32,6.2,9,3,'#b7c3c4',false);
 
-  // Datos rápidos: comunica jerarquía e identidad antes de empezar.
-  ctx.fillStyle='rgba(255,255,255,.045)';ctx.fillRect(32,154,238,39);
-  text(ctx,'CLASE',42,167,4.2,'#60777d','left',false,false);
-  text(ctx,family,42,182,6.1,'#e0e6e3','left',true,false);
-  text(ctx,'FASES',173,167,4.2,'#60777d','left',false,false);
-  text(ctx,String(phaseCount),173,182,7.2,secondary,'left',true,false);
-  text(ctx,engine.gameMode==='endless'?'ARENA':'UBICACIÓN',222,167,4.2,'#60777d','left',false,false);
-  text(ctx,location,222,182,5.5,'#e0e6e3','left',true,false);
+  const infoY=top+104,infoX=leftX+14,infoW=leftW-28,colW=infoW/3;
+  ctx.fillStyle='rgba(255,255,255,.045)';ctx.fillRect(infoX,infoY,infoW,39);
+  text(ctx,'CLASE',infoX+10,infoY+13,4.2,'#60777d','left',false,false);
+  wrappedText(ctx,family,infoX+10,infoY+28,colW-14,5.6,6.3,2,'#e0e6e3',true);
+  text(ctx,'FASES',infoX+colW+8,infoY+13,4.2,'#60777d','left',false,false);
+  text(ctx,String(phaseCount),infoX+colW+8,infoY+29,7.2,secondary,'left',true,false);
+  text(ctx,engine.gameMode==='endless'?'ARENA':'UBICACIÓN',infoX+colW*2+6,infoY+13,4.2,'#60777d','left',false,false);
+  wrappedText(ctx,location,infoX+colW*2+6,infoY+28,colW-12,5.2,6.2,2,'#e0e6e3',true);
 
-  text(ctx,'PATRÓN DE COMBATE',34,211,4.5,'#71898d','left',true,false);
+  text(ctx,'PATRÓN DE COMBATE',leftX+16,top+161,4.5,'#71898d','left',true,false);
   const shown=attackNames.length?attackNames:['ATAQUE ESPECIAL','PRESIÓN DE ÁREA','CAMBIO DE FASE'];
   shown.forEach((label,i)=>{
-    const y=220+i*21;
-    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(34,y,232,17);
-    ctx.fillStyle=i%2?secondary:accent;ctx.fillRect(34,y,3,17);
-    text(ctx,String(i+1).padStart(2,'0'),44,y+12,4.4,i%2?secondary:accent,'left',true,false);
-    text(ctx,label,68,y+12,5.4,'#d7dfdc','left',true,false);
+    const y=top+170+i*21;
+    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(leftX+16,y,leftW-32,17);
+    ctx.fillStyle=i%2?secondary:accent;ctx.fillRect(leftX+16,y,3,17);
+    text(ctx,String(i+1).padStart(2,'0'),leftX+27,y+12,4.4,i%2?secondary:accent,'left',true,false);
+    text(ctx,label,leftX+51,y+12,5.4,'#d7dfdc','left',true,false);
   });
 
-  // Panel de identificación visual.
-  drawPanel(ctx,302,50,160,244,'rgba(5,10,17,.93)',secondary,'rgba(255,255,255,.025)');
-  ctx.save();
-  ctx.beginPath();ctx.rect(303,51,158,242);ctx.clip();
-  ctx.globalAlpha=.12;ctx.strokeStyle=accent;ctx.lineWidth=1;
-  for(let x=310;x<462;x+=18){ctx.beginPath();ctx.moveTo(x,60);ctx.lineTo(x,286);ctx.stroke();}
-  for(let y=62;y<290;y+=18){ctx.beginPath();ctx.moveTo(306,y);ctx.lineTo(458,y);ctx.stroke();}
+  // Panel visual del objetivo.
+  drawPanel(ctx,rightX,top,rightW,panelH,'rgba(5,10,17,.93)',secondary,'rgba(255,255,255,.025)');
+  ctx.save();ctx.beginPath();ctx.rect(rightX+1,top+1,rightW-2,panelH-2);ctx.clip();
+  ctx.globalAlpha=.11;ctx.strokeStyle=accent;ctx.lineWidth=1;
+  for(let x=rightX+8;x<rightX+rightW;x+=18){ctx.beginPath();ctx.moveTo(x,top+10);ctx.lineTo(x,top+panelH-8);ctx.stroke();}
+  for(let y=top+12;y<top+panelH-4;y+=18){ctx.beginPath();ctx.moveTo(rightX+5,y);ctx.lineTo(rightX+rightW-5,y);ctx.stroke();}
+  const ring1=Math.min(54,rightW*.28),ring2=Math.min(72,rightW*.38);
   ctx.globalAlpha=.28+.14*pulse;ctx.strokeStyle=secondary;ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(382,164,52+pulse*4,0,Math.PI*2);ctx.stroke();
-  ctx.globalAlpha=.18;ctx.beginPath();ctx.arc(382,164,70-pulse*3,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(portraitCx,portraitCy,ring1+pulse*4,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=.18;ctx.beginPath();ctx.arc(portraitCx,portraitCy,ring2-pulse*3,0,Math.PI*2);ctx.stroke();
   for(let i=0;i<8;i++){
-    const a=i*Math.PI/4+f*.006,r1=58,r2=70;
-    ctx.globalAlpha=.24;ctx.beginPath();ctx.moveTo(382+Math.cos(a)*r1,164+Math.sin(a)*r1);ctx.lineTo(382+Math.cos(a)*r2,164+Math.sin(a)*r2);ctx.stroke();
+    const a=i*Math.PI/4+f*.006,r1=ring1+6,r2=ring2;
+    ctx.globalAlpha=.24;ctx.beginPath();ctx.moveTo(portraitCx+Math.cos(a)*r1,portraitCy+Math.sin(a)*r1);ctx.lineTo(portraitCx+Math.cos(a)*r2,portraitCy+Math.sin(a)*r2);ctx.stroke();
   }
   ctx.globalAlpha=1;
 
   if(bosses.length>1){
     bosses.slice(0,2).forEach((boss,i)=>{
       const bossFloor=!!BOSSES[boss.bossType],bossSub=!!SUBBOSSES[boss.bossType];
-      const scale=bossFloor?1.35:bossSub?1.2:1.08;
-      ctx.save();ctx.translate(i===0?346:419,169);ctx.scale(scale,scale);
+      const scale=bossFloor?1.42:bossSub?1.25:1.12;
+      const spread=Math.min(42,rightW*.22);
+      ctx.save();ctx.translate(portraitCx+(i===0?-spread:spread),portraitCy);ctx.scale(scale,scale);
       drawBoss(ctx,-boss.size/2,-boss.size/2,boss.bossType,f,boss.hp,boss.maxHp,false,boss.bossPhase);
       ctx.restore();
     });
   }else if(introBoss){
-    const portraitScale=finalBoss?2.05:floorBoss?1.82:subBoss?1.58:1.4;
-    ctx.save();ctx.translate(382,171);ctx.scale(portraitScale,portraitScale);
+    const portraitScale=finalBoss?2.12:floorBoss?1.9:subBoss?1.64:1.46;
+    ctx.save();ctx.translate(portraitCx,portraitCy);ctx.scale(portraitScale,portraitScale);
     drawBoss(ctx,-introBoss.size/2,-introBoss.size/2,introBoss.bossType,f,introBoss.hp,introBoss.maxHp,false,introBoss.bossPhase);
     ctx.restore();
   }
 
-  ctx.globalAlpha=.92;
-  text(ctx,doubleThreat?'DOS HOSTILES PRIORITARIOS':'OBJETIVO PRIORITARIO',382,267,5.2,accent,'center',true,false);
-  text(ctx,finalBoss?'NIVEL DE AMENAZA · MÁXIMO':floorBoss?'NIVEL DE AMENAZA · ALTO':subBoss?'NIVEL DE AMENAZA · ELEVADO':'NIVEL DE AMENAZA · MODERADO',382,282,4.4,'#91a2a4','center',true,false);
+  ctx.globalAlpha=.94;
+  text(ctx,doubleThreat?'DOS HOSTILES PRIORITARIOS':'OBJETIVO PRIORITARIO',portraitCx,top+217,5.2,accent,'center',true,false);
+  const threat=finalBoss?'MÁXIMO':floorBoss?'ALTO':subBoss?'ELEVADO':'MODERADO';
+  text(ctx,'AMENAZA · '+threat,portraitCx,top+232,4.4,'#91a2a4','center',true,false);
   ctx.restore();
 
-  // Pie de presentación.
+  // Pie de presentación alineado a todo el dossier.
   ctx.globalAlpha=introAlpha;
-  ctx.fillStyle='rgba(3,7,12,.94)';ctx.fillRect(18,307,444,27);
-  ctx.fillStyle=accent;ctx.fillRect(18,307,444,2);
+  ctx.fillStyle='rgba(3,7,12,.94)';ctx.fillRect(x0,307,totalW,27);
+  ctx.fillStyle=accent;ctx.fillRect(x0,307,totalW,2);
   const blink=(f%36)<24;
-  text(ctx,blink?'PREPÁRATE · EL COMBATE COMIENZA':'MANTÉN LA DISTANCIA · LEE EL PATRÓN',30,325,5.2,blink?secondary:'#87999b','left',true,false);
-  text(ctx,'ENTER / ESPACIO · SALTAR',450,325,4.8,'#6f8286','right',true,false);
+  text(ctx,blink?'PREPÁRATE · EL COMBATE COMIENZA':'MANTÉN LA DISTANCIA · LEE EL PATRÓN',x0+12,325,5.2,blink?secondary:'#87999b','left',true,false);
+  text(ctx,'ENTER / ESPACIO · SALTAR',x0+totalW-12,325,4.8,'#6f8286','right',true,false);
   ctx.globalAlpha=1;
   ctx.restore();
 }
