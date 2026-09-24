@@ -1681,7 +1681,12 @@ export function updateEngine(engine: GameEngine) {
   updateEndlessDirector(engine,room,content);
   if(engine.state!==GameState.PLAYING) return;
   updateTutorial(engine);
-  if(engine.hitStop>0) {engine.hitStop--;return;}
+  // Antes el hit-stop detenía TODO el update del juego durante 1-8 frames.
+  // Con daño mejorado, críticos o armas pesadas esto ocurría prácticamente en
+  // cada impacto y se percibía como tirones/congelamientos al acertar disparos.
+  // Conservamos el contador para feedback visual/eventos, pero nunca bloquea
+  // movimiento, proyectiles, IA ni timers del gameplay.
+  if(engine.hitStop>0) engine.hitStop--;
   engine.deathEchoes=engine.deathEchoes.filter(d=>--d.life>0);
   for(const d of engine.deathEchoes) {d.enemy.x+=d.vx;d.enemy.y+=d.vy;d.vx*=.88;d.vy*=.88;}
   const build=getBuild(player);
@@ -2777,7 +2782,8 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
           const len=Math.hypot(p.vx,p.vy)||1;const k=(p.knockback ?? 1)*(e.isBoss?.4:1.5);
           moveEnemy(e,room,p.vx/len*k,p.vy/len*k);
         }
-        if(p.sourceWeapon==='baguette_launcher' || p.sourceWeapon==='golden_egg_revolver') engine.hitStop=Math.max(engine.hitStop,crit&&e.isBoss?4:2);
+        // El peso del impacto se comunica con recoil, partículas, knockback y cámara,
+        // no deteniendo la simulación completa.
 
         // SINERGIAS
         if (p.burning || (crit && build.spicyCrit)) e.burn = Math.max(e.burn, 180);
@@ -3513,14 +3519,12 @@ export function damageEnemy(engine: GameEngine, e: Enemy, dmg: number, crit: boo
   if(dmg>=8){
     spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',e.isBoss?6:4,e.isBoss?'#ffd7a3':'#fff0c4');
     engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?1.4:.75);
-    // Los impactos realmente pesados deben sentirse incluso sin crítico,
-    // pero con un hitstop corto para no volver entrecortadas las armas rápidas.
-    if(dmg>=10) engine.hitStop=Math.max(engine.hitStop,e.isBoss?2:1);
+    // Los golpes fuertes mantienen partículas y cámara, pero no congelan
+    // el mundo. Esto evita microparones cuando el daño base supera 10.
   }
   playHit();
   if (crit) {
     spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 8, '#f4d03f');
-    engine.hitStop=Math.max(engine.hitStop,e.isBoss?2:1);
     engine.shakeIntensity=Math.max(engine.shakeIntensity,e.isBoss?2.2:1.1);
     playCritical();
   }
