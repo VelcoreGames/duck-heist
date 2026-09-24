@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH } from './constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH, UI_OFFSET_X } from './constants';
 // Shared drawing and hit-test geometry. Every visible mouse control uses these exact rectangles.
 export type Rect={x:number;y:number;w:number;h:number};
 export const inside = (x:number,y:number,r:Rect) => x>=r.x && y>=r.y && x<=r.x+r.w && y<=r.y+r.h;
@@ -26,9 +26,9 @@ export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
 export function mainMenuRect(i:number,wide=false):Rect {
   if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
   const safe=visibleCanvasRect(10);
-  const totalW=Math.min(540,safe.w);
-  const x0=Math.round(safe.x+(safe.w-totalW)/2);
-  const width=Math.min(184,Math.max(170,Math.round(totalW*.34)));
+  const x0=Math.max(Math.round(safe.x+18),UI_OFFSET_X+4);
+  const available=Math.max(360,safe.x+safe.w-x0-8);
+  const width=Math.min(190,Math.max(174,Math.round(available*.33)));
   const height=27,gap=3,top=Math.max(78,safe.y+74);
   return {x:x0,y:top+i*(height+gap),w:width,h:height};
 }
