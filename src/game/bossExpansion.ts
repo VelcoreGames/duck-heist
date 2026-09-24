@@ -88,15 +88,10 @@ function uniqueAttackSequence(tier:BossTier,index:number,wanted:number):BossAtta
 function patternFor(tier:BossTier,index:number,family:BossFamily):BossPatternDef {
   const salt=tier==='mini'?0:tier==='sub'?4:8;
   const wanted=tier==='mini'?4:tier==='sub'?5:6;
-  const generated=uniqueAttackSequence(tier,index,wanted);
-  const core=FAMILY_CORE[family];
-  const rotation=(index+salt)%core.length;
-  const rotated=[...core.slice(rotation),...core.slice(0,rotation)];
-  const sequence:BossAttackKind[]=[];
-  for(const attack of [...rotated,...generated]){
-    if(!sequence.includes(attack))sequence.push(attack);
-    if(sequence.length>=wanted)break;
-  }
+  // La secuencia base conserva la k-permutación única por encuentro. La
+  // identidad de familia se añade por proyectiles, apoyos y bossSignatureAttack;
+  // no sacrificamos variedad entre jefes de la misma familia.
+  const sequence=uniqueAttackSequence(tier,index,wanted);
   const style=BOSS_FAMILY_STYLE[family];
   const mobility=MOBILITY[(index*2+salt)%MOBILITY.length];
   const tempo=Number((.82+(index%7)*.045+(tier==='mini'?.04:tier==='boss'?-0.035:0)).toFixed(3));
