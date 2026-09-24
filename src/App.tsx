@@ -521,9 +521,7 @@ export default function App() {
         y: (ev.clientY - r.top) * (CANVAS_HEIGHT / r.height),
       };
     };
-    const wideFullscreenMenu=()=>engine.state===GameState.MENU&&useWideMainMenu();
     const usesLegacyUiCoordinates=()=>{
-      if(wideFullscreenMenu())return false;
       return !!engine.swap||!!engine.activeSwap||[
         GameState.MENU,GameState.DIFFICULTY,GameState.DAILY_BRIEF,GameState.HEIST_INTRO,
         GameState.MAP,GameState.COLLECTION,GameState.CAREER,GameState.HOW_TO_PLAY,
@@ -545,7 +543,7 @@ export default function App() {
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
       const st=engine.state;
       if(st===GameState.MENU){
-        const i=mainMenuHit(p.x,p.y,wideFullscreenMenu());if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
+        const i=mainMenuHit(p.x,p.y,false);if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
       }else if(st===GameState.DIFFICULTY){
         // La dificultad cambia solo al hacer clic; el hover se dibuja aparte.
       }else if(st===GameState.ENDLESS_RESUME){
@@ -620,7 +618,7 @@ export default function App() {
       }
       switch (engine.state) {
         case GameState.MENU: {
-          setMusic('menu');const i=mainMenuHit(x,y,wideFullscreenMenu());
+          setMusic('menu');const i=mainMenuHit(x,y,false);
           if(i>=0){engine.menuIndex=i;activateMenu();}
           break;
         }
