@@ -209,48 +209,59 @@ export function renderWorld(engine: GameEngine) {
     const intro=s===GameState.HEIST_INTRO;
     const elapsed=intro?HEIST_INTRO_FRAMES-engine.heistIntroTimer:0;
     const p=intro?clamp(elapsed/HEIST_INTRO_FRAMES,0,1):0;
-    const opening=intro?easeOutCubic(clamp((p-.12)/.50,0,1)):0;
+    const opening=intro?easeOutCubic(clamp((p-.24)/.38,0,1)):0;
+    const introAccent=engine.pendingMode==='endless'?'#d86b58':engine.pendingMode==='daily'?'#79b9d2':'#e6c56f';
 
     ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
     drawVaultWings(ctx,engine.frame);
 
     ctx.save();
     if(intro&&!engine.settings.reduceMotion){
-      const zoom=1.055-.055*easeOutCubic(clamp(p/.46,0,1));
-      const offsetY=5*(1-easeOutCubic(clamp(p/.38,0,1)));
-      const lockKick=Math.sin(clamp((p-.15)/.18,0,1)*Math.PI)*1.2;
-      ctx.translate(CANVAS_WIDTH/2,CANVAS_HEIGHT/2+offsetY);
+      // Una sola coreografía de cámara: establece la bóveda, acompaña el golpe
+      // mecánico y termina asentada sobre el protagonista.
+      const reveal=smoothStep(.12,.76,p);
+      const zoom=1.072-.072*easeOutCubic(reveal);
+      const offsetY=7*(1-easeOutCubic(smoothStep(0,.46,p)));
+      const panX=-8*(1-smoothStep(.56,.84,p));
+      const unlock=Math.sin(clamp((p-.245)/.095,0,1)*Math.PI);
+      const micro=Math.sin(engine.frame*1.9)*unlock*1.05;
+      ctx.translate(CANVAS_WIDTH/2+panX+micro,CANVAS_HEIGHT/2+offsetY);
       ctx.scale(zoom,zoom);
-      ctx.translate(-CANVAS_WIDTH/2+lockKick,-CANVAS_HEIGHT/2);
+      ctx.translate(-CANVAS_WIDTH/2,-CANVAS_HEIGHT/2);
     }
     ctx.translate(UI_OFFSET_X,0);
-    drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176);
+    drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176,p,introAccent);
     ctx.restore();
 
     if(intro){
       ctx.save();
-      // Viñeta cinematográfica: refuerza el foco en bóveda y pato.
-      const vignette=ctx.createRadialGradient(CANVAS_WIDTH*.58,CANVAS_HEIGHT*.50,92,CANVAS_WIDTH*.58,CANVAS_HEIGHT*.50,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.68);
+
+      // La sala cae ligeramente antes del desbloqueo y la luz cálida gana peso
+      // cuando aparece el interior real de la bóveda.
+      const preOpen=1-smoothStep(.30,.62,p);
+      ctx.fillStyle=`rgba(1,7,10,${.18*preOpen})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+
+      const vignette=ctx.createRadialGradient(CANVAS_WIDTH*.58,CANVAS_HEIGHT*.52,76,CANVAS_WIDTH*.58,CANVAS_HEIGHT*.52,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
       vignette.addColorStop(0,'rgba(2,7,9,0)');
-      vignette.addColorStop(1,`rgba(2,7,9,${.36*(1-smoothStep(.70,.94,p))})`);
+      vignette.addColorStop(1,`rgba(2,7,9,${.42*(1-smoothStep(.74,.96,p))})`);
       ctx.fillStyle=vignette;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
-      // Barrido dorado ligado al desbloqueo.
-      const sweep=smoothStep(.17,.56,p);
+      // Barrido de acero sincronizado con los cerrojos.
+      const sweep=smoothStep(.26,.61,p);
       if(sweep>0&&sweep<1){
-        const sx=CANVAS_WIDTH*.34+sweep*CANVAS_WIDTH*.46;
-        const g=ctx.createLinearGradient(sx-48,0,sx+48,0);
+        const sx=CANVAS_WIDTH*.30+sweep*CANVAS_WIDTH*.53;
+        const g=ctx.createLinearGradient(sx-54,0,sx+54,0);
         g.addColorStop(0,'rgba(255,239,179,0)');
-        g.addColorStop(.5,`rgba(255,239,179,${.11*Math.sin(sweep*Math.PI)})`);
+        g.addColorStop(.5,`rgba(255,239,179,${.14*Math.sin(sweep*Math.PI)})`);
         g.addColorStop(1,'rgba(255,239,179,0)');
-        ctx.fillStyle=g;ctx.fillRect(0,40,CANVAS_WIDTH,CANVAS_HEIGHT-72);
+        ctx.fillStyle=g;ctx.fillRect(0,34,CANVAS_WIDTH,CANVAS_HEIGHT-58);
       }
 
-      // Entrada desde negro y salida breve hacia el primer piso.
-      const fadeIn=1-smoothStep(0,.10,p);
+      // Entrada limpia y transición final al gameplay sin flash blanco.
+      const fadeIn=1-smoothStep(0,.09,p);
       if(fadeIn>0){ctx.fillStyle=`rgba(2,7,10,${fadeIn})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
-      const fadeOut=smoothStep(.92,1,p);
-      if(fadeOut>0){ctx.fillStyle=`rgba(4,12,16,${fadeOut*.94})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
+      const fadeOut=smoothStep(.935,1,p);
+      if(fadeOut>0){ctx.fillStyle=`rgba(4,12,16,${fadeOut*.96})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
       ctx.restore();
     }
     return;
@@ -1075,79 +1086,100 @@ function renderHeistIntroUI(engine:GameEngine) {
   const ctx=engine.ui!;
   const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
   const p=clamp(elapsed/HEIST_INTRO_FRAMES,0,1);
-  const accent='#e6c56f';
+  const mode=engine.pendingMode;
+  const cfg=mode==='endless'
+    ? {accent:'#d86b58',title:'ATRACO SIN FIN',meta:'RONDA 1 · SUPERVIVENCIA',status:'PRESIÓN ACTIVADA',kicker:'PROTOCOLO // SIN FIN'}
+    : mode==='daily'
+      ? {accent:'#79b9d2',title:'DESAFÍO DIARIO',meta:'OPERACIÓN DEL DÍA',status:'OPERACIÓN SINCRONIZADA',kicker:'PROTOCOLO // DIARIO'}
+      : {accent:'#e6c56f',title:'EL BANCO DEL PAN',meta:'PISO 1 / 6 · '+difficultyLabel(engine),status:'INFILTRACIÓN AUTORIZADA',kicker:'ATRACO PRINCIPAL'};
   const cream='#f2e6be';
-  const muted='#8ea1a5';
 
   ctx.save();
 
-  // Barras cinematográficas que se retraen para revelar la escena.
-  const bars=Math.round(18*(1-smoothStep(.10,.62,p)));
+  // Letterbox muy breve: establece tono cinematográfico y desaparece antes
+  // de que aparezca la información importante.
+  const bars=Math.round(16*(1-smoothStep(.06,.40,p)));
   if(bars>0){
-    ctx.fillStyle='rgba(3,9,12,.82)';
+    ctx.fillStyle='rgba(3,9,12,.86)';
     ctx.fillRect(0,0,UI_BASE_WIDTH,bars);
     ctx.fillRect(0,CANVAS_HEIGHT-bars,UI_BASE_WIDTH,bars);
   }
 
-  // Logo sólo durante el arranque: después cede el protagonismo a la bóveda.
-  const logoAlpha=1-smoothStep(.10,.30,p);
+  // Marca de entrada: rápida, no compite con la bóveda.
+  const logoAlpha=(1-smoothStep(.08,.24,p))*smoothStep(0,.05,p);
   if(logoAlpha>0){
     ctx.globalAlpha=logoAlpha;
-    drawTitleLogo(ctx,UI_BASE_WIDTH/2,61,engine.frame);
+    drawTitleLogo(ctx,UI_BASE_WIDTH/2,59,engine.frame);
     ctx.globalAlpha=1;
   }
 
-  // Dossier de operación en el espacio libre izquierdo.
-  const infoIn=smoothStep(.38,.54,p);
+  // Briefing minimalista. Sin una tarjeta pesada: línea, título y estado.
+  const infoIn=smoothStep(.43,.57,p);
   const infoOut=1-smoothStep(.84,.94,p);
   const infoAlpha=infoIn*infoOut;
   if(infoAlpha>0){
-    const x=28,y=142,w=192,h=112,slide=10*(1-infoIn);
+    const x=28,y=145,slide=13*(1-easeOutCubic(infoIn)),w=200;
     ctx.globalAlpha=infoAlpha;
-    ctx.fillStyle='rgba(5,15,19,.68)';ctx.fillRect(x-slide,y,w,h);
-    ctx.strokeStyle='rgba(230,197,111,.38)';ctx.strokeRect(x-slide+.5,y+.5,w-1,h-1);
-    ctx.fillStyle=accent;ctx.fillRect(x-slide,y,4,h);
-    ctx.globalAlpha=infoAlpha*.22;ctx.fillRect(x-slide+4,y,w-4,1);ctx.globalAlpha=infoAlpha;
 
-    text(ctx,'PROTOCOLO 01 · ATRACO PRINCIPAL',x+13-slide,y+18,4.7,accent,'left',true,false);
-    titleText(ctx,'EL BANCO DEL PAN',x+13-slide,y+45,12.2,cream,'left',false);
-    text(ctx,'PISO 1 / 6',x+13-slide,y+66,5.4,muted,'left',true,false);
-    text(ctx,'DIFICULTAD · '+difficultyLabel(engine),x+13-slide,y+82,5.0,'#d8c57d','left',true,false);
+    const shade=ctx.createLinearGradient(x-slide,y,x+w-slide,y);
+    shade.addColorStop(0,'rgba(4,14,18,.78)');
+    shade.addColorStop(.72,'rgba(4,14,18,.35)');
+    shade.addColorStop(1,'rgba(4,14,18,0)');
+    ctx.fillStyle=shade;ctx.fillRect(x-slide,y-18,w,99);
 
-    const auth=smoothStep(.58,.70,p);
+    ctx.fillStyle=cfg.accent;ctx.globalAlpha=infoAlpha*.88;ctx.fillRect(x-slide,y-18,3,99);
+    ctx.fillRect(x+11-slide,y-8,62,1);
+    ctx.globalAlpha=infoAlpha;
+
+    text(ctx,cfg.kicker,x+12-slide,y,4.35,cfg.accent,'left',true,false);
+    titleText(ctx,cfg.title,x+12-slide,y+31,12.5,cream,'left',false);
+    text(ctx,cfg.meta,x+12-slide,y+51,4.85,'#91a4a3','left',true,false);
+
+    const auth=smoothStep(.64,.75,p);
     ctx.globalAlpha=infoAlpha*auth;
-    ctx.fillStyle='rgba(120,201,154,.10)';ctx.fillRect(x+13-slide,y+91,w-26,14);
-    ctx.fillStyle='#78c99a';ctx.fillRect(x+13-slide,y+91,3,14);
-    text(ctx,'INFILTRACIÓN AUTORIZADA',x+23-slide,y+101,4.6,'#9bd8b4','left',true,false);
+    ctx.fillStyle='rgba(120,201,154,.085)';ctx.fillRect(x+12-slide,y+61,166,16);
+    ctx.fillStyle=cfg.accent;ctx.fillRect(x+12-slide,y+61,3,16);
+    text(ctx,cfg.status,x+23-slide,y+72,4.45,mode==='endless'?'#ef8b7a':mode==='daily'?'#9acde2':'#9bd8b4','left',true,false);
     ctx.globalAlpha=1;
   }
 
-  // Pequeña telemetría superior, más propia de una operación que de un menú.
-  const telemetry=smoothStep(.18,.34,p)*(1-smoothStep(.84,.95,p));
+  // Telemetría superior pequeña, legible pero secundaria.
+  const telemetry=smoothStep(.13,.28,p)*(1-smoothStep(.72,.88,p));
   if(telemetry>0){
-    ctx.globalAlpha=telemetry*.92;
-    text(ctx,'BÓVEDA // DESBLOQUEO EN CURSO',24,28,4.35,'#71878b','left',true,false);
-    const bw=114;
-    ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(24,34,bw,2);
-    ctx.fillStyle=accent;ctx.fillRect(24,34,bw*clamp((p-.12)/.55,0,1),2);
+    ctx.globalAlpha=telemetry;
+    const label=p<.31?'CERROJOS // VERIFICANDO':p<.52?'BÓVEDA // DESBLOQUEANDO':'BÓVEDA // ABIERTA';
+    text(ctx,label,24,27,4.15,'#71878b','left',true,false);
+    const bw=118;
+    ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(24,33,bw,2);
+    ctx.fillStyle=cfg.accent;ctx.fillRect(24,33,bw*smoothStep(.10,.62,p),2);
     ctx.globalAlpha=1;
   }
 
-  // Prompt de omisión: disponible pronto y desaparece antes del cierre.
+  // Confirmación visual junto a la bóveda al final de la secuencia.
+  const ready=smoothStep(.71,.79,p)*(1-smoothStep(.88,.95,p));
+  if(ready>0){
+    ctx.globalAlpha=ready;
+    const rx=382,ry=112;
+    ctx.fillStyle='rgba(4,15,18,.64)';ctx.fillRect(rx-48,ry-10,96,20);
+    ctx.fillStyle=cfg.accent;ctx.fillRect(rx-48,ry-10,2,20);
+    text(ctx,'ACCESO CONCEDIDO',rx,ry+3,4.15,mode==='endless'?'#ef8b7a':mode==='daily'?'#9acde2':'#a8dab9','center',true,false);
+    ctx.globalAlpha=1;
+  }
+
   if(elapsed>=HEIST_INTRO_SKIP_AFTER&&p<.88){
-    const a=Math.min(1,(elapsed-HEIST_INTRO_SKIP_AFTER)/10)*(.72+.20*Math.sin(engine.frame*.08));
+    const a=Math.min(1,(elapsed-HEIST_INTRO_SKIP_AFTER)/10)*(.62+.14*Math.sin(engine.frame*.08));
     ctx.globalAlpha=a;
-    text(ctx,'ENTER / ESPACIO / CLIC · OMITIR',UI_BASE_WIDTH/2,CANVAS_HEIGHT-20,4.4,'#90a19f','center',true,false);
+    text(ctx,'ENTER / ESPACIO / CLIC · OMITIR',UI_BASE_WIDTH/2,CANVAS_HEIGHT-18,4.2,'#879997','center',true,false);
     ctx.globalAlpha=1;
   }
 
-  // Flash contenido al liberar el cierre: no lava toda la pantalla.
-  const flash=Math.sin(clamp((p-.18)/.22,0,1)*Math.PI);
+  // Pulso localizado al soltar los cerrojos.
+  const flash=Math.sin(clamp((p-.255)/.14,0,1)*Math.PI);
   if(flash>0){
-    const fg=ctx.createRadialGradient(335,170,18,335,170,130);
-    fg.addColorStop(0,`rgba(255,231,163,${flash*.13})`);
+    const fg=ctx.createRadialGradient(336,170,20,336,170,125);
+    fg.addColorStop(0,`rgba(255,231,163,${flash*.16})`);
     fg.addColorStop(1,'rgba(255,231,163,0)');
-    ctx.fillStyle=fg;ctx.fillRect(190,40,290,270);
+    ctx.fillStyle=fg;ctx.fillRect(205,42,275,260);
   }
 
   ctx.restore();
