@@ -42,7 +42,7 @@ import {
   playEquip, playWeaponSwap, playBossRoar, playBossPhase, playStairs, playDeny,
   playQuack, playQuackReady, playDashReady,
   playCoin,playHeal,playRarityPickup,playRoomClear,playCritical,playEnemyDeath,playBossWin,playReturn,playBounce,playFootstep,playDoorStyle,
-  playDanger,
+  playDanger, playVaultIntroCue,
   setVolumes, setMusic, initAudio,
 } from './audio';
 
@@ -1624,10 +1624,11 @@ export function updateEngine(engine: GameEngine) {
   if(engine.state===GameState.HEIST_INTRO) {
     const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
 
-    // Sonido sincronizado con la mecánica de la bóveda y los destellos.
-    if(elapsed===18) playDoorUnlock();
-    if(elapsed===46||elapsed===64) playCoin();
-    if(elapsed===90) playUiSelect();
+    // Sonido diseñado para la coreografía mecánica de la bóveda.
+    if(elapsed===16) playVaultIntroCue('motor');
+    if(elapsed===38) playVaultIntroCue('unlock');
+    if(elapsed===72) playVaultIntroCue('reveal');
+    if(elapsed===108) playVaultIntroCue('ready');
 
     // La intro siempre puede verse completa, pero nunca obliga al jugador a
     // esperar: desde ~0.4 s Enter/Espacio/clic la llevan a un cierre corto.
