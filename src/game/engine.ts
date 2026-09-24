@@ -872,9 +872,8 @@ export function resumeHeistGame(engine:GameEngine):boolean {
       items:Array.isArray(savedPlayer.items)?savedPlayer.items.filter((id:string)=>!!ITEMS[id]):[],
       activeItem:savedPlayer.activeItem&&ACTIVE_ITEMS[savedPlayer.activeItem]?savedPlayer.activeItem:'emergency_quack',
       dashHitIds:[],
-      vx:0,vy:0,moving:false,mouseDown:undefined as never,
+      vx:0,vy:0,moving:false,
     };
-    delete (engine.player as unknown as {mouseDown?:unknown}).mouseDown;
     if(!engine.player.weapons[0]&&!engine.player.weapons[1])engine.player.weapons[0]={...WEAPONS.quack_blaster};
     if(!engine.player.weapons[engine.player.activeWeapon])engine.player.activeWeapon=engine.player.weapons[0]?0:1;
 
