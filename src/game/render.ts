@@ -27,11 +27,11 @@ import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
-  mainMenuRect, visibleCanvasRect, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
+  mainMenuRect, visibleCanvasRect, useWideMainMenu, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
   pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect,
-  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, HUD_MENU, endActionRect, inside,
+  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, hudMenuRect, endActionRect, inside,
 } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
@@ -1081,7 +1081,7 @@ export function renderUI(engine: GameEngine) {
 
   switch (s) {
     case GameState.MENU: {
-      const wide=CANVAS_WIDTH>UI_BASE_WIDTH+64;
+      const wide=useWideMainMenu();
       drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');
       if(wide)renderMenuUI(engine,true);else legacy(()=>renderMenuUI(engine,false));
       break;
@@ -1412,7 +1412,8 @@ function drawHUD(engine: GameEngine) {
   }
   if(p.shield>0||p.helmetShield||p.contactShield>0)text(ctx,`ESCUDO ${p.shield+p.contactShield+(p.helmetShield?1:0)}`,safeLeft+6,31,5.5,'#9fdae0','left');
 
-  drawMouseButton(ctx,'MENÚ',HUD_MENU.x,HUD_MENU.y,HUD_MENU.w,HUD_MENU.h,inside(engine.mouseX,engine.mouseY,HUD_MENU),'#8fb7c8');
+  const menuBox=hudMenuRect();
+  drawMouseButton(ctx,'MENÚ',menuBox.x,menuBox.y,menuBox.w,menuBox.h,inside(engine.mouseX,engine.mouseY,menuBox),'#8fb7c8');
   const cx=safeRight-80;
   drawPanel(ctx,cx,4,76,28,'rgba(5,12,18,.52)','rgba(115,133,146,.24)','rgba(31,48,57,.38)');
   drawItemIcon(ctx,cx+4,5,'crumb',12);text(ctx,engine.gameMode==='endless'?'MIGAS':'MIGAJAS',cx+19,12,5.2,'#899f98','left');
