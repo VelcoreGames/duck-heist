@@ -216,7 +216,10 @@ export default function App() {
       if(fullscreenHintTimer){window.clearTimeout(fullscreenHintTimer);fullscreenHintTimer=0;}
     };
     const armFullscreenExit=()=>{
-      fullscreenEscapeArmedUntil=performance.now()+1400;
+      // Reafirmamos Keyboard Lock en cada primer ESC. Chromium puede liberar
+      // el lock al cambiar de estado/foco aunque siga dentro de fullscreen.
+      void lockFullscreenEscape();
+      fullscreenEscapeArmedUntil=performance.now()+2000;
       setHint('ESC OTRA VEZ PARA SALIR DE PANTALLA COMPLETA · F SALIR');
       if(fullscreenHintTimer)window.clearTimeout(fullscreenHintTimer);
       fullscreenHintTimer=window.setTimeout(()=>{
@@ -225,7 +228,7 @@ export default function App() {
           fullscreenEscapeArmedUntil=0;
           setHint(hintFor(engine));
         }
-      },1450);
+      },2050);
     };
 
     const onKeyDown = (e: KeyboardEvent,fromGamepad=false) => {
