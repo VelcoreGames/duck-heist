@@ -6,10 +6,14 @@ export const inside = (x:number,y:number,r:Rect) => x>=r.x && y>=r.y && x<=r.x+r
 export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
 export function mainMenuRect(i:number,wide=false):Rect {
   if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
-  const margin=Math.max(30,Math.round(CANVAS_WIDTH*.045));
-  const width=Math.min(244,Math.max(196,Math.round(CANVAS_WIDTH*.28)));
-  const height=28,gap=3,top=74;
-  return {x:margin,y:top+i*(height+gap),w:width,h:height};
+  // Fullscreen no estira el menú hasta los bordes. Toda la navegación vive
+  // dentro de una composición central de 510 px lógicos, con margen seguro
+  // para el recorte "cover" de monitores 16:9.
+  const totalW=Math.min(510,CANVAS_WIDTH-64);
+  const x0=Math.round((CANVAS_WIDTH-totalW)/2);
+  const width=Math.min(176,Math.max(164,Math.round(totalW*.34)));
+  const height=25,gap=3,top=91;
+  return {x:x0,y:top+i*(height+gap),w:width,h:height};
 }
 export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i,wide)))return i;return -1;}
 
