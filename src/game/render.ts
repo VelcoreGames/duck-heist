@@ -1004,58 +1004,84 @@ function drawWideMenuChrome(engine:GameEngine,label:string,accent='#e6c56f') {
   const ctx=engine.ui!;
   const left=UI_OFFSET_X,right=UI_OFFSET_X+UI_BASE_WIDTH;
   const wing=Math.max(0,left);
-  const mode=engine.gameMode==='endless'?'SIN FIN':engine.gameMode==='daily'?'DESAFÍO DIARIO':'ATRACO';
+  const mode=engine.gameMode==='endless'?'SIN FIN':engine.gameMode==='daily'?'DIARIO':'ATRACO';
   const progress=engine.gameMode==='endless'?'RONDA '+engine.endless.round:'PISO '+(engine.map.floorIndex+1)+'/6';
+  const state=engine.state===GameState.PAUSED?'EN PAUSA':engine.state===GameState.CONFIRM?'CONFIRMAR':'LISTO';
 
   ctx.save();
-  // Las alas laterales forman parte del menú, no son espacio sobrante.
-  ctx.fillStyle='rgba(3,8,12,.82)';
+
+  // El espacio extra de widescreen se convierte en railes funcionales.
+  const railFill='rgba(3,8,12,.86)';
+  ctx.fillStyle=railFill;
   if(left>0)ctx.fillRect(0,0,left,CANVAS_HEIGHT);
   if(right<CANVAS_WIDTH)ctx.fillRect(right,0,CANVAS_WIDTH-right,CANVAS_HEIGHT);
 
-  ctx.globalAlpha=.08;ctx.fillStyle=accent;
-  for(let x=12;x<left;x+=28)ctx.fillRect(x,20,1,CANVAS_HEIGHT-40);
-  for(let x=right+12;x<CANVAS_WIDTH;x+=28)ctx.fillRect(x,20,1,CANVAS_HEIGHT-40);
+  const lg=ctx.createLinearGradient(0,0,left,0);
+  lg.addColorStop(0,'rgba(0,0,0,.30)');lg.addColorStop(1,'rgba(0,0,0,0)');
+  if(left>0){ctx.fillStyle=lg;ctx.fillRect(0,0,left,CANVAS_HEIGHT);}
+  const rg=ctx.createLinearGradient(right,0,CANVAS_WIDTH,0);
+  rg.addColorStop(0,'rgba(0,0,0,0)');rg.addColorStop(1,'rgba(0,0,0,.30)');
+  if(right<CANVAS_WIDTH){ctx.fillStyle=rg;ctx.fillRect(right,0,CANVAS_WIDTH-right,CANVAS_HEIGHT);}
+
+  ctx.globalAlpha=.07;ctx.fillStyle=accent;
+  for(let x=10;x<left;x+=22)ctx.fillRect(x,24,1,CANVAS_HEIGHT-48);
+  for(let x=right+10;x<CANVAS_WIDTH;x+=22)ctx.fillRect(x,24,1,CANVAS_HEIGHT-48);
   ctx.globalAlpha=1;
 
-  ctx.fillStyle='rgba(5,13,18,.92)';ctx.fillRect(0,5,CANVAS_WIDTH,18);
-  ctx.fillStyle=accent;ctx.globalAlpha=.42;ctx.fillRect(0,22,CANVAS_WIDTH,1);ctx.globalAlpha=1;
+  // Barra superior e inferior: unifica todas las pantallas del juego.
+  ctx.fillStyle='rgba(5,13,18,.94)';ctx.fillRect(0,4,CANVAS_WIDTH,19);
+  ctx.fillStyle=accent;ctx.globalAlpha=.38;ctx.fillRect(0,22,CANVAS_WIDTH,1);ctx.globalAlpha=1;
   text(ctx,'VELCORE GAMES // DUCK HEIST',12,17,4.6,'#8aa09d','left',true,false);
   text(ctx,label,CANVAS_WIDTH-12,17,4.8,accent,'right',true,false);
 
-  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(0,CANVAS_HEIGHT-22,CANVAS_WIDTH,17);
-  ctx.globalAlpha=.36;ctx.fillStyle=accent;ctx.fillRect(0,CANVAS_HEIGHT-22,CANVAS_WIDTH,1);ctx.globalAlpha=1;
-  text(ctx,'ESC · VOLVER / PAUSA',12,CANVAS_HEIGHT-10,4.5,'#788f93','left',true,false);
-  text(ctx,'F · PANTALLA COMPLETA',CANVAS_WIDTH-12,CANVAS_HEIGHT-10,4.5,'#788f93','right',true,false);
+  ctx.fillStyle='rgba(5,13,18,.92)';ctx.fillRect(0,CANVAS_HEIGHT-23,CANVAS_WIDTH,18);
+  ctx.globalAlpha=.34;ctx.fillStyle=accent;ctx.fillRect(0,CANVAS_HEIGHT-23,CANVAS_WIDTH,1);ctx.globalAlpha=1;
+  text(ctx,'ESC · VOLVER / PAUSA',12,CANVAS_HEIGHT-10,4.45,'#788f93','left',true,false);
+  text(ctx,'F · PANTALLA COMPLETA',CANVAS_WIDTH-12,CANVAS_HEIGHT-10,4.45,'#788f93','right',true,false);
 
-  if(wing>=52){
-    // En 16:9 las alas son estrechas: el texto vertical mantiene la composición
-    // limpia sin reducir el área útil del menú central.
+  if(wing>=76){
+    const pad=9,cardW=wing-pad*2;
+    const lx=pad,rx=right+pad;
+
+    drawMenuCard(ctx,lx,50,cardW,94,false,accent,'rgba(8,19,25,.94)');
+    text(ctx,'OPERACIÓN',lx+9,66,3.9,'#667d82','left',true,false);
+    wrappedText(ctx,mode,lx+9,82,cardW-18,5.5,6.2,2,'#e4e9e4',true);
+    ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(lx+8,95,cardW-16,1);
+    text(ctx,'DIFICULTAD',lx+9,109,3.9,'#667d82','left',true,false);
+    wrappedText(ctx,difficultyLabel(engine),lx+9,125,cardW-18,5.2,6,2,accent,true);
+
+    drawMenuCard(ctx,rx,50,cardW,94,false,accent,'rgba(8,19,25,.94)');
+    text(ctx,'PROGRESO',rx+9,66,3.9,'#667d82','left',true,false);
+    wrappedText(ctx,progress,rx+9,82,cardW-18,5.5,6.2,2,'#e4e9e4',true);
+    ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(rx+8,95,cardW-16,1);
+    text(ctx,'ESTADO',rx+9,109,3.9,'#667d82','left',true,false);
+    wrappedText(ctx,state,rx+9,125,cardW-18,5.2,6,2,state==='EN PAUSA'?'#d8c57d':'#78c99a',true);
+
+    // Índices técnicos discretos en la zona media de los railes.
+    ctx.globalAlpha=.72;
+    text(ctx,'VC',left/2,174,4.5,accent,'center',true,false);
+    text(ctx,'01',left/2,186,4.1,'#5f7479','center',true,false);
+    text(ctx,'RUN',right+wing/2,174,4.5,accent,'center',true,false);
+    text(ctx,String(Math.max(1,engine.run.floorReached)).padStart(2,'0'),right+wing/2,186,4.1,'#5f7479','center',true,false);
+    ctx.globalAlpha=1;
+
+    // Barra vertical fina que conecta visualmente los railes con el centro.
+    ctx.globalAlpha=.22;ctx.fillStyle=accent;
+    ctx.fillRect(left-2,46,1,CANVAS_HEIGHT-92);
+    ctx.fillRect(right+1,46,1,CANVAS_HEIGHT-92);
+    ctx.globalAlpha=1;
+  }else if(wing>=42){
+    // Fallback para formatos estrechos: conserva información sin saturar.
     ctx.save();
-    ctx.translate(Math.max(14,wing*.48),CANVAS_HEIGHT*.54);ctx.rotate(-Math.PI/2);
-    text(ctx,'BANCO DEL PAN · '+mode,0,0,4.4,accent,'center',true,false);
+    ctx.translate(Math.max(12,wing*.48),CANVAS_HEIGHT*.53);ctx.rotate(-Math.PI/2);
+    text(ctx,'BANCO DEL PAN · '+mode,0,0,4.2,accent,'center',true,false);
     ctx.restore();
-
     ctx.save();
-    ctx.translate(CANVAS_WIDTH-Math.max(14,wing*.48),CANVAS_HEIGHT*.54);ctx.rotate(Math.PI/2);
-    text(ctx,progress+' · '+difficultyLabel(engine),0,0,4.4,'#93a6a6','center',true,false);
+    ctx.translate(CANVAS_WIDTH-Math.max(12,wing*.48),CANVAS_HEIGHT*.53);ctx.rotate(Math.PI/2);
+    text(ctx,progress+' · '+difficultyLabel(engine),0,0,4.2,'#93a6a6','center',true,false);
     ctx.restore();
   }
 
-  if(wing>=118){
-    const cardW=wing-28;
-    drawMenuCard(ctx,14,72,cardW,78,false,accent,'rgba(8,19,25,.92)');
-    text(ctx,'OPERACIÓN',26,91,4.2,'#667d82','left',true,false);
-    text(ctx,mode,26,108,6.2,'#e3e9e3','left',true,false);
-    text(ctx,'DIFICULTAD',26,126,4.2,'#667d82','left',true,false);
-    text(ctx,difficultyLabel(engine),26,143,5.8,accent,'left',true,false);
-
-    drawMenuCard(ctx,right+14,72,cardW,78,false,accent,'rgba(8,19,25,.92)');
-    text(ctx,'PROGRESO',right+26,91,4.2,'#667d82','left',true,false);
-    text(ctx,progress,right+26,108,6.2,'#e3e9e3','left',true,false);
-    text(ctx,'ESTADO',right+26,126,4.2,'#667d82','left',true,false);
-    text(ctx,engine.state===GameState.PAUSED?'EN PAUSA':'LISTO',right+26,143,5.8,engine.state===GameState.PAUSED?'#d8c57d':'#78c99a','left',true,false);
-  }
   ctx.restore();
 }
 
