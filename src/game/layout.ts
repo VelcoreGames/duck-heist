@@ -8,18 +8,22 @@ export const inside = (x:number,y:number,r:Rect) => x>=r.x && y>=r.y && x<=r.x+r
  * El mundo puede recortarse unos píxeles para llenar el monitor, pero todos
  * los controles y textos importantes deben vivir dentro de este rectángulo.
  */
-export function visibleCanvasRect(padding=0):Rect {
-  if(typeof window==='undefined'||typeof document==='undefined'||!document.fullscreenElement){
-    return {x:padding,y:padding,w:Math.max(1,CANVAS_WIDTH-padding*2),h:Math.max(1,CANVAS_HEIGHT-padding*2)};
-  }
-  const vw=Math.max(1,window.innerWidth),vh=Math.max(1,window.innerHeight);
-  const scale=Math.max(vw/CANVAS_WIDTH,vh/CANVAS_HEIGHT);
-  const visibleW=Math.min(CANVAS_WIDTH,vw/scale);
-  const visibleH=Math.min(CANVAS_HEIGHT,vh/scale);
+export function coverVisibleCanvasRect(vw:number,vh:number,padding=0):Rect {
+  const width=Math.max(1,vw),height=Math.max(1,vh);
+  const scale=Math.max(width/CANVAS_WIDTH,height/CANVAS_HEIGHT);
+  const visibleW=Math.min(CANVAS_WIDTH,width/scale);
+  const visibleH=Math.min(CANVAS_HEIGHT,height/scale);
   const cropX=(CANVAS_WIDTH-visibleW)/2;
   const cropY=(CANVAS_HEIGHT-visibleH)/2;
   const x=cropX+padding,y=cropY+padding;
   return {x,y,w:Math.max(1,visibleW-padding*2),h:Math.max(1,visibleH-padding*2)};
+}
+
+export function visibleCanvasRect(padding=0):Rect {
+  if(typeof window==='undefined'||typeof document==='undefined'||!document.fullscreenElement){
+    return {x:padding,y:padding,w:Math.max(1,CANVAS_WIDTH-padding*2),h:Math.max(1,CANVAS_HEIGHT-padding*2)};
+  }
+  return coverVisibleCanvasRect(window.innerWidth,window.innerHeight,padding);
 }
 
 /** Usa la composición amplia sólo cuando realmente hay espacio físico para leerla. */
