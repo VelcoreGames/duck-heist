@@ -1978,6 +1978,7 @@ function renderBossIntroUI(engine: GameEngine) {
   text(ctx,blink?'PREPÁRATE · EL COMBATE COMIENZA':'MANTÉN LA DISTANCIA · LEE EL PATRÓN',30,325,5.2,blink?secondary:'#87999b','left',true,false);
   text(ctx,'ENTER / ESPACIO · SALTAR',450,325,4.8,'#6f8286','right',true,false);
   ctx.globalAlpha=1;
+  ctx.restore();
 }
 function renderFloorClearUI(engine: GameEngine) {
   const ctx = engine.ui!;
