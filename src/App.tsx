@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, hudMenuRect, useWideMainMenu, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, hudMenuRect, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
