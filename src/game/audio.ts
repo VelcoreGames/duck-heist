@@ -72,23 +72,33 @@ function blip(
   } catch { /* ignorar */ }
 }
 
+let cachedNoiseBuffer:AudioBuffer|null=null;
+function getNoiseBuffer(ctx:AudioContext){
+  if(cachedNoiseBuffer&&cachedNoiseBuffer.sampleRate===ctx.sampleRate)return cachedNoiseBuffer;
+  const n=ctx.sampleRate;
+  const buf=ctx.createBuffer(1,n,ctx.sampleRate),data=buf.getChannelData(0);
+  for(let i=0;i<n;i++)data[i]=Math.random()*2-1;
+  cachedNoiseBuffer=buf;
+  return buf;
+}
+
 function noise(dur: number, vol: number, delay = 0, decay = 0.25) {
   if (!enabled() || sfxVol<=.001) return;
   try {
     const ctx = getCtx();
     const t0 = ctx.currentTime + delay;
-    const n = Math.floor(ctx.sampleRate * dur);
-    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (n * decay));
     const src = ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = getNoiseBuffer(ctx);
     const gain = out(vol, 'sfx');
     src.connect(gain);
     gain.gain.setValueAtTime(vol * masterVol * sfxVol, t0);
     gain.gain.exponentialRampToValueAtTime(0.0008, t0 + dur);
-    src.start(t0);
+    // Reutilizar ruido evita construir un AudioBuffer nuevo en cada disparo,
+    // importante para subfusil/PDW/ametralladora ligera.
+    const maxOffset=Math.max(0,1-dur-.01);
+    src.start(t0,Math.random()*maxOffset,dur);
     src.onended=()=>{src.disconnect();gain.disconnect();};
+    void decay;
   } catch { /* ignorar */ }
 }
 
@@ -229,21 +239,40 @@ export function playDashReady() {
 }
 
 export function playShoot(weapon='quack_blaster') {
-  if(!allow(weapon,weapon==='quack_laser'?100:32)) return;
+  const rapid=weapon==='feather_gun'||weapon==='quack_laser'||weapon==='homing_crumbs';
+  if(!allow(weapon,rapid?45:weapon==='breadcrumb_shotgun'?120:weapon==='plasma_baker'?180:55)) return;
+
+  // Todos son sonidos procedurales: ataque seco + cuerpo grave + cola corta,
+  // ajustados por clase para que una 9 mm, escopeta, fusil y .50 no suenen igual.
   switch(weapon) {
-    case 'breadcrumb_shotgun':noise(.13,.06);blip('triangle',140,45,.11,.06);break;
-    case 'baguette_launcher':noise(.17,.05);blip('sine',95,33,.18,.075);break;
-    case 'feather_gun':noise(.032,.019);blip('triangle',740,360,.035,.027);break;
-    case 'quack_laser':blip('triangle',175,180,.14,.035);blip('sine',530,510,.14,.018);break;
-    case 'golden_egg_revolver':noise(.1,.04);blip('triangle',410,75,.16,.06);break;
-    case 'bread_boomerang':noise(.06,.02);blip('triangle',300,440,.08,.024);break;
-    case 'rubber_duck_cannon':blip('sine',530,320,.09,.04);break;
-    case 'tactical_toaster':noise(.05,.02);blip('square',220,90,.08,.04);break;
-    case 'egg_cannon':blip('triangle',260,90,.1,.045);break;
-    case 'baguette_sniper':noise(.08,.03);blip('sine',90,40,.16,.07);break;
-    case 'plasma_baker':blip('sawtooth' as OscillatorType,180,420,.12,.05);break;
-    case 'homing_crumbs':blip('sine',640,280,.05,.02);break;
-    default:blip('square',680,230,.065,.025);
+    case 'quack_blaster': // pistola 9 mm
+      noise(.050,.038);blip('triangle',520,145,.060,.040);blip('sine',135,82,.075,.025,.008);break;
+    case 'breadcrumb_shotgun': // 12 ga
+      noise(.115,.082);blip('triangle',175,48,.120,.070);blip('sine',82,42,.145,.052,.008);break;
+    case 'feather_gun': // subfusil 9 mm
+      noise(.034,.030);blip('square',610,185,.040,.030);blip('sine',155,95,.045,.017);break;
+    case 'bread_boomerang': // carabina 5.56
+      noise(.052,.043);blip('triangle',720,170,.055,.037);blip('sine',120,70,.075,.027,.006);break;
+    case 'rubber_duck_cannon': // fusil 7.62
+      noise(.070,.055);blip('triangle',470,92,.080,.048);blip('sine',95,48,.105,.040,.006);break;
+    case 'baguette_launcher': // 40 mm
+      noise(.125,.060);blip('sine',105,34,.160,.072);blip('triangle',225,74,.090,.030,.012);break;
+    case 'quack_laser': // ametralladora ligera
+      noise(.042,.038);blip('square',520,135,.047,.034);blip('sine',105,62,.060,.024);break;
+    case 'golden_egg_revolver': // .357
+      noise(.072,.060);blip('triangle',560,82,.095,.055);blip('sine',100,46,.125,.042,.006);break;
+    case 'tactical_toaster': // .45 suprimida
+      noise(.040,.020);blip('triangle',240,92,.065,.030);blip('sine',82,58,.070,.021);break;
+    case 'egg_cannon': // DMR 7.62
+      noise(.064,.050);blip('triangle',520,86,.080,.046);blip('sine',92,48,.110,.037,.006);break;
+    case 'baguette_sniper': // .308 cerrojo
+      noise(.085,.060);blip('triangle',430,62,.110,.058);blip('sine',82,38,.145,.047,.008);break;
+    case 'plasma_baker': // .50
+      noise(.120,.078);blip('sine',78,28,.190,.082);blip('triangle',310,52,.115,.052,.006);break;
+    case 'homing_crumbs': // PDW 5.7
+      noise(.030,.025);blip('square',780,235,.036,.027);blip('sine',175,110,.040,.014);break;
+    default:
+      noise(.045,.032);blip('triangle',480,120,.055,.032);
   }
 }
 export function playHit() { if(allow('hit',45)) blip('triangle',310,100,.055,.026); }
