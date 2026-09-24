@@ -522,7 +522,7 @@ export default function App() {
         y: (ev.clientY - r.top) * (CANVAS_HEIGHT / r.height),
       };
     };
-    const wideFullscreenMenu=()=>engine.state===GameState.MENU&&!!document.fullscreenElement&&CANVAS_WIDTH>UI_BASE_WIDTH;
+    const wideFullscreenMenu=()=>engine.state===GameState.MENU&&CANVAS_WIDTH>UI_BASE_WIDTH+64;
     const usesLegacyUiCoordinates=()=>{
       if(wideFullscreenMenu())return false;
       return !!engine.swap||!!engine.activeSwap||[
