@@ -233,16 +233,17 @@ export default function App() {
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
-      const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement;
+      // ESC conserva su función de juego (pausa, reanudar y volver) incluso en
+      // fullscreen. La salida con doble ESC sólo se habilita desde el menú raíz;
+      // F sigue alternando fullscreen desde cualquier pantalla.
+      const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement && engine.state===GameState.MENU;
       if ((['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'e', 'r', 'm', 'tab', 'escape', 'enter', '1', '2'].includes(k) || Object.values(engine.bindings).includes(k))) {
         e.preventDefault();
       }
       if (e.repeat) return;
 
-      // En navegadores Chromium compatibles bloqueamos ESC mientras el documento
-      // está en fullscreen. El primer ESC sólo arma la salida; el segundo ESC,
-      // pulsado de nuevo en un intervalo corto, sí sale. F sigue siendo salida
-      // inmediata y reversible.
+      // En el menú raíz, el primer ESC arma la salida y el segundo sale de
+      // fullscreen. Dentro del juego ESC siempre pertenece a Duck Heist.
       if (fullscreenEscape) {
         e.preventDefault();
         const now=performance.now();
