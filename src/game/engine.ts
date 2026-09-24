@@ -1,7 +1,7 @@
 // Motor lógico: DUCK HEIST · EL BANCO DEL PAN
 import {
   TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT,
-  PLAYER_SPEED, DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, RESTART_HOLD_FRAMES,
+  PLAYER_SPEED, DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, RESTART_HOLD_FRAMES, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, OPPOSITE,
   TILE_WALL, TILE_DOOR, OBSTACLE_BASE, type Dir,
 } from './constants';
@@ -633,8 +633,13 @@ export function startDailyChallenge(engine:GameEngine) {
 }
 
 export function beginHeist(engine:GameEngine) {
-  engine.heistIntroTimer=90;engine.state=GameState.HEIST_INTRO;engine.mouseDown=false;engine.keys={};
-  playDoorLock();setMusic('off');engine.onStateChange?.(engine.state);
+  engine.heistIntroTimer=HEIST_INTRO_FRAMES;
+  engine.state=GameState.HEIST_INTRO;
+  engine.mouseDown=false;
+  engine.keys={};
+  playDoorLock();
+  setMusic('off');
+  engine.onStateChange?.(engine.state);
 }
 
 
@@ -1617,6 +1622,23 @@ export function updateEngine(engine: GameEngine) {
   if(engine.state===GameState.MAP) return;
   engine.frame++;
   if(engine.state===GameState.HEIST_INTRO) {
+    const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
+
+    // Sonido sincronizado con la mecánica de la bóveda y los destellos.
+    if(elapsed===18) playDoorUnlock();
+    if(elapsed===46||elapsed===64) playCoin();
+    if(elapsed===90) playUiSelect();
+
+    // La intro siempre puede verse completa, pero nunca obliga al jugador a
+    // esperar: desde ~0.4 s Enter/Espacio/clic la llevan a un cierre corto.
+    const wantsSkip=engine.keys['enter']||engine.keys[' ']||engine.mouseDown;
+    if(wantsSkip&&elapsed>=HEIST_INTRO_SKIP_AFTER&&engine.heistIntroTimer>8){
+      engine.heistIntroTimer=8;
+      engine.mouseDown=false;
+      engine.keys['enter']=false;
+      engine.keys[' ']=false;
+    }
+
     if(--engine.heistIntroTimer<=0) {
       engine.heistIntroSeen=true;
       if(engine.pendingMode==='endless')startEndlessGame(engine);
@@ -3958,5 +3980,5 @@ export function wardrobeAction(engine: GameEngine) {
   else equipSkin(engine, engine.wardrobeIndex);
 }
 
-export { CANVAS_WIDTH, CANVAS_HEIGHT, GameState, dist, clamp };
+export { CANVAS_WIDTH, CANVAS_HEIGHT, GameState, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER, dist, clamp };
 export type { GameEngine, Enemy, RoomContent };
