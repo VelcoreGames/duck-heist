@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
   restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
-  resumeEndlessGame, clearEndlessCheckpoint,
+  resumeEndlessGame, clearEndlessCheckpoint, resumeHeistGame, clearHeistCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
   DIFFICULTY_MODES, selectDifficulty,
@@ -150,7 +150,11 @@ export default function App() {
       playUiSelect();
       initAudio();
       switch (engine.menuIndex) {
-        case 0: engine.pendingMode='heist';engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY); break;
+        case 0:
+          engine.pendingMode='heist';
+          if(engine.heistCheckpointFloor>0){engine.endlessResumeIndex=0;goTo(GameState.ENDLESS_RESUME);}
+          else {engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
+          break;
         case 1:
           engine.pendingMode='endless';
           if(engine.endlessCheckpointRound>0){engine.endlessResumeIndex=0;goTo(GameState.ENDLESS_RESUME);}
@@ -178,6 +182,12 @@ export default function App() {
       if(kind==='quit'){abandonCurrentRun(engine);engine.menuIndex=0;setMusic('menu');goTo(GameState.MENU);return;}
       if(kind==='new_endless'){
         clearEndlessCheckpoint(engine);
+        engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));
+        goTo(GameState.DIFFICULTY);
+      }
+      if(kind==='new_heist'){
+        clearHeistCheckpoint(engine);
+        engine.pendingMode='heist';
         engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));
         goTo(GameState.DIFFICULTY);
       }
@@ -439,11 +449,16 @@ export default function App() {
           if(up||left){engine.endlessResumeIndex=0;playUiMove();}
           else if(down||right){engine.endlessResumeIndex=1;playUiMove();}
           else if(yes){
+            const heistResume=engine.pendingMode==='heist';
             if(engine.endlessResumeIndex===0){
               playUiSelect();
-              if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
+              if(heistResume){
+                if(!resumeHeistGame(engine)){clearHeistCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);}
+              }else if(!resumeEndlessGame(engine)){
+                clearEndlessCheckpoint(engine);engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(engine.difficulty));goTo(GameState.DIFFICULTY);
+              }
             } else {
-              openConfirm('new_endless');
+              openConfirm(heistResume?'new_heist':'new_endless');
             }
           } else if(k==='escape'){playUiBack();goTo(GameState.MENU);}
           break;
@@ -628,10 +643,15 @@ export default function App() {
           break;
         case GameState.ENDLESS_RESUME: {
           if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(GameState.MENU);break;}
+          const heistResume=engine.pendingMode==='heist';
           for(let i=0;i<2;i++)if(inside(x,y,endlessResumeRect(i))){
             engine.endlessResumeIndex=i;
-            if(i===0){playUiSelect();if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}}
-            else openConfirm('new_endless');
+            if(i===0){
+              playUiSelect();
+              if(heistResume){
+                if(!resumeHeistGame(engine)){clearHeistCheckpoint(engine);goTo(GameState.DIFFICULTY);}
+              }else if(!resumeEndlessGame(engine)){clearEndlessCheckpoint(engine);goTo(GameState.DIFFICULTY);}
+            } else openConfirm(heistResume?'new_heist':'new_endless');
             break;
           }
           break;
