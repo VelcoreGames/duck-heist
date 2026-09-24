@@ -1004,52 +1004,31 @@ function drawWideMenuChrome(engine:GameEngine,label:string,accent='#e6c56f') {
   const ctx=engine.ui!;
   const safe=visibleCanvasRect(8);
   const safeLeft=safe.x,safeRight=safe.x+safe.w;
-  const coreLeft=UI_OFFSET_X,coreRight=UI_OFFSET_X+UI_BASE_WIDTH;
-  const leftRegion=Math.max(0,coreLeft-safeLeft);
-  const rightRegion=Math.max(0,safeRight-coreRight);
-  const mode=engine.gameMode==='endless'?'SIN FIN':engine.gameMode==='daily'?'DIARIO':'ATRACO';
-  const progress=engine.gameMode==='endless'?'RONDA '+engine.endless.round:'PISO '+(engine.map.floorIndex+1)+'/6';
-  const state=engine.state===GameState.PAUSED?'EN PAUSA':engine.state===GameState.CONFIRM?'CONFIRMAR':'LISTO';
 
   ctx.save();
 
-  // Sólo cubrimos la zona realmente visible del canvas. Así ningún texto o
-  // panel queda cortado cuando fullscreen usa cover.
-  ctx.fillStyle='rgba(3,8,12,.82)';
-  ctx.fillRect(safeLeft,0,safe.w,CANVAS_HEIGHT);
+  // El widescreen sólo aporta estructura superior/inferior. Los costados quedan
+  // completamente limpios para no competir con el menú principal.
+  const topY=Math.max(4,safe.y+4);
+  const bottomY=Math.min(CANVAS_HEIGHT-23,safe.y+safe.h-23);
 
-  const topY=Math.max(4,safe.y+4),bottomY=Math.min(CANVAS_HEIGHT-23,safe.y+safe.h-23);
-  ctx.fillStyle='rgba(5,13,18,.94)';ctx.fillRect(safeLeft,topY,safe.w,19);
-  ctx.fillStyle=accent;ctx.globalAlpha=.38;ctx.fillRect(safeLeft,topY+18,safe.w,1);ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(5,13,18,.94)';
+  ctx.fillRect(safeLeft,topY,safe.w,19);
+  ctx.fillStyle=accent;
+  ctx.globalAlpha=.38;
+  ctx.fillRect(safeLeft,topY+18,safe.w,1);
+  ctx.globalAlpha=1;
   text(ctx,'VELCORE GAMES // DUCK HEIST',safeLeft+10,topY+13,4.45,'#8aa09d','left',true,false);
   text(ctx,label,safeRight-10,topY+13,4.55,accent,'right',true,false);
 
-  ctx.fillStyle='rgba(5,13,18,.92)';ctx.fillRect(safeLeft,bottomY,safe.w,18);
-  ctx.globalAlpha=.34;ctx.fillStyle=accent;ctx.fillRect(safeLeft,bottomY,safe.w,1);ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(5,13,18,.92)';
+  ctx.fillRect(safeLeft,bottomY,safe.w,18);
+  ctx.globalAlpha=.34;
+  ctx.fillStyle=accent;
+  ctx.fillRect(safeLeft,bottomY,safe.w,1);
+  ctx.globalAlpha=1;
   text(ctx,'ESC · VOLVER / PAUSA',safeLeft+10,bottomY+12,4.25,'#788f93','left',true,false);
   text(ctx,'F · PANTALLA COMPLETA',safeRight-10,bottomY+12,4.25,'#788f93','right',true,false);
-
-  // Los costados sólo muestran contexto mínimo. Evitamos tarjetas grandes que
-  // compitan con el menú central o parezcan relleno en monitores anchos.
-  if(leftRegion>=42){
-    const lx=safeLeft+Math.max(10,leftRegion*.18);
-    const ly=Math.max(66,safe.y+78);
-    ctx.globalAlpha=.18;ctx.fillStyle=accent;ctx.fillRect(lx-5,ly-11,1,28);ctx.globalAlpha=1;
-    text(ctx,'MODO',lx,ly-2,3.65,'#62787c','left',true,false);
-    text(ctx,mode+' · '+difficultyLabel(engine),lx,ly+12,4.7,'#cfd9d5','left',true,false);
-  }
-
-  if(rightRegion>=42){
-    const rx=safeRight-Math.max(10,rightRegion*.18);
-    const ry=Math.max(66,safe.y+78);
-    const stateColor=state==='EN PAUSA'?'#d8c57d':state==='CONFIRMAR'?'#d86b58':'#78c99a';
-    ctx.globalAlpha=.18;ctx.fillStyle=accent;ctx.fillRect(rx+4,ry-11,1,28);ctx.globalAlpha=1;
-    text(ctx,'PROGRESO',rx,ry-2,3.65,'#62787c','right',true,false);
-    text(ctx,progress+' · '+state,rx,ry+12,4.7,stateColor,'right',true,false);
-  }
-
-  // Si el rail es demasiado estrecho, no dibujamos nada: es mejor aire limpio.
-
 
   ctx.restore();
 }
