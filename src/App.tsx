@@ -869,8 +869,7 @@ export default function App() {
   };
 
   return (
-    <div className="duck-responsive-shell relative w-screen h-screen overflow-hidden bg-[#04050b] text-[#c3cbd9] flex flex-col items-center justify-center select-none"
-      style={{ backgroundImage: 'radial-gradient(120% 90% at 50% -10%, #14203d 0%, #0a0e1c 45%, #05060c 100%)' }}>
+    <div className="duck-responsive-shell relative w-screen h-screen overflow-hidden text-[#c3cbd9] flex flex-col items-center justify-center select-none">
       {/* ambiente: monedas y migas flotando tras la consola */}
       <Ambient />
       <div ref={wrapRef} className="duck-responsive-stage relative z-10"
