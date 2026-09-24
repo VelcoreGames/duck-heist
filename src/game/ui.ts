@@ -193,15 +193,38 @@ export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_TH
   ctx.save();
   ctx.fillStyle=`rgba(3,8,12,${opacity})`;
   ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+
+  // Luz ambiental suave: aprovecha mejor el tamaño físico actual sin competir
+  // con el contenido de cada menú.
+  const ambient=ctx.createRadialGradient(UI_BASE_WIDTH*.72,38,8,UI_BASE_WIDTH*.72,38,230);
+  ambient.addColorStop(0,'rgba(115,199,200,.055)');
+  ambient.addColorStop(.52,'rgba(230,197,111,.018)');
+  ambient.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=ambient;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+
+  // Retícula/scan muy tenue para que las pantallas grandes no se vean vacías.
+  ctx.globalAlpha=.055;ctx.fillStyle=accent;
+  for(let x=20;x<UI_BASE_WIDTH-18;x+=46)ctx.fillRect(x,18,1,CANVAS_HEIGHT-36);
+  ctx.globalAlpha=.035;
+  for(let y=62;y<CANVAS_HEIGHT-24;y+=36)ctx.fillRect(18,y,UI_BASE_WIDTH-36,1);
+
   const sweep=(frame*.55)%(UI_BASE_WIDTH+120)-60;
   const g=ctx.createLinearGradient(sweep-70,0,sweep+70,0);
   g.addColorStop(0,'rgba(255,255,255,0)');
-  g.addColorStop(.5,'rgba(255,255,255,.025)');
+  g.addColorStop(.5,'rgba(255,255,255,.03)');
   g.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
-  ctx.globalAlpha=.12;ctx.fillStyle=accent;
+  ctx.globalAlpha=1;ctx.fillStyle=g;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+
+  ctx.globalAlpha=.16;ctx.fillStyle=accent;
   ctx.fillRect(18,18,2,CANVAS_HEIGHT-36);
   ctx.fillRect(UI_BASE_WIDTH-20,18,2,CANVAS_HEIGHT-36);
+  ctx.fillRect(18,CANVAS_HEIGHT-19,UI_BASE_WIDTH-36,1);
+
+  // Viñeta inferior para anclar botones y pies de menú.
+  const bottom=ctx.createLinearGradient(0,CANVAS_HEIGHT-92,0,CANVAS_HEIGHT);
+  bottom.addColorStop(0,'rgba(2,6,10,0)');
+  bottom.addColorStop(1,'rgba(2,6,10,.48)');
+  ctx.globalAlpha=1;ctx.fillStyle=bottom;ctx.fillRect(0,CANVAS_HEIGHT-92,UI_BASE_WIDTH,92);
   ctx.restore();
 }
 
@@ -211,14 +234,24 @@ export function drawMenuHeader(
   accent=MENU_THEME.gold,eyebrow='EXPEDIENTE DEL ATRACO',
 ) {
   ctx.save();
-  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,18,UI_BASE_WIDTH-44,40);
-  ctx.fillStyle=accent;ctx.fillRect(22,18,5,40);
-  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(31,22,UI_BASE_WIDTH-58,1);
-  text(ctx,eyebrow,34,30,5.4,accent,'left',true,false);
-  titleText(ctx,title,34,48,15,MENU_THEME.paper,'left',false);
-  text(ctx,subtitle,UI_BASE_WIDTH-34,46,5.8,MENU_THEME.muted,'right',false,false);
-  const pulse=.3+.25*Math.sin(frame*.08);
-  ctx.globalAlpha=pulse;ctx.fillStyle=accent;ctx.fillRect(UI_BASE_WIDTH-48,25,11,2);
+  ctx.fillStyle='rgba(5,13,18,.92)';ctx.fillRect(22,16,UI_BASE_WIDTH-44,44);
+  ctx.strokeStyle='rgba(126,157,161,.18)';ctx.strokeRect(22.5,16.5,UI_BASE_WIDTH-45,43);
+  ctx.fillStyle=accent;ctx.fillRect(22,16,5,44);
+  ctx.globalAlpha=.34;ctx.fillRect(27,16,UI_BASE_WIDTH-49,1);ctx.globalAlpha=1;
+
+  // Identificador del expediente.
+  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(33,22,8,8);
+  ctx.fillStyle=accent;ctx.globalAlpha=.75;ctx.fillRect(35,24,4,4);ctx.globalAlpha=1;
+  text(ctx,eyebrow,47,30,5.2,accent,'left',true,false);
+  titleText(ctx,title,34,50,15.5,MENU_THEME.paper,'left',false);
+
+  // El subtítulo funciona como descripción contextual, no como segundo título.
+  text(ctx,subtitle,UI_BASE_WIDTH-34,48,5.5,MENU_THEME.muted,'right',false,false);
+
+  const pulse=.28+.3*Math.sin(frame*.08);
+  ctx.globalAlpha=pulse;ctx.fillStyle=accent;
+  for(let i=0;i<3;i++)ctx.fillRect(UI_BASE_WIDTH-62+i*9,25,6,2);
+  ctx.globalAlpha=.18;ctx.fillRect(31,56,UI_BASE_WIDTH-62,1);
   ctx.restore();
 }
 
@@ -228,16 +261,27 @@ export function drawMenuCard(
   selected=false,accent=MENU_THEME.gold,fill='rgba(12,25,32,.93)',
 ) {
   ctx.save();
-  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=10;}
-  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(x+3,y+3,w,h);
+  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=12;}
+  ctx.fillStyle='rgba(0,0,0,.52)';ctx.fillRect(x+3,y+4,w,h);
   ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
-  ctx.fillStyle=selected?accent:MENU_THEME.line;ctx.fillRect(x,y,3,h);
-  ctx.fillStyle=selected?'rgba(255,255,255,.08)':'rgba(255,255,255,.025)';ctx.fillRect(x+3,y,w-3,2);
+
+  // Capas internas: una tarjeta grande necesita más profundidad que un rectángulo plano.
+  const sheen=ctx.createLinearGradient(x,y,x+w,y+h);
+  sheen.addColorStop(0,selected?'rgba(255,255,255,.075)':'rgba(255,255,255,.032)');
+  sheen.addColorStop(.55,'rgba(255,255,255,0)');
+  sheen.addColorStop(1,'rgba(0,0,0,.16)');
+  ctx.fillStyle=sheen;ctx.fillRect(x+3,y+2,w-4,h-3);
+
+  ctx.fillStyle=selected?accent:MENU_THEME.line;ctx.fillRect(x,y,4,h);
+  ctx.globalAlpha=selected?.72:.24;ctx.fillStyle=accent;ctx.fillRect(x+4,y,w-4,1);ctx.globalAlpha=1;
   ctx.strokeStyle=selected?accent:'#243b43';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-  // cortes de esquina tipo ficha/placa
+
+  // Cortes y marcas técnicas en esquinas.
   ctx.fillStyle=MENU_THEME.ink;
-  ctx.fillRect(x+w-6,y,6,3);ctx.fillRect(x+w-3,y,3,6);
-  ctx.fillRect(x,y+h-3,6,3);ctx.fillRect(x,y+h-6,3,6);
+  ctx.fillRect(x+w-7,y,7,3);ctx.fillRect(x+w-3,y,3,7);
+  ctx.fillRect(x,y+h-3,7,3);ctx.fillRect(x,y+h-7,3,7);
+  ctx.globalAlpha=selected?.6:.22;ctx.fillStyle=accent;
+  ctx.fillRect(x+w-14,y+h-4,7,1);ctx.fillRect(x+w-4,y+h-14,1,7);
   ctx.restore();
 }
 
@@ -259,7 +303,8 @@ export function drawMenuChoice(
 export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,h:number,hover=false,accent=MENU_THEME.gold,danger=false,disabled=false){
   const col=disabled?'#536067':danger?'#d85d58':accent;
   drawMenuCard(ctx,x,y,w,h,hover&&!disabled,col,disabled?'rgba(12,19,22,.84)':hover?(danger?'rgba(54,26,30,.98)':'rgba(30,40,34,.98)'):'rgba(9,22,28,.96)');
-  text(ctx,label,x+w/2,y+h/2+4,6.2,disabled?'#66767a':hover?'#fff3d2':'#cbd6d0','center',true,false);
+  if(hover&&!disabled){ctx.save();ctx.globalAlpha=.13;ctx.fillStyle=col;ctx.fillRect(x+4,y+3,w-8,h-6);ctx.restore();}
+  text(ctx,label,x+w/2,y+h/2+4,6.35,disabled?'#66767a':hover?'#fff5dc':'#cbd6d0','center',true,false);
 }
 
 /** Pie consistente de controles. */
