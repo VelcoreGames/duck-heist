@@ -1092,7 +1092,7 @@ export function renderUI(engine: GameEngine) {
     case GameState.ENDLESS_REWARD:
       drawHUD(engine); framedLegacy(()=>renderEndlessRewardUI(engine),'RECOMPENSA DE RONDA','#d8c57d'); break;
     case GameState.ENDLESS_RESUME:
-      framedLegacy(()=>renderEndlessResumeUI(engine),'REINGRESO SIN FIN','#d86b58'); break;
+      framedLegacy(()=>renderEndlessResumeUI(engine),engine.pendingMode==='heist'?'REINGRESO ATRACO':'REINGRESO SIN FIN',engine.pendingMode==='heist'?'#e6c56f':'#d86b58'); break;
     case GameState.RUN_INFO:
       framedLegacy(()=>renderRunInfoUI(engine),'DOSSIER EN CURSO','#79b9d2'); break;
     case GameState.CONFIRM:
@@ -1635,15 +1635,19 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   text(ctx,'ELIGE UNA OPERACIÓN',first.x,70,wide?5.0:4.7,'#8aa09d','left',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex,box=mainMenuRect(i,wide),hover=inside(engine.mouseX,engine.mouseY,box),hasCheckpoint=i===1&&engine.endlessCheckpointRound>0;
-    const label=hasCheckpoint?'CONTINUAR SIN FIN':item.label;
-    const desc=hasCheckpoint?'R'+engine.endlessCheckpointRound+' GUARDADA':['Campaña','Supervivencia','Reto de hoy','Progresión','Aspectos','Archivo','Guía','Sistema'][i]??'';
+    const on=i===engine.menuIndex,box=mainMenuRect(i,wide),hover=inside(engine.mouseX,engine.mouseY,box);
+    const heistCheckpoint=i===0&&engine.heistCheckpointFloor>0;
+    const endlessCheckpoint=i===1&&engine.endlessCheckpointRound>0;
+    const hasCheckpoint=heistCheckpoint||endlessCheckpoint;
+    const label=heistCheckpoint?'CONTINUAR ATRACO':endlessCheckpoint?'CONTINUAR SIN FIN':item.label;
+    const desc=heistCheckpoint?'PISO '+engine.heistCheckpointFloor+' · GUARDADO':endlessCheckpoint?'R'+engine.endlessCheckpointRound+' GUARDADA':['Campaña','Supervivencia','Reto de hoy','Progresión','Aspectos','Archivo','Guía','Sistema'][i]??'';
     drawMenuCard(ctx,box.x,box.y,box.w,box.h,on||hover,meta.accent,on?'rgba(31,35,28,.94)':hover?'rgba(18,31,33,.95)':'rgba(9,22,28,.88)');
     text(ctx,label,box.x+11,box.y+(wide?11:10),wide?6.55:6.35,on?'#fff0bd':hover?'#dde7df':'#c5d2ce','left',true,false);
     text(ctx,desc,box.x+11,box.y+(wide?21:19),wide?4.15:4.05,on?'#bcae75':'#647a7d','left',false,false);
     if(on)text(ctx,'›',box.x+box.w-11,box.y+box.h/2+3,wide?9:8.5,meta.accent,'center',true,false);
     if(hasCheckpoint){
-      ctx.fillStyle='#d86b58';ctx.fillRect(box.x+box.w-34,box.y+3,26,6);
+      const badgeColor=heistCheckpoint?'#d8b85f':'#d86b58';
+      ctx.fillStyle=badgeColor;ctx.fillRect(box.x+box.w-34,box.y+3,26,6);
       text(ctx,'GUARD.',box.x+box.w-21,box.y+8,3.4,'#fff2d5','center',true,false);
     }
   });
@@ -1662,10 +1666,12 @@ function renderMenuUI(engine: GameEngine,wide=false) {
 
   const valueX=px+(wide?116:104);
   if(engine.menuIndex===0){
-    text(ctx,'MEJOR PISO',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,String(engine.bestFloor)+'/6',valueX,py+166,wide?7.8:7.5,'#e7d79e','left',true,false);
+    const saved=engine.heistCheckpointFloor>0;
+    text(ctx,saved?'PARTIDA GUARDADA':'MEJOR PISO',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
+    text(ctx,saved?'PISO '+engine.heistCheckpointFloor:String(engine.bestFloor)+'/6',valueX,py+166,wide?7.8:7.5,'#e7d79e','left',true,false);
     text(ctx,'DIFICULTAD',px+16,py+184,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,DIFFICULTIES[engine.difficulty].label,valueX,py+184,wide?7.45:7.2,meta.accent,'left',true,false);
+    const diff=saved&&engine.heistCheckpointDifficulty?DIFFICULTIES[engine.heistCheckpointDifficulty].label:DIFFICULTIES[engine.difficulty].label;
+    text(ctx,diff,valueX,py+184,wide?7.45:7.2,meta.accent,'left',true,false);
   } else if(engine.menuIndex===1){
     const rec=engine.endlessRecords[engine.difficulty];
     text(ctx,'RÉCORD',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
@@ -2155,9 +2161,9 @@ function renderRunInfoUI(engine:GameEngine) {
 
 function renderConfirmUI(engine:GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine),kind=engine.confirmKind;
-  const title=kind==='restart'?'¿REINICIAR ATRACO?':kind==='new_endless'?'¿NUEVO ATRACO SIN FIN?':'¿ABANDONAR ATRACO?';
-  const body=kind==='restart'?'Se perderá el progreso no guardado de esta run y comenzarás de nuevo.':kind==='new_endless'?'El checkpoint actual será reemplazado cuando comience la nueva partida.':'Volverás al menú principal y la run actual terminará.';
-  const detail=kind==='new_endless'&&engine.endlessCheckpointRound>0?'CHECKPOINT ACTUAL · RONDA '+engine.endlessCheckpointRound:'ESTA ACCIÓN NO SE PUEDE DESHACER';
+  const title=kind==='restart'?'¿REINICIAR ATRACO?':kind==='new_endless'?'¿NUEVO ATRACO SIN FIN?':kind==='new_heist'?'¿NUEVO ATRACO?':'¿ABANDONAR ATRACO?';
+  const body=kind==='restart'?'Se perderá el progreso no guardado de esta run y comenzarás de nuevo.':kind==='new_endless'?'El checkpoint actual será reemplazado cuando comience la nueva partida.':kind==='new_heist'?'La partida guardada del Atraco principal será reemplazada al comenzar la nueva operación.':'Volverás al menú principal y la run actual terminará.';
+  const detail=kind==='new_endless'&&engine.endlessCheckpointRound>0?'CHECKPOINT ACTUAL · RONDA '+engine.endlessCheckpointRound:kind==='new_heist'&&engine.heistCheckpointFloor>0?'CHECKPOINT ACTUAL · PISO '+engine.heistCheckpointFloor:'ESTA ACCIÓN NO SE PUEDE DESHACER';
   drawMenuBackdrop(ctx,mf,.97,'#d85d58');drawMenuHeader(ctx,title,'Revisa la acción antes de continuar.',mf,'#d85d58','PROTOCOLO DE SEGURIDAD');
   drawMenuCard(ctx,78,91,324,112,true,'#d85d58','rgba(27,16,20,.98)');text(ctx,'!',104,126,24,'#d85d58','center',true,false);wrappedText(ctx,body,134,116,242,7.2,10,4,'#d8ded8',true);text(ctx,detail,240,185,5.2,'#b27b76','center',true,false);
   const confirm=CONFIRM_RECTS[0],cancel=CONFIRM_RECTS[1];
@@ -2222,12 +2228,28 @@ function renderSwapUI(engine: GameEngine) {
 }
 
 function renderEndlessResumeUI(engine:GameEngine) {
-  const ctx=engine.ui!,diff=engine.endlessCheckpointDifficulty?DIFFICULTIES[engine.endlessCheckpointDifficulty].label:'';
-  drawMenuBackdrop(ctx,menuFrame(engine),.94,'#d86b58');drawMenuHeader(ctx,'ATRACO SIN FIN','Hay una operación guardada.',menuFrame(engine),'#d86b58','PUNTO DE REINGRESO');
-  drawMenuCard(ctx,72,78,336,60,false,'#d86b58','rgba(10,22,28,.95)');drawSectionLabel(ctx,'PARTIDA GUARDADA',88,97,'#d86b58');titleText(ctx,'RONDA '+engine.endlessCheckpointRound,88,124,14,'#f0dfb0','left',false);text(ctx,diff,390,122,6.2,'#8ea1a5','right',true,false);
-  ['CONTINUAR ATRACO','EMPEZAR DE NUEVO'].forEach((label,i)=>{const box=endlessResumeRect(i),on=i===engine.endlessResumeIndex;drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,'#d86b58',on?'rgba(54,31,29,.98)':'rgba(9,22,28,.94)');text(ctx,label,box.x+16,box.y+25,8,on?'#fff0d4':'#c7d3cd','left',true,false);text(ctx,i===0?'RETOMAR CHECKPOINT':'REEMPLAZAR GUARDADO',box.x+box.w-14,box.y+25,4.4,on?'#d86b58':'#64787c','right',true,false);});
-  drawMenuCard(ctx,92,260,296,38,false,'#4e656c','rgba(7,18,24,.94)');text(ctx,'El guardado se actualiza entre rondas.',240,276,5.8,'#93a4a3','center',false,false);text(ctx,'Empezar de nuevo pedirá confirmación.',240,289,5,'#6f8387','center',false,false);
-  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#d86b58');
+  const ctx=engine.ui!,heist=engine.pendingMode==='heist';
+  const accent=heist?'#e6c56f':'#d86b58';
+  const difficulty=heist?engine.heistCheckpointDifficulty:engine.endlessCheckpointDifficulty;
+  const diff=difficulty?DIFFICULTIES[difficulty].label:'';
+  const title=heist?'ATRACO PRINCIPAL':'ATRACO SIN FIN';
+  const checkpoint=heist?'PISO '+engine.heistCheckpointFloor:'RONDA '+engine.endlessCheckpointRound;
+  drawMenuBackdrop(ctx,menuFrame(engine),.94,accent);
+  drawMenuHeader(ctx,title,'Hay una operación guardada.',menuFrame(engine),accent,'PUNTO DE REINGRESO');
+  drawMenuCard(ctx,72,78,336,60,false,accent,'rgba(10,22,28,.95)');
+  drawSectionLabel(ctx,'PARTIDA GUARDADA',88,97,accent);
+  titleText(ctx,checkpoint,88,124,14,'#f0dfb0','left',false);
+  text(ctx,diff,390,122,6.2,'#8ea1a5','right',true,false);
+  ['CONTINUAR ATRACO','EMPEZAR DE NUEVO'].forEach((label,i)=>{
+    const box=endlessResumeRect(i),on=i===engine.endlessResumeIndex;
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,accent,on?(heist?'rgba(45,40,24,.98)':'rgba(54,31,29,.98)'):'rgba(9,22,28,.94)');
+    text(ctx,label,box.x+16,box.y+25,8,on?'#fff0d4':'#c7d3cd','left',true,false);
+    text(ctx,i===0?'RETOMAR CHECKPOINT':'REEMPLAZAR GUARDADO',box.x+box.w-14,box.y+25,4.4,on?accent:'#64787c','right',true,false);
+  });
+  drawMenuCard(ctx,92,260,296,38,false,'#4e656c','rgba(7,18,24,.94)');
+  text(ctx,heist?'El guardado se actualiza al comenzar cada piso.':'El guardado se actualiza entre rondas.',240,276,5.6,'#93a4a3','center',false,false);
+  text(ctx,heist?'Continuar vuelve al inicio del piso guardado.':'Empezar de nuevo pedirá confirmación.',240,289,4.9,'#6f8387','center',false,false);
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),accent);
 }
 
 function renderEndlessRewardUI(engine:GameEngine) {
