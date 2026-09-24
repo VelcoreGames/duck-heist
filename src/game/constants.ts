@@ -6,9 +6,10 @@ export const UI_BASE_WIDTH = BASE_ROOM_WIDTH * TILE_SIZE; // 480
 
 /**
  * El mundo adopta el aspecto del monitor donde se jugará en fullscreen sin
- * deformar el pixel art. Elegimos el número impar de columnas MÁS CERCANO al
- * aspect ratio objetivo; redondear siempre hacia arriba podía ensanchar de más
- * la arena y dejar bandas horizontales al entrar en pantalla completa.
+ * deformar el pixel art. Como fullscreen ya usa comportamiento "cover", damos
+ * prioridad a una arena ligeramente más ancha que el viewport objetivo. Esto
+ * reduce la magnificación física del canvas, deja más espacio real para HUD y
+ * menús widescreen y evita que la interfaz se sienta sobredimensionada.
  *
  * En SSR/tests sin DOM conserva 15x11.
  */
@@ -29,17 +30,9 @@ function responsiveRoomWidth(): number {
   const targetAspect = Math.max(baseAspect, Math.min(3.7, rawAspect));
   const targetTiles = ROOM_HEIGHT * targetAspect;
 
-  let lower = Math.floor(targetTiles);
-  if (lower % 2 === 0) lower -= 1;
-  lower = Math.max(BASE_ROOM_WIDTH, lower);
-
-  let upper = Math.ceil(targetTiles);
-  if (upper % 2 === 0) upper += 1;
-  upper = Math.min(41, Math.max(BASE_ROOM_WIDTH, upper));
-
-  const lowerError = Math.abs(lower / ROOM_HEIGHT - targetAspect);
-  const upperError = Math.abs(upper / ROOM_HEIGHT - targetAspect);
-  return upperError < lowerError ? upper : lower;
+  let tiles = Math.ceil(targetTiles);
+  if (tiles % 2 === 0) tiles += 1;
+  return Math.min(41, Math.max(BASE_ROOM_WIDTH, tiles));
 }
 
 export const ROOM_WIDTH = responsiveRoomWidth();
