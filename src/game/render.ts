@@ -990,10 +990,28 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.translate(cx,cy);
     ctx.scale(scale,Math.max(.9,1-wind*.025+phasePulse));
     ctx.translate(-cx,-cy);
-    if(hurt)ctx.filter='brightness(1.85) saturate(.55)';
+
+    // IMPORTANTE: no usar ctx.filter al recibir daño.
+    // En Chrome, brightness/saturate fuerza una ruta de composición mucho más
+    // cara sobre el canvas. Como hurtTimer vuelve a 8 en cada impacto, disparar
+    // rápido contra un jefe mantenía el filtro activo casi permanentemente y
+    // provocaba exactamente la ralentización observada durante jefe/subjefe.
     drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
-    ctx.filter='none';
     ctx.restore();
+
+    // Feedback de impacto barato: un pulso de contorno en vez de filtrar todos
+    // los píxeles del jefe. Conserva lectura del golpe sin penalizar el frame.
+    if(hurt){
+      const pulse=.20+.10*((e.hurtTimer&1)===0?1:0);
+      ctx.save();
+      ctx.globalAlpha=pulse;
+      ctx.strokeStyle='#fff3c4';
+      ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.ellipse(cx,cy+1,e.size*.62,e.size*.50,0,0,Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
     drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
@@ -1031,7 +1049,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.restore();
   }
 
-  if (hurt) {
+  if (hurt && !e.isBoss) {
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
