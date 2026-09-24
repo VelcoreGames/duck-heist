@@ -1923,25 +1923,51 @@ function renderUpgradesUI(engine: GameEngine) {
 }
 
 function renderFloorIntroUI(engine: GameEngine) {
-  const ctx = engine.ui!;
-  const t = engine.floorIntroTimer;
-  const a = t > 80 ? (110 - t) / 30 : Math.min(1, t / 30);
-  ctx.fillStyle = `rgba(4,6,14,${0.9 * clamp(a, 0, 1)})`;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.globalAlpha = clamp(a, 0, 1);
-  const slide = (1 - clamp(a, 0, 1)) * 26;
-  ctx.fillStyle = '#f4d03f';
-  ctx.fillRect(CANVAS_WIDTH / 2 - 130, CANVAS_HEIGHT / 2 - 34 + slide, 260, 2);
-  ctx.fillRect(CANVAS_WIDTH / 2 - 130, CANVAS_HEIGHT / 2 + 30 + slide, 260, 2);
-  titleText(ctx, `${T.floor} ${engine.map.floorIndex + 1}/6`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 4 + slide, 26, '#f4d03f');
-  drawItemIcon(ctx,228,110+slide,['crumb','stolen_helmet','baguette','toaster','golden_crumb','pan_dorado'][engine.map.floorIndex],24);
-  text(ctx, FLOOR_NAMES_ES[engine.map.floorIndex], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20 + slide, 14, '#e8c99b', 'center', true);
-  if (engine.map.floorIndex > 0) {
-    text(ctx, 'LA SEGURIDAD ES MÁS DURA AQUÍ', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40 + slide, 10, '#8792a5');
-  }
-  ctx.globalAlpha = 1;
-}
+  const ctx=engine.ui!,t=engine.floorIntroTimer,f=engine.frame;
+  const idx=engine.map.floorIndex;
+  const theme=FLOOR_THEMES[idx]??FLOOR_THEMES[0];
+  const accent=theme.trim,glowColor=theme.glow;
+  const a=t>80?(110-t)/30:Math.min(1,t/30);
+  const alpha=clamp(a,0,1);
+  const cx=CANVAS_WIDTH/2;
+  const slide=(1-alpha)*24;
 
+  ctx.save();
+  ctx.fillStyle='rgba(3,6,12,'+(.93*alpha)+')';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  const glow=ctx.createRadialGradient(cx,154,12,cx,154,260);
+  glow.addColorStop(0,glowColor+'28');glow.addColorStop(.5,glowColor+'0D');glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.globalAlpha=alpha;ctx.fillStyle=glow;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  for(let y=0;y<CANVAS_HEIGHT;y+=8){ctx.fillStyle='rgba(255,255,255,.015)';ctx.fillRect(0,y,CANVAS_WIDTH,1);}
+
+  const panelW=Math.min(560,CANVAS_WIDTH-56),panelX=cx-panelW/2;
+  ctx.fillStyle='rgba(5,12,18,.92)';ctx.fillRect(panelX,83+slide,panelW,171);
+  ctx.strokeStyle=accent;ctx.globalAlpha=.52;ctx.strokeRect(panelX+.5,83.5+slide,panelW-1,170);ctx.globalAlpha=alpha;
+  ctx.fillStyle=accent;ctx.fillRect(panelX,83+slide,5,171);
+  ctx.fillRect(panelX,83+slide,panelW,2);
+
+  text(ctx,'DESCENSO AL BANCO · SECTOR '+String(idx+1).padStart(2,'0'),panelX+18,106+slide,5.3,accent,'left',true,false);
+  text(ctx,'SEGURIDAD '+(idx===0?'BÁSICA':idx<3?'REFORZADA':idx<5?'ALTA':'MÁXIMA'),panelX+panelW-18,106+slide,5.1,'#8d9fa2','right',true,false);
+
+  drawItemIcon(ctx,panelX+24,125+slide,['crumb','stolen_helmet','baguette','toaster','golden_crumb','pan_dorado'][idx],32);
+  titleText(ctx,T.floor+' '+(idx+1)+'/6',panelX+68,147+slide,18,accent,'left',false);
+  titleText(ctx,FLOOR_NAMES_ES[idx],panelX+68,176+slide,idx===5?18:20,'#efe5c8','left',true);
+
+  ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(panelX+18,194+slide,panelW-36,1);
+  text(ctx,idx===0?'LA OPERACIÓN COMIENZA AQUÍ':idx===5?'ÚLTIMA CÁMARA · NO HAY MARCHA ATRÁS':'LA SEGURIDAD AUMENTA · ADAPTA TU BUILD',panelX+18,215+slide,6.1,'#9cafaf','left',true,false);
+
+  const progressW=Math.min(250,panelW-60),progressX=panelX+panelW-progressW-20,py=231+slide;
+  ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(progressX,py,progressW,4);
+  const segment=progressW/6;
+  for(let i=0;i<6;i++){
+    ctx.fillStyle=i<idx?theme.wall[0]:i===idx?accent:'rgba(255,255,255,.10)';
+    ctx.fillRect(progressX+i*segment+1,py+1,segment-2,2);
+    text(ctx,String(i+1),progressX+i*segment+segment/2,py+15,4.2,i===idx?accent:'#64777c','center',i===idx,false);
+  }
+
+  ctx.globalAlpha=.22+.16*Math.sin(f*.14);ctx.strokeStyle=glowColor;ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(panelX+40,141+slide,28,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
 function renderBossIntroUI(engine: GameEngine) {
   const ctx=engine.ui!,t=engine.bossIntroTimer,f=engine.frame;
   const bosses=getContentOf(engine).enemies.filter((e:Enemy)=>e.isBoss);
