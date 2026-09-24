@@ -27,7 +27,7 @@ import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
-  mainMenuRect, visibleCanvasRect, useWideMainMenu, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
+  mainMenuRect, visibleCanvasRect, useWideMainMenu, legacyUiTransform, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
   pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect,
@@ -1069,8 +1069,10 @@ export function renderUI(engine: GameEngine) {
   ctx.imageSmoothingEnabled = true;
 
   const legacy=(draw:()=>void)=>{
+    const t=legacyUiTransform();
     ctx.save();
-    ctx.translate(UI_OFFSET_X,0);
+    ctx.translate(t.x,t.y);
+    ctx.scale(t.scale,t.scale);
     draw();
     ctx.restore();
   };
