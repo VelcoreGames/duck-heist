@@ -22,6 +22,17 @@ export function visibleCanvasRect(padding=0):Rect {
   return {x,y,w:Math.max(1,visibleW-padding*2),h:Math.max(1,visibleH-padding*2)};
 }
 
+/** Usa la composición amplia sólo cuando realmente hay espacio físico para leerla. */
+export function useWideMainMenu():boolean {
+  if(CANVAS_WIDTH<=UI_BASE_WIDTH+64)return false;
+  if(typeof window==='undefined'||typeof document==='undefined')return true;
+  if(document.fullscreenElement)return true;
+  const viewport=window.visualViewport;
+  const w=Math.max(1,viewport?.width ?? window.innerWidth);
+  const h=Math.max(1,viewport?.height ?? window.innerHeight);
+  return w>=1120&&h>=620;
+}
+
 export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
 export function mainMenuRect(i:number,wide=false):Rect {
   if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
@@ -50,7 +61,10 @@ export const BACK_BUTTON:Rect={x:28,y:318,w:92,h:22};
 export const PRIMARY_BUTTON:Rect={x:326,y:318,w:126,h:22};
 export const CONTROLS_RESET:Rect={x:326,y:318,w:126,h:22};
 export const MAP_CLOSE:Rect={x:356,y:318,w:96,h:22};
-export const HUD_MENU:Rect={x:CANVAS_WIDTH-126,y:6,w:40,h:17};
+export function hudMenuRect():Rect {
+  const safe=visibleCanvasRect(6);
+  return {x:safe.x+safe.w-126,y:6,w:40,h:17};
+}
 export const SWAP_CANCEL:Rect={x:176,y:309,w:128,h:24};
 
 export const SETTINGS={x:34,y:82,w:202,h:26,gapX:8,gapY:6,cols:2,rows:6};
