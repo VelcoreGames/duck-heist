@@ -758,7 +758,7 @@ function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
   });
   engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
   engine.bossIntroSubtitle=doubleThreat?names.join(' + '):`${engine.endless.threatRank} · ${endlessStage(engine.endless.round)}`;
-  engine.bossIntroTimer=doubleThreat?125:tier==='boss'?90:tier==='sub'?72:52;
+  engine.bossIntroTimer=doubleThreat?150:tier==='boss'?122:tier==='sub'?104:82;
   playBossRoar();setMusic('boss');
   engine.state=GameState.BOSS_INTRO;engine.onStateChange?.(engine.state);
 }
@@ -1375,7 +1375,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
       engine.bossIntroName = def.name;
       engine.bossIntroSubtitle = def.subtitle;
       const seen = !!engine.bossIntroSeen[boss.bossType];
-      engine.bossIntroTimer = room.type === RoomType.BOSS ? (seen ? 48 : 120) : room.type === RoomType.SUBBOSS ? (seen ? 38 : 92) : (seen ? 28 : 62);
+      engine.bossIntroTimer = room.type === RoomType.BOSS ? (seen ? 70 : 165) : room.type === RoomType.SUBBOSS ? (seen ? 58 : 138) : (seen ? 46 : 108);
       engine.transition.active = false;
       engine.transition.timer = 0;
       engine.bossIntroSeen[boss.bossType] = true;
