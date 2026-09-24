@@ -1620,8 +1620,24 @@ function renderDifficultyUI(engine:GameEngine) {
 function renderMenuUI(engine: GameEngine,wide=false) {
   const ctx=engine.ui!,meta=MENU_META[engine.menuIndex]??MENU_META[0],mf=menuFrame(engine);
   const viewW=wide?CANVAS_WIDTH:UI_BASE_WIDTH;
-  ctx.save();ctx.fillStyle='rgba(3,8,12,.22)';ctx.fillRect(0,0,viewW,CANVAS_HEIGHT);ctx.restore();
-  text(ctx,'v0.8.0',wide?14:10,12,wide?5.8:5.3,'#d8ca9c','left',true,false);
+  ctx.save();ctx.fillStyle='rgba(3,8,12,.25)';ctx.fillRect(0,0,viewW,CANVAS_HEIGHT);
+  if(wide){
+    const ambient=ctx.createRadialGradient(viewW*.72,88,16,viewW*.72,88,300);
+    ambient.addColorStop(0,meta.accent+'20');ambient.addColorStop(.55,'rgba(0,0,0,0)');ambient.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=ambient;ctx.fillRect(0,0,viewW,CANVAS_HEIGHT);
+    ctx.globalAlpha=.08;ctx.fillStyle=meta.accent;
+    for(let x=18;x<viewW;x+=48)ctx.fillRect(x,20,1,CANVAS_HEIGHT-42);
+    ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(4,11,16,.88)';ctx.fillRect(0,4,viewW,18);ctx.fillRect(0,CANVAS_HEIGHT-22,viewW,17);
+    ctx.globalAlpha=.32;ctx.fillStyle=meta.accent;ctx.fillRect(0,22,viewW,1);ctx.fillRect(0,CANVAS_HEIGHT-22,viewW,1);ctx.globalAlpha=1;
+  }
+  ctx.restore();
+  text(ctx,'v0.8.0',wide?14:10,12,wide?5.3:5.3,'#d8ca9c','left',true,false);
+  if(wide){
+    text(ctx,'CENTRO DE OPERACIONES',CANVAS_WIDTH-14,15,4.7,meta.accent,'right',true,false);
+    text(ctx,'ENTER / CLIC · SELECCIONAR',14,CANVAS_HEIGHT-10,4.4,'#788f93','left',true,false);
+    text(ctx,'F · PANTALLA COMPLETA',CANVAS_WIDTH-14,CANVAS_HEIGHT-10,4.4,'#788f93','right',true,false);
+  }
 
   // El logo conserva su proporción y pixel art; en fullscreen sólo cambia su
   // posición dentro de una composición realmente más ancha.
@@ -1648,9 +1664,9 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   });
 
   const px=wide?first.x+first.w+18:183;
-  const py=wide?76:76;
-  const pw=wide?Math.max(271,CANVAS_WIDTH-px-first.x):271;
-  const ph=wide?236:232;
+  const py=wide?74:76;
+  const pw=wide?Math.max(286,CANVAS_WIDTH-px-first.x):271;
+  const ph=wide?244:232;
   drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.95)');
   drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
   titleText(ctx,meta.title,px+16,py+47,wide?14.5:13,'#efe3bc','left',false);
@@ -1690,7 +1706,10 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   }
   ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+208,pw-32,1);
   text(ctx,'SELECCIONA UNA OPCIÓN PARA CONTINUAR',px+16,py+220,wide?4.8:4.4,'#6f8587','left',true,false);
-  text(ctx,T.tagline,viewW/2,wide?337:329,wide?8.1:7.5,'#dbc486','center',true,false);
+  if(wide){
+    text(ctx,'PERFIL · '+DIFFICULTIES[engine.difficulty].label,px+pw-16,py+220,4.7,'#6f8587','right',true,false);
+    text(ctx,T.tagline,viewW/2,336,8.1,'#dbc486','center',true,false);
+  }else text(ctx,T.tagline,viewW/2,329,7.5,'#dbc486','center',true,false);
 }
 
 function renderHowToPlayUI(engine: GameEngine) {
