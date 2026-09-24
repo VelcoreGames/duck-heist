@@ -1046,7 +1046,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
 // CAPA DE UI
 // ===========================================================================
 
-function drawWideMenuChrome(engine:GameEngine,label:string,accent='#e6c56f') {
+function drawWideMenuChrome(engine:GameEngine,_label:string,accent='#e6c56f') {
   if(CANVAS_WIDTH<=UI_BASE_WIDTH+16)return;
   const ctx=engine.ui!;
   const safe=visibleCanvasRect(8);
@@ -1054,23 +1054,13 @@ function drawWideMenuChrome(engine:GameEngine,label:string,accent='#e6c56f') {
 
   ctx.save();
 
-  // El widescreen sólo aporta estructura superior/inferior. Los costados quedan
-  // completamente limpios para no competir con el menú principal.
-  const topY=Math.max(4,safe.y+4);
+  // Sin barra superior: el fondo y el propio encabezado de cada panel deben
+  // llevar la identidad. Conservamos únicamente una ayuda inferior discreta.
   const bottomY=Math.min(CANVAS_HEIGHT-23,safe.y+safe.h-23);
 
-  ctx.fillStyle='rgba(5,13,18,.94)';
-  ctx.fillRect(safeLeft,topY,safe.w,19);
-  ctx.fillStyle=accent;
-  ctx.globalAlpha=.38;
-  ctx.fillRect(safeLeft,topY+18,safe.w,1);
-  ctx.globalAlpha=1;
-  text(ctx,'VELCORE GAMES // DUCK HEIST',safeLeft+10,topY+13,4.45,'#8aa09d','left',true,false);
-  text(ctx,label,safeRight-10,topY+13,4.55,accent,'right',true,false);
-
-  ctx.fillStyle='rgba(5,13,18,.92)';
+  ctx.fillStyle='rgba(5,13,18,.86)';
   ctx.fillRect(safeLeft,bottomY,safe.w,18);
-  ctx.globalAlpha=.34;
+  ctx.globalAlpha=.24;
   ctx.fillStyle=accent;
   ctx.fillRect(safeLeft,bottomY,safe.w,1);
   ctx.globalAlpha=1;
