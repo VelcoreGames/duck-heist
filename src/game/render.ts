@@ -1657,7 +1657,9 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   const safeRight=wide?safe.x+safe.w:UI_BASE_WIDTH;
   const pw=wide?Math.max(286,safeRight-px):271;
   const ph=wide?244:232;
-  drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.95)');
+  // Panel informativo tipo "glass": deja ver la escena del banco detrás
+  // sin perder contraste en títulos, métricas ni textos secundarios.
+  drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.72)');
   drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
   titleText(ctx,meta.title,px+16,py+47,wide?14:13,'#efe3bc','left',false);
   wrappedText(ctx,meta.desc,px+16,py+69,pw-32,wide?7.1:7,wide?10:10,4,'#9db0ad');
