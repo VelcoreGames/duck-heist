@@ -57,6 +57,10 @@ import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const easeOutCubic=(v:number)=>1-Math.pow(1-clamp(v,0,1),3);
+const BALLISTIC_PLAYER_PROJECTILES=new Set([
+  'pistol_round','buckshot_player','smg_round','rifle_556','rifle_762','lmg_556',
+  'magnum_round','suppressed_45','dmr_round','sniper_308','heavy_50','pdw_57','grenade_40mm',
+]);
 const smoothStep=(a:number,b:number,v:number)=>{
   const t=clamp((v-a)/(b-a),0,1);
   return t*t*(3-2*t);
@@ -473,6 +477,7 @@ export function renderWorld(engine: GameEngine) {
   for (const p of engine.projectiles) {
     ctx.save();
     ctx.translate(p.x,p.y);
+    if(p.friendly&&BALLISTIC_PLAYER_PROJECTILES.has(p.type)) ctx.rotate(Math.atan2(p.vy,p.vx));
 
     if(p.nuclear){
       // El antiguo aura era un fillRect verde y se veía como un cuadrado
