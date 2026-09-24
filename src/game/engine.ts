@@ -2868,10 +2868,13 @@ function moveEnemy(e: Enemy, room: MapRoom, dx: number, dy: number) {
   e.y = clamp(e.y, TILE_SIZE * 0.6, CANVAS_HEIGHT - TILE_SIZE * 0.6 - e.size);
 }
 
-function enemyShoot(engine: GameEngine, e: Enemy, ang: number, speed: number, type: string, jitter = 0) {
+function enemyShoot(engine: GameEngine, e: Enemy, ang: number, speed: number, type: string, jitter = 0, muzzleFx = true) {
   const a = ang + (e.elite ? jitter * 0.25 : jitter) + rng(-jitter, jitter);
   engine.projectiles.push(makeProjectile(e.x + e.size / 2, e.y + e.size / 2, Math.cos(a) * speed, Math.sin(a) * speed, type, e.behavior==='sniper'?2:1, false, e.behavior==='sniper'?145:110));
-  spawn(engine, e.x + e.size / 2 + Math.cos(a) * 8, e.y + e.size / 2 + Math.sin(a) * 8, 'spark', 2, '#ffd08a');
+  // En ráfagas de jefes no generamos partículas por CADA proyectil. Antes una
+  // espiral de 18 balas podía crear 36 partículas en el mismo frame, causando
+  // un pico de trabajo perceptible como "trabón" aunque las balas sean pequeñas.
+  if(muzzleFx) spawn(engine, e.x + e.size / 2 + Math.cos(a) * 8, e.y + e.size / 2 + Math.sin(a) * 8, 'spark', 2, '#ffd08a');
 }
 
 function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: RoomContent, speedMult: number) {
@@ -3117,12 +3120,31 @@ function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: Roo
   void content;
 }
 
+const MAX_LIVE_BOSS_PROJECTILES=84;
+function bossProjectileAllowance(engine:GameEngine,wanted:number) {
+  // El presupuesto se calcula una sola vez por ráfaga. Evita tormentas de
+  // proyectiles acumuladas sin meter un filter/reduce en cada bala.
+  let hostile=0;
+  for(const p of engine.projectiles) if(!p.friendly) hostile++;
+  return Math.max(0,Math.min(wanted,MAX_LIVE_BOSS_PROJECTILES-hostile));
+}
 function bossRing(engine:GameEngine,boss:Enemy,count:number,speed:number,type:string,offset=0) {
-  for(let i=0;i<count;i++) enemyShoot(engine,boss,(i/count)*Math.PI*2+offset,speed,type);
+  const allowed=bossProjectileAllowance(engine,count);
+  if(allowed<=0)return;
+  for(let i=0;i<allowed;i++) {
+    // Conservamos la geometría usando el count original; sólo reducimos exceso.
+    enemyShoot(engine,boss,(i/count)*Math.PI*2+offset,speed,type,0,i===0);
+  }
 }
 function bossFan(engine:GameEngine,boss:Enemy,angle:number,count:number,spread:number,speed:number,type:string) {
+  const allowed=bossProjectileAllowance(engine,count);
+  if(allowed<=0)return;
   const mid=(count-1)/2;
-  for(let i=0;i<count;i++) enemyShoot(engine,boss,angle+(i-mid)*spread,speed+(i%2)*.18,type);
+  const start=Math.floor((count-allowed)/2);
+  for(let j=0;j<allowed;j++) {
+    const i=start+j;
+    enemyShoot(engine,boss,angle+(i-mid)*spread,speed+(i%2)*.18,type,0,j===0);
+  }
 }
 function bossHazardRing(content:RoomContent,x:number,y:number,count:number,radius:number,life=150) {
   for(let i=0;i<count;i++) {
@@ -3215,7 +3237,10 @@ function bossPatternAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:Roo
   const attack=p.sequence[(step+phase*p.phaseShift)%p.sequence.length];
   boss.bossAttackIndex=step+1;
   const projectile=(phase>0&&step%2===1)?p.altProjectile:p.projectile;
-  const count=Math.max(2,p.count+phase*(tier==='boss'?3:tier==='sub'?2:1));
+  const rawCount=Math.max(2,p.count+phase*(tier==='boss'?3:tier==='sub'?2:1));
+  // Caporal Centeno era un outlier: count 11 + espiral doble + firma militar.
+  // Conservamos su identidad de ráfaga, pero con densidad de miniboss legible.
+  const count=def.id==='caporal_centeno'?Math.min(rawCount,8):rawCount;
   const speed=p.speed+phase*(tier==='boss'?.22:.16);
   const spread=Math.max(.045,p.spread-phase*.006);
   const bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
@@ -3254,7 +3279,8 @@ function bossPatternAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:Roo
     const horizontal=(step+phase)%2===0;
     const laneOffset=((step%3)-1)*38;
     const max=horizontal?CANVAS_WIDTH:CANVAS_HEIGHT;
-    for(let v=58;v<max-48;v+=36){
+    const laneStep=def.id==='caporal_centeno'?48:36;
+    for(let v=58;v<max-48;v+=laneStep){
       const x=horizontal?v:CANVAS_WIDTH/2+laneOffset,y=horizontal?CANVAS_HEIGHT/2+laneOffset:v;
       if(dist(x,y,px,py)<32)continue;
       content.puddles.push({x,y,life:hazardLife,kind:'fire',radius:Math.max(12,p.hazardRadius-3)});
