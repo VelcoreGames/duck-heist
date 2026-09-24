@@ -6,7 +6,7 @@ import {
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
   DIFFICULTY_MODES, selectDifficulty,
-  CANVAS_WIDTH, CANVAS_HEIGHT, GameState,
+  CANVAS_WIDTH, CANVAS_HEIGHT, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER, GameState,
   type GameEngine,
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
@@ -380,9 +380,11 @@ export default function App() {
           else if(yes) activateDifficulty();
           else if(k==='escape'){playUiBack();goTo(GameState.MENU);}
           break;
-        case GameState.HEIST_INTRO:
-          if(yes && engine.heistIntroSeen) engine.heistIntroTimer=1;
+        case GameState.HEIST_INTRO: {
+          const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
+          if(yes&&elapsed>=HEIST_INTRO_SKIP_AFTER) engine.heistIntroTimer=Math.min(engine.heistIntroTimer,8);
           break;
+        }
         case GameState.COLLECTION: {
           const tab=COLLECTION_TABS.findIndex(t=>t.id===engine.collectionTab);
           if(k==='escape') goTo(subReturn);
@@ -631,6 +633,11 @@ export default function App() {
         if(inside(x,y,hudMenuRect())){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);setMusic('menu');return;}
         engine.mouseDown=true;return;
       }
+      if(engine.state===GameState.HEIST_INTRO){
+        const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
+        if(elapsed>=HEIST_INTRO_SKIP_AFTER) engine.heistIntroTimer=Math.min(engine.heistIntroTimer,8);
+        return;
+      }
       switch (engine.state) {
         case GameState.MENU: {
           setMusic('menu');const i=mainMenuHit(x,y,false);
@@ -768,6 +775,11 @@ export default function App() {
     let lastContrast=engine.settings.highContrast;
     let lastDevice=engine.lastInput;
     const padAction=(action:PadAction)=>{
+      if(engine.state===GameState.HEIST_INTRO){
+        const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
+        if(elapsed>=HEIST_INTRO_SKIP_AFTER&&(action==='interact'||action==='pause'||action==='active')) engine.heistIntroTimer=Math.min(engine.heistIntroTimer,8);
+        return;
+      }
       const live=engine.state===GameState.PLAYING;
       if(!live)return;
       if(action==='previousWeapon'||action==='nextWeapon'){cycleWeapon(engine,action==='nextWeapon'?1:-1);return;}
