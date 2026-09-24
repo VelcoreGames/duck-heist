@@ -1177,6 +1177,7 @@ function renderPrompts(engine: GameEngine) {
   const content = getContentOf(engine);
   const p = engine.player;
   const f = engine.frame;
+  const safe=visibleCanvasRect(8),safeLeft=safe.x,safeRight=safe.x+safe.w;
   const targets:TooltipTarget[]=[];
   for(const ped of [content.pedestal,...(content.choices ?? [])]) {
     if(!ped || ped.taken) continue;
@@ -1272,7 +1273,7 @@ function renderPrompts(engine: GameEngine) {
     const c = engine.pickupCard;
     const a = clamp(c.timer / 25, 0, 1);
     ctx.globalAlpha = a;
-    const x=8,y=58,w=140,h=c.first?69:55;
+    const x=safeLeft,y=58,w=140,h=c.first?69:55;
     ctx.fillStyle='rgba(10,22,28,.96)';ctx.fillRect(x,y,w,h);ctx.fillStyle=RARITY_COLORS[c.rarity];ctx.fillRect(x,y,2,h);
     if(c.first) text(ctx,c.isWeapon?'NUEVA ARMA DESCUBIERTA':'NUEVO OBJETO DESCUBIERTO',x+9,y+12,6.2,'#e5cd8e','left',true);
     drawItemIcon(ctx,x+8,y+(c.first?24:12),c.itemId,24);
@@ -1295,7 +1296,7 @@ function renderPrompts(engine: GameEngine) {
   }
   if(p.combo>=3 && p.comboTimer>0 && !engine.pickupCard) {
     ctx.globalAlpha=Math.min(.85,p.comboTimer/35);
-    text(ctx,`${p.combo} · ${p.combo>=10?'ATRACO PERFECTO':p.combo>=6?'IMPARABLE':'RACHA'}`, CANVAS_WIDTH-12,280,7,'#bca969','right');ctx.globalAlpha=1;
+    text(ctx,`${p.combo} · ${p.combo>=10?'ATRACO PERFECTO':p.combo>=6?'IMPARABLE':'RACHA'}`, safeRight,280,7,'#bca969','right');ctx.globalAlpha=1;
   }
 
   // tarjeta de daño recibido
