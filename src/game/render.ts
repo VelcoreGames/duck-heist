@@ -1075,15 +1075,15 @@ export function renderUI(engine: GameEngine) {
     ctx.restore();
   };
   const framedLegacy=(draw:()=>void,label:string,accent:string)=>{
-    drawWideMenuChrome(engine,label,accent);
+    if(useWideMainMenu())drawWideMenuChrome(engine,label,accent);
     legacy(draw);
   };
 
   switch (s) {
     case GameState.MENU: {
       const wide=useWideMainMenu();
-      drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');
-      if(wide)renderMenuUI(engine,true);else legacy(()=>renderMenuUI(engine,false));
+      if(wide){drawWideMenuChrome(engine,'CENTRO DE OPERACIONES','#e6c56f');renderMenuUI(engine,true);}
+      else legacy(()=>renderMenuUI(engine,false));
       break;
     }
     case GameState.DIFFICULTY: framedLegacy(()=>renderDifficultyUI(engine),'SELECCIÓN DE RIESGO','#d86b58'); break;
