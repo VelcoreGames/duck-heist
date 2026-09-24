@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -16,6 +16,7 @@ import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
 import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
+import { coverVisibleCanvasRect } from './layout';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -47,6 +48,15 @@ export function runSelfChecks():CheckReport {
     return e;
   };
   try {
+    check('UI legacy cabe completa en el área segura calculada',()=>{
+      for(const [w,h] of [[1920,1080],[1366,768],[1600,900],[1920,1200],[1280,1024],[2560,1080]]){
+        const safe=coverVisibleCanvasRect(w,h);
+        const scale=Math.min(1,safe.w/UI_BASE_WIDTH,safe.h/CANVAS_HEIGHT);
+        assert(scale>0,'escala segura inválida');
+        assert(UI_BASE_WIDTH*scale<=safe.w+.001,'ancho legacy recortado');
+        assert(CANVAS_HEIGHT*scale<=safe.h+.001,'alto legacy recortado');
+      }
+    });
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
     check('All content has a pickup category',()=>assert(report.manifest.entries.every(i=>!!i.pickup&&!!i.category),'missing pickup metadata'));
     check('Exactly eleven cosmetic skins',()=>assert(SKINS.length===11 && SKINS.every(s=>!('hp' in s)&&!('damage' in s)),'invalid cosmetics'));
