@@ -559,6 +559,54 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
   const by = Math.floor(y);
   
   switch (type) {
+    case 'pistol_round':
+    case 'smg_round':
+    case 'rifle_556':
+    case 'lmg_556':
+    case 'pdw_57': {
+      const long=type==='rifle_556'||type==='lmg_556'?7:type==='pdw_57'?5:4;
+      const core=type==='pdw_57'?'#d8eef0':'#f1e1b8';
+      ctx.globalAlpha=.28;
+      rect(ctx,bx-long-2,by-1,long+1,2,type==='smg_round'?'#c9a45d':'#d8c06c');
+      ctx.globalAlpha=1;
+      rect(ctx,bx-long/2,by-1,long,2,core);
+      px(ctx,bx+Math.floor(long/2)-1,by-1,'#fff7dc',1);
+      break;
+    }
+    case 'rifle_762':
+    case 'dmr_round':
+    case 'sniper_308': {
+      const long=type==='sniper_308'?10:type==='dmr_round'?8:7;
+      ctx.globalAlpha=.24;rect(ctx,bx-long-3,by-1,long+2,2,'#c68f47');ctx.globalAlpha=1;
+      rect(ctx,bx-Math.floor(long/2),by-1,long,2,type==='sniper_308'?'#f1e4c3':'#d7c49d');
+      rect(ctx,bx+Math.floor(long/2)-1,by-1,2,2,'#fff4d4');
+      break;
+    }
+    case 'magnum_round': {
+      ctx.globalAlpha=.26;rect(ctx,bx-8,by-1,7,2,'#d7a348');ctx.globalAlpha=1;
+      rect(ctx,bx-3,by-2,6,4,'#d8c49f');rect(ctx,bx+1,by-1,3,2,'#fff0c6');
+      break;
+    }
+    case 'suppressed_45': {
+      ctx.globalAlpha=.16;rect(ctx,bx-6,by-1,5,2,'#8fa2a7');ctx.globalAlpha=1;
+      rect(ctx,bx-3,by-1,6,2,'#bdc9c8');px(ctx,bx+2,by-1,'#eaf0e9',1);
+      break;
+    }
+    case 'heavy_50': {
+      ctx.globalAlpha=.30;rect(ctx,bx-13,by-2,11,3,'#c6873f');ctx.globalAlpha=1;
+      rect(ctx,bx-6,by-2,12,4,'#d8c4a0');rect(ctx,bx+3,by-1,4,2,'#fff0c6');
+      break;
+    }
+    case 'buckshot_player': {
+      rect(ctx,bx-2,by-2,4,4,'#d3c2a1');rect(ctx,bx-1,by-1,2,2,'#fff1cf');
+      break;
+    }
+    case 'grenade_40mm': {
+      ctx.save();ctx.translate(bx,by);ctx.rotate(frame*.05);
+      rect(ctx,-5,-3,10,6,'#647455');rect(ctx,-3,-2,6,4,'#87966d');
+      rect(ctx,3,-2,3,4,'#2f3935');px(ctx,-2,-2,'#d4c76f',1);ctx.restore();
+      break;
+    }
     case 'quack': case 'quack_power': {
       const big = type === 'quack_power';
       ctx.fillStyle = 'rgba(249,229,71,.25)';
