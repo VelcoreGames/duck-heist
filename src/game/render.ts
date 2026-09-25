@@ -304,6 +304,46 @@ export function renderWorld(engine: GameEngine) {
   if(room.modifier==='alarm'&&!room.cleared){ctx.globalAlpha=.06+Math.sin(f*.05)*.025;ctx.fillStyle='#e15a4f';ctx.fillRect(32,32,CANVAS_WIDTH-64,CANVAS_HEIGHT-64);ctx.globalAlpha=1;}
   drawEndlessArenaMood(ctx,engine,f);
 
+  if(content.airStrikes?.length){
+    for(const a of content.airStrikes){
+      ctx.save();
+      if(a.warning>0){
+        const t=1-a.warning/Math.max(1,a.warningTotal);
+        ctx.globalAlpha=.25+.25*t;
+        ctx.fillStyle='#b9663f';
+        ctx.beginPath();ctx.ellipse(a.x,a.y+3,a.radius,a.radius*.42,0,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=.8;
+        ctx.strokeStyle='#ffd06e';
+        ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.ellipse(a.x,a.y+3,a.radius*(1.12-.1*t),a.radius*.46,0,0,Math.PI*2);ctx.stroke();
+      }else if(a.fall>0){
+        const t=1-a.fall/Math.max(1,a.fallTotal);
+        const e=t*t*(3-2*t);
+        const py=-28+(a.y+28)*e;
+        ctx.globalAlpha=.25;
+        ctx.fillStyle='#f0a94e';
+        ctx.fillRect(a.x-2,py-22,4,20);
+        ctx.globalAlpha=1;
+        ctx.fillStyle='#69767b';
+        ctx.fillRect(a.x-3,py-7,6,9);
+        ctx.fillStyle='#c1c8c3';
+        ctx.fillRect(a.x-2,py-6,4,3);
+        ctx.fillStyle='#f2b84b';
+        ctx.fillRect(a.x-2,py+2,4,4);
+      }else if(a.impact>0){
+        const t=1-a.impact/14;
+        ctx.globalAlpha=.35*(1-t);
+        ctx.fillStyle='#fff2b0';
+        ctx.beginPath();ctx.arc(a.x,a.y,8+t*a.radius*.7,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=.75*(1-t);
+        ctx.strokeStyle='#ffae4d';
+        ctx.lineWidth=2;
+        ctx.beginPath();ctx.ellipse(a.x,a.y+2,8+t*a.radius,4+t*a.radius*.42,0,0,Math.PI*2);ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
   for (const p of content.puddles) {
     ctx.globalAlpha = Math.min(0.55, p.life / 200);
     const fire = p.kind === 'fire';
