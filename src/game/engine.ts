@@ -1521,9 +1521,11 @@ function loadNextFloor(engine: GameEngine) {
 
 function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
   const floor=engine.map.floorIndex;
-  if(room.type===RoomType.BOSS){setMusic('boss',floor);return;}
-  if(room.type===RoomType.SUBBOSS){setMusic('subboss',floor);return;}
-  if(room.type===RoomType.MINIBOSS){setMusic('miniboss',floor);return;}
+  const encounterBoss=content?.enemies.find(e=>e.isBoss);
+  const musicVariant=encounterBoss?.bossType??'';
+  if(room.type===RoomType.BOSS){setMusic('boss',floor,musicVariant);return;}
+  if(room.type===RoomType.SUBBOSS){setMusic('subboss',floor,musicVariant);return;}
+  if(room.type===RoomType.MINIBOSS){setMusic('miniboss',floor,musicVariant);return;}
   if(room.type===RoomType.GUN_VAN){setMusic('gunvan',floor);return;}
   if(room.type===RoomType.SHOP){setMusic('shop',floor);return;}
   if(room.type===RoomType.EVENT){
@@ -1624,11 +1626,11 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
       engine.transition.timer = 0;
       engine.bossIntroSeen[boss.bossType] = true;
       if(room.type===RoomType.BOSS){
-        playBossRoar();setMusic('boss',engine.map.floorIndex);
+        playBossRoar();setMusic('boss',engine.map.floorIndex,boss.bossType);
       }else if(room.type===RoomType.SUBBOSS){
-        playBossRoar();setMusic('subboss',engine.map.floorIndex);
+        playBossRoar();setMusic('subboss',engine.map.floorIndex,boss.bossType);
       }else if(room.type===RoomType.MINIBOSS){
-        playBossPhase('mini');setMusic('miniboss',engine.map.floorIndex);
+        playBossPhase('mini');setMusic('miniboss',engine.map.floorIndex,boss.bossType);
       }
       engine.state = GameState.BOSS_INTRO;
       engine.onStateChange?.(engine.state);
