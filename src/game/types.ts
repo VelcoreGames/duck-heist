@@ -88,6 +88,10 @@ export interface Enemy {
   /** Recuperación visual/corporal después de ejecutar un ataque importante. */
   bossAttackRecovery?:number;
   bossAttackRecoveryMax?:number;
+  /** Secuencia multietapa propia de bosses icónicos; persiste entre frames. */
+  bossSequenceAttack?:number;
+  bossSequenceStep?:number;
+  bossSequenceTimer?:number;
   /** Hurtbox elíptica opcional para jefes con siluetas no cuadradas. */
   hitboxW?:number;
   hitboxH?:number;
