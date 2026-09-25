@@ -176,6 +176,9 @@ function makeEnemy(typeKey: string, sc: DiffScale, tx: number, ty: number, elite
     attackTimer: 0, attackCooldown: 60, spawnAnim: 18,
     dmgMul: sc.dmg * (elite ? 1.5 : 1),
     shieldAngle: 0, recover: 0,
+    hitboxW:def.hitboxW,hitboxH:def.hitboxH,
+    visualScaleX:def.scaleX,visualScaleY:def.scaleY,
+    stationaryBoss:!!def.stationary,
   };
 }
 type floorIndexScale = { hp: number; dmg: number; speed: number; fire: number; pattern: number };
@@ -1921,8 +1924,11 @@ export function updateEngine(engine: GameEngine) {
     else updateEnemyAI(engine, e, room, content, enemySpeedMult);
 
     if (player.iFrames <= 0 && player.dashTimer <= 0 && e.behavior!=='camera' && e.behavior!=='mobileCam') {
-      if (dist(player.x + 7, player.y + 8, e.x + e.size / 2, e.y + e.size / 2) < e.size / 2 + 7) {
-        damagePlayer(engine, e.dmgMul,'contact',isPolice(e));
+      const cx=e.x+e.size/2,cy=e.y+e.size/2;
+      const rx=(e.hitboxW ?? e.size)/2+7,ry=(e.hitboxH ?? e.size)/2+7;
+      const dx=(player.x+7)-cx,dy=(player.y+8)-cy;
+      if((dx*dx)/(rx*rx)+(dy*dy)/(ry*ry)<1){
+        damagePlayer(engine,e.dmgMul,'contact',isPolice(e));
       }
     }
   }
@@ -2791,8 +2797,9 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         if(!e||e.hp<=0) continue;
         if (p.hitEnemies.has(e.id)) continue;
         const ex=e.x+e.size/2,ey=e.y+e.size/2;
-        const rr=e.size/2+(p.radius ?? 4),dx=p.x-ex,dy=p.y-ey;
-        if (dx*dx+dy*dy > rr*rr) continue;
+        const pr=p.radius ?? 4,dx=p.x-ex,dy=p.y-ey;
+        const rx=(e.hitboxW ?? e.size)/2+pr,ry=(e.hitboxH ?? e.size)/2+pr;
+        if ((dx*dx)/(rx*rx)+(dy*dy)/(ry*ry) > 1) continue;
         if(p.explode>0) {explode(engine,p,content);engine.projectiles.splice(i,1);removed=true;break;}
 
         if ((e.behavior === 'shielded' || e.bossType === 'ganso_antidisturbios') && e.recover <= 0) {
@@ -3616,12 +3623,33 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
     }
     if(def.legacy)boss.bossAttackIndex=attackStep+1;
     bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
+    if(def.stationary){
+      // Las estructuras gigantes dominan el mapa con artillería y fuego desde
+      // el cielo para compensar que no persiguen al jugador.
+      const salvo=tier==='boss'?3+phase:tier==='sub'?2+phase:2;
+      for(let i=0;i<salvo;i++){
+        const a=i/salvo*Math.PI*2+engine.frame*.015;
+        queueBossAirStrike(
+          content,
+          clamp(px+Math.cos(a)*(32+i*10),42,CANVAS_WIDTH-42),
+          clamp(py+Math.sin(a)*(25+i*8),42,CANVAS_HEIGHT-42),
+          16+phase*3,
+          i===0?'heavy':'shell',
+          30+i*6
+        );
+      }
+    }
     applyBossMutationAttack(engine,boss,room,content,ang,tier);
   }
 
   const moveScale=tier==='boss'?(1+phase*.23):tier==='sub'?(1+phase*.18):(1+phase*.14);
   const spd=boss.speed*moveScale*intensity;
-  if(boss.moveTimer>0) {
+  if(boss.stationaryBoss){
+    // Los jefes-fortaleza son set-pieces: giran/atacan, pero no "patinan"
+    // detrás del jugador. Las cargas explícitas se convierten en presión de fuego.
+    boss.moveTimer=0;
+    boss.moveAngle=ang;
+  } else if(boss.moveTimer>0) {
     boss.moveTimer--;
     moveEnemy(boss,room,Math.cos(boss.moveAngle)*spd*(tier==='mini'?2.8:2.45),Math.sin(boss.moveAngle)*spd*(tier==='mini'?2.8:2.45));
   } else if(def.pattern&&!def.legacy) {
