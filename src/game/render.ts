@@ -722,6 +722,8 @@ export function renderWorld(engine: GameEngine) {
       ctx.restore();
     }
     const currentWeapon=activeWeapon(p);
+    const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
+      currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
     const recoilPower=currentWeapon.id==='plasma_baker'?3.15:currentWeapon.id==='baguette_launcher'?2.8:
       currentWeapon.id==='breadcrumb_shotgun'?2.55:currentWeapon.id==='baguette_sniper'?2.25:
       currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'||currentWeapon.id==='golden_egg_revolver'?1.75:
@@ -761,8 +763,6 @@ export function renderWorld(engine: GameEngine) {
     ctx.save();
     ctx.translate(drawX+7,drawY+9);
     ctx.rotate(p.facingAngle);
-    const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
-      currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
     const gunSize=longGun?16:14;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
