@@ -1505,7 +1505,11 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
       engine.transition.active = false;
       engine.transition.timer = 0;
       engine.bossIntroSeen[boss.bossType] = true;
-      if (room.type === RoomType.BOSS || room.type === RoomType.SUBBOSS) { playBossRoar(); setMusic('boss'); }
+      if (room.type === RoomType.BOSS || room.type === RoomType.SUBBOSS) {
+        playBossRoar();setMusic('boss');
+      } else if(room.type===RoomType.MINIBOSS) {
+        playBossPhase('mini');setMusic('event');
+      }
       engine.state = GameState.BOSS_INTRO;
       engine.onStateChange?.(engine.state);
     }
