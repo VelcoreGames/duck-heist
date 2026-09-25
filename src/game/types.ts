@@ -103,6 +103,20 @@ export interface ShopItem {
 
 export interface Puddle { x: number; y: number; life: number; kind?:'water'|'butter'|'fire'|'smoke'|'radiation'; radius?:number; }
 
+export interface AirStrike {
+  x:number;
+  y:number;
+  warning:number;
+  warningTotal:number;
+  fall:number;
+  fallTotal:number;
+  impact:number;
+  radius:number;
+  damage:number;
+  variant?:'shell'|'heavy'|'rapid';
+  impacted?:boolean;
+}
+
 export interface Pedestal {
   x: number; y: number; itemId: string; isWeapon: boolean; taken: boolean; bossLoot?: boolean;
   isFood?:boolean;
@@ -117,6 +131,7 @@ export interface RoomContent {
   pickups: Pickup[];
   items: ItemPickup[];
   puddles: Puddle[];
+  airStrikes?: AirStrike[];
   chest?: { x: number; y: number; opened: boolean };
   shopItems?: ShopItem[];
   pedestal?: Pedestal;
