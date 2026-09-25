@@ -1531,7 +1531,7 @@ function roomMusicVariant(room:MapRoom,content?:RoomContent){
   // Las salas del mismo tipo comparten una identidad musical continua dentro
   // del piso. Así cruzar entre dos combates equivalentes no reinicia ni pausa
   // la canción. Los tipos distintos sí tienen composiciones propias.
-  const identity=`${room.type}|floor:${room.floor ?? 'x'}`;
+  const identity=`${room.type}`;
   return encounterBoss?.bossType?bossMusicVariant(encounterBoss.bossType,encounterBoss.bossPhase??0):identity;
 }
 
