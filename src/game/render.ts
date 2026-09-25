@@ -69,27 +69,87 @@ const menuFrame = (engine:GameEngine) => engine.settings.reduceMotion ? 0 : engi
 
 
 function drawGunVanScene(ctx:CanvasRenderingContext2D,f:number) {
-  ctx.save();ctx.translate(CANVAS_WIDTH/2-UI_BASE_WIDTH/2,0);ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(240,161,100,14,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#05070a';ctx.fillRect(148,89,158,57);ctx.fillStyle='#0d1217';ctx.fillRect(157,80,105,11);ctx.fillRect(262,86,52,60);
-  ctx.fillStyle='#27343d';ctx.fillRect(269,93,35,20);ctx.fillStyle='#56747f';ctx.globalAlpha=.48;ctx.fillRect(273,96,27,14);ctx.globalAlpha=1;
-  ctx.fillStyle='#020304';ctx.fillRect(167,96,87,44);ctx.fillStyle='#171e23';ctx.fillRect(182,104,57,31);
-  ctx.fillStyle='#d28a3c';ctx.globalAlpha=.13+.04*Math.sin(f*.06);ctx.fillRect(185,107,51,25);ctx.globalAlpha=1;
-  ctx.fillStyle='#4a555d';for(let i=0;i<3;i++){ctx.fillRect(190+i*17,111,13,3);ctx.fillRect(193+i*17,106,7,2);}
-  for(const x of [179,293]){ctx.fillStyle='#020304';ctx.beginPath();ctx.arc(x,148,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#47515a';ctx.beginPath();ctx.arc(x,148,6,0,Math.PI*2);ctx.fill();}
-  ctx.fillStyle='#d99a4b';ctx.fillRect(230,141,24,3);ctx.fillStyle='#d8e2e6';ctx.fillRect(310,106,5,4);ctx.fillStyle='#a52e31';ctx.fillRect(148,109,4,9);
-  drawShopPigeon(ctx,323,118,f);ctx.restore();
+  ctx.save();ctx.translate(CANVAS_WIDTH/2-UI_BASE_WIDTH/2,0);
+  const pulse=.5+.5*Math.sin(f*.07);
+  ctx.globalAlpha=.34;ctx.fillStyle='#020608';ctx.beginPath();ctx.ellipse(240,162,110,16,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  // Furgón negro reforzado, abierto como armería improvisada.
+  ctx.fillStyle='#05080a';ctx.fillRect(143,88,170,61);
+  ctx.fillStyle='#11181c';ctx.fillRect(152,80,112,10);ctx.fillRect(264,86,53,63);
+  ctx.fillStyle='#2e3a40';ctx.fillRect(269,92,38,22);
+  ctx.fillStyle='#54717a';ctx.globalAlpha=.50;ctx.fillRect(273,96,30,14);ctx.globalAlpha=1;
+  ctx.fillStyle='#020405';ctx.fillRect(161,95,96,45);
+  ctx.fillStyle='#151c20';ctx.fillRect(176,102,65,34);
+
+  // Estantes de armas y luz cálida interna.
+  ctx.globalAlpha=.12+.05*pulse;ctx.fillStyle='#d89143';ctx.fillRect(178,104,61,30);ctx.globalAlpha=1;
+  for(let row=0;row<3;row++){
+    ctx.fillStyle='#4b575b';ctx.fillRect(181,110+row*8,58,2);
+    for(let i=0;i<3;i++){
+      ctx.fillStyle=i===1?'#9c7744':'#69767a';ctx.fillRect(187+i*17,106+row*8,11,2);
+      ctx.fillStyle='#252d31';ctx.fillRect(190+i*17,108+row*8,7,2);
+    }
+  }
+
+  // Puerta lateral, remaches y señal clandestina.
+  ctx.strokeStyle='#3d4b50';ctx.strokeRect(264.5,86.5,48,61);
+  for(let y=93;y<143;y+=12){ctx.fillStyle='#778486';ctx.fillRect(267,y,2,2);}
+  ctx.fillStyle='#a96b2d';ctx.fillRect(213,140,34,4);
+  ctx.fillStyle='#e4b768';ctx.fillRect(221,141,18,1);
+  ctx.fillStyle='#d7e2df';ctx.fillRect(306,105,5,4);ctx.fillStyle='#9e292d';ctx.fillRect(145,109,4,10);
+
+  for(const x of [176,296]){
+    ctx.fillStyle='#020304';ctx.beginPath();ctx.arc(x,150,15,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#465257';ctx.beginPath();ctx.arc(x,150,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#879396';ctx.beginPath();ctx.arc(x-2,148,2,0,Math.PI*2);ctx.fill();
+  }
+
+  ctx.globalAlpha=.10+.08*pulse;ctx.fillStyle='#e19b54';ctx.fillRect(165,144,135,2);ctx.globalAlpha=1;
+  drawShopPigeon(ctx,322,119,f);
+  ctx.restore();
 }
 
 function drawCafeScene(ctx:CanvasRenderingContext2D,f:number) {
-  ctx.save();ctx.translate(CANVAS_WIDTH/2-UI_BASE_WIDTH/2,0);ctx.fillStyle='#4d3124';ctx.fillRect(136,106,208,38);ctx.fillStyle='#8a5b3d';ctx.fillRect(136,106,208,4);ctx.fillStyle='#e1b779';ctx.fillRect(142,112,196,3);
-  ctx.fillStyle='#20262c';ctx.fillRect(296,80,34,27);ctx.fillStyle='#9aa6ab';ctx.fillRect(300,84,26,11);ctx.fillStyle='#dce5e7';ctx.fillRect(303,87,20,6);
-  ctx.fillStyle='#efe0bf';ctx.fillRect(152,80,58,24);ctx.fillStyle='#2d2520';ctx.fillRect(156,84,50,16);ctx.fillStyle='#e4b768';ctx.fillRect(161,88,24,2);ctx.fillRect(161,93,32,2);
-  drawShopPigeon(ctx,230,92,f);ctx.fillStyle='#f0ece2';ctx.fillRect(234,110,8,11);ctx.restore();
+  ctx.save();ctx.translate(CANVAS_WIDTH/2-UI_BASE_WIDTH/2,0);
+  const steam=.35+.20*Math.sin(f*.08);
+  // Barra semiclandestina de banco: madera cálida + acero de cocina.
+  ctx.fillStyle='#3d2a22';ctx.fillRect(130,104,218,42);
+  ctx.fillStyle='#82583d';ctx.fillRect(130,104,218,4);
+  ctx.fillStyle='#d9b274';ctx.fillRect(136,111,206,3);
+  ctx.fillStyle='#261b17';ctx.fillRect(142,119,194,19);
+  for(let x=150;x<332;x+=28){ctx.fillStyle='#674634';ctx.fillRect(x,121,20,14);ctx.fillStyle='#b58054';ctx.fillRect(x+2,123,16,2);}
+
+  // Máquina, vitrina y menú.
+  ctx.fillStyle='#1d2529';ctx.fillRect(291,78,41,30);
+  ctx.fillStyle='#839195';ctx.fillRect(296,82,31,13);
+  ctx.fillStyle='#dce5e2';ctx.fillRect(300,85,23,6);
+  ctx.fillStyle='#556366';ctx.fillRect(303,96,18,8);
+  ctx.globalAlpha=steam*.35;ctx.fillStyle='#e7efe9';ctx.beginPath();ctx.ellipse(316,74,5,11,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  ctx.fillStyle='#e6d3aa';ctx.fillRect(146,78,66,25);
+  ctx.fillStyle='#252521';ctx.fillRect(150,82,58,17);
+  ctx.fillStyle='#e6b65f';ctx.fillRect(155,86,25,2);ctx.fillRect(155,91,38,2);ctx.fillRect(155,96,30,1);
+
+  ctx.fillStyle='#8f5d3c';ctx.fillRect(221,101,38,5);ctx.fillStyle='#d8b67a';ctx.fillRect(226,98,28,4);
+  drawShopPigeon(ctx,231,92,f);
+  ctx.fillStyle='#f0ece2';ctx.fillRect(235,110,8,11);
+  ctx.fillStyle='#c7855a';ctx.fillRect(237,111,4,2);
+  ctx.restore();
 }
 
 function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'|'cafe'|'shop') {
-  ctx.fillStyle=kind==='van'?'#0a0d10':kind==='cafe'?'#6f4934':'#25382f';ctx.fillRect(x-18,y+9,36,10);
-  ctx.fillStyle=kind==='van'?'#d58e42':kind==='cafe'?'#e7c493':'#66ba89';ctx.fillRect(x-14,y+10,28,2);
+  ctx.save();
+  ctx.globalAlpha=.26;ctx.fillStyle='#02080b';ctx.beginPath();ctx.ellipse(x,y+16,21,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  const body=kind==='van'?'#11171a':kind==='cafe'?'#604331':'#1e342d';
+  const edge=kind==='van'?'#d58e42':kind==='cafe'?'#e1bb83':'#6fbd91';
+  ctx.fillStyle=body;ctx.fillRect(x-20,y+8,40,11);
+  ctx.fillStyle='#0b1114';ctx.fillRect(x-17,y+17,34,3);
+  ctx.fillStyle=edge;ctx.fillRect(x-16,y+9,32,2);
+  ctx.globalAlpha=.35;ctx.fillRect(x-2,y+7,4,2);ctx.globalAlpha=1;
+  if(kind==='van'){ctx.fillStyle='#5e6b70';ctx.fillRect(x-18,y+12,4,4);ctx.fillRect(x+14,y+12,4,4);}
+  else if(kind==='cafe'){ctx.fillStyle='#d9c198';ctx.fillRect(x-15,y+12,30,1);}
+  else {ctx.fillStyle='#87d2a8';ctx.fillRect(x-15,y+13,3,3);ctx.fillRect(x+12,y+13,3,3);}
+  ctx.restore();
 }
 
 function drawVaultWings(ctx:CanvasRenderingContext2D,frame:number){
