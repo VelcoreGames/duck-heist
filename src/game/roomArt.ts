@@ -115,21 +115,78 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
   const baseLights = deco === 'lobby' ? [[120, 48], [360, 48]] : deco === 'security' ? [[80, 40], [240, 36], [400, 40]]
     : deco === 'bakery' ? [[90, 52], [390, 52]] : deco === 'vault' ? [[240, 40]] : deco === 'golden' ? [[160, 44], [320, 44]] : [[140, 50], [340, 50]];
   const lights=baseLights.map(([x,y])=>[x/480*CANVAS_WIDTH,y] as [number,number]);
+
+  // Luz arquitectónica por piso: cada sector debe reconocerse incluso sin mirar el HUD.
   for (const [lx, ly] of lights) {
-    const g = ctx.createRadialGradient(lx, ly, 4, lx, ly + 40, 90);
-    const col = deco === 'bakery' ? '255,140,60' : deco === 'golden' || deco === 'vault' ? '244,208,63' : deco === 'security' ? '79,157,216' : '200,220,240';
-    g.addColorStop(0, `rgba(${col},${.16 + Math.sin(frame * .04 + lx) * .04})`);
+    const g = ctx.createRadialGradient(lx, ly, 4, lx, ly + 40, 92);
+    const col = deco === 'bakery' ? '255,140,60' : deco === 'golden' || deco === 'vault' ? '244,208,63' : deco === 'security' ? '79,157,216' : deco === 'storage' ? '198,167,126' : '200,220,240';
+    const base=deco==='golden'?.20:deco==='security'?.17:.15;
+    g.addColorStop(0, `rgba(${col},${base + Math.sin(frame * .04 + lx) * .035})`);
+    g.addColorStop(.42, `rgba(${col},${base*.34})`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(lx - 90, ly - 10, 180, 160);
+    ctx.fillStyle = g; ctx.fillRect(lx - 92, ly - 10, 184, 162);
   }
+
+  ctx.save();
+  if(deco==='lobby'){
+    // Ejes ceremoniales del vestíbulo: banco elegante antes de volverse zona de guerra.
+    ctx.globalAlpha=.055;ctx.fillStyle='#e6c56f';
+    ctx.fillRect(CANVAS_WIDTH/2-2,42,4,CANVAS_HEIGHT-84);
+    ctx.fillRect(44,CANVAS_HEIGHT/2-1,CANVAS_WIDTH-88,2);
+    ctx.globalAlpha=.07;ctx.strokeStyle='#93b3b1';ctx.lineWidth=1;
+    ctx.strokeRect(56.5,52.5,CANVAS_WIDTH-113,CANVAS_HEIGHT-105);
+  }else if(deco==='security'){
+    // Barridos de sensores que venden vigilancia sin tapar proyectiles.
+    const scan=48+(frame*.42)%(CANVAS_HEIGHT-96);
+    ctx.globalAlpha=.065;ctx.fillStyle='#4f9dd8';ctx.fillRect(42,scan,CANVAS_WIDTH-84,1);
+    ctx.globalAlpha=.035;ctx.fillRect(42,scan-5,CANVAS_WIDTH-84,11);
+    ctx.globalAlpha=.09;ctx.fillStyle='#d95e58';
+    for(const x of [72,CANVAS_WIDTH-76]) if(((frame+Math.floor(x))>>4)%2===0)ctx.fillRect(x,45,3,2);
+  }else if(deco==='storage'){
+    // Marcas de carga y rutas industriales.
+    ctx.globalAlpha=.055;ctx.fillStyle='#d1ad73';
+    for(let x=62;x<CANVAS_WIDTH-55;x+=96){ctx.fillRect(x,54,2,CANVAS_HEIGHT-108);ctx.fillRect(x+5,54,1,CANVAS_HEIGHT-108);}
+    ctx.globalAlpha=.04;ctx.fillStyle='#0b0c0d';
+    for(let y=82;y<CANVAS_HEIGHT-60;y+=74)ctx.fillRect(44,y,CANVAS_WIDTH-88,5);
+  }else if(deco==='bakery'){
+    // Calor y horno: pulsos bajos en bordes, sin filtro blur.
+    const heat=.045+.018*Math.sin(frame*.055);
+    ctx.globalAlpha=heat;ctx.fillStyle='#ff7b3d';
+    ctx.fillRect(34,40,8,CANVAS_HEIGHT-80);ctx.fillRect(CANVAS_WIDTH-42,40,8,CANVAS_HEIGHT-80);
+    ctx.globalAlpha=.035;ctx.fillStyle='#ffd39a';
+    for(let y=70;y<CANVAS_HEIGHT-58;y+=54){const off=Math.sin(frame*.035+y)*5;ctx.fillRect(58+off,y,CANVAS_WIDTH-116,1);}
+  }else if(deco==='vault'){
+    // Geometría concéntrica de la cámara de seguridad.
+    ctx.globalAlpha=.06;ctx.strokeStyle='#e6c56f';ctx.lineWidth=1;
+    for(let i=0;i<3;i++)ctx.strokeRect(50+i*18+.5,48+i*13+.5,CANVAS_WIDTH-101-i*36,CANVAS_HEIGHT-97-i*26);
+    ctx.globalAlpha=.04;ctx.fillStyle='#9aa8a7';
+    for(let x=66;x<CANVAS_WIDTH-60;x+=58)ctx.fillRect(x,51,1,CANVAS_HEIGHT-102);
+  }else if(deco==='golden'){
+    const shimmer=.05+.025*Math.sin(frame*.05);
+    ctx.globalAlpha=shimmer;ctx.fillStyle='#ffe48a';
+    for(let i=0;i<7;i++){
+      const x=58+(i*71)%Math.max(80,CANVAS_WIDTH-116),y=64+((i*43+Math.floor(frame*.15))%(CANVAS_HEIGHT-128));
+      ctx.fillRect(x,y,i%3===0?3:1,1);
+    }
+    ctx.globalAlpha=.055;ctx.strokeStyle='#e6c56f';ctx.strokeRect(48.5,46.5,CANVAS_WIDTH-97,CANVAS_HEIGHT-93);
+  }
+  ctx.restore();
+
   if (deco === 'bakery' || deco === 'storage') {
     for (let i = 0; i < 10; i++) {
       const t = (frame * 0.4 + i * 37) % 220;
-      ctx.globalAlpha = .12;
+      ctx.globalAlpha = .10;
       r(ctx, 40 + (i * 83 % Math.max(80,CANVAS_WIDTH-80)), 300 - t * .6, 2, 2, deco === 'bakery' ? '#e8c99b' : '#cbb89a');
     }
     ctx.globalAlpha = 1;
   }
+
+  // Viñeta arquitectónica común para dirigir la mirada al espacio jugable.
+  const vignette=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,110,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.68);
+  vignette.addColorStop(0,'rgba(0,0,0,0)');
+  vignette.addColorStop(1,'rgba(1,7,10,.18)');
+  ctx.fillStyle=vignette;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+
   if (special) {
     const g = ctx.createRadialGradient(CANVAS_WIDTH/2, 176, 20, CANVAS_WIDTH/2, 176, 180);
     g.addColorStop(0, 'rgba(180,80,220,.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
