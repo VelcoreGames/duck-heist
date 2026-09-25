@@ -1145,7 +1145,9 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       ctx.restore();
     }
     ctx.save();
-    const wind=e.telegraph>.05?e.telegraph:0;
+    const sequenceActive=e.bossSequenceAttack!==undefined;
+    const wind=e.telegraph>.05?e.telegraph:sequenceActive?.28+.10*Math.sin(f*.18):0;
+    const choreoAttack=e.bossPreparedAttack??e.bossSequenceAttack;
     const phasePulse=(e.phaseTransition??0)>0?Math.sin((54-(e.phaseTransition??0))*.28)*.045:0;
     const scale=1+wind*.055+phasePulse;
     ctx.translate(cx,cy);
@@ -1157,7 +1159,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     // cara sobre el canvas. Como hurtTimer vuelve a 8 en cada impacto, disparar
     // rápido contra un jefe mantenía el filtro activo casi permanentemente y
     // provocaba exactamente la ralentización observada durante jefe/subjefe.
-    drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase, e.telegraph, e.bossParts, e.bossPreparedAttack, e.bossAttackRecovery??0, e.bossAttackRecoveryMax??0);
+    drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase, sequenceActive?wind:e.telegraph, e.bossParts, choreoAttack, e.bossAttackRecovery??0, e.bossAttackRecoveryMax??0);
     ctx.restore();
 
     // Feedback de impacto barato: un pulso de contorno en vez de filtrar todos
