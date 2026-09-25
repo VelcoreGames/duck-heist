@@ -699,19 +699,26 @@ export function renderWorld(engine: GameEngine) {
   }
   if (p.hp > 0) {
     if(p.dashTimer>0){
-      for(let i=3;i>=1;i--){
+      for(let i=4;i>=1;i--){
         ctx.save();
-        ctx.globalAlpha=.08+i*.055;
-        const ox=-p.dashDir.x*(i*5+2),oy=-p.dashDir.y*(i*5+2);
-        drawDuckSkin(ctx,p.x+ox,p.y+oy,f-i*2,engine.equippedSkin,p.dir,true,false,true,p.shootFlash>0);
+        ctx.globalAlpha=.045+i*.045;
+        const ox=-p.dashDir.x*(i*5+3),oy=-p.dashDir.y*(i*5+3);
+        ctx.translate(p.x+ox+7,p.y+oy+9);
+        const horizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
+        ctx.scale(horizontal?1.12:.9,horizontal?.88:1.1);
+        drawDuckSkin(ctx,-7,-9,f-i*2,engine.equippedSkin,p.dir,true,false,true,p.shootFlash>0);
         ctx.restore();
       }
-      ctx.save();ctx.globalAlpha=.34;ctx.strokeStyle='#fff3a8';ctx.lineWidth=1;
-      for(let i=-1;i<=1;i++){
-        const px=p.x+7-p.dashDir.x*(12+i*4)+p.dashDir.y*i*4;
-        const py=p.y+8-p.dashDir.y*(12+i*4)-p.dashDir.x*i*4;
-        ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px-p.dashDir.x*16,py-p.dashDir.y*16);ctx.stroke();
+      ctx.save();
+      const dashLife=clamp(p.dashTimer/12,0,1);
+      ctx.globalAlpha=.22+.18*dashLife;ctx.strokeStyle='#fff0a6';ctx.lineWidth=1;
+      for(let i=-2;i<=2;i++){
+        const side=i*3.2;
+        const px=p.x+7-p.dashDir.x*(10+Math.abs(i)*2)+p.dashDir.y*side;
+        const py=p.y+8-p.dashDir.y*(10+Math.abs(i)*2)-p.dashDir.x*side;
+        ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px-p.dashDir.x*(14+Math.abs(i)*3),py-p.dashDir.y*(14+Math.abs(i)*3));ctx.stroke();
       }
+      ctx.globalAlpha=.12;ctx.fillStyle='#d9f2df';ctx.beginPath();ctx.ellipse(p.x+7-p.dashDir.x*5,p.y+10-p.dashDir.y*5,10,5,Math.atan2(p.dashDir.y,p.dashDir.x),0,Math.PI*2);ctx.fill();
       ctx.restore();
     }
     const currentWeapon=activeWeapon(p);
@@ -739,7 +746,24 @@ export function renderWorld(engine: GameEngine) {
     const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
       currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
     const gunSize=longGun?16:14;
+    const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
+    const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
+    ctx.translate(-weaponKick,0);
     drawItemIcon(ctx,3,-Math.round(gunSize/2),currentWeapon.id,gunSize);
+    if(p.shootFlash>0&&currentWeapon.id!=='quack_laser'&&currentWeapon.id!=='homing_crumbs'&&currentWeapon.id!=='feather_gun'){
+      const shellAge=6-p.shootFlash;
+      ctx.globalAlpha=.78-shellAge*.08;
+      ctx.fillStyle=currentWeapon.id==='breadcrumb_shotgun'?'#b86e38':'#c8a352';
+      const sy=-6-shellAge*.7,sx=1-shellAge*.8;
+      ctx.fillRect(Math.round(sx),Math.round(sy),currentWeapon.id==='breadcrumb_shotgun'?3:2,1);
+      ctx.globalAlpha=1;
+    }
+    if(p.charge>0&&(currentWeapon.id==='plasma_baker'||currentWeapon.id==='golden_egg_revolver'||currentWeapon.id==='baguette_sniper')){
+      const q=clamp(p.charge/70,0,1),mx=longGun?18:14;
+      ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=currentWeapon.id==='plasma_baker'?'#ffd98a':'#e6c56f';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(mx,0,4+q*6,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mx-1,-1,2,2);ctx.globalAlpha=1;
+    }
     ctx.restore();
 
     if(p.shootFlash>0){
@@ -758,22 +782,38 @@ export function renderWorld(engine: GameEngine) {
       }
       ctx.restore();
     }
-    if (p.iFrames > 0 && p.dashTimer <= 0 && Math.floor(f * 0.35) % 2 === 0) {
-      ctx.globalAlpha = 0.2;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(p.x + 2, p.y + 2, 12, 14);
-      ctx.globalAlpha = 1;
+    if(p.iFrames>0&&p.dashTimer<=0&&Math.floor(f*.35)%2===0){
+      ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#fff4d8';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(p.x+7,p.y+9,9,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
     }
+  }else{
+    // El pato no desaparece al morir: cae y deja un último eco de plumas.
+    const death=clamp(p.deathTimer/75,0,1),fall=1-death;
+    ctx.save();
+    ctx.globalAlpha=Math.max(.22,death);
+    ctx.translate(p.x+7,p.y+10+fall*5);
+    ctx.rotate((p.dir==='left'?-1:1)*fall*.95);
+    ctx.scale(1,.35+death*.65);
+    drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,p.dir,false,true,false,false);
+    ctx.restore();
+    ctx.save();ctx.globalAlpha=.18*death;ctx.strokeStyle='#f4d384';ctx.beginPath();ctx.ellipse(p.x+7,p.y+15,10+fall*12,3+fall*3,0,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
 
   for (const pt of engine.particles) drawParticle(ctx, pt.x, pt.y, pt.type, pt.life, pt.color);
 
   ctx.restore();
 
-  // flash rojo al recibir daño
-  if (p.flash > 0) {
-    ctx.fillStyle = `rgba(220,40,40,${(p.flash / 10) * 0.3})`;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  // Daño recibido: borde direccional/viñeta en lugar de un baño rojo plano.
+  if(p.flash>0){
+    const a=clamp(p.flash/10,0,1);
+    ctx.save();
+    const hurt=ctx.createRadialGradient(p.x+7,p.y+8,18,p.x+7,p.y+8,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
+    hurt.addColorStop(0,'rgba(150,25,28,0)');
+    hurt.addColorStop(.6,`rgba(150,25,28,${.035*a})`);
+    hurt.addColorStop(1,`rgba(180,28,32,${.22*a})`);
+    ctx.fillStyle=hurt;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.globalAlpha=.38*a;ctx.strokeStyle='#ff6c63';ctx.lineWidth=2;
+    ctx.strokeRect(2,2,CANVAS_WIDTH-4,CANVAS_HEIGHT-4);
+    ctx.restore();
   }
 
   // viñeta
