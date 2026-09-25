@@ -1323,6 +1323,53 @@ function applyIconicAttackPose(ctx:Ctx,bossType:string,attack:number|undefined,w
   ctx.translate(p.dx,p.dy);ctx.rotate(p.rot);ctx.scale(p.sx,p.sy);
 }
 
+function drawIconicPhaseShift(ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,parts?:BossPartState[]){
+  if(phase<=0)return;
+  const alive=(id:string)=>bossPartIsAlive(parts,id);
+  const pulse=.5+.5*Math.sin(frame*.15);
+  ctx.save();
+  switch(bossType){
+    case 'captain_honk':
+      rect(ctx,-17,14,34,4,phase>=2?'#5a2428':'#4f5c63');
+      if(phase>=2){for(const x of [-20,18]){ctx.globalAlpha=.5+.35*pulse;px(ctx,x,-8,x<0?'#5ea4ff':'#ff5f57',4);}ctx.globalAlpha=1;}
+      break;
+    case 'comisario_pico_duro':
+      if(phase>=1){rect(ctx,-14,17,28,5,'#4d2529');}
+      if(phase>=2&&alive('execution_rifle')){ctx.strokeStyle='#d95b50';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(15,-18);ctx.lineTo(25,16);ctx.stroke();}
+      break;
+    case 'toaster_9000':
+      for(const x of [-38,34]){rect(ctx,x,-9,5,28,'#343b3e');for(let y=-5;y<15;y+=6)rect(ctx,x+(x<0?1:0),y,3,2,phase>=2?'#ff6b42':'#bc7a4b');}
+      if(phase>=2){ctx.save();ctx.rotate(-.18);rect(ctx,-33,-27,29,5,'#4a5052');ctx.restore();ctx.save();ctx.rotate(.18);rect(ctx,4,-27,29,5,'#4a5052');ctx.restore();}
+      break;
+    case 'general_ganso':
+      if(phase>=1){rect(ctx,-15,-2,6,17,'#29343c');rect(ctx,9,-2,6,17,'#29343c');}
+      if(phase>=2){rect(ctx,-8,-24,16,3,'#20282d');ctx.strokeStyle='#c65a4b';ctx.beginPath();ctx.moveTo(-10,-13);ctx.lineTo(-2,-7);ctx.stroke();}
+      break;
+    case 'don_levadura':
+      if(phase>=1){for(let i=0;i<5+phase;i++){const a=i/(5+phase)*Math.PI*2+frame*.01;ctx.globalAlpha=.28+.18*pulse;ctx.fillStyle=i%2?'#e0b074':'#a96d43';ctx.beginPath();ctx.arc(Math.cos(a)*(28+phase*4),8+Math.sin(a)*(20+phase*3),4+(i%2)*2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+      break;
+    case 'director_seguridad':
+      if(phase>=1){for(const x of [-45,45]){rect(ctx,x-3,-16,6,37,'#293238');rect(ctx,x-1,-22,2,8,v.accent);}}
+      if(phase>=2&&alive('security_core')){for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;ctx.save();ctx.rotate(a);rect(ctx,11,-3,14,6,'#56646a');ctx.restore();}}
+      break;
+    case 'head_baker':
+      if(phase>=1){for(const x of [-18,14])rect(ctx,x,16,8,5,'#7c4c34');}
+      break;
+    case 'el_auditor':
+      rect(ctx,-13,18,26,4,phase>=1?'#7e2731':'#30363b');
+      if(phase>=1){ctx.globalAlpha=.32+.22*pulse;ctx.strokeStyle='#a93440';ctx.beginPath();ctx.ellipse(0,0,18+phase*5,29+phase*4,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      break;
+    case 'ganso_antidisturbios':
+      if(phase>=1&&alive('riot_shield')){for(let y=-10;y<20;y+=9){ctx.fillStyle='#8e9ba3';ctx.beginPath();ctx.moveTo(33,y);ctx.lineTo(39,y+3);ctx.lineTo(33,y+6);ctx.closePath();ctx.fill();}}
+      break;
+    case 'cajero_3000':
+      if(phase>=1){rect(ctx,-31,17,62,5,'#2c3336');for(const x of [-24,24])px(ctx,x,18,phase>=1?'#ff6257':'#59d7a7',3);}
+      if(phase>=1&&alive('emergency_core')){ctx.globalAlpha=.25+.25*pulse;ctx.strokeStyle='#59d7a7';ctx.beginPath();ctx.arc(0,-2,18+phase*4,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      break;
+  }
+  ctx.restore();
+}
+
 function drawIconicAttackHardware(
   ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,attack:number|undefined,
   wind:number,recovery:number,recoveryMax:number,parts?:BossPartState[]
@@ -1651,6 +1698,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     ctx.save();
     applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
     iconic=drawIconicBossCore(ctx,bossType,frame,phase,v,parts);
+    drawIconicPhaseShift(ctx,bossType,frame,phase,v,parts);
     drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
     ctx.restore();
   }
