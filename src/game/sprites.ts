@@ -1504,6 +1504,8 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
 function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number) {
   const v=bossVisual(bossType);
   if(!v)return;
+  const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
+  const iconic=!!def?.legacy;
   const pulse=.55+.45*Math.sin(frame*.12);
   const phaseGlow=phase>0?1:0;
   ctx.save();
@@ -1515,8 +1517,9 @@ function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:numb
     ctx.restore();return;
   }
 
-  // Firma de familia: hace legible el rol incluso en movimiento.
-  if(v.family==='command'){
+  // Los iconos clásicos ya tienen cuerpo dibujado a mano; no volvemos a
+  // cubrirlos con la misma máscara de familia que los encuentros generados.
+  if(!iconic&&v.family==='command'){
     rect(ctx,bx+2,by+10,4,3,v.accent);rect(ctx,bx+28,by+10,4,3,v.accent);
     rect(ctx,bx+5,by-5,5,2,v.secondary);rect(ctx,bx+22,by-5,5,2,v.secondary);
     if(frame%30<15){px(ctx,bx+7,by-7,v.accent,2);px(ctx,bx+24,by-7,v.secondary,2);}
