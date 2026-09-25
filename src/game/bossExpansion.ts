@@ -28,6 +28,12 @@ export interface BossDef {
   family:BossFamily;accent:string;secondary:string;
   pattern:BossPatternDef;
   floorBand:number;
+  /** Índice visual único dentro de su jerarquía: evita repetir siluetas completas. */
+  visualIndex:number;
+  /** Escala visual y hurtbox elíptica propias del encuentro. */
+  scaleX:number;scaleY:number;hitboxW:number;hitboxH:number;
+  /** Algunos encuentros son estructuras gigantes que dominan la arena sin perseguir. */
+  stationary?:boolean;
   legacy?:boolean;
   finalBoss?:boolean;
 }
@@ -114,16 +120,39 @@ const LEGACY_STATS:Record<string,Partial<BossDef>>={
 
 function build(seed:Seed,index:number,tier:BossTier):BossDef {
   const [id,name,family,subtitle,legacy]=seed;
-  // 48 encuentros por jerarquía: 10/10/10/10/8 entre los cinco primeros pisos.
   const band=Math.min(4,Math.floor(index/10)),slot=index%10;
   const style=BOSS_FAMILY_STYLE[family];
+  const pattern=patternFor(tier,index,family);
   const hp=tier==='mini'?122+band*13+slot*4:tier==='sub'?184+band*20+slot*6:255+band*34+slot*9;
-  const speed=tier==='mini'?1.22+(slot%5)*.12:tier==='sub'?1.02+(slot%5)*.09:.92+(slot%5)*.085;
-  const size=tier==='mini'?25+(slot%3):tier==='sub'?30+(slot%4):35+(slot%5);
+  const baseSpeed=tier==='mini'?1.22+(slot%5)*.12:tier==='sub'?1.02+(slot%5)*.09:.92+(slot%5)*.085;
+  const baseSize=tier==='mini'?25+(slot%3):tier==='sub'?30+(slot%4):35+(slot%5);
+
+  // Seis perfiles corporales radicalmente distintos. Junto con 12 rigs y 4
+  // placas frontales, los primeros 48 encuentros de cada tier no comparten
+  // la misma silueta completa.
+  const profile=index%6;
+  const proportions=[
+    [.78,1.32], // alto / ejecutor
+    [1.38,.78], // ancho / tanque
+    [1.08,1.08],// redondo / dron
+    [.90,.94],  // compacto / cazador
+    [1.46,1.12],// coloso
+    [.72,1.46], // torre / francotirador
+  ][profile] as [number,number];
+
+  const fortress=pattern.mobility==='fortress';
+  const stationary=fortress && (tier!=='mini' || index%2===0);
+  const giant=stationary || profile===4;
+  const size=Math.round(baseSize*(giant?(tier==='boss'?1.28:tier==='sub'?1.2:1.12):1));
+  const scaleX=proportions[0],scaleY=proportions[1];
+  const hitboxW=Math.max(18,Math.round(size*scaleX*.88));
+  const hitboxH=Math.max(18,Math.round(size*scaleY*.84));
+  const speed=stationary?0.06:baseSpeed;
+
   const base:BossDef={
     id,name,subtitle,hp,speed,size,phases:tier==='mini'?1:tier==='sub'?2:3,
     family,accent:style.accent,secondary:style.secondary,
-    pattern:patternFor(tier,index,family),floorBand:band,legacy,
+    pattern,floorBand:band,visualIndex:index,scaleX,scaleY,hitboxW,hitboxH,stationary,legacy,
   };
   return {...base,...(LEGACY_STATS[id]??{})};
 }
