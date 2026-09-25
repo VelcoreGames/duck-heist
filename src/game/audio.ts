@@ -203,7 +203,7 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
   const phase=identity.phase;
   const slot=step%16;
   const tierWeight=tier==='boss'?1:tier==='subboss' ? .78 : .62;
-  const phaseWeight=1+phase*.16;
+  const phaseWeight=1+phase*.16+musicIntensity*.08;
   const root=bossFamilyRoot(family)*Math.pow(2,([-2,0,2,3][(seed>>>6)%4])/12);
   const hit=(v:number)=>v*tierWeight*phaseWeight;
 
@@ -412,16 +412,17 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
 
   if(mood==='combat'){
     // COMBATE — "el golpe está en marcha".
-    // Bajo sincopado, golpes cortos y una llamada tipo sirena; tensión sin
-    // convertirse en el metrónomo rígido del desafío.
-    const phase=step%16,root=RUN_ROOTS[Math.min(5,musicFloor)];
-    if(phase===0||phase===8)chord(root,DARK,sec*6.2,.012,0,1080);
-    if([0,3,6,8,11,14].includes(phase))musicKick(phase===0||phase===8?.024:.016);
-    if(phase===4||phase===12)musicSnare(.009);
-    if([1,5,9,13].includes(phase))tone(root/2,sec*.42,.014,{type:'sawtooth',to:root*.47,attack:.006,cutoff:390,kind:'music'});
-    if(phase===2||phase===10)tone(root*2.25,sec*.38,.0065,{type:'triangle',to:root*2,attack:.01,cutoff:1850,kind:'music'});
-    if(phase===6||phase===14)tone(root*2.67,sec*.34,.006,{type:'triangle',to:root*2.38,attack:.01,cutoff:1900,kind:'music'});
-    if(phase===7||phase===15)lowImpact(56,.013,0,'music');
+    // La presión añade/quita capas sin reiniciar la composición.
+    const phase=step%16,root=RUN_ROOTS[Math.min(5,musicFloor)],pressure=musicIntensity;
+    if(phase===0||phase===8)chord(root,DARK,sec*6.2,.009+pressure*.0045,0,1080+pressure*220);
+    if([0,6,8,14].includes(phase))musicKick(.015+pressure*.010);
+    if(pressure>.42&&[3,11].includes(phase))musicKick(.013+pressure*.006);
+    if(pressure>.34&&(phase===4||phase===12))musicSnare(.006+pressure*.004);
+    if([1,5,9,13].includes(phase))tone(root/2,sec*.42,.010+pressure*.005,{type:'sawtooth',to:root*.47,attack:.006,cutoff:360+pressure*90,kind:'music'});
+    if(pressure>.28&&(phase===2||phase===10))tone(motifFreq(root,2,2),sec*.38,.0045+pressure*.0025,{type:'triangle',to:motifFreq(root,0,2),attack:.01,cutoff:1850,kind:'music'});
+    if(pressure>.55&&(phase===6||phase===14))tone(motifFreq(root,3,2),sec*.34,.0045+pressure*.002,{type:'triangle',to:motifFreq(root,1,2),attack:.01,cutoff:2000,kind:'music'});
+    if(pressure>.72&&(phase===1||phase===9))musicPluck(motifFreq(root,4,3),.0048);
+    if(phase===7||phase===15)lowImpact(54+pressure*6,.009+pressure*.005,0,'music');
     return;
   }
 
@@ -429,9 +430,9 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
     // ELECCIÓN: tensión elegante entre dos opciones; llamada y respuesta.
     const phase=step%16,root=floorRoot(73.42);
     if(phase===0||phase===8)chord(root,[1,1.26,1.5,2],sec*6.8,.009,0,1700);
-    if(phase===2||phase===10)musicPluck(root*2,.0065);
-    if(phase===4||phase===12)musicPluck(root*2.52,.0065);
-    if(phase===6||phase===14)musicBell(root*3,.48,.0045);
+    if(phase===2||phase===10)musicPluck(motifFreq(root,0,2),.0065);
+    if(phase===4||phase===12)musicPluck(motifFreq(root,2,2),.0065);
+    if(phase===6||phase===14)musicBell(motifFreq(root,4,2),.48,.0045);
     return;
   }
 
@@ -485,7 +486,7 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
 
   if(mood==='secret'){
     // BÓVEDA SECRETA: espacio, misterio y pulsos aislados; nada de beat de combate.
-    const phase=step%16,root=43.65;
+    const phase=step%16,root=floorRoot(43.65);
     if(phase===0||phase===8){chord(root/2,DARK,sec*7.8,.012,0,780);tone(root/4,sec*7.4,.011,{type:'sine',attack:.28,cutoff:180,kind:'music'});}
     if(phase===3||phase===11)musicBell(motifFreq(root,phase===3?4:1,3),.95,.005);
     if(phase===6||phase===14)tone(root*1.5,sec*1.4,.005,{type:'sine',to:root*1.42,attack:.16,cutoff:1000,kind:'music'});
@@ -498,19 +499,20 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
     if(phase===0||phase===8)chord(root,DARK,sec*5.8,.011,0,980);
     if([0,2,4,6,8,10,12,14].includes(phase))musicKick(phase%4===0?.024:.016);
     if(phase===4||phase===12)musicSnare(.010);
-    if([1,5,9,13].includes(phase))tone(root*[2,2.25,2.52,3][Math.floor(phase/4)],sec*.22,.006,{type:'square',attack:.003,cutoff:1350,kind:'music'});
+    if([1,5,9,13].includes(phase))tone(motifFreq(root,Math.floor(phase/4),2),sec*.22,.006,{type:'square',attack:.003,cutoff:1350,kind:'music'});
     if(phase===7||phase===15)musicBell(root*4,.25,.004);
     return;
   }
 
   if(mood==='run'){
-    // ATRACO SIN FIN / movimiento continuo: persecución sostenida, sin fanfarria.
-    const phase=step%16,root=RUN_ROOTS[Math.min(5,musicFloor)];
-    if(phase===0||phase===8)chord(root,DARK,sec*6.4,.011,0,1050);
-    if([0,3,5,8,11,13].includes(phase))musicKick(phase===0||phase===8?.022:.014);
-    if(phase===4||phase===12)musicSnare(.008);
-    if(phase%2===0)musicPluck(root*[1,1.5,1.26,1.78][(phase/2)%4],.0065);
-    if(phase===7||phase===15)tone(root/2,sec*.55,.012,{type:'sine',to:root*.46,attack:.015,cutoff:280,kind:'music'});
+    // ATRACO SIN FIN / exploración tras combate: persecución sostenida.
+    const phase=step%16,root=RUN_ROOTS[Math.min(5,musicFloor)],pressure=musicIntensity;
+    if(phase===0||phase===8)chord(root,DARK,sec*6.4,.008+pressure*.004,0,980+pressure*180);
+    if([0,5,8,13].includes(phase))musicKick(.011+pressure*.010);
+    if(pressure>.45&&(phase===3||phase===11))musicKick(.010);
+    if(pressure>.52&&(phase===4||phase===12))musicSnare(.0065);
+    if(phase%2===0)musicPluck(motifFreq(root,(phase/2)%HEIST_MOTIF.length,1.5),.0048+pressure*.002);
+    if(phase===7||phase===15)tone(root/2,sec*.55,.009+pressure*.004,{type:'sine',to:root*.46,attack:.015,cutoff:260,kind:'music'});
     return;
   }
 
