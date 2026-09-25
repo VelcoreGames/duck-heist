@@ -990,6 +990,65 @@ function drawBossMutationOverlay(ctx:CanvasRenderingContext2D,e:Enemy,f:number,e
   ctx.restore();
 }
 
+function enemyPose(e:Enemy,f:number){
+  const speed=Math.hypot(e.vx,e.vy),tele=clamp(e.telegraph,0,1),hurt=clamp(e.hurtTimer/8,0,1);
+  let rot=0,sx=1,sy=1,dx=0,dy=0;
+  switch(e.behavior){
+    case 'swarmer':
+    case 'roller':
+    case 'k9':
+      rot=clamp(e.vx*.035,-.12,.12);sx=1+Math.min(.08,speed*.025);sy=1-Math.min(.07,speed*.02);
+      break;
+    case 'shotgunner':
+      sx=1+tele*.06;sy=1-tele*.055;dx=-Math.cos(e.moveAngle)*tele*2;
+      break;
+    case 'sniper':
+      sx=1-tele*.035;sy=1+tele*.06;rot=-Math.sin(e.moveAngle)*tele*.025;
+      break;
+    case 'turret':
+    case 'camera':
+    case 'atm':
+      sx=1+tele*.03;sy=1+tele*.03;dy=-tele;
+      break;
+    case 'shielded':
+      sx=1+(e.chargeTimer>0?.08:0);sy=1-(e.chargeTimer>0?.06:0);rot=clamp(e.vx*.025,-.07,.07);
+      break;
+    case 'chaser':
+    case 'baton':
+      rot=clamp(e.vx*.025,-.08,.08);dx=Math.sin(f*.22+e.id)*Math.min(1.5,speed*.4);
+      break;
+    default:
+      rot=clamp(e.vx*.012,-.045,.045);
+  }
+  if(e.recover>0){const r=clamp(e.recover/30,0,1);sx-=r*.05;sy+=r*.035;dy+=r*1.5;}
+  if(hurt>0){sx+=hurt*.035;sy-=hurt*.03;dx-=Math.sign(e.vx||1)*hurt*.9;}
+  return {rot,sx,sy,dx,dy};
+}
+
+function drawEnemyRoleAccent(ctx:CanvasRenderingContext2D,e:Enemy,f:number){
+  const cx=e.x+e.size/2,cy=e.y+e.size/2,t=clamp(e.telegraph,0,1);
+  ctx.save();
+  switch(e.behavior){
+    case 'sniper':
+      if(t>.05){ctx.globalAlpha=.18+t*.28;ctx.strokeStyle='#e76a5f';ctx.beginPath();ctx.arc(cx,cy,e.size*.72+t*4,0,Math.PI*2);ctx.stroke();}
+      break;
+    case 'shotgunner':
+      if(t>.05){ctx.globalAlpha=.16+t*.22;ctx.strokeStyle='#e3a45c';for(const a of [-.18,0,.18]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(e.moveAngle+a)*(28+t*24),cy+Math.sin(e.moveAngle+a)*(28+t*24));ctx.stroke();}}
+      break;
+    case 'drone':
+      ctx.globalAlpha=.12+.06*Math.sin(f*.16+e.id);ctx.strokeStyle='#79cfe0';ctx.beginPath();ctx.ellipse(cx,cy+5,e.size*.7,e.size*.32,0,0,Math.PI*2);ctx.stroke();
+      break;
+    case 'roller':
+    case 'swarmer':
+      if(Math.hypot(e.vx,e.vy)>1.4){ctx.globalAlpha=.14;ctx.strokeStyle='#d7b474';ctx.beginPath();ctx.moveTo(cx-e.vx*3,cy-e.vy*3);ctx.lineTo(cx-e.vx*8,cy-e.vy*8);ctx.stroke();}
+      break;
+    case 'shielded':
+      if(e.chargeTimer>0){ctx.globalAlpha=.22+.12*Math.sin(f*.4);ctx.strokeStyle='#ff7468';ctx.beginPath();ctx.arc(cx,cy,e.size*.74,0,Math.PI*2);ctx.stroke();}
+      break;
+  }
+  ctx.restore();
+}
+
 function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: GameEngine) {
   const hurt = e.hurtTimer > 0;
   const player = engine.player;
@@ -1265,8 +1324,14 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     }
     drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
+    const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
+    ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx,p.sy);ctx.translate(-cx,-cy);
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
+    ctx.restore();
+    drawEnemyRoleAccent(ctx,e,f);
   } else {
+    const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
+    ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx,p.sy);ctx.translate(-cx,-cy);
     switch (e.type) {
       case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;
       case 'policia_rapido': drawPoliciaRapido(ctx, e.x, e.y, f, hurt, dirX); break;
@@ -1285,6 +1350,8 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       case 'banker_chicken': drawBankerChicken(ctx, e.x, e.y, f, hurt); break;
       default: drawSecurityPigeon(ctx, e.x, e.y, f, hurt);
     }
+    ctx.restore();
+    drawEnemyRoleAccent(ctx,e,f);
   }
 
   if(!e.isBoss && e.elite){
@@ -1300,19 +1367,20 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.restore();
   }
 
-  if (hurt && !e.isBoss) {
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(e.x + 2, e.y + 2, e.size - 4, e.size - 2);
-    ctx.globalAlpha = 1;
+  if(hurt&&!e.isBoss){
+    const cx=e.x+e.size/2,cy=e.y+e.size/2,pulse=.16+.10*((e.hurtTimer&1)===0?1:0);
+    ctx.save();ctx.globalAlpha=pulse;ctx.strokeStyle='#fff1cf';ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(cx,cy,e.size*.58,e.size*.50,0,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.22;ctx.fillStyle='#fff6dd';ctx.fillRect(Math.round(cx)-1,Math.round(cy)-1,3,3);
+    ctx.restore();
   }
 
-  if (!e.isBoss && e.hp < e.maxHp) {
-    const w = e.size;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(e.x - 1, e.y - 7, w + 2, 4);
-    ctx.fillStyle = e.elite ? '#f4d03f' : '#c0392b';
-    ctx.fillRect(e.x, e.y - 6, Math.round(w * (e.hp / e.maxHp)), 2);
+  if(!e.isBoss&&e.hp<e.maxHp){
+    const w=Math.max(14,e.size),x=e.x+(e.size-w)/2,y=e.y-7,pct=clamp(e.hp/e.maxHp,0,1);
+    ctx.fillStyle='rgba(2,8,11,.82)';ctx.fillRect(x-1,y-1,w+2,4);
+    ctx.fillStyle=e.elite?'#e6c56f':'#5d2b2b';ctx.fillRect(x,y,w,2);
+    ctx.fillStyle=e.elite?'#f3d982':pct<.3?'#e2665c':'#b84e4b';ctx.fillRect(x,y,Math.round(w*pct),2);
+    ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(x,y,Math.round(w*pct),1);
   }
 
   // --- AVISO DE ATAQUE (telegrafía legible) ---
