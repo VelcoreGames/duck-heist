@@ -3682,6 +3682,7 @@ function bossPatternMove(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,a
     Math.sin(ang)*spd*forward+Math.sin(ang+Math.PI/2)*spd*wobble);
 }
 function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',content:RoomContent) {
+  boss.bossPreparedAttack=undefined;boss.bossAttackRecovery=0;boss.bossAttackRecoveryMax=0;
   boss.bossPhase=phase;
   boss.attackTimer=tier==='boss'?78:tier==='sub'?62:38;
   boss.stunned=tier==='boss'?50:tier==='sub'?38:18;
@@ -3741,15 +3742,19 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   const phase=boss.bossPhase;
   const ang=Math.atan2(py-by,px-bx);
   const intensity=1+phase*(tier==='boss'?.28:tier==='sub'?.22:.18);
+  if((boss.bossAttackRecovery??0)>0) boss.bossAttackRecovery=Math.max(0,(boss.bossAttackRecovery??0)-1);
   boss.attackTimer--;
+  const maxAttack=tier==='boss'?2+phase:tier==='sub'?2+phase:2+(phase>0?1:0);
   if(boss.attackTimer>0 && boss.attackTimer<30) {
+    if(def.legacy&&boss.bossPreparedAttack===undefined) boss.bossPreparedAttack=rngInt(0,maxAttack);
     boss.telegraph=1-boss.attackTimer/30;
     boss.moveAngle=ang;
   }
 
   if(boss.attackTimer<=0) {
     boss.telegraph=0;
-    const atk=rngInt(0,tier==='boss'?2+phase:tier==='sub'?2+phase:2+(phase>0?1:0));
+    const atk=def.legacy?(boss.bossPreparedAttack??rngInt(0,maxAttack)):rngInt(0,maxAttack);
+    boss.bossPreparedAttack=undefined;
     const attackStep=boss.bossAttackIndex??0;
 
     if(def.pattern&&!def.legacy) {
@@ -3884,6 +3889,9 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       boss.attackTimer=Math.max(32,boss.attackCooldown*(1-phase*.2));
     }
     if(def.legacy)boss.bossAttackIndex=attackStep+1;
+    const recovery=tier==='boss'?18:tier==='sub'?15:12;
+    boss.bossAttackRecovery=recovery;
+    boss.bossAttackRecoveryMax=recovery;
     bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
     if(def.stationary){
       // Las estructuras gigantes dominan el mapa con artillería real. En los
