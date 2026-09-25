@@ -1104,7 +1104,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     // cara sobre el canvas. Como hurtTimer vuelve a 8 en cada impacto, disparar
     // rápido contra un jefe mantenía el filtro activo casi permanentemente y
     // provocaba exactamente la ralentización observada durante jefe/subjefe.
-    drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase);
+    drawBoss(ctx, e.x, e.y, e.bossType, f, e.hp, e.maxHp, hurt, e.bossPhase, e.telegraph, e.bossParts);
     ctx.restore();
 
     // Feedback de impacto barato: un pulso de contorno en vez de filtrar todos
