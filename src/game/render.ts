@@ -2153,8 +2153,19 @@ function drawHUD(engine: GameEngine) {
     text(ctx,String(i+1),x+8,y+8,4,'#6f8588','center',true,false);
     wrappedText(ctx,weapon?weapon.name:T.empty,x+28,y+11,slotW-34,5.45,6,2,weapon?(active?'#f0dfab':'#819195'):'#526066',active);
     if(weapon&&active){
-      const ready=1-p.fireCooldown/Math.max(1,activeWeapon(p).fireRate);
-      hudMeter(ctx,x+28,y+21,57,ready,ready>=1?'#72c796':'#e6c56f');
+      const activeW=activeWeapon(p);
+      if(activeW.id==='feather_gun'){
+        const heat=clamp(p.heat/100,0,1);
+        hudMeter(ctx,x+28,y+21,57,heat,p.overheat>0?'#dc6159':heat>.7?'#e6a04e':'#79b9d2');
+        text(ctx,p.overheat>0?'SOBRECALENTADO':'CALOR',x+85,y+23,3.8,p.overheat>0?'#dc6159':'#71878b','right',true,false);
+      }else if(activeW.id==='plasma_baker'||activeW.id==='golden_egg_revolver'||activeW.id==='baguette_sniper'){
+        const charge=clamp(p.charge/70,0,1);
+        hudMeter(ctx,x+28,y+21,57,charge,charge>.72?'#78c99a':'#e6c56f');
+        if(charge>.05)text(ctx,charge>.72?'ESTABLE':'APUNTANDO',x+85,y+23,3.8,charge>.72?'#78c99a':'#8b9691','right',true,false);
+      }else{
+        const ready=1-p.fireCooldown/Math.max(1,activeW.fireRate);
+        hudMeter(ctx,x+28,y+21,57,ready,ready>=1?'#72c796':'#e6c56f');
+      }
     }
   }
 
