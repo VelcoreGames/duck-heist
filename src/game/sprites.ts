@@ -924,7 +924,7 @@ export function bossVisualIdentityKey(bossType:string){
   if(!def)return '';
   if(def.finalBoss)return 'final:bread_banker:imperial-vault';
   const tier=BOSSES[bossType]?2:SUBBOSSES[bossType]?1:0,key=def.visualIndex??0;
-  return [def.family,tier,key%12,Math.floor(key/12)%8,(Math.floor(key/4)+key)%6,def.scaleX,def.scaleY,def.stationary?'fixed':'mobile',def.pattern.sequence[0],def.pattern.sequence[1]].join(':');
+  return [def.family,tier,def.role,def.roleVariant,key%12,Math.floor(key/12)%8,(Math.floor(key/4)+key)%6,def.scaleX,def.scaleY,def.stationary?'fixed':'mobile',def.pattern.sequence[0],def.pattern.sequence[1]].join(':');
 }
 
 function drawBossStructuralRig(ctx:Ctx,key:number,tier:number,phase:number,frame:number,v:BossVisual,stationary=false){
@@ -1010,6 +1010,108 @@ function drawBossStructuralRig(ctx:Ctx,key:number,tier:number,phase:number,frame
   }
   ctx.restore();
 }
+function drawBossRoleHardware(
+  ctx:Ctx,def:NonNullable<ReturnType<typeof bossDef>>,frame:number,phase:number,v:BossVisual
+){
+  const pulse=.5+.5*Math.sin(frame*.12+def.roleVariant);
+  const v2=def.roleVariant??0;
+  ctx.save();
+  switch(def.role){
+    case 'artillery':
+      for(const x of [-22,22]){
+        rect(ctx,x-5,-20,10,22,'#2d363c');
+        rect(ctx,x-3,-31,6,14,'#66757b');
+        rect(ctx,x-2,-34,4,4,v.secondary);
+      }
+      if(phase>0){rect(ctx,-10,-26,20,5,'#1b2328');px(ctx,-2,-29,v.accent,4);}
+      break;
+    case 'duelist':
+      ctx.save();ctx.rotate(-.55+(v2-1.5)*.08);
+      rect(ctx,14,-3,24,4,'#20282e');rect(ctx,30,-4,11,6,'#5f6b70');px(ctx,39,-2,v.secondary,2);
+      ctx.restore();
+      rect(ctx,-21,3,7,14,'#373f46');px(ctx,-19,5,v.accent,3);
+      break;
+    case 'bulwark':
+      metalEdge(ctx,14,-10,18,34,'#4d5963','#9aa7ad','#263038');
+      rect(ctx,18,-5,10,24,'#303a42');
+      ctx.globalAlpha=.35+.25*pulse;rect(ctx,20,1,6,12,v.accent);ctx.globalAlpha=1;
+      break;
+    case 'swarm':
+      for(const x of [-22,22]){
+        rect(ctx,x-2,-22,4,18,'#29343a');
+        ctx.globalAlpha=.4+.4*pulse;px(ctx,x-2,-26,v.accent,4);ctx.globalAlpha=1;
+      }
+      for(let i=0;i<3;i++){
+        const a=frame*.04+i*Math.PI*2/3+v2*.2;
+        px(ctx,Math.cos(a)*28-1,Math.sin(a)*11-1,i%2?v.secondary:v.accent,3);
+      }
+      break;
+    case 'sniper':
+      ctx.save();ctx.rotate(-.12+(v2-1.5)*.025);
+      rect(ctx,8,-7,37,5,'#20282e');rect(ctx,28,-9,13,9,'#5e6c72');
+      rect(ctx,15,-10,10,3,'#11181c');px(ctx,19,-12,'#ff5c54',2);
+      ctx.restore();
+      break;
+    case 'storm':
+      ctx.globalAlpha=.45+.28*pulse;ctx.strokeStyle=v.accent;ctx.lineWidth=2;
+      for(let i=0;i<3;i++){
+        const a=frame*.035+i*2.1+v2*.3;
+        ctx.beginPath();ctx.arc(0,1,25+i*5,a,a+1.05);ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      break;
+    case 'warden':
+      for(const x of [-25,25]){
+        rect(ctx,x-3,-18,6,36,'#303940');
+        rect(ctx,x-6,-20,12,5,'#68767d');
+        px(ctx,x-2,-23,v.secondary,4);
+      }
+      rect(ctx,-19,16,38,5,'#20282e');
+      break;
+    case 'charger':
+      ctx.fillStyle='#404a51';
+      ctx.beginPath();ctx.moveTo(-34,-3);ctx.lineTo(-18,-10);ctx.lineTo(-20,8);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(34,-3);ctx.lineTo(18,-10);ctx.lineTo(20,8);ctx.closePath();ctx.fill();
+      rect(ctx,-11,-19,22,6,'#293239');rect(ctx,-7,-23,14,5,v.secondary);
+      break;
+    case 'vortex':
+      ctx.strokeStyle=v.accent;ctx.lineWidth=2;
+      for(let i=0;i<4;i++){
+        const a=frame*(i%2?.045:-.038)+i*Math.PI/2;
+        ctx.globalAlpha=.3+.2*pulse;
+        ctx.beginPath();ctx.arc(0,2,24+i*4,a,a+.75);ctx.stroke();
+        px(ctx,Math.cos(a)*(24+i*4)-1,2+Math.sin(a)*(24+i*4)-1,v.secondary,3);
+      }
+      ctx.globalAlpha=1;
+      break;
+    case 'executioner':
+      ctx.save();ctx.rotate(.42);
+      rect(ctx,15,-4,27,7,'#30383d');rect(ctx,35,-7,8,13,'#727d80');
+      rect(ctx,38,-10,4,19,v.secondary);
+      ctx.restore();
+      rect(ctx,-23,-15,7,30,'#252d33');px(ctx,-21,-18,v.accent,3);
+      break;
+    case 'reactor':
+      ctx.globalAlpha=.18+.18*pulse;ctx.fillStyle=v.accent;
+      ctx.beginPath();ctx.arc(0,3,20+phase*3,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#182126';ctx.beginPath();ctx.arc(0,3,10,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,3,8,0,Math.PI*2);ctx.stroke();
+      px(ctx,-2,1,phase>=2?'#ff5b54':v.accent,4);
+      break;
+    case 'trickster':
+      for(const side of [-1,1]){
+        ctx.globalAlpha=.6;
+        ctx.strokeStyle=side<0?v.accent:v.secondary;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(side*20,-5,10,frame*.03*side,frame*.03*side+Math.PI*1.35);ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      rect(ctx,-5,-28,10,7,'#20282e');px(ctx,-2,-30,v.secondary,4);
+      break;
+  }
+  ctx.restore();
+}
+
 function drawBossFrontIdentity(ctx:Ctx,key:number,tier:number,v:BossVisual){
   const plate=Math.floor(key/12)%8;
   switch(plate){
@@ -1134,7 +1236,11 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     if(v.family==='command'){rect(ctx,-20,-4,5,7,v.secondary);rect(ctx,15,-4,5,7,v.secondary);}
   }
 
-  if(!def.finalBoss){drawBossFrontIdentity(ctx,key,tier,v);drawBossCrest(ctx,key,v);}
+  if(!def.finalBoss){
+    drawBossRoleHardware(ctx,def,frame,phase,v);
+    drawBossFrontIdentity(ctx,key,tier,v);
+    drawBossCrest(ctx,key,v);
+  }
 
   drawBossAttackHardware(ctx,{accent:v.accent,secondary:v.secondary,family:v.family,bob:v.bob},def.pattern.sequence,frame,phase);
 
