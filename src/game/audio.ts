@@ -345,13 +345,27 @@ export function playShoot(weapon='quack_blaster') {
       noise(.045,.032);blip('triangle',480,120,.055,.032);
   }
 }
-export function playHit() { if(allow('hit',45)) blip('triangle',310,100,.055,.026); }
+export function playHit(){
+  if(!allow('hit',38))return;
+  filteredNoise(.040,.026,{type:'bandpass',freq:1150,q:.9});
+  tone(145,.055,.018,{type:'sine',to:82,attack:.003,cutoff:520});
+}
 export function playPickup() {
   blip('sine', 520, 1180, 0.11, 0.05);
   blip('triangle', 880, 1560, 0.08, 0.03, 0.05);
 }
-export function playExplosion() { noise(0.24, 0.07); blip('sine', 160, 40, 0.22, 0.05); }
-export function playHurt() { priorityUntil=performance.now()+400;blip('square', 210, 55, 0.18, 0.065); }
+export function playExplosion(){
+  if(!allow('explosion',85))return;
+  filteredNoise(.32,.070,{type:'lowpass',freq:1150,q:.45});
+  filteredNoise(.11,.035,{type:'bandpass',freq:2100,q:.55});
+  lowImpact(72,.068);
+  tone(118,.24,.032,{type:'triangle',to:42,attack:.004,cutoff:520});
+}
+export function playHurt(){
+  priorityUntil=performance.now()+400;
+  filteredNoise(.10,.038,{type:'bandpass',freq:780,q:1.1});
+  tone(185,.15,.055,{type:'sawtooth',to:72,attack:.004,cutoff:700});
+}
 export function playEquip() {
   blip('square', 900, 1400, 0.04, 0.035);
   blip('triangle', 600, 1000, 0.06, 0.03, 0.03);
@@ -363,19 +377,23 @@ export function playWeaponSwap() {
 export function playStairs() {
   [0, 1, 2, 3].forEach(i => blip('triangle', 300 + i * 130, 320 + i * 150, 0.1, 0.04, i * 0.09, 'sfx'));
 }
-export function playBossRoar() {
-  priorityUntil=performance.now()+600;
-  blip('sawtooth', 180, 60, 0.5, 0.06);
-  noise(0.4, 0.04, 0.05);
+export function playBossRoar(){
+  priorityUntil=performance.now()+1100;
+  filteredNoise(.72,.055,{type:'lowpass',freq:720,q:.55});
+  tone(82,.72,.070,{type:'sawtooth',to:34,attack:.025,cutoff:620});
+  tone(49,.86,.060,{type:'sine',to:29,attack:.02,cutoff:210});
+  tone(123,.42,.022,{type:'triangle',to:61,delay:.08,attack:.018,cutoff:900});
+  lowImpact(38,.075,.03);
 }
 
-export function playBossPhase(tier:'mini'|'sub'|'boss'='boss') {
-  if(!enabled()) return;
-  priorityUntil=performance.now()+(tier==='boss'?720:tier==='sub'?560:420);
-  const base=tier==='boss'?88:tier==='sub'?116:148;
-  noise(tier==='boss'?.32:tier==='sub'?.24:.16,tier==='boss'?.052:.038,0,.18);
-  blip('sawtooth',base,base*1.8,tier==='boss'?.34:.24,tier==='boss'?.055:.04);
-  blip('triangle',base*2.1,base*3.2,.18,.035,.06);
+export function playBossPhase(tier:'mini'|'sub'|'boss'='boss'){
+  if(!enabled())return;
+  priorityUntil=performance.now()+(tier==='boss'?900:tier==='sub'?700:520);
+  const base=tier==='boss'?46:tier==='sub'?58:72;
+  filteredNoise(tier==='boss'?.42:.28,tier==='boss'?.045:.032,{type:'lowpass',freq:tier==='boss'?680:900,q:.6});
+  lowImpact(base,tier==='boss'?.065:.044);
+  tone(base*2,.34,tier==='boss'?.040:.030,{type:'sawtooth',to:base*.86,attack:.012,cutoff:700});
+  tone(base*3,.30,.020,{type:'triangle',to:base*1.4,delay:.06,attack:.014,cutoff:1050});
 }
 export function playDoorLock() {
   noise(0.18, 0.06);
@@ -412,14 +430,24 @@ export function playVaultIntroCue(stage:'motor'|'unlock'|'reveal'|'ready') {
     blip('sine',1046,1320,.16,.018,.12);
   }
 }
-export function playUiMove() { if(allow('ui',50)) {noise(.022,.011);blip('triangle',240,145,.033,.022);} }
-export function playUiSelect() {
-  noise(.04,.018);
-  blip('square', 540, 880, 0.07, 0.045);
-  blip('square', 880, 1180, 0.09, 0.035, 0.06);
+export function playUiMove(){
+  if(!allow('ui',48))return;
+  filteredNoise(.020,.007,{type:'highpass',freq:3000,q:.6});
+  tone(430,.036,.014,{type:'sine',to:360,attack:.002,cutoff:2200});
 }
-export function playUiBack() { blip('square', 480, 260, 0.09, 0.035); }
-export function playDeny() { blip('square', 200, 140, 0.12, 0.04); }
+export function playUiSelect(){
+  filteredNoise(.030,.010,{type:'highpass',freq:2800,q:.6});
+  tone(420,.055,.022,{type:'triangle',to:610,attack:.003,cutoff:1800});
+  tone(760,.070,.015,{type:'sine',to:930,delay:.045,attack:.003,cutoff:2400});
+}
+export function playUiBack(){
+  filteredNoise(.035,.010,{type:'highpass',freq:2400,q:.7});
+  tone(360,.075,.022,{type:'triangle',to:210,attack:.003,cutoff:1500});
+}
+export function playDeny(){
+  tone(150,.13,.030,{type:'sawtooth',to:105,attack:.004,cutoff:520});
+  lowImpact(58,.018,.015);
+}
 
 export function playCoin() {
   if(!allow('coin',42)) return;
@@ -427,8 +455,17 @@ export function playCoin() {
   blip('sine',900+Math.random()*260,1400,.075,vol);
 }
 export function playHeal() { blip('sine',523,659,.13,.035);blip('sine',659,1047,.2,.03,.1); }
-export function playCritical() {if(allow('crit',75)) {blip('triangle',920,320,.085,.035);noise(.04,.02);} }
-export function playEnemyDeath() {if(allow('death',70)) {noise(.085,.023);blip('triangle',190,65,.09,.028);} }
+export function playCritical(){
+  if(!allow('crit',70))return;
+  filteredNoise(.055,.026,{type:'highpass',freq:3600,q:.8});
+  tone(980,.085,.028,{type:'triangle',to:360,attack:.002,cutoff:2500});
+  lowImpact(74,.022,.006);
+}
+export function playEnemyDeath(){
+  if(!allow('death',65))return;
+  filteredNoise(.11,.025,{type:'bandpass',freq:620,q:.65});
+  tone(160,.13,.026,{type:'sine',to:52,attack:.004,cutoff:480});
+}
 export function playRoomClear() { [392,494,587,784].forEach((n,i)=>blip('triangle',n,n,.16,.031,i*.055)); }
 export function playBossWin() { priorityUntil=performance.now()+700;noise(.4,.055);[262,330,392,524].forEach((n,i)=>blip('triangle',n,n,.35,.04,i*.11)); }
 export function playRarityPickup(rarity:number) {
@@ -437,7 +474,10 @@ export function playRarityPickup(rarity:number) {
 }
 export function playReturn() {if(allow('return',130)) blip('triangle',450,820,.09,.02);}
 export function playBounce() {if(allow('bounce',80)) blip('sine',760,380,.08,.03);}
-export function playFootstep() {if(allow('feet',180)) noise(.025,.007,0,.3);}
+export function playFootstep(){
+  if(!allow('feet',165))return;
+  filteredNoise(.030,.006,{type:'bandpass',freq:520+Math.random()*180,q:.6});
+}
 export function playDoorStyle(style:string) {
   if(style==='boss') playDoorLock();
   else if(style==='gold' || style==='purple') blip('sine',660,990,.18,.028);
