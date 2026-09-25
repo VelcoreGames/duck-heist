@@ -872,7 +872,7 @@ function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
   engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
   engine.bossIntroSubtitle=doubleThreat?names.join(' + '):`${engine.endless.threatRank} · ${endlessStage(engine.endless.round)}`;
   engine.bossIntroTimer=doubleThreat?150:tier==='boss'?122:tier==='sub'?104:82;
-  playBossRoar();setMusic(tier==='boss'?'boss':tier==='sub'?'subboss':'miniboss',engine.map.floorIndex);
+  playBossRoar();setMusic(tier==='boss'?'boss':tier==='sub'?'subboss':'miniboss',engine.map.floorIndex,ids.join('+'));
   engine.state=GameState.BOSS_INTRO;engine.onStateChange?.(engine.state);
 }
 
