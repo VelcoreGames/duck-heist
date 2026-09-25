@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,
+  createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,restoreCurrentRoomMusic,
   restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
   resumeEndlessGame, clearEndlessCheckpoint, resumeHeistGame, clearHeistCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
@@ -138,7 +138,9 @@ export default function App() {
     const goTo = (s: GameState) => {
       engine.state=s;engine.mouseDown=false;engine.keys={};
       engine.onStateChange?.(s);
-      if(s===GameState.PLAYING) setMusic(getContentOf(engine).enemies.some(e=>e.isBoss&&BOSSES[e.bossType])?'boss':'run',engine.map.floorIndex);
+      if(s===GameState.PLAYING) restoreCurrentRoomMusic(engine);
+      else if(s===GameState.PAUSED) setMusic('pause',engine.map.floorIndex);
+      else if(s===GameState.MENU) setMusic('menu');
     };
     let subReturn: GameState = GameState.MENU;
 
@@ -293,7 +295,7 @@ export default function App() {
         if(engine.state===GameState.ENDLESS_REWARD){openConfirm('quit');return;}
         switch(engine.state){
           case GameState.PLAYING:
-            engine.pauseIndex=0;playUiBack();goTo(GameState.PAUSED);setMusic('menu');return;
+            engine.pauseIndex=0;playUiBack();goTo(GameState.PAUSED);return;
           case GameState.PAUSED:
             playUiBack();goTo(GameState.PLAYING);return;
           case GameState.DAILY_BRIEF:
@@ -472,7 +474,7 @@ export default function App() {
           else if(k==='escape'){openConfirm('quit');}
           break;
         case GameState.PLAYING:
-          if (k === engine.bindings.pause) { engine.pauseIndex = 0; goTo(GameState.PAUSED); setMusic('menu'); }
+          if (k === engine.bindings.pause) { engine.pauseIndex = 0; goTo(GameState.PAUSED); }
           else if (k === engine.bindings.dash) handleDash(engine);
           else if (k === engine.bindings.active) handleActiveItem(engine);
           else if (k === engine.bindings.recycle && engine.gameMode==='endless') recycleNearestEndlessFloorItem(engine);
@@ -630,7 +632,7 @@ export default function App() {
         const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
       if(engine.state===GameState.PLAYING){
-        if(inside(x,y,hudMenuRect())){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);setMusic('menu');return;}
+        if(inside(x,y,hudMenuRect())){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);return;}
         engine.mouseDown=true;return;
       }
       if(engine.state===GameState.HEIST_INTRO){
