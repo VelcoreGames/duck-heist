@@ -3894,10 +3894,10 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   // Checkpoints antiguos no tenían bossParts. Se hidratan al entrar en IA para
   // mantener compatibilidad de guardados sin renunciar a la nueva mecánica.
   if(def.legacy&&(!boss.bossParts||boss.bossParts.length===0)) boss.bossParts=bossPartsFor(type);
-  if(def.legacy) runIconicBossSequence(engine,boss,room,content);
 
   const nextPhase=tier==='boss'?(pct<=.33?2:pct<=.66?1:0):tier==='sub'?(pct<=.5?1:0):(pct<=.35?1:0);
   if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def,nextPhase,tier,content);
+  if(def.legacy) runIconicBossSequence(engine,boss,room,content);
 
   const phase=boss.bossPhase;
   const ang=Math.atan2(py-by,px-bx);
@@ -3959,7 +3959,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         else if(atk===1) oven?bossHazardRing(content,bx,by,phase?8:6,phase?78:56,phase?200:165):bossFan(engine,boss,ang,3,.2,2.7,'dough_ball');
         else if(paddle){boss.moveAngle=ang;boss.moveTimer=phase?30:20;playDanger('charge');}
         else bossRing(engine,boss,6,2.15,'dough_ball',engine.frame*.025);
-        if(phase&&atk===3){bossRing(engine,boss,oven?12:8,2.45,'dough_ball',engine.frame*.03);if(oven)queueBossAirStrike(content,px,py,26,'heavy',42);}
+        if(phase&&atk===3){bossRing(engine,boss,oven?12:8,2.45,'dough_ball',engine.frame*.03);if(oven)queueBossAirStrike(content,px,py,26,'heavy',42);startIconicBossSequence(boss,3,14);}
       } else if(type==='el_auditor') {
         const seal=bossPartAlive(boss,'execution_seal'),briefcase=bossPartAlive(boss,'briefcase');
         if(atk===0) bossFan(engine,boss,ang,phase?(seal?7:5):5,.14,seal?3.1:2.85,'coin_proj');
@@ -3969,13 +3969,14 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         } else if(atk===1) bossFan(engine,boss,ang,3,.05,4.4,'coin_proj');
         else bossRing(engine,boss,briefcase?(phase?14:10):6,briefcase?2.5:2.15,briefcase?'briefcase':'coin_proj',engine.frame*.018);
         if(phase&&atk===3) bossFan(engine,boss,ang,seal?9:5,.11,seal?3.4:3.05,'coin_proj');
+        if(atk===1&&seal)startIconicBossSequence(boss,1,13);
       } else if(type==='ganso_antidisturbios') {
         const shield=bossPartAlive(boss,'riot_shield');
         boss.shieldAngle=ang;
         if(atk===0){boss.moveAngle=ang;boss.moveTimer=phase?(shield?38:48):(shield?26:34);playDanger('charge');}
         else if(atk===1) bossRing(engine,boss,phase?(shield?12:8):(shield?8:6),phase?3:2.5,'enemy_bullet',engine.frame*.018);
         else {bossFan(engine,boss,ang,phase?(shield?5:7):(shield?3:5),shield?.18:.13,shield?3.2:3.55,shield?'enemy_bullet':'buckshot');boss.moveAngle=ang;boss.moveTimer=shield?16:24;}
-        if(phase&&atk===3){bossRing(engine,boss,shield?16:10,shield?2.4:2.8,'enemy_bullet',engine.frame*.04);boss.moveTimer=shield?30:42;}
+        if(phase&&atk===3){bossRing(engine,boss,shield?16:10,shield?2.4:2.8,'enemy_bullet',engine.frame*.04);boss.moveTimer=shield?30:42;startIconicBossSequence(boss,3,12);}
       } else if(type==='cajero_3000') {
         const cannons=Number(bossPartAlive(boss,'coin_cannon_l'))+Number(bossPartAlive(boss,'coin_cannon_r'));
         const core=bossPartAlive(boss,'emergency_core');
@@ -3983,7 +3984,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         else if(atk===1&&cannons>0){if(bossPartAlive(boss,'coin_cannon_l'))bossFan(engine,boss,ang-.32,2,.07,4.15,'drone_shot');if(bossPartAlive(boss,'coin_cannon_r'))bossFan(engine,boss,ang+.32,2,.07,4.15,'drone_shot');}
         else if(atk===1) bossRing(engine,boss,5,2.2,'coin_proj',engine.frame*.02);
         else bossRing(engine,boss,6+cannons*3+(phase?2:0),2.55,'coin_proj',engine.frame*.025);
-        if(phase&&atk===3){bossRing(engine,boss,core?12:7,core?3.15:2.5,'drone_shot',engine.frame*.055);if(core)bossHazardRing(content,bx,by,6,72,160);}
+        if(phase&&atk===3){bossRing(engine,boss,core?12:7,core?3.15:2.5,'drone_shot',engine.frame*.055);if(core)bossHazardRing(content,bx,by,6,72,160);startIconicBossSequence(boss,3,12);}
       } else {
         if(atk===0) bossFan(engine,boss,ang,phase?9:6,.13,3.1,'coin_proj');
         else if(atk===1) {bossFan(engine,boss,ang-.32,3,.08,4.3,'drone_shot');bossFan(engine,boss,ang+.32,3,.08,4.3,'drone_shot');}
@@ -3996,7 +3997,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         case 'captain_honk':
           if(atk===0) bossFan(engine,boss,ang,5+phase*2,.13,3.25+phase*.18,'enemy_bullet');
           else if(atk===1){boss.moveAngle=ang;boss.moveTimer=24+phase*7;playDanger('charge');}
-          else if(atk===2){if(bossPartAlive(boss,'command_radio'))bossSupport(engine,room,content,phase?['policia_rapido','dron_policial']:['policia_pato','policia_rapido'],5+phase);if(bossPartAlive(boss,'sidearm'))bossFan(engine,boss,ang,3+phase*2,.16,3,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=30+phase*8;playDanger('charge');}}
+          else if(atk===2){if(bossPartAlive(boss,'command_radio'))bossSupport(engine,room,content,phase?['policia_rapido','dron_policial']:['policia_pato','policia_rapido'],4+phase);if(bossPartAlive(boss,'sidearm'))bossFan(engine,boss,ang,3+phase*2,.16,3,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=30+phase*8;playDanger('charge');}startIconicBossSequence(boss,2,15);}
           else if(atk===3) bossRing(engine,boss,12+phase*3,2.65+phase*.15,'enemy_bullet',engine.frame*.025);
           else {if(bossPartAlive(boss,'sidearm'))bossRing(engine,boss,18,3,'enemy_bullet',engine.frame*.05);else {boss.moveAngle=ang;boss.moveTimer=38;playDanger('charge');}if(bossPartAlive(boss,'command_radio'))bossHazardRing(content,px,py,6,58,150);}
           break;
@@ -4005,7 +4006,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
           else if(atk===1) bossRing(engine,boss,10+phase*4,2.45+phase*.2,'enemy_bullet',engine.frame*.02);
           else if(atk===2){boss.moveAngle=ang;boss.moveTimer=22+phase*8;bossFan(engine,boss,ang,3,.24,3.5,'enemy_bullet');}
           else if(atk===3){if(bossPartAlive(boss,'command_pack'))bossSupport(engine,room,content,['policia_pato','policia_antidisturbios'],6);bossRing(engine,boss,bossPartAlive(boss,'execution_rifle')?14:8,2.75,'enemy_bullet',-engine.frame*.025);}
-          else if(bossPartAlive(boss,'execution_rifle'))bossFan(engine,boss,ang,11,.08,4.2,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=34+phase*8;playDanger('charge');}
+          else if(bossPartAlive(boss,'execution_rifle')){bossFan(engine,boss,ang,7,.08,4.2,'enemy_bullet');startIconicBossSequence(boss,4,10);}else {boss.moveAngle=ang;boss.moveTimer=34+phase*8;playDanger('charge');}
           break;
         case 'toaster_9000':
           {const heaters=Number(bossPartAlive(boss,'heater_l'))+Number(bossPartAlive(boss,'heater_r')),core=bossPartAlive(boss,'thermal_core');
@@ -4013,14 +4014,14 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
           else if(atk===1) heaters?bossHazardRing(content,bx,by,4+heaters+phase*2,48+phase*14,180):bossFan(engine,boss,ang,3,.2,2.55,'toast');
           else if(atk===2) bossFan(engine,boss,ang,3+heaters+phase*2,.15,heaters?3.2:2.8,'enemy_bullet');
           else if(atk===3){if(core)bossRing(engine,boss,10+heaters*2,3,'drone_shot',engine.frame*.06);bossRing(engine,boss,6+heaters*2,1.8,'toast',-engine.frame*.035);}
-          else {if(core)bossHazardRing(content,px,py,4+heaters*2,68,190);bossRing(engine,boss,8+heaters*5,core?3.1:2.6,'toast',engine.frame*.08);}}
+          else {if(core)bossHazardRing(content,px,py,3+heaters,68,175);bossRing(engine,boss,6+heaters*3,core?3.0:2.55,'toast',engine.frame*.08);startIconicBossSequence(boss,4,12);}}
           break;
         case 'general_ganso':
           if(atk===0){boss.moveAngle=ang;boss.moveTimer=28+phase*10;playDanger('charge');}
           else if(atk===1) {if(bossPartAlive(boss,'battle_rifle'))bossFan(engine,boss,ang,5+phase*2,.16,3.3+phase*.15,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=36+phase*8;playDanger('charge');}}
           else if(atk===2){if(bossPartAlive(boss,'command_radio'))bossSupport(engine,room,content,['policia_capitan','policia_rapido'],5+phase);bossRing(engine,boss,bossPartAlive(boss,'battle_rifle')?8+phase*4:6+phase*2,2.55,'enemy_bullet',engine.frame*.02);}
           else if(atk===3) bossRing(engine,boss,14+phase*3,2.9,'enemy_bullet',engine.frame*.05);
-          else {if(bossPartAlive(boss,'battle_rifle'))bossFan(engine,boss,ang,9,.09,4.05,'enemy_bullet');boss.moveAngle=ang;boss.moveTimer=bossPartAlive(boss,'battle_rifle')?36:52;playDanger('charge');}
+          else {if(bossPartAlive(boss,'battle_rifle'))bossFan(engine,boss,ang,5,.09,4.05,'enemy_bullet');startIconicBossSequence(boss,4,11);}
           break;
         case 'don_levadura':
           {const arms=Number(bossPartAlive(boss,'dough_arm_l'))+Number(bossPartAlive(boss,'dough_arm_r')),core=bossPartAlive(boss,'oven_core');
@@ -4028,7 +4029,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
           else if(atk===1) core?bossHazardRing(content,bx,by,4+phase*3+arms,48+phase*18,190):bossRing(engine,boss,5+arms,2.15,'dough_ball',engine.frame*.025);
           else if(atk===2){if(core)bossSupport(engine,room,content,['evil_croissant','rolling_bagel'],4+phase+arms);if(arms>0)queueBossAirStrike(content,px,py,18+phase*3,'heavy',40);}
           else if(atk===3) bossRing(engine,boss,6+arms*3+phase*3,2.45,'dough_ball',engine.frame*.03);
-          else {bossRing(engine,boss,8+arms*5,2.65+arms*.1,'dough_ball',engine.frame*.06);if(core)bossHazardRing(content,px,py,5+arms,72,210);}}
+          else {bossRing(engine,boss,6+arms*3,2.55+arms*.08,'dough_ball',engine.frame*.06);if(core)bossHazardRing(content,px,py,4+arms,68,180);startIconicBossSequence(boss,4,12);}}
           break;
         case 'director_seguridad':
           {const turrets=Number(bossPartAlive(boss,'turret_l'))+Number(bossPartAlive(boss,'turret_r')),camera=bossPartAlive(boss,'camera_array'),core=bossPartAlive(boss,'security_core');
@@ -4036,7 +4037,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
           else if(atk===1) bossRing(engine,boss,6+turrets*3+phase*3,2.55+phase*.2,'drone_shot',engine.frame*.04);
           else if(atk===2){if(camera)bossSupport(engine,room,content,['dron_policial','security_camera'],5+phase+turrets);if(turrets>0)bossFan(engine,boss,ang,1+turrets,.2,4.5,'drone_shot');}
           else if(atk===3){if(camera)bossHazardRing(content,px,py,4+turrets,62,150);bossRing(engine,boss,8+turrets*4,core?3.05:2.6,'drone_shot',-engine.frame*.055);}
-          else {if(core)bossRing(engine,boss,10+turrets*5,3.15,'drone_shot',engine.frame*.08);if(turrets>0)bossFan(engine,boss,ang,3+turrets*3,.08,4.2,'drone_shot');}}
+          else {if(core)bossRing(engine,boss,8+turrets*3,3.05,'drone_shot',engine.frame*.08);if(turrets>0)bossFan(engine,boss,ang,1+turrets*2,.08,4.15,'drone_shot');startIconicBossSequence(boss,4,11);}}
           break;
         default:
           if(atk===0) bossFan(engine,boss,ang,5+phase*3,.12,3.3,'coin_proj');
@@ -4052,8 +4053,8 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
     const recovery=tier==='boss'?18:tier==='sub'?15:12;
     boss.bossAttackRecovery=recovery;
     boss.bossAttackRecoveryMax=recovery;
-    bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
-    if(def.stationary){
+    if(!def.legacy)bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
+    if(def.stationary&&!def.legacy){
       // Las estructuras gigantes dominan el mapa con artillería real. En los
       // encuentros icónicos, destruir control/cámara/núcleo degrada también este sistema.
       const directorPenalty=type==='director_seguridad'
