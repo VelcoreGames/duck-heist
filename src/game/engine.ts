@@ -3269,6 +3269,106 @@ function bossSupport(engine:GameEngine,room:MapRoom,content:RoomContent,pool:str
   if(spot) content.enemies.push(makeEnemy(pick(pool),floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
 }
 
+function bossRoleSignature(
+  engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,def:BossDef,
+  phase:number,tier:'mini'|'sub'|'boss',ang:number,step:number
+){
+  if(tier==='mini')return;
+  const bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
+  const px=engine.player.x+7,py=engine.player.y+8;
+  const v=def.roleVariant??0;
+  const power=tier==='boss'?1.18:1;
+  const p=def.pattern;
+  const proj=phase>0?p.altProjectile:p.projectile;
+
+  // Una segunda firma independiente de la familia. Esto impide que dos jefes
+  // de, por ejemplo, tecnología terminen sintiéndose como el mismo combate.
+  switch(def.role){
+    case 'artillery': {
+      const n=(tier==='boss'?4:3)+Math.min(2,phase);
+      for(let i=0;i<n;i++){
+        const a=(i/n)*Math.PI*2+(v*.31)+(step%2)*.22;
+        const r=34+i*14+phase*5;
+        queueBossAirStrike(content,
+          clamp(px+Math.cos(a)*r,40,CANVAS_WIDTH-40),
+          clamp(py+Math.sin(a)*r,40,CANVAS_HEIGHT-40),
+          16+phase*2,i===0?'heavy':i%2?'shell':'rapid',31+i*5);
+      }
+      break;
+    }
+    case 'duelist':
+      bossFan(engine,boss,ang+(v-1.5)*.035,1+phase,.018,4.7*power,proj);
+      boss.moveAngle=ang+(step%2?1:-1)*Math.PI/2;
+      boss.moveTimer=Math.max(boss.moveTimer,10+phase*3);
+      break;
+    case 'bulwark':
+      bossRing(engine,boss,6+phase*2,1.85+phase*.12,proj,engine.frame*.014+v*.2);
+      if(phase>0)bossFan(engine,boss,ang,3,.19,2.55,p.altProjectile);
+      break;
+    case 'swarm':
+      bossSupport(engine,room,content,p.support,tier==='boss'?7+phase:5+phase);
+      bossRing(engine,boss,5+phase,2.15,proj,engine.frame*.018+v);
+      break;
+    case 'sniper':
+      bossFan(engine,boss,ang,1,.008,5.5+phase*.35,p.altProjectile);
+      if(phase>=1)bossFan(engine,boss,ang+(step%2?.12:-.12),1,.008,5.0,proj);
+      break;
+    case 'storm':
+      bossRing(engine,boss,7+phase*2,2.75+phase*.18,proj,engine.frame*(.045+v*.002));
+      bossRing(engine,boss,5+phase,2.05,p.altProjectile,-engine.frame*(.032+v*.002)+.35);
+      break;
+    case 'warden': {
+      const n=4+phase*2;
+      for(let i=0;i<n;i++){
+        const a=i/n*Math.PI*2+v*.17;
+        queueBossAirStrike(content,
+          clamp(px+Math.cos(a)*(52+phase*8),42,CANVAS_WIDTH-42),
+          clamp(py+Math.sin(a)*(52+phase*8),42,CANVAS_HEIGHT-42),
+          14+phase*2,'shell',38+i*3);
+      }
+      bossFan(engine,boss,ang,3,.11,3.25,proj);
+      break;
+    }
+    case 'charger':
+      bossFan(engine,boss,ang,5+phase*2,.18,3.0,'buckshot');
+      boss.moveAngle=ang;
+      boss.moveTimer=Math.max(boss.moveTimer,(tier==='boss'?30:24)+phase*7);
+      playDanger('charge');
+      break;
+    case 'vortex':
+      bossRing(engine,boss,8+phase*2,2.35+phase*.15,proj,engine.frame*.055+v*.23);
+      bossRing(engine,boss,8+phase*2,1.65+phase*.1,p.altProjectile,-engine.frame*.041-v*.19);
+      break;
+    case 'executioner':
+      bossFan(engine,boss,ang,3+phase*2,.055,4.2+phase*.25,p.altProjectile);
+      queueBossAirStrike(content,
+        clamp(px+Math.cos(ang)*18,42,CANVAS_WIDTH-42),
+        clamp(py+Math.sin(ang)*18,42,CANVAS_HEIGHT-42),
+        20+phase*3,'heavy',34);
+      break;
+    case 'reactor':
+      bossRing(engine,boss,10+phase*3,2.2+phase*.18,proj,engine.frame*.032);
+      bossHazardRing(content,bx,by,5+phase*2,42+phase*14,135+phase*20);
+      break;
+    case 'trickster': {
+      const spots=freeTiles(room.layout,2).filter(t=>{
+        const x=t.x*TILE_SIZE+TILE_SIZE/2,y=t.y*TILE_SIZE+TILE_SIZE/2;
+        return dist(x,y,px,py)>115&&dist(x,y,bx,by)>70;
+      });
+      const spot=spots[(step*5+v*7)%Math.max(1,spots.length)];
+      if(spot){
+        spawn(engine,bx,by,'smoke',5,def.accent);
+        boss.x=spot.x*TILE_SIZE+(TILE_SIZE-boss.size)/2;
+        boss.y=spot.y*TILE_SIZE+(TILE_SIZE-boss.size)/2;
+      }
+      const na=Math.atan2(py-(boss.y+boss.size/2),px-(boss.x+boss.size/2));
+      bossFan(engine,boss,na-.28,3,.07,3.7,proj);
+      bossFan(engine,boss,na+.28,3,.07,3.7,p.altProjectile);
+      break;
+    }
+  }
+}
+
 function bossSignatureAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',ang:number,step:number) {
   const bx=boss.x+boss.size/2,by=boss.y+boss.size/2;
   const px=engine.player.x+7,py=engine.player.y+8;
@@ -3341,6 +3441,7 @@ function bossSignatureAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:R
       break;
   }
 
+  bossRoleSignature(engine,boss,room,content,def,phase,tier,ang,step);
   spawn(engine,bx,by,'smoke',tier==='boss'?6:4,accent);
   engine.hitStop=Math.max(engine.hitStop,tier==='boss'?2:1);
 }
@@ -3448,6 +3549,19 @@ function bossPatternMove(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,a
   else if(p.mobility==='skirmish'){forward=d>165?.34:d<92?-.38:.02;lateral=.27+p.orbitBias;}
   else if(p.mobility==='fortress'){forward=d>195?.18:d<105?-.12:0;lateral=.08+p.orbitBias*.5;}
   else if(p.mobility==='ambush'){forward=d>125?.38:d<66?-.18:.1;lateral=.32+p.orbitBias;}
+
+  // El rol cambia también cómo ocupa la arena, no sólo qué proyectiles usa.
+  if(def.role==='duelist'){forward=d>112?.42:d<72?-.24:.08;lateral=.52;}
+  else if(def.role==='sniper'){forward=d>205?.18:d<155?-.46:-.1;lateral=.19;}
+  else if(def.role==='charger'){forward=d>74?.6:.16;lateral=.04;}
+  else if(def.role==='vortex'){forward=d>138?.18:d<92?-.16:.02;lateral=.58;}
+  else if(def.role==='executioner'){forward=d>122?.34:d<76?-.2:.06;lateral=.22;}
+  else if(def.role==='reactor'){forward=d>155?.16:d<105?-.14:0;lateral=.12;}
+  else if(def.role==='swarm'){forward=d>145?.25:d<88?-.22:.03;lateral=.38;}
+  else if(def.role==='warden'){forward=d>175?.15:d<115?-.18:0;lateral=.16;}
+  else if(def.role==='storm'){forward=d>145?.2:d<92?-.15:.01;lateral=.44;}
+  else if(def.role==='trickster'){forward=d>125?.2:d<75?-.28:.02;lateral=.5;}
+
   const wobble=Math.sin(engine.frame*(.018+Math.abs(p.orbitBias)*.02)+boss.id)*lateral;
   moveEnemy(boss,room,
     Math.cos(ang)*spd*forward+Math.cos(ang+Math.PI/2)*spd*wobble,
@@ -3472,6 +3586,21 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:numb
   // La transición de fase comunica la nueva identidad antes del siguiente ataque.
   if(def.family==='tech'||def.family==='vault')bossRing(engine,boss,6+phase*2,1.65+phase*.12,def.pattern.projectile,engine.frame*.02);
   else if(def.family==='wealth'||def.family==='finance')bossRing(engine,boss,6+phase*2,1.5+phase*.12,'coin_proj',-engine.frame*.018);
+
+  if(def.role==='artillery'||def.role==='warden'){
+    const px=engine.player.x+7,py=engine.player.y+8;
+    for(let i=0;i<3+phase;i++)queueBossAirStrike(content,
+      clamp(px+Math.cos(i/(3+phase)*Math.PI*2)*48,42,CANVAS_WIDTH-42),
+      clamp(py+Math.sin(i/(3+phase)*Math.PI*2)*40,42,CANVAS_HEIGHT-42),
+      15+phase*2,i===0?'heavy':'shell',42+i*5);
+  } else if(def.role==='vortex'||def.role==='storm'){
+    bossRing(engine,boss,8+phase*2,2.0+phase*.15,def.pattern.altProjectile,-engine.frame*.04);
+  } else if(def.role==='charger'){
+    boss.moveAngle=Math.atan2(engine.player.y+8-cy,engine.player.x+7-cx);
+    boss.moveTimer=Math.max(boss.moveTimer,18+phase*6);
+  } else if(def.role==='reactor'){
+    bossHazardRing(content,cx,cy,5+phase*2,44+phase*12,130+phase*20);
+  }
   playBossPhase(tier);
 }
 
