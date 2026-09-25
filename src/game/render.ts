@@ -768,9 +768,51 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha=1-interact*.38;
     const gunSize=longGun?16:14;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
+    const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
+    const postShot=clamp((cooldownNorm-.35)/.65,0,1);
+    let actionRot=0,actionX=0,actionY=0,weaponScaleX=1,weaponScaleY=1;
+    switch(currentWeapon.id){
+      case 'breadcrumb_shotgun':
+        actionX=postShot*1.2;actionRot=-postShot*.025;break;
+      case 'baguette_launcher':
+        actionRot=postShot*.055;actionY=postShot*1.1;break;
+      case 'baguette_sniper':
+        actionRot=postShot*.035;actionY=postShot*.7;break;
+      case 'golden_egg_revolver':
+        actionRot=-postShot*.045;break;
+      case 'plasma_baker':
+        weaponScaleX=1+clamp(p.charge/70,0,1)*.055;weaponScaleY=1-clamp(p.charge/70,0,1)*.035;break;
+      case 'feather_gun':
+        actionY=Math.sin(f*.9)*Math.min(1,p.heat/100);break;
+      case 'quack_laser':
+        actionY=Math.sin(f*.7)*.45;break;
+    }
     const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
-    ctx.translate(-weaponKick,0);
+    ctx.translate(-weaponKick+actionX,actionY);
+    ctx.rotate(actionRot);
+    ctx.scale(weaponScaleX,weaponScaleY);
     drawItemIcon(ctx,3,-Math.round(gunSize/2),currentWeapon.id,gunSize);
+
+    // Mecánica visible propia de cada familia: corredera, bomba, cerrojo,
+    // cilindro, calor y estabilización. Sólo dibujo; el balance no cambia.
+    if(currentWeapon.id==='breadcrumb_shotgun'&&postShot>.18){
+      ctx.fillStyle='#795038';ctx.fillRect(7+Math.round(postShot*4),3,5,2);
+    }else if(currentWeapon.id==='baguette_sniper'&&postShot>.2){
+      ctx.fillStyle='#c6d0cf';ctx.fillRect(8+Math.round(postShot*3),-5,4,1);
+      ctx.fillRect(11+Math.round(postShot*3),-4,1,3);
+    }else if(currentWeapon.id==='golden_egg_revolver'){
+      ctx.strokeStyle='#d5b05c';ctx.globalAlpha=.42+.22*postShot;ctx.beginPath();ctx.arc(8,0,3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+    }else if(currentWeapon.id==='feather_gun'){
+      const heat=clamp(p.heat/100,0,1);
+      if(heat>.35){ctx.fillStyle=heat>.8?'#e9664f':'#d9a45d';ctx.globalAlpha=.25+heat*.45;ctx.fillRect(7,-5,6,1);ctx.globalAlpha=1;}
+      if(p.overheat>0){ctx.fillStyle='#ff7962';ctx.globalAlpha=.55+.25*Math.sin(f*.5);ctx.fillRect(9,-7,2,2);ctx.globalAlpha=1;}
+    }else if(currentWeapon.id==='quack_laser'){
+      const hot=clamp((p.fireCooldown>0?1:0)+(p.shootFlash>0?.5:0),0,1);
+      ctx.globalAlpha=.18+.15*hot;ctx.fillStyle='#e7b85c';ctx.fillRect(7,-5,8,1);ctx.globalAlpha=1;
+    }else if(currentWeapon.id==='baguette_launcher'&&postShot>.2){
+      ctx.fillStyle='#76866a';ctx.fillRect(10,-4,4,3);ctx.fillStyle='#303a36';ctx.fillRect(13,-3,2,2);
+    }
+
     if(p.shootFlash>0&&currentWeapon.id!=='quack_laser'&&currentWeapon.id!=='homing_crumbs'&&currentWeapon.id!=='feather_gun'){
       const shellAge=6-p.shootFlash;
       ctx.globalAlpha=.78-shellAge*.08;
@@ -781,9 +823,17 @@ export function renderWorld(engine: GameEngine) {
     }
     if(p.charge>0&&(currentWeapon.id==='plasma_baker'||currentWeapon.id==='golden_egg_revolver'||currentWeapon.id==='baguette_sniper')){
       const q=clamp(p.charge/70,0,1),mx=longGun?18:14;
-      ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=currentWeapon.id==='plasma_baker'?'#ffd98a':'#e6c56f';ctx.lineWidth=1;
+      const chargeCol=currentWeapon.id==='plasma_baker'?'#ffd98a':currentWeapon.id==='baguette_sniper'?'#b9d8d8':'#e6c56f';
+      ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=chargeCol;ctx.lineWidth=1;
       ctx.beginPath();ctx.arc(mx,0,4+q*6,0,Math.PI*2);ctx.stroke();
-      ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mx-1,-1,2,2);ctx.globalAlpha=1;
+      ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mx-1,-1,2,2);
+      // Línea de estabilización corta: comunica precisión creciente sin
+      // convertirla en mira láser permanente.
+      if(q>.22){
+        ctx.globalAlpha=.08+q*.18;ctx.strokeStyle=chargeCol;
+        ctx.beginPath();ctx.moveTo(mx+4,0);ctx.lineTo(mx+22+q*24,0);ctx.stroke();
+      }
+      ctx.globalAlpha=1;
     }
     ctx.restore();
 
