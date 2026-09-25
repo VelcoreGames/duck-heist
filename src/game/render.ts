@@ -364,6 +364,58 @@ export function renderWorld(engine: GameEngine) {
   if(room.modifier==='alarm'&&!room.cleared){ctx.globalAlpha=.06+Math.sin(f*.05)*.025;ctx.fillStyle='#e15a4f';ctx.fillRect(32,32,CANVAS_WIDTH-64,CANVAS_HEIGHT-64);ctx.globalAlpha=1;}
   drawEndlessArenaMood(ctx,engine,f);
 
+  // Ritmo visual del encuentro: alarma periférica, entradas y objetivos.
+  if(!room.cleared&&content.enemies.length){
+    const danger=content.dangerEventActive||room.modifier==='alarm'||engine.alert>=60;
+    if(danger){
+      const pulse=.035+.035*Math.sin(f*.11)**2;
+      ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#d85d58';
+      ctx.fillRect(32,32,CANVAS_WIDTH-64,3);ctx.fillRect(32,CANVAS_HEIGHT-35,CANVAS_WIDTH-64,3);
+      ctx.fillRect(32,35,3,CANVAS_HEIGHT-70);ctx.fillRect(CANVAS_WIDTH-35,35,3,CANVAS_HEIGHT-70);
+      ctx.restore();
+    }
+
+    let marked=0;
+    for(const e of content.enemies){
+      if(marked>=5)break;
+      const spawning=e.spawnAnim>0;
+      const threatening=e.isBoss||e.elite||e.telegraph>.62||e.chargeTimer>0;
+      if(!spawning&&!threatening)continue;
+      const cx=e.x+e.size/2,cy=e.y+e.size/2;
+      const col=e.isBoss?'#e66b60':e.elite?'#e6c56f':e.telegraph>.62?'#ef9b64':'#839da0';
+      ctx.save();
+      if(spawning){
+        const total=e.isBoss?42:Math.max(18,e.spawnAnim),t=clamp(1-e.spawnAnim/total,0,1);
+        ctx.globalAlpha=.16+.26*(1-t);ctx.strokeStyle=col;ctx.lineWidth=1;
+        ctx.beginPath();ctx.ellipse(cx,cy+e.size*.42,e.size*(.9-.25*t),e.size*(.34-.08*t),0,0,Math.PI*2);ctx.stroke();
+      }
+      if(threatening){
+        const r=e.size*.65+5+(Math.sin(f*.12+e.id)+1)*1.5;
+        ctx.globalAlpha=e.isBoss?.42:.24;ctx.strokeStyle=col;ctx.lineWidth=1;
+        const s=4;
+        ctx.beginPath();
+        ctx.moveTo(cx-r,cy-r+s);ctx.lineTo(cx-r,cy-r);ctx.lineTo(cx-r+s,cy-r);
+        ctx.moveTo(cx+r-s,cy-r);ctx.lineTo(cx+r,cy-r);ctx.lineTo(cx+r,cy-r+s);
+        ctx.moveTo(cx-r,cy+r-s);ctx.lineTo(cx-r,cy+r);ctx.lineTo(cx-r+s,cy+r);
+        ctx.moveTo(cx+r-s,cy+r);ctx.lineTo(cx+r,cy+r);ctx.lineTo(cx+r,cy+r-s);
+        ctx.stroke();
+      }
+      ctx.restore();marked++;
+    }
+  }
+
+  if(room.cleared&&content.clearAge!==undefined&&content.clearAge<54){
+    const t=clamp(content.clearAge/54,0,1),sweep=smoothStep(0,1,t);
+    ctx.save();
+    ctx.globalAlpha=.16*(1-t);ctx.fillStyle='#78c99a';
+    const y=48+sweep*(CANVAS_HEIGHT-96);
+    ctx.fillRect(42,y,CANVAS_WIDTH-84,1);
+    ctx.globalAlpha=.045*(1-t);ctx.fillRect(42,y-8,CANVAS_WIDTH-84,17);
+    ctx.strokeStyle='#78c99a';ctx.globalAlpha=.18*(1-t);
+    ctx.strokeRect(40.5,40.5,CANVAS_WIDTH-81,CANVAS_HEIGHT-81);
+    ctx.restore();
+  }
+
   if(content.airStrikes?.length){
     for(const a of content.airStrikes){
       ctx.save();
@@ -1932,14 +1984,18 @@ function renderPrompts(engine: GameEngine) {
     ctx.globalAlpha = 1;
   }
 
-  // etiqueta de sala
-  if (engine.roomLabelTimer > 0) {
-    const t = engine.roomLabelTimer;
-    const endless=engine.gameMode==='endless';
-    const a=endless?Math.min(1,t/14):(t > 75 ? (95 - t) / 20 : Math.min(1, t / 25));
-    ctx.globalAlpha = clamp(a, 0, 1);
-    text(ctx,engine.roomLabel, CANVAS_WIDTH/2,endless?42:55,endless?6.5:10,endless?'#a9a17d':'#e3c989','center',!endless);
-    ctx.globalAlpha = 1;
+  // Etiqueta de sala como identificación operativa, no texto flotante.
+  if(engine.roomLabelTimer>0){
+    const t=engine.roomLabelTimer,endless=engine.gameMode==='endless';
+    const a=endless?Math.min(1,t/14):(t>75?(95-t)/20:Math.min(1,t/25));
+    const alpha=clamp(a,0,1),w=endless?132:178,h=20,x=CANVAS_WIDTH/2-w/2,y=endless?34:43;
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.fillStyle='rgba(3,11,15,.78)';ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='rgba(124,157,157,.22)';ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+    ctx.fillStyle=endless?'#a9a17d':'#e3c989';ctx.fillRect(x,y,3,h);
+    text(ctx,endless?'SECTOR SIN FIN':'NUEVO SECTOR',x+10,y+7,3.9,endless?'#777963':'#6f8486','left',true,false);
+    text(ctx,engine.roomLabel,x+w/2,y+16,endless?5.1:6.1,endless?'#b7b18d':'#e3c989','center',true,false);
+    ctx.restore();
   }
 
   // ficha de objeto recogido
