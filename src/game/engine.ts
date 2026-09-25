@@ -2795,6 +2795,18 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
   p.charge = 0;
 }
 
+function spawnWeaponImpact(engine:GameEngine,p:Projectile,x:number,y:number,surface=false){
+  const id=p.sourceWeapon??'';
+  const heavy=id==='breadcrumb_shotgun'||id==='baguette_launcher'||id==='plasma_baker'||id==='heavy_50';
+  const energy=id==='quack_laser'||id==='plasma_baker';
+  const bread=id==='baguette_launcher'||id==='tactical_toaster'||p.type==='breadcrumb'||p.type==='baguette';
+  const count=heavy?5:energy?3:2;
+  const color=energy?'#ffe7a6':bread?'#d7a56a':surface?'#aeb9bd':'#fff0cf';
+  spawn(engine,x,y,energy?'spark':bread?'crumb':'hit',count,color);
+  if(heavy)spawn(engine,x,y,'spark',3,id==='breadcrumb_shotgun'?'#f0b568':'#e6c56f');
+  if(surface&&heavy)spawn(engine,x,y,'smoke',2,'#69757a');
+}
+
 function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomContent) {
   const player = engine.player;
   const build=getBuild(player);
@@ -2870,7 +2882,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         const prevX = p.x - p.vx, prevY = p.y - p.vy;
         if (Math.floor(prevX / TILE_SIZE) !== tx) p.vx *= -1; else p.vy *= -1;
         p.x = prevX; p.y = prevY;
-        spawn(engine, p.x, p.y, 'spark', 3, '#dfe6ee');
+        spawnWeaponImpact(engine,p,p.x,p.y,true);
         if(p.type==='rubber_duck') playBounce();
       } else {
         spawn(engine, p.x, p.y, 'hit', 4, p.friendly ? '#fff3b0' : '#ff9f9f');
@@ -2971,7 +2983,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         p.hitEnemies.add(e.id);
         if (p.piercing) continue;
         if((p.penetration ?? 0)>0) {p.penetration!--;continue;}
-        spawn(engine,p.x,p.y,p.type==='breadcrumb'?'crumb':'hit',p.sourceWeapon==='feather_gun'?2:5);
+        spawnWeaponImpact(engine,p,p.x,p.y,false);
         engine.projectiles.splice(i,1);removed=true;break;
       }
       if (removed) continue;
