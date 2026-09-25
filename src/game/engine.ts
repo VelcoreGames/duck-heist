@@ -2899,8 +2899,8 @@ function explode(engine: GameEngine, p: Projectile, content: RoomContent, hurtPl
     const e=content.enemies[ei];
     if(!e||e.hp<=0)continue;
     const dx=p.x-(e.x+e.size/2),dy=p.y-(e.y+e.size/2);
-    const reach=radius+e.size/2;
-    if(dx*dx+dy*dy<reach*reach){
+    const rx=radius+(e.hitboxW??e.size)/2,ry=radius+(e.hitboxH??e.size)/2;
+    if((dx*dx)/(rx*rx)+(dy*dy)/(ry*ry)<1){
       const shielded=e.behavior==='shielded' && e.recover<=0;
       const amount=Math.max(1,Math.round(p.damage*(shielded?.4:1)));
       trackWeaponDamage(engine,p.sourceWeapon,Math.min(e.hp,amount),amount>=e.hp);
