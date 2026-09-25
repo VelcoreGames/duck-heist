@@ -15,7 +15,7 @@ import {
   drawDuckSkin,
 } from './sprites';
 import {
-  WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, META_UPGRADES,
+  WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, ENEMIES, META_UPGRADES,
   RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS,
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
@@ -1067,7 +1067,7 @@ function enemyPose(e:Enemy,f:number){
 }
 
 function drawEnemyRoleAccent(ctx:CanvasRenderingContext2D,e:Enemy,f:number){
-  const cx=e.x+e.size/2,cy=e.y+e.size/2,t=clamp(e.telegraph,0,1);
+  const cx=e.x+e.size/2,cy=e.y+e.size/2,t=clamp(e.telegraph,0,1),def=ENEMIES[e.type];
   ctx.save();
   switch(e.behavior){
     case 'sniper':
@@ -1086,6 +1086,17 @@ function drawEnemyRoleAccent(ctx:CanvasRenderingContext2D,e:Enemy,f:number){
     case 'shielded':
       if(e.chargeTimer>0){ctx.globalAlpha=.22+.12*Math.sin(f*.4);ctx.strokeStyle='#ff7468';ctx.beginPath();ctx.arc(cx,cy,e.size*.74,0,Math.PI*2);ctx.stroke();}
       break;
+  }
+
+  // Retroceso/flash posterior al disparo, derivado del cooldown real.
+  if(def?.fireRate&&def.fireRate>0&&e.fireCooldown>=Math.max(1,def.fireRate-7)){
+    const ang=e.behavior==='shielded'?e.shieldAngle:e.moveAngle;
+    const muzzle=e.size*.72+(e.behavior==='shotgunner'?8:3),mx=cx+Math.cos(ang)*muzzle,my=cy+Math.sin(ang)*muzzle;
+    ctx.translate(mx,my);ctx.rotate(ang);
+    const heavy=e.behavior==='shotgunner'||e.type==='toaster_turret';
+    ctx.globalAlpha=.72;ctx.fillStyle=heavy?'#ffd18a':'#fff0c5';
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(heavy?8:5,-2);ctx.lineTo(heavy?6:4,0);ctx.lineTo(heavy?8:5,2);ctx.closePath();ctx.fill();
+    ctx.fillStyle=heavy?'#ef8a43':'#e8b65f';ctx.fillRect(1,-1,heavy?5:3,2);
   }
   ctx.restore();
 }
