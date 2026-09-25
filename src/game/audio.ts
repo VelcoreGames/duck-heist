@@ -271,7 +271,7 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
     const position=Math.floor(slot/4);
     const motifIndex=section?Math.max(0,4-position):position;
     const freq=root*2*semitoneRatio(signature[motifIndex]);
-    musicPluck(freq,hit(tier==='boss'?.0048:tier==='subboss'?.0038:.003));
+    musicPluck(freq,hit(tier==='boss' ? .0048 : tier==='subboss' ? .0038 : .003));
   }
 }
 
