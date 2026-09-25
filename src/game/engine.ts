@@ -3731,6 +3731,9 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   const tier:'mini'|'sub'|'boss'=floor?'boss':sub?'sub':'mini';
   const def=floor??sub??mini;
   if(!def) return;
+  // Checkpoints antiguos no tenían bossParts. Se hidratan al entrar en IA para
+  // mantener compatibilidad de guardados sin renunciar a la nueva mecánica.
+  if(def.legacy&&(!boss.bossParts||boss.bossParts.length===0)) boss.bossParts=bossPartsFor(type);
 
   const nextPhase=tier==='boss'?(pct<=.33?2:pct<=.66?1:0):tier==='sub'?(pct<=.5?1:0):(pct<=.35?1:0);
   if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def,nextPhase,tier,content);
@@ -3985,7 +3988,10 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   const floorBossDeath=e.isBoss&&!!BOSSES[e.bossType];
   const subBossDeath=e.isBoss&&!!SUBBOSSES[e.bossType];
   const bossDeathLife=floorBossDeath?68:subBossDeath?54:e.isBoss?46:20;
-  engine.deathEchoes.push({enemy:{...e,hurtTimer:0,phaseTransition:0},life:bossDeathLife,vx:Math.cos(angle)*(floorBossDeath?.75:subBossDeath?1:1.4),vy:Math.sin(angle)*(floorBossDeath?.75:subBossDeath?1:1.4)});
+  // El eco de muerte ya muestra el hardware roto: no reaparecen mágicamente
+  // escudos, rifles o torretas durante la animación final.
+  if(e.isBoss&&e.bossParts) for(const part of e.bossParts){part.hp=0;part.destroyed=true;}
+  engine.deathEchoes.push({enemy:{...e,bossParts:e.bossParts?.map(part=>({...part})),hurtTimer:0,phaseTransition:0},life:bossDeathLife,vx:Math.cos(angle)*(floorBossDeath?.75:subBossDeath?1:1.4),vy:Math.sin(angle)*(floorBossDeath?.75:subBossDeath?1:1.4)});
   if(engine.deathEchoes.length>16) engine.deathEchoes.shift();
   engine.player.combo++;engine.player.comboTimer=120;
   if(build.infinite && engine.player.activeItemCooldown>0) engine.player.activeItemCooldown=Math.max(1,engine.player.activeItemCooldown-30);
@@ -4037,6 +4043,42 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
         case 'duelist':
           spawn(engine,cx+15,cy-12,'spark',12,def.secondary);spawn(engine,cx-12,cy+10,'feather',8,'#e7e4dc');
           break;
+      }
+
+      // Secuencias manuales para los encuentros emblemáticos. Son efectos baratos
+      // (partículas acotadas, sin blur/filter) y siguen la anatomía de cada boss.
+      switch(e.bossType){
+        case 'toaster_9000':
+          for(const ox of [-34,-12,12,34]){spawn(engine,cx+ox,cy-14+rng(-3,3),'spark',8,ox%24?'#ff8a45':'#ffe08b');spawn(engine,cx+ox,cy+8,'smoke',4,'#4b4e4f');}
+          spawn(engine,cx,cy+4,'spark',22,'#ff6b3f');engine.shakeIntensity=Math.max(engine.shakeIntensity,17);break;
+        case 'director_seguridad':
+          for(const ox of [-52,52]){spawn(engine,cx+ox,cy-6,'spark',13,'#8fdbe5');spawn(engine,cx+ox,cy+2,'smoke',7,'#39484e');}
+          spawn(engine,cx,cy-22,'spark',12,'#ff6260');spawn(engine,cx,cy+6,'spark',28,'#67d9e8');engine.shakeIntensity=Math.max(engine.shakeIntensity,18);break;
+        case 'don_levadura':
+          for(let n=0;n<8;n++){const a=n*Math.PI/4;spawn(engine,cx+Math.cos(a)*28,cy+Math.sin(a)*18,'crumb',5,n%2?'#d6a367':'#b97845');}
+          spawn(engine,cx,cy+7,'smoke',18,'#8f6a4d');engine.shakeIntensity=Math.max(engine.shakeIntensity,12);break;
+        case 'general_ganso':
+          spawn(engine,cx+24,cy+6,'spark',15,'#87959d');spawn(engine,cx-20,cy+5,'spark',10,'#657985');
+          spawn(engine,cx,cy,'feather',18,'#e8e6de');break;
+        case 'captain_honk':
+          spawn(engine,cx-20,cy+8,'spark',9,'#5ea4ff');spawn(engine,cx+22,cy+7,'spark',12,'#ff6257');
+          spawn(engine,cx,cy,'feather',15,'#ece9df');break;
+        case 'comisario_pico_duro':
+          for(const oy of [-24,-8,8,22])spawn(engine,cx+18,cy+oy,'spark',6,'#9ba8ae');
+          spawn(engine,cx-16,cy+8,'smoke',7,'#3b4650');break;
+        case 'head_baker':
+          spawn(engine,cx+22,cy,'spark',12,'#c69054');spawn(engine,cx,cy+8,'spark',18,'#ff7d3d');
+          for(let n=0;n<6;n++)spawn(engine,cx+rng(-25,25),cy+rng(-12,20),'crumb',4,'#d8a66b');break;
+        case 'el_auditor':
+          for(let n=0;n<7;n++)spawn(engine,cx+rng(-30,30),cy+rng(-24,16),'spark',3,n%2?'#e8dfc9':'#a73743');
+          spawn(engine,cx+18,cy-5,'smoke',6,'#2c3339');break;
+        case 'ganso_antidisturbios':
+          spawn(engine,cx+31,cy+6,'spark',20,'#a9b6bc');spawn(engine,cx-12,cy+7,'feather',14,'#e7e8e3');
+          engine.shakeIntensity=Math.max(engine.shakeIntensity,13);break;
+        case 'cajero_3000':
+          spawn(engine,cx-42,cy-5,'spark',12,'#d8b85e');spawn(engine,cx+42,cy-5,'spark',12,'#d8b85e');
+          for(let n=0;n<10;n++)spawn(engine,cx+rng(-32,32),cy+rng(-14,18),'crumb',3,'#d6b65a');
+          spawn(engine,cx,cy,'smoke',14,'#3d4c50');break;
       }
     }
     if(floor) playBossWin(); else playEnemyDeath();
