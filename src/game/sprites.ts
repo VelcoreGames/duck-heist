@@ -923,67 +923,95 @@ export function bossVisualIdentityKey(bossType:string){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def)return '';
   if(def.finalBoss)return 'final:bread_banker:imperial-vault';
-  const h=bossVisualHash(bossType),tier=BOSSES[bossType]?2:SUBBOSSES[bossType]?1:0;
-  return [def.family,tier,h%8,(h>>>3)%8,(h>>>6)%6,(h>>>10)%5,def.pattern.sequence[0],def.pattern.sequence[1]].join(':');
+  const tier=BOSSES[bossType]?2:SUBBOSSES[bossType]?1:0,key=def.visualIndex??0;
+  return [def.family,tier,key%12,Math.floor(key/12)%8,(Math.floor(key/4)+key)%6,def.scaleX,def.scaleY,def.stationary?'fixed':'mobile',def.pattern.sequence[0],def.pattern.sequence[1]].join(':');
 }
 
-function drawBossStructuralRig(ctx:Ctx,h:number,tier:number,phase:number,frame:number,v:BossVisual){
-  const rig=h%8,steel=v.family==='bakery'?'#795239':v.family==='finance'||v.family==='wealth'?'#4d443a':v.family==='vault'?'#403959':'#3c4852';
+function drawBossStructuralRig(ctx:Ctx,key:number,tier:number,phase:number,frame:number,v:BossVisual,stationary=false){
+  const rig=key%12,steel=v.family==='bakery'?'#795239':v.family==='finance'||v.family==='wealth'?'#4d443a':v.family==='vault'?'#403959':'#3c4852';
   const edge=v.family==='bakery'?'#d29c5d':v.family==='wealth'?'#d7ad4c':'#7f919c';
-  const pulse=.55+.45*Math.sin(frame*.1+(h%17));
+  const pulse=.55+.45*Math.sin(frame*.1+(key%17));
   ctx.save();
+
+  if(stationary){
+    // Base fija visible: estos bosses se leen como maquinaria/estructura, no
+    // como el mismo personaje grande persiguiendo al jugador.
+    metalEdge(ctx,-30,16,60,10,'#242c32',edge,'#11171b');
+    rect(ctx,-25,24,50,5,'#161d22');
+    for(const x of [-23,-8,8,23]){rect(ctx,x,18,4,7,steel);px(ctx,x+1,19,v.accent,2);}
+  }
+
   switch(rig){
-    case 0: // ariete asimétrico + contrapeso: ancho y agresivo
-      metalEdge(ctx,-31,-7,10,25,steel,edge,'#222a31');
-      rect(ctx,21,-3,8,18,steel);rect(ctx,24,1,8,10,'#252d33');px(ctx,27,4,v.secondary,3);
-      if(tier>=1){rect(ctx,-35,3,6,8,v.accent);rect(ctx,29,5,5,6,v.secondary);}
+    case 0:
+      metalEdge(ctx,-34,-8,12,27,steel,edge,'#222a31');
+      rect(ctx,20,-2,10,19,steel);rect(ctx,24,1,9,11,'#252d33');px(ctx,28,4,v.secondary,3);
       break;
-    case 1: // bastidor de alas/archivadores: silueta en V
-      ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-17,-3);ctx.lineTo(-34,-17);ctx.lineTo(-29,8);ctx.lineTo(-18,13);ctx.closePath();ctx.fill();
-      ctx.beginPath();ctx.moveTo(17,-3);ctx.lineTo(34,-17);ctx.lineTo(29,8);ctx.lineTo(18,13);ctx.closePath();ctx.fill();
-      rect(ctx,-32,-12,9,3,v.accent);rect(ctx,23,-12,9,3,v.secondary);
+    case 1:
+      ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-17,-2);ctx.lineTo(-38,-19);ctx.lineTo(-31,10);ctx.lineTo(-17,14);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(17,-2);ctx.lineTo(38,-19);ctx.lineTo(31,10);ctx.lineTo(17,14);ctx.closePath();ctx.fill();
+      rect(ctx,-35,-14,10,3,v.accent);rect(ctx,25,-14,10,3,v.secondary);
       break;
-    case 2: // antena/estandarte alto: lectura vertical
-      rect(ctx,-24,-29,3,43,steel);rect(ctx,-29,-30,13,9,'#252d33');rect(ctx,-27,-28,9,5,v.accent);
-      rect(ctx,19,-12,8,22,steel);rect(ctx,21,-16,4,5,edge);
-      if(frame%24<12)px(ctx,-23,-35,v.secondary,3);
+    case 2:
+      rect(ctx,-25,-32,4,48,steel);rect(ctx,-31,-33,16,10,'#252d33');rect(ctx,-29,-30,12,5,v.accent);
+      rect(ctx,18,-13,9,24,steel);rect(ctx,20,-18,5,6,edge);
+      if(frame%24<12)px(ctx,-24,-38,v.secondary,3);
       break;
-    case 3: // turbinas laterales / maquinaria de persecución
-      for(const x of [-27,27]){
-        ctx.fillStyle=steel;ctx.beginPath();ctx.arc(x,1,9+tier,0,Math.PI*2);ctx.fill();
-        ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,1,6+tier,0,Math.PI*2);ctx.stroke();
-        ctx.save();ctx.translate(x,1);ctx.rotate(frame*.04*(x<0?-1:1));rect(ctx,-1,-7,2,14,v.accent);rect(ctx,-7,-1,14,2,v.secondary);ctx.restore();
+    case 3:
+      for(const x of [-29,29]){
+        ctx.fillStyle=steel;ctx.beginPath();ctx.arc(x,1,10+tier,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,1,7+tier,0,Math.PI*2);ctx.stroke();
+        ctx.save();ctx.translate(x,1);ctx.rotate(frame*.045*(x<0?-1:1));rect(ctx,-1,-8,2,16,v.accent);rect(ctx,-8,-1,16,2,v.secondary);ctx.restore();
       }
       break;
-    case 4: // abrigo/capa partida: base triangular muy distinta
-      ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-17,-4);ctx.lineTo(-31,22);ctx.lineTo(-11,18);ctx.lineTo(0,8);ctx.lineTo(11,18);ctx.lineTo(31,22);ctx.lineTo(17,-4);ctx.closePath();ctx.fill();
-      ctx.globalAlpha=.55;rect(ctx,-27,17,12,3,v.accent);rect(ctx,15,17,12,3,v.secondary);ctx.globalAlpha=1;
+    case 4:
+      ctx.fillStyle=steel;ctx.beginPath();ctx.moveTo(-18,-5);ctx.lineTo(-34,24);ctx.lineTo(-12,19);ctx.lineTo(0,8);ctx.lineTo(12,19);ctx.lineTo(34,24);ctx.lineTo(18,-5);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=.55;rect(ctx,-30,19,13,3,v.accent);rect(ctx,17,19,13,3,v.secondary);ctx.globalAlpha=1;
       break;
-    case 5: // zancos blindados / chasis bajo
-      rect(ctx,-29,7,12,8,steel);rect(ctx,17,7,12,8,steel);
-      rect(ctx,-27,14,5,12,'#252d33');rect(ctx,22,14,5,12,'#252d33');
-      rect(ctx,-31,24,12,4,edge);rect(ctx,19,24,12,4,edge);
-      if(tier===2){rect(ctx,-34,8,5,5,v.accent);rect(ctx,29,8,5,5,v.secondary);}
+    case 5:
+      rect(ctx,-32,7,14,9,steel);rect(ctx,18,7,14,9,steel);
+      rect(ctx,-29,15,6,14,'#252d33');rect(ctx,23,15,6,14,'#252d33');
+      rect(ctx,-34,27,14,4,edge);rect(ctx,20,27,14,4,edge);
       break;
-    case 6: // chimeneas/reactores traseros
-      for(const x of [-21,16]){
-        rect(ctx,x,-22,6,31,steel);rect(ctx,x-2,-24,10,4,edge);
-        ctx.globalAlpha=.25+.2*pulse;rect(ctx,x+1,-31,4,8,phase>=2?'#ff5b54':v.accent);ctx.globalAlpha=1;
+    case 6:
+      for(const x of [-22,16]){
+        rect(ctx,x,-25,7,34,steel);rect(ctx,x-2,-28,11,5,edge);
+        ctx.globalAlpha=.25+.2*pulse;rect(ctx,x+1,-36,5,9,phase>=2?'#ff5b54':v.accent);ctx.globalAlpha=1;
       }
-      rect(ctx,-26,5,9,12,'#252d33');rect(ctx,17,5,9,12,'#252d33');
       break;
-    default: // aro de bóveda segmentado: silueta circular mecánica
-      ctx.strokeStyle=edge;ctx.lineWidth=4;ctx.globalAlpha=.8;
-      for(let i=0;i<6;i++){const a=i*Math.PI/3+.16;ctx.beginPath();ctx.arc(0,2,27+tier*2,a,a+.55);ctx.stroke();}
-      ctx.globalAlpha=1;
-      for(let i=0;i<4;i++){const a=i*Math.PI/2;const x=Math.cos(a)*(27+tier*2),y=2+Math.sin(a)*(27+tier*2);px(ctx,x-1,y-1,i%2?v.secondary:v.accent,3);}
+    case 7:
+      ctx.strokeStyle=edge;ctx.lineWidth=4;ctx.globalAlpha=.85;
+      for(let i=0;i<8;i++){const a=i*Math.PI/4+.1;ctx.beginPath();ctx.arc(0,2,30+tier*2,a,a+.38);ctx.stroke();}
+      ctx.globalAlpha=1;rect(ctx,-7,-5,14,14,'#252d33');px(ctx,-2,0,v.secondary,4);
+      break;
+    case 8: // batería de artillería horizontal
+      metalEdge(ctx,-36,-9,72,22,steel,edge,'#1b2227');
+      for(const x of [-27,-9,9,27]){rect(ctx,x-4,-16,8,10,'#262e34');rect(ctx,x-2,-25,4,12,'#596870');px(ctx,x-1,-27,v.secondary,2);}
+      rect(ctx,-13,4,26,8,'#151c21');rect(ctx,-8,6,16,4,v.accent);
+      break;
+    case 9: // araña mecánica
+      for(const side of [-1,1]){
+        for(let i=0;i<3;i++){
+          const yy=-8+i*10;
+          ctx.strokeStyle=edge;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(side*13,yy);ctx.lineTo(side*(28+i*3),yy+8);ctx.lineTo(side*(34+i*2),yy+13);ctx.stroke();
+        }
+      }
+      ctx.fillStyle=steel;ctx.beginPath();ctx.ellipse(0,1,18,14,0,0,Math.PI*2);ctx.fill();
+      break;
+    case 10: // monolito/torre
+      metalEdge(ctx,-13,-34,26,60,steel,edge,'#1b2227');
+      rect(ctx,-8,-27,16,13,'#171e23');rect(ctx,-5,-24,10,7,v.accent);
+      for(let y=-9;y<19;y+=8){rect(ctx,-17,y,34,3,'#252f35');px(ctx,-15,y,v.secondary,2);}
+      break;
+    default: // plataforma flotante en X
+      ctx.fillStyle=steel;
+      ctx.beginPath();ctx.moveTo(-30,-5);ctx.lineTo(-10,-12);ctx.lineTo(0,-3);ctx.lineTo(10,-12);ctx.lineTo(30,-5);ctx.lineTo(15,14);ctx.lineTo(-15,14);ctx.closePath();ctx.fill();
+      for(const x of [-24,24]){ctx.globalAlpha=.4+.25*pulse;ctx.fillStyle=v.accent;ctx.beginPath();ctx.ellipse(x,11,8,3,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
       break;
   }
   ctx.restore();
 }
-
-function drawBossFrontIdentity(ctx:Ctx,h:number,tier:number,v:BossVisual){
-  const plate=(h>>>3)%8;
+function drawBossFrontIdentity(ctx:Ctx,key:number,tier:number,v:BossVisual){
+  const plate=Math.floor(key/12)%8;
   switch(plate){
     case 0:
       ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-11,-4);ctx.lineTo(10,15);ctx.moveTo(11,-4);ctx.lineTo(-10,15);ctx.stroke();break;
@@ -1004,8 +1032,8 @@ function drawBossFrontIdentity(ctx:Ctx,h:number,tier:number,v:BossVisual){
   }
 }
 
-function drawBossCrest(ctx:Ctx,h:number,v:BossVisual){
-  switch((h>>>6)%6){
+function drawBossCrest(ctx:Ctx,key:number,v:BossVisual){
+  switch((Math.floor(key/4)+key)%6){
     case 0: rect(ctx,-3,-29,6,10,'#2b333a');px(ctx,-2,-32,v.secondary,4);break;
     case 1: rect(ctx,-14,-25,28,3,'#30383f');rect(ctx,-11,-30,5,6,v.accent);rect(ctx,6,-30,5,6,v.secondary);break;
     case 2:
@@ -1019,15 +1047,15 @@ function drawBossCrest(ctx:Ctx,h:number,v:BossVisual){
 function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
-  const h=bossVisualHash(bossType),tier=floorBoss?2:subBoss?1:0;
-  const scale=(tier===2?1.08:tier===1?1:.92)*(def.size>=40?1.06:def.size<=27?.96:1);
+  const h=bossVisualHash(bossType),tier=floorBoss?2:subBoss?1:0,key=def.visualIndex??(h%48);
+  const scale=(tier===2?1.08:tier===1?1:.92)*(def.size>=40?1.04:def.size<=27?.96:1);
+  const sx=scale*(def.scaleX??1),sy=scale*(def.scaleY??1);
   const pulse=.55+.45*Math.sin(frame*.13+h%11);
-  ctx.save();ctx.translate(bx+18,by+21);ctx.scale(scale,scale);
+  ctx.save();ctx.translate(bx+18,by+21);ctx.scale(sx,sy);
 
-  // sombra ancha; la jerarquía se lee incluso en silueta
   ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,17,15+tier*3,4+tier,0,0,Math.PI*2);ctx.fill();
 
-  if(!def.finalBoss)drawBossStructuralRig(ctx,h,tier,phase,frame,v);
+  if(!def.finalBoss)drawBossStructuralRig(ctx,key,tier,phase,frame,v,!!def.stationary);
 
   if(def.finalBoss){
     // EL GRAN JEFE DEL BANCO: corona de pan, capa de armiño, puerta de bóveda y cetro.
@@ -1106,14 +1134,14 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     if(v.family==='command'){rect(ctx,-20,-4,5,7,v.secondary);rect(ctx,15,-4,5,7,v.secondary);}
   }
 
-  if(!def.finalBoss){drawBossFrontIdentity(ctx,h,tier,v);drawBossCrest(ctx,h,v);}
+  if(!def.finalBoss){drawBossFrontIdentity(ctx,key,tier,v);drawBossCrest(ctx,key,v);}
 
   drawBossAttackHardware(ctx,{accent:v.accent,secondary:v.secondary,family:v.family,bob:v.bob},def.pattern.sequence,frame,phase);
 
   // detalles deterministas: cada individuo mantiene una firma visual propia.
-  if(h%2){rect(ctx,-3,14,6,3,v.secondary);}else{px(ctx,-2,15,v.accent,2);px(ctx,2,15,v.secondary,2);}
-  if((h>>>2)%2)rect(ctx,-23,-7,4,9,'#4c5962');
-  if((h>>>3)%2)rect(ctx,19,-7,4,9,'#4c5962');
+  if(key%2){rect(ctx,-3,14,6,3,v.secondary);}else{px(ctx,-2,15,v.accent,2);px(ctx,2,15,v.secondary,2);}
+  if(Math.floor(key/2)%2)rect(ctx,-23,-7,4,9,'#4c5962');
+  if(Math.floor(key/3)%2)rect(ctx,19,-7,4,9,'#4c5962');
   if(tier>=1){ctx.strokeStyle=v.accent;ctx.globalAlpha=.32+.18*pulse;ctx.beginPath();ctx.arc(0,1,23+tier*4+phase*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
   if(tier===2){rect(ctx,-23,16,46,2,v.secondary);px(ctx,-19,14,v.accent,2);px(ctx,17,14,v.accent,2);}
   ctx.restore();
