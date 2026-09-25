@@ -3857,23 +3857,74 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:numb
   spawn(engine,cx,cy,'spark',tier==='boss'?32:tier==='sub'?22:14,def.accent);
   spawn(engine,cx,cy,'spark',tier==='boss'?18:tier==='sub'?12:8,def.secondary);
   spawn(engine,cx,cy,'smoke',tier==='boss'?16:10,def.family==='bakery'?'#7a4732':def.family==='tech'?'#4f7380':'#6c7684');
-  // La transición de fase comunica la nueva identidad antes del siguiente ataque.
-  if(def.family==='tech'||def.family==='vault')bossRing(engine,boss,6+phase*2,1.65+phase*.12,def.pattern.projectile,engine.frame*.02);
-  else if(def.family==='wealth'||def.family==='finance')bossRing(engine,boss,6+phase*2,1.5+phase*.12,'coin_proj',-engine.frame*.018);
-
-  if(def.role==='artillery'||def.role==='warden'){
+  // Los encuentros clásicos cambian de fase con una mecánica propia; el resto
+  // conserva la gramática data-driven por familia/rol.
+  if(def.legacy){
     const px=engine.player.x+7,py=engine.player.y+8;
-    for(let i=0;i<3+phase;i++)queueBossAirStrike(content,
-      clamp(px+Math.cos(i/(3+phase)*Math.PI*2)*48,42,CANVAS_WIDTH-42),
-      clamp(py+Math.sin(i/(3+phase)*Math.PI*2)*40,42,CANVAS_HEIGHT-42),
-      15+phase*2,i===0?'heavy':'shell',42+i*5);
-  } else if(def.role==='vortex'||def.role==='storm'){
-    bossRing(engine,boss,8+phase*2,2.0+phase*.15,def.pattern.altProjectile,-engine.frame*.04);
-  } else if(def.role==='charger'){
-    boss.moveAngle=Math.atan2(engine.player.y+8-cy,engine.player.x+7-cx);
-    boss.moveTimer=Math.max(boss.moveTimer,18+phase*6);
-  } else if(def.role==='reactor'){
-    bossHazardRing(content,cx,cy,5+phase*2,44+phase*12,130+phase*20);
+    switch(def.id){
+      case 'captain_honk':
+        if(bossPartAlive(boss,'command_radio'))bossSupport(engine,room,content,phase>=2?['policia_rapido','dron_policial']:['policia_pato'],2+phase);
+        bossRing(engine,boss,6+phase*2,2.05,'enemy_bullet',engine.frame*.025);
+        break;
+      case 'comisario_pico_duro':
+        if(bossPartAlive(boss,'execution_rifle')){
+          for(let i=0;i<2+phase;i++)queueBossAirStrike(content,clamp(px+(i-(1+phase)/2)*42,42,CANVAS_WIDTH-42),clamp(py,42,CANVAS_HEIGHT-42),18+phase*2,i===0?'heavy':'shell',38+i*6);
+        }else{boss.moveAngle=Math.atan2(py-cy,px-cx);boss.moveTimer=26+phase*7;}
+        break;
+      case 'toaster_9000':
+        bossHazardRing(content,cx,cy,4+phase*2,46+phase*15,135+phase*18);
+        if(bossPartAlive(boss,'thermal_core'))bossRing(engine,boss,6+phase*3,2.25,'toast',engine.frame*.04);
+        break;
+      case 'general_ganso':
+        boss.moveAngle=Math.atan2(py-cy,px-cx);boss.moveTimer=22+phase*8;
+        if(bossPartAlive(boss,'battle_rifle'))bossFan(engine,boss,boss.moveAngle,3+phase*2,.12,3.55,'enemy_bullet');
+        break;
+      case 'don_levadura':
+        if(bossPartAlive(boss,'oven_core'))bossSupport(engine,room,content,['evil_croissant','rolling_bagel'],2+phase);
+        bossHazardRing(content,cx,cy,4+phase*2,50+phase*15,150);
+        break;
+      case 'director_seguridad':
+        if(bossPartAlive(boss,'camera_array')){
+          for(let i=0;i<2+phase;i++){const a=i/(2+phase)*Math.PI*2;queueBossAirStrike(content,clamp(px+Math.cos(a)*52,42,CANVAS_WIDTH-42),clamp(py+Math.sin(a)*38,42,CANVAS_HEIGHT-42),17+phase*2,'shell',36+i*6);}
+        }
+        if(bossPartAlive(boss,'security_core'))bossRing(engine,boss,6+phase*3,2.35,'drone_shot',engine.frame*.045);
+        break;
+      case 'head_baker':
+        bossHazardRing(content,cx,cy,4+phase*2,48+phase*14,145);
+        if(bossPartAlive(boss,'paddle')){boss.moveAngle=Math.atan2(py-cy,px-cx);boss.moveTimer=18+phase*6;}
+        break;
+      case 'el_auditor':
+        if(bossPartAlive(boss,'execution_seal')){
+          for(const [dx,dy] of [[42,0],[-42,0],[0,36],[0,-36]])queueBossAirStrike(content,clamp(px+dx,42,CANVAS_WIDTH-42),clamp(py+dy,42,CANVAS_HEIGHT-42),18+phase,'shell',38+Math.abs(dx+dy)%9);
+        }
+        break;
+      case 'ganso_antidisturbios':
+        boss.shieldAngle=Math.atan2(py-cy,px-cx);
+        boss.moveAngle=boss.shieldAngle;boss.moveTimer=bossPartAlive(boss,'riot_shield')?22+phase*6:32+phase*8;
+        break;
+      case 'cajero_3000':
+        if(bossPartAlive(boss,'emergency_core'))bossHazardRing(content,px,py,4+phase,48+phase*10,140);
+        bossRing(engine,boss,5+phase*3,2.3,'coin_proj',engine.frame*.04);
+        break;
+    }
+  }else{
+    if(def.family==='tech'||def.family==='vault')bossRing(engine,boss,6+phase*2,1.65+phase*.12,def.pattern.projectile,engine.frame*.02);
+    else if(def.family==='wealth'||def.family==='finance')bossRing(engine,boss,6+phase*2,1.5+phase*.12,'coin_proj',-engine.frame*.018);
+
+    if(def.role==='artillery'||def.role==='warden'){
+      const px=engine.player.x+7,py=engine.player.y+8;
+      for(let i=0;i<3+phase;i++)queueBossAirStrike(content,
+        clamp(px+Math.cos(i/(3+phase)*Math.PI*2)*48,42,CANVAS_WIDTH-42),
+        clamp(py+Math.sin(i/(3+phase)*Math.PI*2)*40,42,CANVAS_HEIGHT-42),
+        15+phase*2,i===0?'heavy':'shell',42+i*5);
+    } else if(def.role==='vortex'||def.role==='storm'){
+      bossRing(engine,boss,8+phase*2,2.0+phase*.15,def.pattern.altProjectile,-engine.frame*.04);
+    } else if(def.role==='charger'){
+      boss.moveAngle=Math.atan2(engine.player.y+8-cy,engine.player.x+7-cx);
+      boss.moveTimer=Math.max(boss.moveTimer,18+phase*6);
+    } else if(def.role==='reactor'){
+      bossHazardRing(content,cx,cy,5+phase*2,44+phase*12,130+phase*20);
+    }
   }
   playBossPhase(tier);
 }
