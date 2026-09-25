@@ -73,20 +73,27 @@ export function drawDuck(
 
   // El pato nunca queda completamente rígido: respiración muy sutil en idle,
   // paso más marcado al moverse y tensión corporal al disparar/dashear.
-  const idleBreath = !moving && !dashing && !shooting && Math.sin(frame * 0.06) > 0.72 ? 1 : 0;
-  const waddle = moving ? Math.round(Math.sin(frame * 0.35)) : idleBreath;
-  const step = moving ? Math.sin(frame * 0.35) : 0;
-  const blink = (frame % 190) < 7;
+  const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
+  const gait=moving?Math.sin(frame*.38):0;
+  const waddle=moving?Math.round(gait):idleBreath;
+  const step=moving?gait:0;
+  const blink=(frame%190)<7;
+  const idleLook=!moving&&!dashing&&!shooting&&frame%260>205&&frame%260<250;
+  const headNudge=idleLook?(frame%260<228?-1:1):0;
 
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
   ctx.fillRect(bx + 2, by + 16, 12, 3);
   ctx.fillRect(bx + 3, by + 19, 10, 1);
 
-  const footA = moving ? (step > 0 ? 1 : -1) : 0;
-  rect(ctx, bx + 3 - footA, by + 15, 3, 3, pal.beak);
-  rect(ctx, bx + 2 - footA, by + 17, 5, 1, pal.beakDark);
-  rect(ctx, bx + 10 + footA, by + 15, 3, 3, pal.beak);
-  rect(ctx, bx + 9 + footA, by + 17, 5, 1, pal.beakDark);
+  const footA=moving?(step>0?1:-1):0;
+  const footLift=moving&&Math.abs(step)>.55?1:0;
+  rect(ctx,bx+3-footA,by+15-footLift*(step>0?1:0),3,3,pal.beak);
+  rect(ctx,bx+2-footA,by+17-footLift*(step>0?1:0),5,1,pal.beakDark);
+  rect(ctx,bx+10+footA,by+15-footLift*(step<0?1:0),3,3,pal.beak);
+  rect(ctx,bx+9+footA,by+17-footLift*(step<0?1:0),5,1,pal.beakDark);
+  if(moving&&Math.abs(step)>.72){
+    ctx.globalAlpha=.20;rect(ctx,bx+(step>0?1:12),by+18,3,1,'#e8d98f');ctx.globalAlpha=1;
+  }
 
   if (dir === 'up') {
     rect(ctx, bx + 3, by + 5, 10, 9, pal.pack);
@@ -97,7 +104,13 @@ export function drawDuck(
   rect(ctx, bx + 3, by + 6 + waddle, 10, 9, pal.body);
   rect(ctx, bx + 2, by + 8 + waddle, 12, 5, pal.body);
   rect(ctx, bx + 3, by + 12 + waddle, 10, 3, pal.dark);
-  rect(ctx, bx + 4, by + 14 + waddle, 8, 1, pal.shade);
+  rect(ctx,bx+4,by+14+waddle,8,1,pal.shade);
+  if(moving){
+    const tail=step>0?1:0;
+    if(dir==='left')rect(ctx,bx+13+tail,by+11+waddle,3,2,pal.shade);
+    else if(dir==='right')rect(ctx,bx-tail,by+11+waddle,3,2,pal.shade);
+    else rect(ctx,bx+6+(step>0?1:-1),by+14+waddle,4,2,pal.shade);
+  }
   rect(ctx, bx + 4, by + 7 + waddle, 3, 1, '#fff59d');
   rect(ctx, bx + 11, by + 8 + waddle, 1, 4, 'rgba(255,255,255,.18)');
 
@@ -121,18 +134,19 @@ export function drawDuck(
   if (dir === 'left') { rect(ctx, bx + 11, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 12, by + 8 + waddle, 2, 2, '#4a3b34'); }
   if (dir === 'right') { rect(ctx, bx + 1, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 2, by + 8 + waddle, 2, 2, '#4a3b34'); }
 
-  const hy = by + 2 + waddle;
-  rect(ctx, bx + 4, hy, 8, 6, pal.body);
-  rect(ctx, bx + 3, hy + 1, 10, 4, pal.body);
+  const hy=by+2+waddle;
+  const hx=headNudge+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
+  rect(ctx,bx+4+hx,hy,8,6,pal.body);
+  rect(ctx,bx+3+hx,hy+1,10,4,pal.body);
 
   if (dir === 'up') {
-    rect(ctx, bx + 3, hy + 1, 10, 3, pal.mask);
-    rect(ctx, bx + 5, hy + 4, 6, 2, pal.dark);
+    rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
+    rect(ctx,bx+5+hx,hy+4,6,2,pal.dark);
     rect(ctx, bx + 6, by + 13 + waddle, 4, 3, pal.shade);
   } else if (dir === 'down') {
-    rect(ctx, bx + 3, hy + 1, 10, 3, pal.mask);
-    rect(ctx, bx + 2, hy + 1, 1, 2, pal.mask);
-    rect(ctx, bx + 13, hy + 1, 1, 2, pal.mask);
+    rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
+    rect(ctx,bx+2+hx,hy+1,1,2,pal.mask);
+    rect(ctx,bx+13+hx,hy+1,1,2,pal.mask);
     if (!blink) {
       rect(ctx, bx + 5, hy + 2, 2, 2, '#fff');
       rect(ctx, bx + 9, hy + 2, 2, 2, '#fff');
@@ -147,7 +161,7 @@ export function drawDuck(
   } else {
     const flip = dir === 'left';
     const fx = (v: number) => flip ? bx + 15 - v : bx + v;
-    rect(ctx, bx + 3, hy + 1, 10, 3, pal.mask);
+    rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
     if (!blink) {
       rect(ctx, fx(9), hy + 2, 2, 2, '#fff');
       px(ctx, fx(10), hy + 2, '#0a0a0a', 1);
