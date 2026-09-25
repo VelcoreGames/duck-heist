@@ -14,7 +14,7 @@ import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
-import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken } from './sprites';
+import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
@@ -71,6 +71,21 @@ export function runSelfChecks():CheckReport {
         assert(UI_BASE_WIDTH*scale<=safe.w+.001,'ancho legacy recortado');
         assert(CANVAS_HEIGHT*scale<=safe.h+.001,'alto legacy recortado');
       }
+    });
+    check('Props, puertas y proyectiles rediseñados renderizan sin excepción',()=>{
+      const art=document.createElement('canvas');art.width=480;art.height=352;
+      const a=art.getContext('2d')!;
+      for(const style of ['normal','gold','green','orange','boss','purple'] as const){
+        drawDoor(a,32,32,'N',style,true,0,120);
+        drawDoor(a,64,32,'E',style,false,.8,140);
+      }
+      for(let kind=0;kind<8;kind++)drawObstacle(a,32+kind*36,96,kind,180);
+      drawChest(a,80,180,false,180);drawChest(a,112,180,true,180);
+      drawPedestal(a,160,180,180,false,'#e6c56f');
+      drawShopPigeon(a,220,180,180);
+      drawCoin(a,260,180,180,false);drawCoin(a,280,180,180,true);
+      for(const type of ['pistol_round','buckshot_player','enemy_bullet','pistol','buckshot','drone_shot','coin_proj','toast','dough_ball'])drawProjectile(a,320,180,type,180);
+      for(const type of ['hit','spark','smoke','crumb','coin','feather'])drawParticle(a,360,180,type,.7,'#e6c56f');
     });
     check('Sistema visual Duck Heist renderiza componentes base sin excepción',()=>{
       const uiCanvas=document.createElement('canvas');uiCanvas.width=480;uiCanvas.height=352;
