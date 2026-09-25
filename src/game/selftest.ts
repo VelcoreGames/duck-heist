@@ -348,7 +348,10 @@ export function runSelfChecks():CheckReport {
     check('Todo el roster normal rediseñado renderiza sin excepción',()=>{
       const ids=Object.keys(ENEMIES);
       for(const id of ids){
-        if(SPECIAL_ENEMIES.has(id)){drawTacticalEnemy(ctx,id,40,40,120,false,.4,.65);continue;}
+        if(SPECIAL_ENEMIES.has(id)){
+          for(const charge of [0,.35,.8])drawTacticalEnemy(ctx,id,40,40,120,false,.4,charge);
+          continue;
+        }
         switch(id){
           case 'policia_pato':drawPoliciaPato(ctx,40,40,120,false,1);break;
           case 'policia_rapido':drawPoliciaRapido(ctx,40,40,120,false,1);break;
@@ -365,6 +368,15 @@ export function runSelfChecks():CheckReport {
         }
       }
       assert(ids.length>=20,'roster normal incompleto');
+    });
+    check('Estados de daño, carga y recuperación de enemigos no rompen render',()=>{
+      for(const id of ['policia_pato','policia_rapido','policia_escopeta','policia_antidisturbios','dron_policial','guard_goose','toaster_turret','rolling_bagel']){
+        const def=ENEMIES[id];assert(!!def,id+' sin definición');
+      }
+      drawPoliciaEscopeta(ctx,80,80,180,true,1,.95);
+      drawPoliciaAntidisturbios(ctx,110,80,180,true,{x:1,y:0},true,true);
+      drawDronPolicial(ctx,140,80,180,true);
+      drawRollingBagel(ctx,170,80,180,true);
     });
     check('Los diez bosses icónicos tienen módulos destructibles manuales',()=>{
       const ids=['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','head_baker','el_auditor','ganso_antidisturbios','cajero_3000'];
