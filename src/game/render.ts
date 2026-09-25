@@ -496,7 +496,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.rotate((1-deathT)*(floorDeath?.7:1.05));
     const sx=.32+deathT*.68,sy=.18+deathT*.82;
     ctx.scale(sx,sy);
-    if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false,d.enemy.bossPhase);
+    if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false,d.enemy.bossPhase,0,d.enemy.bossParts);
     else {
       switch(d.enemy.type) {
         case 'toaster_turret':drawToasterTurret(ctx,-10,-10,f,false);break;
