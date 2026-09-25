@@ -632,7 +632,7 @@ function createPlayer(meta: Record<string, number>) {
     weapons: [{ ...WEAPONS.quack_blaster }, null] as (WeaponDef | null)[],
     activeWeapon: 0, switchAnim: 0,
     fireCooldown: 0,
-    dir: 'down' as DuckDir, moving: false, shootFlash: 0,
+    dir: 'down' as DuckDir, moving: false, shootFlash: 0, interactFlash:0,
     hurtTimer: 0, iFrames: 0, flash: 0,
     dashTimer: 0, dashCooldown: 0, dashDir: { x: 0, y: 0 },
     crumbs: (meta.crumbs ?? 0) * 15, goldenCrumbs: 0,
@@ -1920,7 +1920,8 @@ export function updateEngine(engine: GameEngine) {
   if (player.hurtTimer > 0) player.hurtTimer--;
   if (player.iFrames > 0) player.iFrames--;
   if (player.flash > 0) player.flash--;
-  if (player.shootFlash > 0) player.shootFlash--;
+  if(player.shootFlash>0)player.shootFlash--;
+  if(player.interactFlash>0)player.interactFlash--;
 
   // --- Disparo con el arma activa (sólo click izquierdo o flechas) ---
   if (player.fireCooldown > 0) player.fireCooldown=Math.max(0,player.fireCooldown-build.cooldownRate);
@@ -2195,7 +2196,8 @@ export function updateEngine(engine: GameEngine) {
         grantItem(engine, it.itemId, false, !!ACTIVE_ITEMS[it.itemId]);
       }
       spawn(engine, it.x + 8, it.y + 8, 'spark', 10, '#f4d03f');
-      content.items.splice(i, 1);
+      content.items.splice(i,1);
+      player.interactFlash=10;
       clearBound(engine,'interact');
     }
   }
@@ -2211,7 +2213,8 @@ export function updateEngine(engine: GameEngine) {
       if (ok) {
         ped.taken = true;
         spawn(engine, ped.x + 12, ped.y, 'spark', 20, '#f4d03f');
-        engine.shakeIntensity = Math.max(engine.shakeIntensity, 2);
+        engine.shakeIntensity=Math.max(engine.shakeIntensity,2);
+        player.interactFlash=10;
       }
       clearBound(engine,'interact');
     }
@@ -2225,13 +2228,13 @@ export function updateEngine(engine: GameEngine) {
         if(ped.isFood) {healPlayer(engine,foodHeal(ped.itemId));playHeal();}
         else if(ped.isWeapon) ok=tryGiveWeapon(engine,ped.itemId,'choice',i,ped.x,ped.y);
         else grantItem(engine,ped.itemId,false,!!ACTIVE_ITEMS[ped.itemId]);
-        if(ok) {finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');}
+        if(ok){finishChoice(content);spawn(engine,ped.x+12,ped.y,'spark',14,'#cbaeef');player.interactFlash=10;}
         clearBound(engine,'interact');break;
       }
     }
   }
   if(content.event && !content.event.used && bound(engine,'interact') && dist(player.x+7,player.y+8,content.event.x+8,content.event.y+8)<40) {
-    clearBound(engine,'interact');activateEvent(engine);
+    clearBound(engine,'interact');player.interactFlash=10;activateEvent(engine);
   }
 
   // --- Cofre ---
@@ -2246,7 +2249,8 @@ export function updateEngine(engine: GameEngine) {
       }
       if (random() < 0.3) content.pickups.push({ x: c.x + 24, y: c.y, type: 'hp', value: 1, lifetime: 99999 });
       spawn(engine, c.x + 10, c.y, 'coin', 14, '#f4d03f');
-      engine.shakeIntensity = Math.max(engine.shakeIntensity, 2.5);
+      engine.shakeIntensity=Math.max(engine.shakeIntensity,2.5);
+      player.interactFlash=12;
       playExplosion();
     }
   }
@@ -2270,7 +2274,7 @@ export function updateEngine(engine: GameEngine) {
             else if (!s.isWeapon && !ACTIVE_ITEMS[s.itemId]) grantItem(engine, s.itemId, false, false);
             if (!s.isFood && !s.isWeapon && ACTIVE_ITEMS[s.itemId] && !engine.activeSwap) grantItem(engine, s.itemId, false, true);
             spawn(engine, s.x, s.y, 'spark', 10, '#f4d03f');
-            playEquip();merchantSpeak(engine,pick(['No hago devoluciones.','Buena elección. Creo.','No tengo factura.']));
+            player.interactFlash=10;playEquip();merchantSpeak(engine,pick(['No hago devoluciones.','Buena elección. Creo.','No tengo factura.']));
           }
         } else {
           engine.toast = T.notEnough; engine.toastTimer = 70; playDeny();s.deniedUntil=engine.frame+40;
@@ -2288,6 +2292,7 @@ export function updateEngine(engine: GameEngine) {
       const st = content.stairs;
       if (dist(player.x + 7, player.y + 8, st.x + 16, st.y + 16) < 34 && bound(engine,'interact')) {
         clearBound(engine,'interact');
+        player.interactFlash=12;
         descendStairs(engine);
         return;
       }
