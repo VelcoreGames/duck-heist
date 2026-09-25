@@ -7,7 +7,8 @@ let sfxVol = 0.9;
 
 let musicTimer: number | null = null;
 let musicStep = 0;
-let musicMood: 'menu' | 'run' | 'boss' | 'event' | 'off' = 'off';
+export type MusicMood='menu'|'run'|'shop'|'gunvan'|'cafe'|'event'|'challenge'|'item'|'treasure'|'secret'|'miniboss'|'subboss'|'boss'|'off';
+let musicMood:MusicMood='off';
 let musicFloor=0;
 let testMode=false;
 export function setAudioTestMode(value:boolean) { testMode=value; }
@@ -146,20 +147,32 @@ const RUN_ROOTS=[73.42,82.41,65.41,69.30,61.74,55.00];
 const MINOR=[1,Math.pow(2,3/12),Math.pow(2,7/12),Math.pow(2,10/12)];
 const DARK=[1,Math.pow(2,3/12),Math.pow(2,6/12),Math.pow(2,10/12)];
 
-export function setMusic(mood:'menu'|'run'|'boss'|'event'|'off',floor=musicFloor){
+export function setMusic(mood:MusicMood,floor=musicFloor){
   if(testMode)return;
   if(musicMood===mood&&musicFloor===floor)return;
   musicFloor=floor;musicMood=mood;
   if(musicTimer!==null){clearInterval(musicTimer);musicTimer=null;}
   if(mood==='off')return;
   musicStep=0;
-  const bpm=mood==='boss'?74:mood==='event'?116:mood==='run'?94:68;
+  const bpm=
+    mood==='boss'?74:
+    mood==='subboss'?84:
+    mood==='miniboss'?98:
+    mood==='event'?116:
+    mood==='challenge'?108:
+    mood==='gunvan'?82:
+    mood==='shop'?76:
+    mood==='cafe'?72:
+    mood==='secret'?66:
+    mood==='treasure'?70:
+    mood==='item'?68:
+    mood==='run'?94:68;
   const beat=60000/bpm/2;
   tickMusic(mood,beat);
   musicTimer=window.setInterval(()=>tickMusic(mood,beat),beat);
 }
 
-function tickMusic(mood:'menu'|'run'|'boss'|'event',beat:number){
+function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number){
   if(musicVol<=.001||masterVol<=.001)return;
   const step=musicStep++,sec=beat/1000;
 
@@ -167,6 +180,35 @@ function tickMusic(mood:'menu'|'run'|'boss'|'event',beat:number){
     const roots=[73.42,65.41,58.27,65.41],root=roots[Math.floor(step/4)%roots.length];
     if(step%4===0){chord(root,[1,1.5,2],sec*3.8,.016,0,1050);tone(root/2,sec*3.6,.015,{type:'sine',attack:.18,cutoff:240,kind:'music'});}
     if(step%2===0)tone(root*2,sec*.7,.006,{type:'triangle',attack:.05,cutoff:1300,kind:'music'});
+    return;
+  }
+
+  if(mood==='shop'||mood==='gunvan'||mood==='cafe'){
+    const root=mood==='gunvan'?49:mood==='cafe'?65.41:58.27;
+    const phase=step%16;
+    if(phase%8===0)chord(root,mood==='cafe'?MINOR:[1,1.25,1.5,2],sec*7,.011,0,mood==='gunvan'?900:1300);
+    if(phase%2===0)tone(root*(phase%4===0?2:1.5),sec*.65,mood==='cafe'?.004:.006,{type:mood==='gunvan'?'sawtooth':'triangle',attack:.03,cutoff:mood==='gunvan'?620:1500,kind:'music'});
+    if(mood==='cafe'&&phase%4===2)tone(root*3,sec*.28,.0035,{type:'sine',attack:.02,cutoff:2200,kind:'music'});
+    if(mood==='gunvan'&&(phase===3||phase===11))lowImpact(46,.014,0,'music');
+    return;
+  }
+
+  if(mood==='item'||mood==='treasure'||mood==='secret'){
+    const root=mood==='secret'?51.91:mood==='treasure'?69.3:61.74;
+    const phase=step%16;
+    if(phase%8===0)chord(root,[1,Math.pow(2,4/12),1.5,2],sec*7.5,.010,0,1500);
+    if(phase===2||phase===6||phase===10||phase===14)tone(root*(mood==='secret'?1.5:2),sec*.85,.0045,{type:'sine',attack:.08,cutoff:1800,kind:'music'});
+    if(mood==='treasure'&&(phase===4||phase===12))tone(root*3,sec*.32,.004,{type:'triangle',attack:.01,cutoff:2600,kind:'music'});
+    if(mood==='secret'&&phase%4===1)filteredNoise(.05,.003,{type:'bandpass',freq:1500,q:2.4,kind:'music'});
+    return;
+  }
+
+  if(mood==='challenge'){
+    const root=RUN_ROOTS[Math.min(5,musicFloor)]*Math.pow(2,-2/12);
+    const phase=step%16;
+    if(phase%8===0)chord(root,DARK,sec*6.5,.012,0,1200);
+    if(phase%2===0){tone(root/2,sec*.55,.019,{type:'sawtooth',attack:.006,cutoff:360,kind:'music'});filteredNoise(.045,.006,{type:'highpass',freq:3000,q:.7,kind:'music'});}
+    if(phase===6||phase===14)tone(root*2.5,sec*.32,.006,{type:'triangle',attack:.01,cutoff:1800,kind:'music'});
     return;
   }
 
@@ -187,6 +229,22 @@ function tickMusic(mood:'menu'|'run'|'boss'|'event',beat:number){
     lowImpact(step%8===0?52:64,.022,0,'music');
     if(step%2===1)filteredNoise(.065,.010,{type:'highpass',freq:2200,q:.8,kind:'music'});
     tone(root*(step%4===0?2:1.5),sec*.42,.007,{type:'sawtooth',attack:.01,cutoff:780,kind:'music'});
+    return;
+  }
+
+  if(mood==='miniboss'){
+    const phase=step%16,root=[61.74,58.27][Math.floor(step/8)%2];
+    if(phase%8===0){lowImpact(56,.026,0,'music');chord(root,DARK,sec*5.8,.015,0,980);}
+    if(phase%2===0)tone(root*[1,1.5,1,Math.pow(2,6/12)][(phase/2)%4],sec*.58,.012,{type:'sawtooth',attack:.018,cutoff:650,kind:'music'});
+    if(phase===7||phase===15)filteredNoise(.08,.008,{type:'highpass',freq:2400,q:.9,kind:'music'});
+    return;
+  }
+
+  if(mood==='subboss'){
+    const phase=step%16,root=[55,51.91,49,51.91][Math.floor(step/4)%4];
+    if(phase===0||phase===8){lowImpact(48,.040,0,'music');chord(root/2,DARK,sec*7,.019,0,900);}
+    if(phase%2===0)tone(root*(phase%4===0?1:1.5),sec*.66,.014,{type:'sawtooth',attack:.025,cutoff:570,kind:'music'});
+    if(phase===4||phase===12)tone(root*2.5,sec*.7,.006,{type:'triangle',attack:.02,cutoff:1300,kind:'music'});
     return;
   }
 
