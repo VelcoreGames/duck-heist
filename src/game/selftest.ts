@@ -3,7 +3,7 @@ import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENE
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
-import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,GameState } from './engine';
+import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,type Dir } from './constants';
@@ -330,6 +330,34 @@ export function runSelfChecks():CheckReport {
         }
       }
       assert(ids.length>=20,'roster normal incompleto');
+    });
+    check('Los diez bosses icónicos tienen módulos destructibles manuales',()=>{
+      const ids=['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','head_baker','el_auditor','ganso_antidisturbios','cajero_3000'];
+      for(const id of ids){
+        const parts=bossPartsFor(id);
+        assert(parts.length>0,id+' sin módulos destructibles');
+        assert(new Set(parts.map(p=>p.id)).size===parts.length,id+' repite IDs de módulo');
+        assert(parts.every(p=>p.hp===p.maxHp&&p.maxHp>0&&p.w>0&&p.h>0),id+' tiene módulo inválido');
+        assert(parts.every(p=>(p.exposedPhase??0)>=0&&(p.exposedPhase??0)<=2),id+' tiene exposición de fase inválida');
+      }
+      assert(bossPartsFor('director_seguridad').filter(p=>p.kind==='turret').length===2,'Director sin dos torretas independientes');
+      assert(bossPartsFor('ganso_antidisturbios').some(p=>p.kind==='shield'),'Antidisturbios sin escudo destructible');
+      assert(bossPartsFor('toaster_9000').filter(p=>p.kind==='reactor').length===2,'Tostadora sin resistencias independientes');
+    });
+    check('Estados destruidos de bosses icónicos siguen siendo renderizables',()=>{
+      const ids=['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','head_baker','el_auditor','ganso_antidisturbios','cajero_3000'];
+      for(const id of ids){
+        const def=BOSSES[id]??SUBBOSSES[id]??MINIBOSSES[id];
+        const parts=bossPartsFor(id).map(p=>({...p,hp:0,destroyed:true}));
+        drawBoss(ctx,80,80,id,180,def.hp,def.hp,false,Math.min(2,def.phases-1),.85,parts);
+      }
+    });
+    check('Buckshot conserva identidad real de escopeta',()=>{
+      const w=WEAPONS.breadcrumb_shotgun;
+      assert(w.projectileType==='buckshot_player','escopeta de jugador sin proyectil buckshot');
+      assert(w.projectileCount>=7&&w.spread>=.5,'escopeta de jugador sin abanico de perdigones');
+      assert(w.knockback>=3.5&&w.fireRate>=28,'escopeta de jugador sin retroceso/cadencia de escopeta');
+      assert(ENEMIES.policia_escopeta.behavior==='shotgunner'&&ENEMIES.policia_escopeta.projectileType==='buckshot','enemigo escopetero perdió buckshot');
     });
     check('Los 145 encuentros de jerarquía renderizan sin excepción',()=>{
       const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
