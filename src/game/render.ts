@@ -1000,7 +1000,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       const accent=bossDef?.accent??(BOSSES[e.bossType]?'#ff6a63':SUBBOSSES[e.bossType]?'#f1a26f':'#ffd166');
       const secondary=bossDef?.secondary??accent;
       const step=e.bossAttackIndex??0;
-      const preview=!bossDef?.legacy&&bossDef?.pattern?.sequence.length
+      const preview=bossDef?.pattern?.sequence.length
         ? bossDef.pattern.sequence[(step+e.bossPhase*bossDef.pattern.phaseShift)%bossDef.pattern.sequence.length]
         : undefined;
       const px=engine.player.x+7,py=engine.player.y+8;
@@ -1050,6 +1050,44 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
           ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang+offset)*(78+t*60),cy+Math.sin(ang+offset)*(78+t*60));ctx.stroke();
         }
         ctx.setLineDash([]);
+      }
+
+      // Firma del rol: incluso antes del disparo se entiende qué clase de amenaza es.
+      if(bossDef){
+        ctx.globalAlpha=.12+t*.26;
+        ctx.strokeStyle=accent;
+        ctx.lineWidth=1.5;
+        switch(bossDef.role){
+          case 'artillery':
+          case 'warden':
+            ctx.setLineDash([3,4]);
+            for(let i=0;i<4;i++){const a=i*Math.PI/2+f*.004;ctx.beginPath();ctx.arc(px+Math.cos(a)*48,py+Math.sin(a)*36,10+t*8,0,Math.PI*2);ctx.stroke();}
+            ctx.setLineDash([]);
+            break;
+          case 'sniper':
+          case 'executioner':
+            ctx.lineWidth=1+t*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();
+            ctx.beginPath();ctx.arc(px,py,7+t*5,0,Math.PI*2);ctx.stroke();
+            break;
+          case 'charger':
+            ctx.globalAlpha=.18+t*.32;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*(95+t*75),cy+Math.sin(ang)*(95+t*75));ctx.stroke();
+            break;
+          case 'vortex':
+          case 'storm':
+          case 'reactor':
+            for(let r=0;r<2+(bossDef.role==='reactor'?1:0);r++){ctx.beginPath();ctx.arc(cx,cy,32+r*14+t*18,0,Math.PI*2);ctx.stroke();}
+            break;
+          case 'swarm':
+            for(let i=0;i<5;i++){const a=f*.02+i*Math.PI*2/5;ctx.fillStyle=secondary;ctx.fillRect(cx+Math.cos(a)*38-2,cy+Math.sin(a)*28-2,4,4);}
+            break;
+          case 'bulwark':
+            ctx.beginPath();ctx.arc(cx,cy,e.size*.75+t*10,-.8,.8);ctx.stroke();
+            break;
+          case 'duelist':
+          case 'trickster':
+            ctx.setLineDash([2,5]);ctx.beginPath();ctx.arc(cx,cy,34+t*16,ang-.9,ang+.9);ctx.stroke();ctx.setLineDash([]);
+            break;
+        }
       }
       ctx.restore();
     }
