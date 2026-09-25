@@ -1146,6 +1146,124 @@ function drawBossCrest(ctx:Ctx,key:number,v:BossVisual){
   }
 }
 
+function drawRoleBossCore(ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual){
+  const pulse=.5+.5*Math.sin(frame*.11+def.roleVariant*.7);
+  const q=def.roleVariant??0;
+  const armor=v.family==='bakery'?'#9a633f':v.family==='finance'||v.family==='wealth'?'#3d3631':v.family==='vault'?'#403958':'#35434c';
+  const light=phase>=2?'#ff554f':phase?v.secondary:v.accent;
+  ctx.save();
+
+  switch(def.role){
+    case 'artillery': {
+      const w=34+q*3,h=16+(q%2)*4;
+      metalEdge(ctx,-w,-8,w*2,h+14,armor,'#7f8d91','#1a2125');
+      rect(ctx,-w+5,-3,w*2-10,h,'#263138');
+      for(const x of [-w+10,w-10]){rect(ctx,x-4,-23-q,8,20+q,'#65737a');rect(ctx,x-2,-27-q,4,6,light);}
+      rect(ctx,-10,8,20,7,'#171f23');px(ctx,-3,10,v.secondary,6);
+      if(phase){ctx.globalAlpha=.3+.25*pulse;rect(ctx,-w+3,15,w*2-6,4,light);ctx.globalAlpha=1;}
+      break;
+    }
+    case 'duelist': {
+      rect(ctx,-10,-15,20,35,'#e7e5dd');rect(ctx,-8,-8,16,25,armor);
+      rect(ctx,-7,-24,14,10,'#ece8de');enemyEye(ctx,-5,-21,true);rect(ctx,6,-19,8,3,'#ed8530');
+      ctx.save();ctx.translate(13,1);ctx.rotate(-.52+q*.07);rect(ctx,-2,-18,4,34,'#222a2f');rect(ctx,-4,-20,8,5,'#768187');ctx.restore();
+      rect(ctx,-15,5,5,15,'#2e3940');
+      if(phase){ctx.globalAlpha=.35;ctx.strokeStyle=light;ctx.beginPath();ctx.arc(0,1,22+phase*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      break;
+    }
+    case 'bulwark': {
+      const w=26+q*2;
+      metalEdge(ctx,-w,-13,w*2,36,armor,'#8e9ba1','#1c2429');
+      rect(ctx,-w+5,-8,w*2-10,26,'#2c373e');
+      metalEdge(ctx,8,-16,20+q*2,42,'#4c5a64','#a3afb5','#222b31');
+      rect(ctx,13,-9,10+q*2,27,'#313d45');
+      ctx.globalAlpha=.35+.25*pulse;rect(ctx,16,-3,5+q,15,light);ctx.globalAlpha=1;
+      break;
+    }
+    case 'swarm': {
+      ctx.fillStyle='#303c43';ctx.beginPath();ctx.ellipse(0,1,18+q,15+(q%2)*2,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#52626a';ctx.beginPath();ctx.ellipse(0,-1,12+q,9,0,0,Math.PI*2);ctx.fill();
+      rect(ctx,-6,-4,12,8,'#13252c');enemyEye(ctx,-4,-2,true);enemyEye(ctx,2,-2,true);
+      for(let i=0;i<4;i++){const a=frame*.035+i*Math.PI/2+q*.19;const r=25+q*2;ctx.globalAlpha=.55;px(ctx,Math.cos(a)*r-2,Math.sin(a)*10-2,i%2?v.accent:v.secondary,4);}
+      ctx.globalAlpha=1;
+      break;
+    }
+    case 'sniper': {
+      metalEdge(ctx,-11,-28,22,52,armor,'#7d8a90','#1a2125');
+      rect(ctx,-7,-22,14,42,'#273138');rect(ctx,-5,-17,10,9,'#14252c');px(ctx,-2,-14,'#ff554f',4);
+      ctx.save();ctx.translate(6,-9);ctx.rotate(-.08+q*.025);rect(ctx,0,-2,38+q*3,5,'#20282d');rect(ctx,27+q*2,-4,12,9,'#68757a');ctx.restore();
+      if(phase)rect(ctx,-14,15,28,5,light);
+      break;
+    }
+    case 'storm': {
+      ctx.fillStyle=armor;ctx.beginPath();ctx.moveTo(0,-24-q*2);ctx.lineTo(24+q*2,0);ctx.lineTo(0,22+q);ctx.lineTo(-24-q*2,0);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#1a252b';ctx.beginPath();ctx.arc(0,0,10+q,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.45+.35*pulse;ctx.fillStyle=light;ctx.beginPath();ctx.arc(0,0,5+phase*2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;for(let i=0;i<3;i++){const a=frame*(i%2?.04:-.035)+i*2.1;ctx.beginPath();ctx.arc(0,0,25+i*4,a,a+.8);ctx.stroke();}
+      break;
+    }
+    case 'warden': {
+      const w=28+q*2;
+      rect(ctx,-w,-15,10,39,'#2d373d');rect(ctx,w-10,-15,10,39,'#2d373d');
+      rect(ctx,-w+3,-12,4,33,v.secondary);rect(ctx,w-7,-12,4,33,v.accent);
+      metalEdge(ctx,-17,-12,34,31,armor,'#819097','#1b2327');
+      rect(ctx,-11,-6,22,18,'#1d282d');
+      for(let i=0;i<3;i++)rect(ctx,-8+i*8,-2,4,10,i%2?light:'#54646b');
+      break;
+    }
+    case 'charger': {
+      ctx.fillStyle=armor;ctx.beginPath();ctx.moveTo(-30-q*2,8);ctx.lineTo(-18,-12);ctx.lineTo(0,-18);ctx.lineTo(18,-12);ctx.lineTo(30+q*2,8);ctx.lineTo(13,21);ctx.lineTo(-13,21);ctx.closePath();ctx.fill();
+      rect(ctx,-12,-10,24,23,'#44535b');rect(ctx,-8,-18,16,10,'#e6e5dd');enemyEye(ctx,-5,-15,true);rect(ctx,7,-13,8,3,'#ed8730');
+      ctx.fillStyle='#69767c';ctx.beginPath();ctx.moveTo(-30,2);ctx.lineTo(-39-q*2,-5);ctx.lineTo(-34,9);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(30,2);ctx.lineTo(39+q*2,-5);ctx.lineTo(34,9);ctx.closePath();ctx.fill();
+      if(phase){rect(ctx,-18,15,36,5,light);}
+      break;
+    }
+    case 'vortex': {
+      ctx.strokeStyle='#5f6e75';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,1,19+q*2,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,1,13+q,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='#172229';ctx.beginPath();ctx.arc(0,1,8,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.55+.3*pulse;ctx.fillStyle=light;ctx.beginPath();ctx.arc(0,1,4+phase,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      for(let i=0;i<4;i++){const a=frame*.04*(i%2?1:-1)+i*Math.PI/2;px(ctx,Math.cos(a)*(28+q*2)-2,1+Math.sin(a)*(18+q)-2,i%2?v.accent:v.secondary,4);}
+      break;
+    }
+    case 'executioner': {
+      rect(ctx,-12,-17,24,40,'#e6e3db');rect(ctx,-10,-10,20,31,armor);
+      rect(ctx,-8,-27,16,11,'#ece9df');enemyEye(ctx,-6,-23,true);rect(ctx,7,-21,8,3,'#ec8430');
+      ctx.save();ctx.translate(17,0);ctx.rotate(.42-q*.04);rect(ctx,-3,-24,6,42,'#30383d');rect(ctx,-8,-29,16,10,'#737f83');rect(ctx,-4,-34,8,8,light);ctx.restore();
+      rect(ctx,-18,4,6,19,'#252e34');if(phase)px(ctx,-16,0,light,4);
+      break;
+    }
+    case 'reactor': {
+      ctx.fillStyle=armor;ctx.beginPath();ctx.arc(0,2,23+q*2,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#7b8a90';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,2,19+q,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='#172126';ctx.beginPath();ctx.arc(0,2,11,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.5+.35*pulse;ctx.fillStyle=light;ctx.beginPath();ctx.arc(0,2,6+phase*2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      for(const x of [-25,25]){rect(ctx,x-4,-10,8,25,'#29343a');rect(ctx,x-2,-17,4,10,v.secondary);}
+      break;
+    }
+    case 'trickster': {
+      // Dos mitades separadas y una cabeza descentrada: silueta muy poco humanoide.
+      ctx.fillStyle=armor;ctx.beginPath();ctx.ellipse(-12-q,3,12,18,.18,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(12+q,3,12,18,-.18,0,Math.PI*2);ctx.fill();
+      rect(ctx,-6,-20,12,10,'#e8e5dc');enemyEye(ctx,-4,-17,true);rect(ctx,5,-15,8,3,'#ed8730');
+      ctx.globalAlpha=.4+.3*pulse;ctx.strokeStyle=light;ctx.lineWidth=2;ctx.beginPath();ctx.arc(-14,3,16,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(14,3,16,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      if(phase){px(ctx,-18,-24,v.accent,4);px(ctx,14,-24,v.secondary,4);}
+      break;
+    }
+  }
+
+  // Acentos de familia conservan el tema sin volver a igualar los cuerpos.
+  if(v.family==='bakery'){rect(ctx,-4,15,8,4,'#a56a42');px(ctx,-2,16,'#ff7a3c',4);}
+  else if(v.family==='finance'){rect(ctx,-3,13,6,8,'#8f2634');}
+  else if(v.family==='wealth'){px(ctx,-5,-25,v.accent,4);px(ctx,2,-28,v.secondary,4);}
+  else if(v.family==='tech'){ctx.globalAlpha=.45+.25*pulse;px(ctx,-18,-15,v.accent,3);px(ctx,16,-15,v.secondary,3);ctx.globalAlpha=1;}
+  else if(v.family==='vault'){ctx.strokeStyle=v.secondary;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,3,8,0,Math.PI*2);ctx.stroke();}
+  else if(v.family==='war'){for(let i=0;i<3;i++)px(ctx,-6+i*5,14,[v.secondary,'#c65a4b','#8aaad1'][i],3);}
+  else if(v.family==='command'){rect(ctx,-20,-2,4,7,v.secondary);rect(ctx,16,-2,4,7,v.secondary);}
+  else if(v.family==='riot'){rect(ctx,-23,11,6,12,'#4d5964');}
+
+  ctx.restore();
+}
+
 function drawIconicBossCore(ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual):boolean{
   const pulse=.5+.5*Math.sin(frame*.12);
   switch(bossType){
@@ -1288,6 +1406,8 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
   if(!def.finalBoss&&!def.legacy)drawBossStructuralRig(ctx,key,tier,phase,frame,v,!!def.stationary);
 
   const iconic=!def.finalBoss&&!!def.legacy&&drawIconicBossCore(ctx,bossType,frame,phase,v);
+  const roleCoreDrawn=!def.finalBoss&&!def.legacy;
+  if(roleCoreDrawn)drawRoleBossCore(ctx,def,frame,phase,v);
   if(def.finalBoss){
     // EL GRAN JEFE DEL BANCO: corona de pan, capa de armiño, puerta de bóveda y cetro.
     ctx.fillStyle='#6e1f31';ctx.beginPath();ctx.moveTo(-25,-5);ctx.lineTo(-30,19);ctx.lineTo(-17,23);ctx.lineTo(0,18);ctx.lineTo(18,23);ctx.lineTo(30,18);ctx.lineTo(25,-5);ctx.closePath();ctx.fill();
@@ -1320,14 +1440,14 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
         rect(ctx,-17,-34,34,3,'#8b6328');rect(ctx,-15,-38,6,5,'#e5b65f');rect(ctx,-3,-41,6,8,'#f0c64f');rect(ctx,9,-38,6,5,'#e5b65f');
       }
     }
-  }else if(!iconic&&v.family==='tech'){
+  }else if(!iconic&&!roleCoreDrawn&&v.family==='tech'){
     // plataforma mecánica / dron pesado
     rect(ctx,-17,-8,34,22,'#364751');rect(ctx,-13,-5,26,16,'#536b76');
     rect(ctx,-8,-2,16,8,'#172d39');enemyEye(ctx,-5,0,true);enemyEye(ctx,3,0,true);
     rect(ctx,-24,-3,8,5,v.accent);rect(ctx,16,-3,8,5,v.accent);
     for(const x of [-22,22]){ctx.globalAlpha=.48;rect(ctx,x-7,-13,14,2,'#b8c5c9');rect(ctx,x-4,-15,8,1,'#e3ecee');ctx.globalAlpha=1;}
     rect(ctx,-7,11,14,5,'#242d33');px(ctx,-1,12,v.secondary,3);
-  }else if(!iconic&&v.family==='vault'){
+  }else if(!iconic&&!roleCoreDrawn&&v.family==='vault'){
     // bestia de bóveda / carnero mecanizado
     rect(ctx,-18,-7,36,24,'#343b46');rect(ctx,-14,-4,28,18,'#505967');
     ctx.strokeStyle=v.secondary;ctx.lineWidth=3;
@@ -1335,7 +1455,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     rect(ctx,-10,-14,20,10,'#e8e3d8');enemyEye(ctx,-7,-10,true);enemyEye(ctx,5,-10,true);
     rect(ctx,-7,1,14,11,'#242a32');crownMark(ctx,-4,3,v.secondary);
     rect(ctx,-21,7,8,10,'#262e37');rect(ctx,13,7,8,10,'#262e37');
-  }else if(!iconic&&v.family==='bakery'){
+  }else if(!iconic&&!roleCoreDrawn&&v.family==='bakery'){
     // chef/horno: gorro enorme + núcleo térmico
     rect(ctx,-17,-7,34,24,'#ece5d6');rect(ctx,-14,-3,28,18,'#9a633f');
     rect(ctx,-9,0,18,12,'#33231d');rect(ctx,-6,2,12,8,'#6a2e23');
@@ -1344,7 +1464,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     enemyEye(ctx,-7,-7,true);enemyEye(ctx,5,-7,true);rect(ctx,9,-5,8,3,'#ed8730');
     // pala de horno
     ctx.save();ctx.translate(21,4);ctx.rotate(-.5);rect(ctx,-1,-14,3,26,'#8d6234');rect(ctx,-6,-17,13,6,'#b67d45');ctx.restore();
-  }else if(!iconic&&(v.family==='finance'||v.family==='wealth')){
+  }else if(!iconic&&!roleCoreDrawn&&(v.family==='finance'||v.family==='wealth')){
     // banquero/cobrador de alto rango
     rect(ctx,-16,-7,32,24,v.family==='wealth'?'#eee8d6':'#d7d5cf');rect(ctx,-13,-3,26,19,'#252b34');
     rect(ctx,-3,-2,6,17,v.secondary);rect(ctx,-10,-15,20,10,'#ede8da');enemyEye(ctx,-7,-11,true);rect(ctx,8,-9,8,3,'#e9872f');
@@ -1353,7 +1473,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     // maletín / monedas
     rect(ctx,-24,3,9,10,'#4a352c');rect(ctx,-22,1,5,3,'#7b5c3b');px(ctx,-21,6,v.secondary,2);
     if(frame%16<3){px(ctx,18,-8,v.secondary,2);px(ctx,22,2,'#79b875',2);}
-  }else if(!iconic){
+  }else if(!iconic&&!roleCoreDrawn){
     // command / riot / war: ave militar con casco y torso táctico
     const body=v.family==='riot'?'#3c4652':v.family==='war'?'#455260':'#2d4057';
     rect(ctx,-16,-6,32,23,'#ece9df');rect(ctx,-15,-2,30,18,body);
@@ -1366,7 +1486,6 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
   }
 
   if(!def.finalBoss&&!iconic){
-    drawBossRoleHardware(ctx,def,frame,phase,v);
     drawBossFrontIdentity(ctx,key,tier,v);
     drawBossCrest(ctx,key,v);
   }
