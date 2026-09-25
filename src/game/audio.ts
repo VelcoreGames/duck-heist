@@ -350,9 +350,10 @@ export function playHit(){
   filteredNoise(.040,.026,{type:'bandpass',freq:1150,q:.9});
   tone(145,.055,.018,{type:'sine',to:82,attack:.003,cutoff:520});
 }
-export function playPickup() {
-  blip('sine', 520, 1180, 0.11, 0.05);
-  blip('triangle', 880, 1560, 0.08, 0.03, 0.05);
+export function playPickup(){
+  filteredNoise(.025,.007,{type:'highpass',freq:3400,q:.5});
+  tone(620,.10,.026,{type:'sine',to:980,attack:.004,cutoff:2600});
+  tone(930,.12,.018,{type:'triangle',to:1320,delay:.045,attack:.006,cutoff:2900});
 }
 export function playExplosion(){
   if(!allow('explosion',85))return;
@@ -366,16 +367,21 @@ export function playHurt(){
   filteredNoise(.10,.038,{type:'bandpass',freq:780,q:1.1});
   tone(185,.15,.055,{type:'sawtooth',to:72,attack:.004,cutoff:700});
 }
-export function playEquip() {
-  blip('square', 900, 1400, 0.04, 0.035);
-  blip('triangle', 600, 1000, 0.06, 0.03, 0.03);
+export function playEquip(){
+  filteredNoise(.040,.014,{type:'bandpass',freq:1900,q:.7});
+  tone(330,.055,.024,{type:'triangle',to:510,attack:.003,cutoff:1300});
+  tone(680,.075,.018,{type:'sine',to:880,delay:.035,attack:.004,cutoff:2200});
 }
-export function playWeaponSwap() {
-  blip('square', 480, 900, 0.05, 0.045);
-  noise(0.05, 0.02, 0.02);
+export function playWeaponSwap(){
+  filteredNoise(.055,.018,{type:'bandpass',freq:1200,q:.75});
+  tone(210,.060,.020,{type:'triangle',to:330,attack:.003,cutoff:900});
+  tone(520,.045,.013,{type:'sine',to:410,delay:.025,attack:.003,cutoff:1700});
 }
-export function playStairs() {
-  [0, 1, 2, 3].forEach(i => blip('triangle', 300 + i * 130, 320 + i * 150, 0.1, 0.04, i * 0.09, 'sfx'));
+export function playStairs(){
+  [0,1,2,3].forEach(i=>{
+    tone(220+i*82,.13,.020,{type:'sine',to:250+i*92,delay:i*.075,attack:.014,cutoff:1200});
+    filteredNoise(.028,.004,{delay:i*.075,type:'bandpass',freq:620+i*90,q:.5});
+  });
 }
 export function playBossRoar(){
   priorityUntil=performance.now()+1100;
@@ -395,16 +401,17 @@ export function playBossPhase(tier:'mini'|'sub'|'boss'='boss'){
   tone(base*2,.34,tier==='boss'?.040:.030,{type:'sawtooth',to:base*.86,attack:.012,cutoff:700});
   tone(base*3,.30,.020,{type:'triangle',to:base*1.4,delay:.06,attack:.014,cutoff:1050});
 }
-export function playDoorLock() {
-  noise(0.18, 0.06);
-  blip('square', 260, 90, 0.16, 0.05);
-  blip('square', 150, 60, 0.2, 0.045, 0.09);
+export function playDoorLock(){
+  filteredNoise(.14,.030,{type:'lowpass',freq:900,q:.5});
+  lowImpact(74,.045);
+  tone(205,.12,.030,{type:'triangle',to:78,attack:.003,cutoff:700});
+  tone(132,.17,.025,{type:'sine',to:58,delay:.07,attack:.003,cutoff:420});
 }
-export function playDoorUnlock() {
-  blip('square', 300, 520, 0.09, 0.045);
-  blip('square', 520, 780, 0.1, 0.045, 0.08);
-  blip('sine', 780, 1100, 0.14, 0.04, 0.16);
-  noise(0.12, 0.025, 0.02);
+export function playDoorUnlock(){
+  filteredNoise(.095,.018,{type:'bandpass',freq:1450,q:.8});
+  tone(180,.09,.024,{type:'triangle',to:270,attack:.003,cutoff:950});
+  tone(330,.11,.022,{type:'sine',to:470,delay:.055,attack:.004,cutoff:1500});
+  tone(610,.13,.016,{type:'sine',to:820,delay:.12,attack:.006,cutoff:2300});
 }
 
 /** Secuencia propia de la intro: motor, cerrojos, revelado de la bóveda y autorización. */
@@ -449,12 +456,18 @@ export function playDeny(){
   lowImpact(58,.018,.015);
 }
 
-export function playCoin() {
-  if(!allow('coin',42)) return;
-  const vol=performance.now()<priorityUntil?.006:.021;
-  blip('sine',900+Math.random()*260,1400,.075,vol);
+export function playCoin(){
+  if(!allow('coin',42))return;
+  const vol=performance.now()<priorityUntil?.005:.018;
+  const f=1050+Math.random()*220;
+  tone(f,.080,vol,{type:'sine',to:f*1.18,attack:.002,cutoff:3200});
+  tone(f*1.55,.055,vol*.45,{type:'triangle',delay:.018,attack:.002,cutoff:3800});
 }
-export function playHeal() { blip('sine',523,659,.13,.035);blip('sine',659,1047,.2,.03,.1); }
+export function playHeal(){
+  tone(392,.20,.020,{type:'sine',to:523,attack:.035,cutoff:1800});
+  tone(523,.26,.018,{type:'sine',to:784,delay:.09,attack:.045,cutoff:2200});
+  filteredNoise(.12,.005,{delay:.06,type:'highpass',freq:4200,q:.4});
+}
 export function playCritical(){
   if(!allow('crit',70))return;
   filteredNoise(.055,.026,{type:'highpass',freq:3600,q:.8});
@@ -466,31 +479,53 @@ export function playEnemyDeath(){
   filteredNoise(.11,.025,{type:'bandpass',freq:620,q:.65});
   tone(160,.13,.026,{type:'sine',to:52,attack:.004,cutoff:480});
 }
-export function playRoomClear() { [392,494,587,784].forEach((n,i)=>blip('triangle',n,n,.16,.031,i*.055)); }
-export function playBossWin() { priorityUntil=performance.now()+700;noise(.4,.055);[262,330,392,524].forEach((n,i)=>blip('triangle',n,n,.35,.04,i*.11)); }
+export function playRoomClear(){
+  [293.66,369.99,440,587.33].forEach((n,i)=>tone(n,.28,.018,{type:i<2?'sine':'triangle',delay:i*.07,attack:.025,cutoff:1800}));
+  lowImpact(52,.018,.02);
+}
+export function playBossWin(){
+  priorityUntil=performance.now()+900;
+  filteredNoise(.34,.032,{type:'lowpass',freq:920,q:.45});
+  lowImpact(46,.050);
+  [130.81,196,261.63,392].forEach((n,i)=>tone(n,.55,.024,{type:i<2?'sine':'triangle',delay:.08+i*.11,attack:.045,cutoff:1400}));
+}
 export function playRarityPickup(rarity:number) {
   playPickup(); if(rarity>=2) blip('sine',1047,1319,.2,.025,.09);
   if(rarity>=4) [784,1047,1319].forEach((n,i)=>blip('triangle',n,n,.36,.035,.15+i*.08));
 }
-export function playReturn() {if(allow('return',130)) blip('triangle',450,820,.09,.02);}
-export function playBounce() {if(allow('bounce',80)) blip('sine',760,380,.08,.03);}
+export function playReturn(){if(allow('return',130))tone(360,.095,.016,{type:'triangle',to:720,attack:.004,cutoff:1700});}
+export function playBounce(){if(allow('bounce',80)){filteredNoise(.025,.008,{type:'bandpass',freq:1300,q:.7});tone(520,.075,.018,{type:'sine',to:270,attack:.003,cutoff:1400});}}
 export function playFootstep(){
   if(!allow('feet',165))return;
   filteredNoise(.030,.006,{type:'bandpass',freq:520+Math.random()*180,q:.6});
 }
-export function playDoorStyle(style:string) {
-  if(style==='boss') playDoorLock();
-  else if(style==='gold' || style==='purple') blip('sine',660,990,.18,.028);
-  else if(style==='green') {blip('triangle',740,740,.06,.02);blip('triangle',980,980,.08,.02,.07);}
-  else noise(.08,.018);
+export function playDoorStyle(style:string){
+  if(style==='boss')playDoorLock();
+  else if(style==='gold'||style==='purple'){
+    tone(440,.18,.018,{type:'sine',to:660,attack:.025,cutoff:1800});
+    filteredNoise(.06,.006,{type:'highpass',freq:3000,q:.5});
+  }else if(style==='green'){
+    tone(520,.09,.014,{type:'sine',to:700,attack:.008,cutoff:1800});
+    tone(780,.11,.012,{type:'triangle',to:940,delay:.06,attack:.008,cutoff:2200});
+  }else{
+    filteredNoise(.075,.012,{type:'bandpass',freq:900,q:.6});
+    tone(120,.08,.012,{type:'sine',to:78,attack:.003,cutoff:400});
+  }
 }
 
-export function playDanger(kind:'aim'|'charge'|'camera'='aim') {
+export function playDanger(kind:'aim'|'charge'|'camera'='aim'){
   if(!allow(`danger-${kind}`,220))return;
-  priorityUntil=performance.now()+350;
-  if(kind==='charge'){noise(.06,.03);blip('triangle',160,240,.14,.055);}
-  else if(kind==='camera'){blip('square',480,520,.12,.034);blip('square',640,680,.12,.03,.14);}
-  else {blip('sine',1000,1000,.08,.045);blip('sine',1300,1300,.08,.035,.1);}
+  priorityUntil=performance.now()+420;
+  if(kind==='charge'){
+    filteredNoise(.11,.024,{type:'bandpass',freq:760,q:1});
+    tone(92,.18,.042,{type:'sawtooth',to:180,attack:.018,cutoff:650});
+  }else if(kind==='camera'){
+    tone(410,.10,.022,{type:'sine',to:470,attack:.004,cutoff:1500});
+    tone(610,.12,.019,{type:'sine',to:690,delay:.13,attack:.004,cutoff:1800});
+  }else{
+    tone(980,.095,.026,{type:'sine',attack:.003,cutoff:2400});
+    tone(1240,.095,.022,{type:'sine',delay:.11,attack:.003,cutoff:2800});
+  }
 }
 
 /* legacy no-op export */
