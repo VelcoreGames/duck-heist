@@ -388,10 +388,12 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='choice'){
-    const root=[69.3,65.41,73.42,65.41][Math.floor((step+phaseOffset)/4)%4]*variantPitch;
-    if(step%8===0)chord(root,[1,Math.pow(2,4/12),1.5,2],sec*7,.0095,0,1550);
-    if(step%4===1||step%4===3)tone(root*(step%8<4?2:2.5),sec*.48,.004,{type:'sine',attack:.04,cutoff:2100,kind:'music'});
-    if(step%8===6)tone(root*3,sec*.3,.0035,{type:'triangle',attack:.01,cutoff:2600,kind:'music'});
+    // ELECCIÓN: tensión elegante entre dos opciones; llamada y respuesta.
+    const phase=step%16,root=73.42;
+    if(phase===0||phase===8)chord(root,[1,1.26,1.5,2],sec*6.8,.009,0,1700);
+    if(phase===2||phase===10)musicPluck(root*2,.0065);
+    if(phase===4||phase===12)musicPluck(root*2.52,.0065);
+    if(phase===6||phase===14)musicBell(root*3,.48,.0045);
     return;
   }
 
@@ -453,11 +455,13 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='challenge'){
-    const root=RUN_ROOTS[Math.min(5,musicFloor)]*Math.pow(2,-2/12)*variantPitch;
-    const phase=(step+phaseOffset)%16;
-    if(phase%8===0)chord(root,DARK,sec*6.5,.012,0,1200);
-    if(phase%2===0){tone(root/2,sec*.55,.019,{type:'sawtooth',attack:.006,cutoff:360,kind:'music'});filteredNoise(.045,.006,{type:'highpass',freq:3000,q:.7,kind:'music'});}
-    if(phase===6||phase===14)tone(root*2.5,sec*.32,.006,{type:'triangle',attack:.01,cutoff:1800,kind:'music'});
+    // DESAFÍO: pulso de contrarreloj. Marcial y preciso, no una variante de combate.
+    const phase=step%16,root=55*Math.pow(2,musicFloor/24);
+    if(phase===0||phase===8)chord(root,DARK,sec*5.8,.011,0,980);
+    if([0,2,4,6,8,10,12,14].includes(phase))musicKick(phase%4===0?.024:.016);
+    if(phase===4||phase===12)musicSnare(.010);
+    if([1,5,9,13].includes(phase))tone(root*[2,2.25,2.52,3][Math.floor(phase/4)],sec*.22,.006,{type:'square',attack:.003,cutoff:1350,kind:'music'});
+    if(phase===7||phase===15)musicBell(root*4,.25,.004);
     return;
   }
 
@@ -474,12 +478,12 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='event'){
-    const shiftedStep=step+phaseOffset;
-    const root=65.41*(shiftedStep%8>=4?Math.pow(2,2/12):1)*variantPitch;
-    if(step%4===0)chord(root,DARK,sec*3.6,.014,0,1350);
-    lowImpact(step%8===0?52:64,.022,0,'music');
-    if(step%2===1)filteredNoise(.065,.010,{type:'highpass',freq:2200,q:.8,kind:'music'});
-    tone(root*(step%4===0?2:1.5),sec*.42,.007,{type:'sawtooth',attack:.01,cutoff:780,kind:'music'});
+    // EVENTO: suspense narrativo. Pulsos separados, ostinato corto y silencios.
+    const phase=step%16,root=51.91;
+    if(phase===0||phase===8){tone(root/2,sec*6.5,.014,{type:'sine',attack:.22,cutoff:240,kind:'music'});chord(root,DARK,sec*5.6,.009,0,1050);}
+    if(phase===3||phase===11)musicPluck(root*1.5,.007);
+    if(phase===5||phase===13)musicPluck(root*1.78,.006);
+    if(phase===7||phase===15)lowImpact(48,.018,0,'music');
     return;
   }
 
