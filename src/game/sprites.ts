@@ -329,9 +329,14 @@ export function drawDuckSkin(
   drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal);
   if (!skin || skin.overlay === 'none' || dead) return;
 
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
+  const bx=Math.floor(x);
+  const by=Math.floor(y);
+  const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
+  const overlayBob=moving?Math.round(Math.sin(frame*.38)):idleBreath;
   ctx.save();
+  // Los accesorios forman parte del cuerpo: sombreros, capas y delantales deben
+  // acompañar la respiración/waddle en vez de flotar sobre un sprite animado.
+  ctx.translate(0,overlayBob);
   switch (skin.overlay) {
     case 'fedora':
       // Sombrero fedora oscuro con cinta roja
