@@ -1146,7 +1146,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     }
     ctx.save();
     const sequenceActive=e.bossSequenceAttack!==undefined;
-    const wind=e.telegraph>.05?e.telegraph:sequenceActive?.28+.10*Math.sin(f*.18):0;
+    const wind=e.telegraph>.05?e.telegraph:(sequenceActive?.28+.10*Math.sin(f*.18):0);
     const choreoAttack=e.bossPreparedAttack??e.bossSequenceAttack;
     const phasePulse=(e.phaseTransition??0)>0?Math.sin((54-(e.phaseTransition??0))*.28)*.045:0;
     const scale=1+wind*.055+phasePulse;
