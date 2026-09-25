@@ -395,23 +395,60 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
     return;
   }
 
-  if(mood==='shop'||mood==='gunvan'||mood==='cafe'){
-    const root=(mood==='gunvan'?49:mood==='cafe'?65.41:58.27)*variantPitch;
-    const phase=(step+phaseOffset)%16;
-    if(phase%8===0)chord(root,mood==='cafe'?MINOR:[1,1.25,1.5,2],sec*7,.011,0,mood==='gunvan'?900:1300);
-    if(phase%2===0)tone(root*(phase%4===0?2:1.5),sec*.65,mood==='cafe'?.004:.006,{type:mood==='gunvan'?'sawtooth':'triangle',attack:.03,cutoff:mood==='gunvan'?620:1500,kind:'music'});
-    if(mood==='cafe'&&phase%4===2)tone(root*3,sec*.28,.0035,{type:'sine',attack:.02,cutoff:2200,kind:'music'});
-    if(mood==='gunvan'&&(phase===3||phase===11))lowImpact(46,.014,0,'music');
+  if(mood==='shop'){
+    // TIENDA CLANDESTINA: lounge sigiloso, bajo caminante y campanas discretas.
+    const phase=step%16,root=58.27;
+    if(phase===0||phase===8)chord(root,[1,1.26,1.5,2],sec*7.2,.010,0,1450);
+    if(phase%2===0)musicPluck(root*[1,1.5,1.26,1.78][(phase/2)%4],.0065);
+    if(phase===5||phase===13)musicBell(root*3,.5,.0045);
+    if(phase===7||phase===15)tone(root/2,sec*.62,.010,{type:'sine',attack:.06,cutoff:280,kind:'music'});
     return;
   }
 
-  if(mood==='item'||mood==='treasure'||mood==='secret'){
-    const root=(mood==='secret'?51.91:mood==='treasure'?69.3:61.74)*variantPitch;
-    const phase=(step+phaseOffset)%16;
-    if(phase%8===0)chord(root,[1,Math.pow(2,4/12),1.5,2],sec*7.5,.010,0,1500);
-    if(phase===2||phase===6||phase===10||phase===14)tone(root*(mood==='secret'?1.5:2),sec*.85,.0045,{type:'sine',attack:.08,cutoff:1800,kind:'music'});
-    if(mood==='treasure'&&(phase===4||phase===12))tone(root*3,sec*.32,.004,{type:'triangle',attack:.01,cutoff:2600,kind:'music'});
-    if(mood==='secret'&&phase%4===1)filteredNoise(.05,.003,{type:'bandpass',freq:1500,q:2.4,kind:'music'});
+  if(mood==='gunvan'){
+    // CAMIONETA: garage/industrial; motor grave, golpes secos y síncopas.
+    const phase=step%16,root=46.25;
+    if(phase===0||phase===8)tone(root/2,sec*6.8,.018,{type:'sawtooth',attack:.12,cutoff:360,kind:'music'});
+    if([0,3,6,8,11,14].includes(phase))musicKick(.022);
+    if(phase===4||phase===12)musicSnare(.0085);
+    if(phase%4===1)tone(root*[1,1.5,1.78,1.26][Math.floor(phase/4)],sec*.28,.006,{type:'square',attack:.004,cutoff:920,kind:'music'});
+    if(phase===7||phase===15)lowImpact(42,.016,0,'music');
+    return;
+  }
+
+  if(mood==='cafe'){
+    // CAFÉ: respiración real; acordes cálidos y melodía ligera, sin percusión agresiva.
+    const phase=step%16,root=[65.41,69.30,73.42,69.30][Math.floor(step/4)%4];
+    if(phase===0||phase===8)chord(root,[1,1.26,1.5,2],sec*7.6,.009,0,1900);
+    if([2,6,10,14].includes(phase))musicBell(root*[2,2.52,2.25,3][Math.floor(phase/4)],.72,.004);
+    if(phase===4||phase===12)tone(root/2,sec*2.6,.008,{type:'sine',attack:.2,cutoff:360,kind:'music'});
+    return;
+  }
+
+  if(mood==='item'){
+    // OBJETOS: curiosidad; pequeñas frases ascendentes, limpias y juguetonas.
+    const phase=step%16,root=61.74;
+    if(phase===0||phase===8)chord(root,[1,1.26,1.5,2],sec*6.8,.0085,0,1750);
+    if([1,3,6,9,11,14].includes(phase))musicPluck(root*[1.5,2,2.52,3,2.25,2][phase%6],.0055);
+    if(phase===7||phase===15)musicBell(root*4,.35,.004);
+    return;
+  }
+
+  if(mood==='treasure'){
+    // TESORO/RECOMPENSA: resolución dorada, ceremonial y claramente positiva.
+    const phase=step%16,root=69.30;
+    if(phase===0||phase===8)chord(root,[1,1.26,1.5,2,2.52],sec*7.4,.012,0,2300);
+    if(phase===2||phase===6||phase===10||phase===14)musicBell(root*[2,2.52,3,4][Math.floor(phase/4)],.65,.006);
+    if(phase===4||phase===12)tone(root*3,sec*.42,.006,{type:'triangle',attack:.01,cutoff:3000,kind:'music'});
+    return;
+  }
+
+  if(mood==='secret'){
+    // BÓVEDA SECRETA: espacio, misterio y pulsos aislados; nada de beat de combate.
+    const phase=step%16,root=43.65;
+    if(phase===0||phase===8){chord(root/2,DARK,sec*7.8,.012,0,780);tone(root/4,sec*7.4,.011,{type:'sine',attack:.28,cutoff:180,kind:'music'});}
+    if(phase===3||phase===11)musicBell(root*4,.95,.005);
+    if(phase===6||phase===14)tone(root*1.5,sec*1.4,.005,{type:'sine',to:root*1.42,attack:.16,cutoff:1000,kind:'music'});
     return;
   }
 
