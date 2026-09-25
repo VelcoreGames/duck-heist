@@ -281,32 +281,32 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
     if(serial!==musicTransitionSerial||mood==='off')return;
     musicStep=0;
     const variantSeed=musicHash(variant||mood);
-    const tempoNudge=variant?((((variantSeed>>>5)%5)-2)*2):0;
     const bossIdentity=bossMusicIdentity(variant);
     const bossTempoBoost=bossIdentity.phase*6;
     const bpm=
       mood==='boss'?([66,70,74,78][variantSeed%4]+bossTempoBoost):
       mood==='subboss'?([80,86,92,76][variantSeed%4]+bossTempoBoost):
       mood==='miniboss'?([98,104,110,94][variantSeed%4]+bossTempoBoost):
-      mood==='event'?116+tempoNudge:
-      mood==='challenge'?108+tempoNudge:
-      mood==='gunvan'?82+tempoNudge:
-      mood==='shop'?76+tempoNudge:
-      mood==='cafe'?72+tempoNudge:
-      mood==='secret'?66+tempoNudge:
-      mood==='treasure'?70+tempoNudge:
-      mood==='choice'?74+tempoNudge:
-      mood==='item'?68+tempoNudge:
-      mood==='start'?72+tempoNudge:
-      mood==='combat'?96+tempoNudge:
-      mood==='run'?94+tempoNudge:68;
+      mood==='event'?118:
+      mood==='challenge'?112:
+      mood==='gunvan'?86:
+      mood==='shop'?78:
+      mood==='cafe'?70:
+      mood==='secret'?64:
+      mood==='treasure'?74:
+      mood==='choice'?76:
+      mood==='item'?68:
+      mood==='start'?72:
+      mood==='combat'?98:
+      mood==='run'?92:68;
     const beat=60000/bpm/2;
 
     try{
-      const ctx=getCtx(),bus=getMusicBus(ctx),now=ctx.currentTime;
-      bus.gain.cancelScheduledValues(now);
+      const ctx=getCtx(),bus=ctx.createGain(),now=ctx.currentTime;
       bus.gain.setValueAtTime(.001,now);
-      bus.gain.linearRampToValueAtTime(1,now+.34);
+      bus.gain.linearRampToValueAtTime(1,now+.32);
+      bus.connect(ctx.destination);
+      musicBus=bus;
     }catch{/* audio bloqueado por navegador */}
     tickMusic(mood,beat,variant);
     musicTimer=window.setInterval(()=>tickMusic(mood,beat,variant),beat);
@@ -331,21 +331,16 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
     return;
   }
 
-  // Cada tema usa su propio bus. El anterior baja y queda aislado; el nuevo
-  // entra en otro bus, de modo que las colas largas nunca reaparecen.
+  // Crossfade real: el tema nuevo entra inmediatamente mientras el anterior
+  // baja. No existe un hueco de silencio entre zonas distintas.
   try{
     const ctx=getCtx(),now=ctx.currentTime;
     fadingBus.gain.cancelScheduledValues(now);
     fadingBus.gain.setValueAtTime(Math.max(.001,fadingBus.gain.value),now);
-    fadingBus.gain.linearRampToValueAtTime(.001,now+.20);
+    fadingBus.gain.linearRampToValueAtTime(.001,now+.32);
   }catch{/* audio bloqueado por navegador */}
-  musicSwitchTimer=window.setTimeout(()=>{
-    musicSwitchTimer=null;
-    if(serial!==musicTransitionSerial)return;
-    if(musicBus===fadingBus)musicBus=null;
-    startTheme();
-    window.setTimeout(()=>{try{fadingBus.disconnect();}catch{/* ya desconectado */}},1400);
-  },205);
+  startTheme();
+  window.setTimeout(()=>{try{fadingBus.disconnect();}catch{/* ya desconectado */}},1450);
 }
 
 function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
