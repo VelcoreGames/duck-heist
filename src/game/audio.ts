@@ -201,7 +201,7 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
   const seed=musicHash(identity.id||variant||tier);
   const family=identity.family||['command','finance','tech','war','bakery','vault','riot','wealth'][seed%8];
   const phase=identity.phase;
-  const slot=step%16;
+  const phrase=step%32,slot=phrase%16,section=phrase>=16?1:0;
   const tierWeight=tier==='boss'?1:tier==='subboss' ? .78 : .62;
   const phaseWeight=1+phase*.16+musicIntensity*.08;
   const root=bossFamilyRoot(family)*Math.pow(2,([-2,0,2,3][(seed>>>6)%4])/12);
@@ -257,6 +257,22 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
   else if(identity.role==='vortex'&&slot%4===2)musicPluck(root*[1.5,2,2.52,3][Math.floor(slot/4)],hit(.0055));
   else if(identity.role==='swarm'&&phase>=1&&slot%2===1)musicPluck(root*2.25,hit(.004));
   else if(identity.role==='executioner'&&(slot===3||slot===11))lowImpact(44,hit(.025),0,'music');
+
+  // Firma melódica individual: cada boss obtiene cinco intervalos estables
+  // derivados de su ID. La sección B invierte la frase para evitar un loop corto.
+  if([2,6,10,14].includes(slot)){
+    const signature=[
+      0,
+      2+(seed%3),
+      5+((seed>>>4)%3),
+      7+((seed>>>8)%3),
+      10+((seed>>>12)%2),
+    ];
+    const position=Math.floor(slot/4);
+    const motifIndex=section?Math.max(0,4-position):position;
+    const freq=root*2*semitoneRatio(signature[motifIndex]);
+    musicPluck(freq,hit(tier==='boss'?.0048:tier==='subboss'?.0038:.003));
+  }
 }
 
 // ---------------------------------------------------------------------------
