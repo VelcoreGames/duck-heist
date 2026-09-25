@@ -770,53 +770,47 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
 }
 
 export function drawCoin(ctx: Ctx, x: number, y: number, frame: number, golden: boolean = false) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  const bounce = Math.abs(Math.sin(frame * 0.08)) * 2;
-  
-  ctx.fillStyle = golden ? '#f4d03f' : '#e8c99b';
-  ctx.beginPath();
-  ctx.arc(bx, by - bounce, golden ? 5 : 4, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = golden ? '#d4a017' : '#d4a574';
-  ctx.beginPath();
-  ctx.arc(bx, by - bounce, golden ? 3 : 2.5, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Sparkle
-  if (golden && frame % 20 < 5) {
-    px(ctx, bx + 3, by - bounce - 3, '#fff', 1);
+  const bx=Math.floor(x),by=Math.floor(y);
+  const bounce=Math.abs(Math.sin(frame*.08))*2;
+  const squash=.72+.28*Math.abs(Math.cos(frame*.08));
+  const cy=by-bounce;
+
+  ctx.save();
+  ctx.globalAlpha=.22;ctx.fillStyle='#02080b';ctx.beginPath();ctx.ellipse(bx,by+3,golden?6:5,2,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle=golden?'#9a6d17':'#a87a4f';ctx.beginPath();ctx.ellipse(bx,cy,golden?5:4,(golden?5:4)*squash,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=golden?'#e6b93e':'#d7b07c';ctx.beginPath();ctx.ellipse(bx,cy,golden?4:3,(golden?4:3)*squash,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=golden?'#fff0a0':'#f2d8ae';ctx.fillRect(bx-1,Math.floor(cy-(golden?3:2)*squash),1,Math.max(1,Math.floor((golden?4:3)*squash)));
+  if(golden){
+    ctx.strokeStyle='#7f5b15';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx,cy-2*squash);ctx.lineTo(bx,cy+2*squash);ctx.stroke();
+    if(frame%24<5){px(ctx,bx+4,cy-4,'#fff7d2',1);px(ctx,bx+4,cy-6,'#fff7d2',1);}
   }
+  ctx.restore();
 }
 
 export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame: number) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  
-  if (!opened) {
-    // Closed chest
-    rect(ctx, bx, by + 4, 20, 12, '#8B4513');
-    rect(ctx, bx + 1, by + 5, 18, 10, '#a0522d');
-    rect(ctx, bx, by, 20, 6, '#6d3a1f');
-    rect(ctx, bx + 1, by + 1, 18, 4, '#7d4a2f');
-    // Lock
-    rect(ctx, bx + 8, by + 3, 4, 4, '#f4d03f');
-    px(ctx, bx + 9, by + 5, '#d4a017', 2);
-    // Sparkle
-    if (frame % 30 < 5) {
-      px(ctx, bx + 16, by - 2, '#f4d03f', 2);
-    }
-  } else {
-    // Open chest
-    rect(ctx, bx, by + 8, 20, 8, '#8B4513');
-    rect(ctx, bx + 1, by + 9, 18, 6, '#a0522d');
-    // Lid (open)
-    rect(ctx, bx, by + 2, 20, 6, '#6d3a1f');
-    // Glowing inside
-    rect(ctx, bx + 2, by + 9, 16, 4, '#f4d03f');
-    rect(ctx, bx + 4, by + 10, 12, 2, '#fff8dc');
+  const bx=Math.floor(x),by=Math.floor(y),pulse=.55+.45*Math.sin(frame*.08);
+  ctx.save();
+  ctx.globalAlpha=.30;ctx.fillStyle='#02080b';ctx.beginPath();ctx.ellipse(bx+10,by+17,12,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  if(!opened){
+    rect(ctx,bx,by+5,20,12,'#4a2d21');rect(ctx,bx+2,by+6,16,10,'#8a5632');
+    rect(ctx,bx,by+1,20,6,'#35241e');rect(ctx,bx+2,by+2,16,3,'#745038');
+    rect(ctx,bx,by+5,20,2,'#5d6b6b');rect(ctx,bx+2,by+14,16,2,'#3b4548');
+    rect(ctx,bx+2,by+5,2,11,'#8d9a94');rect(ctx,bx+16,by+5,2,11,'#8d9a94');
+    rect(ctx,bx+7,by+4,6,6,'#9f792b');rect(ctx,bx+8,by+5,4,4,'#e6c56f');px(ctx,bx+9,by+7,'#6f531e',2);
+    rect(ctx,bx+3,by+8,3,1,'#c28b50');rect(ctx,bx+14,by+8,3,1,'#c28b50');
+    if(frame%34<7){ctx.globalAlpha=.45+.35*pulse;px(ctx,bx+18,by-2,'#fff0a0',2);px(ctx,bx+16,by,'#e6c56f',1);ctx.globalAlpha=1;}
+  }else{
+    rect(ctx,bx,by+9,20,8,'#4a2d21');rect(ctx,bx+2,by+10,16,6,'#8a5632');
+    rect(ctx,bx,by+8,20,2,'#5d6b6b');rect(ctx,bx+2,by+14,16,2,'#394346');
+    rect(ctx,bx,by+1,20,6,'#35241e');rect(ctx,bx+2,by+2,16,3,'#745038');rect(ctx,bx+1,by+6,18,2,'#707e7c');
+    px(ctx,bx+2,by+6,'#b6c0b6',2);px(ctx,bx+16,by+6,'#b6c0b6',2);
+    ctx.globalAlpha=.24+.16*pulse;ctx.fillStyle='#e6c56f';ctx.beginPath();ctx.ellipse(bx+10,by+10,12,6,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    rect(ctx,bx+3,by+10,14,3,'#e6c56f');rect(ctx,bx+5,by+10,10,1,'#fff2b3');
+    if(frame%18<8){px(ctx,bx+5,by+5,'#fff4c7',1);px(ctx,bx+15,by+3,'#e6c56f',1);}
   }
+  ctx.restore();
 }
 
 type BossVisual={accent:string;secondary:string;family:'command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth'|'vault';bob:number};
@@ -2431,7 +2425,14 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       rect(ctx, bx + 14, by + 12, 11, 11, '#5a626c');
       rect(ctx, bx + 9, by + 20, 8, 5, '#3a4048');
       rect(ctx, bx + 17, by + 9, 5, 4, '#6c7684');
+      px(ctx,bx+7,by+14,'#7e8b8e',2);px(ctx,bx+22,by+20,'#343c40',2);
       break;
+  }
+
+  ctx.globalAlpha=.14;ctx.fillStyle='#dce6df';ctx.fillRect(bx+4,by+5,T-8,1);ctx.globalAlpha=1;
+  if(kind!==3&&kind!==5){
+    const n=(kind*7+Math.floor(frame/90))|0;
+    if((n&3)===0){px(ctx,bx+T-7,by+T-9,'#202a2e',2);px(ctx,bx+T-10,by+T-7,'#69777a',1);}
   }
 }
 
