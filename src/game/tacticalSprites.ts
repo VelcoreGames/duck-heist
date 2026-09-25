@@ -55,6 +55,10 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
     r(c,bx-2,by+8,4,10,'#2f3c47');r(c,bx+20,by+8,4,10,'#2f3c47');
     p(c,bx-1,by+10,'#d8b449',2);p(c,bx+21,by+10,'#d8b449',2);
     if(frame%18<3){p(c,bx-3,by+7,'#d8b449',2);p(c,bx+23,by+14,'#8bc57c',2);}
+    if(charge>0){
+      c.globalAlpha=.22+charge*.28;c.strokeStyle='#76c7a3';c.beginPath();c.arc(bx+11,by+12,12+charge*7,0,Math.PI*2);c.stroke();
+      r(c,bx+6,by+15,Math.max(2,Math.round(10*charge)),2,'#f4d03f');c.globalAlpha=1;
+    }
     c.restore();return;
   }
 
@@ -88,29 +92,54 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
     r(c,bx-2,by+8+bob,5,7,'#31444f');
     c.save();c.translate(bx+8,by+11+bob);c.rotate(angle);
     r(c,0,-2,23,3,'#8197a2');r(c,5,-4,6,3,'#20384a');r(c,20,-3,5,5,'#1a242e');p(c,11,-4,'#ff5a52',2);
-    if(charge>0){glow(c,24,0,'#ff5a52',3+charge*3,.22+charge*.22);r(c,24,0,7*charge,1,'#ff6a61');}
+    if(charge>0){
+      glow(c,24,0,'#ff5a52',3+charge*3,.22+charge*.22);r(c,24,0,7*charge,1,'#ff6a61');
+      c.globalAlpha=.32+charge*.3;c.strokeStyle='#ff7468';c.beginPath();c.moveTo(24,0);c.lineTo(34+charge*18,0);c.stroke();c.globalAlpha=1;
+    }
     c.restore();
   } else if(id==='policia_medico'){
     // casco médico, mochila y emisor de escudo
     r(c,bx+2,by-3+bob,12,5,'#d9e5df');r(c,bx+7,by-4+bob,2,7,'#6fb7aa');r(c,bx+5,by-2+bob,6,2,'#6fb7aa');
     r(c,bx-4,by+7+bob,7,10,'#466d6d');r(c,bx-2,by+9+bob,3,6,'#e9f0df');r(c,bx-3,by+11+bob,5,2,'#e9f0df');
-    c.globalAlpha=.2+.15*Math.sin(frame*.13);c.strokeStyle='#7ed1bd';c.beginPath();c.arc(bx+8,by+10,10,0,Math.PI*2);c.stroke();c.globalAlpha=1;
+    c.globalAlpha=.2+.15*Math.sin(frame*.13);c.strokeStyle='#7ed1bd';c.beginPath();c.arc(bx+8,by+10,10,0,Math.PI*2);c.stroke();
+    if(charge>0){
+      c.globalAlpha=.16+charge*.24;c.beginPath();c.arc(bx+8,by+10,13+charge*7,0,Math.PI*2);c.stroke();
+      for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.02;r(c,bx+7+Math.cos(a)*(11+charge*4),by+9+Math.sin(a)*(8+charge*3),2,2,'#a8ead9');}
+    }
+    c.globalAlpha=1;
   } else if(id==='policia_capitan'){
     // gorra alta, capa corta, hombreras doradas
     r(c,bx+1,by-4+bob,15,3,'#c9a64a');r(c,bx+4,by-7+bob,9,4,'#23394d');crown(c,bx+5,by-7+bob,'#d8b449');
     r(c,bx-3,by+7+bob,6,4,'#d3b36b');r(c,bx+13,by+7+bob,6,4,'#d3b36b');r(c,bx+7,by+9+bob,2,7,'#a74448');
     r(c,bx-2,by+11+bob,4,8,'#692e38'); // capa
+    if(charge>0){
+      // radio/orden: brazo arriba y ondas cortas.
+      r(c,bx+13,by+4+bob-Math.round(charge*3),3,8,'#263746');p(c,bx+14,by+2+bob-Math.round(charge*4),'#d8b449',2);
+      c.globalAlpha=.18+charge*.24;c.strokeStyle='#d8b449';
+      for(let i=0;i<2;i++){c.beginPath();c.arc(bx+15,by+3+bob,6+i*5+charge*3,-1.3,.2);c.stroke();}
+      c.globalAlpha=1;
+    }
   } else if(id==='policia_granadero'){
     // mochila de granadas + cinturón explosivo
     r(c,bx-4,by+6+bob,7,10,'#5b4938');r(c,bx-2,by+8+bob,5,6,'#c8a870');
     for(let i=0;i<3;i++){p(c,bx+4+i*4,by+14+bob,'#677b58',3);p(c,bx+5+i*4,by+14+bob,'#d7b34f',1);}
     r(c,bx+12,by+8+bob,5,8,'#33433a');
+    if(charge>0){
+      // Granada levantada antes del lanzamiento.
+      const gy=by+3+bob-Math.round(charge*8);
+      r(c,bx+14,gy,3,7,'#34463b');c.fillStyle='#718565';c.beginPath();c.arc(bx+15,gy-2,4,0,Math.PI*2);c.fill();
+      p(c,bx+14,gy-5,frame%6<3?'#ffb048':'#d8b449',2);
+      c.globalAlpha=.18+charge*.2;c.strokeStyle='#e0a458';c.beginPath();c.arc(bx+15,gy-2,7+charge*5,0,Math.PI*2);c.stroke();c.globalAlpha=1;
+    }
   } else if(id==='policia_porra'){
     // casco ligero y porra desproporcionada
     r(c,bx+2,by-2+bob,12,4,'#263644');r(c,bx+4,by-4+bob,8,3,'#394d5d');
     c.save();c.translate(bx+14,by+9+bob);c.rotate(angle);
     r(c,0,-2,14,4,'#4a352c');r(c,11,-3,5,6,'#222b33');r(c,-2,-3,4,6,'#6e7c83');c.restore();
-    if(charge>.1){c.globalAlpha=.18+charge*.2;r(c,bx-2,by+6,20,12,'#ff6c58');c.globalAlpha=1;}
+    if(charge>.1){
+      c.globalAlpha=.18+charge*.2;r(c,bx-2,by+6,20,12,'#ff6c58');
+      c.globalAlpha=.55;c.strokeStyle='#ff8d73';c.beginPath();c.arc(bx+14,by+9+bob,9+charge*5,-1.1,.8);c.stroke();c.globalAlpha=1;
+    }
   }
   c.restore();
 }
