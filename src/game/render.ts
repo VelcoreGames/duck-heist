@@ -539,7 +539,10 @@ export function renderWorld(engine: GameEngine) {
   for (const e of content.enemies) drawEnemy(ctx, e, f, engine);
   for(const d of engine.deathEchoes) {
     const floorDeath=d.enemy.isBoss&&!!BOSSES[d.enemy.bossType],subDeath=d.enemy.isBoss&&!!SUBBOSSES[d.enemy.bossType];
-    const maxLife=floorDeath?68:subDeath?54:d.enemy.isBoss?46:20;
+    const familyLife=d.enemy.isBoss?0:d.enemy.type==='dron_policial'||d.enemy.type==='toaster_turret'?28:
+      d.enemy.type==='rolling_bagel'||d.enemy.type==='evil_croissant'?18:
+      d.enemy.type==='policia_antidisturbios'||d.enemy.type==='guard_goose'?24:20;
+    const maxLife=floorDeath?68:subDeath?54:d.enemy.isBoss?46:familyLife;
     const deathT=clamp(d.life/maxLife,0,1);
     if(d.enemy.isBoss){
       const burst=1-deathT,cx=d.enemy.x+d.enemy.size/2,cy=d.enemy.y+d.enemy.size/2;
@@ -552,10 +555,30 @@ export function renderWorld(engine: GameEngine) {
       ctx.restore();
     }
     ctx.save();ctx.globalAlpha=deathT;
-    ctx.translate(d.enemy.x+d.enemy.size/2,d.enemy.y+d.enemy.size/2);
-    ctx.rotate((1-deathT)*(floorDeath?.7:1.05));
-    const sx=.32+deathT*.68,sy=.18+deathT*.82;
-    ctx.scale(sx,sy);
+    const dcx=d.enemy.x+d.enemy.size/2,dcy=d.enemy.y+d.enemy.size/2,burst=1-deathT;
+    ctx.translate(dcx,dcy);
+    let drot=(1-deathT)*(floorDeath?.7:1.05),sx=.32+deathT*.68,sy=.18+deathT*.82,dy=0;
+    if(!d.enemy.isBoss){
+      switch(d.enemy.type){
+        case 'dron_policial':
+        case 'toaster_turret':
+          drot=burst*2.2; sx=.55+deathT*.45; sy=.45+deathT*.55; dy=burst*5;
+          break;
+        case 'rolling_bagel':
+          drot=burst*4.8; sx=.68+deathT*.32; sy=.32+deathT*.68; dy=burst*3;
+          break;
+        case 'evil_croissant':
+          drot=burst*(d.enemy.id%2?1.6:-1.6);sx=.42+deathT*.58;sy=.25+deathT*.75;dy=burst*6;
+          break;
+        case 'policia_antidisturbios':
+        case 'guard_goose':
+          drot=burst*(d.enemy.id%2?.55:-.55);sx=.78+deathT*.22;sy=.18+deathT*.82;dy=burst*7;
+          break;
+        default:
+          drot=burst*(d.enemy.id%2?.95:-.95);dy=burst*5;
+      }
+    }
+    ctx.translate(0,dy);ctx.rotate(drot);ctx.scale(sx,sy);
     if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false,d.enemy.bossPhase,0,d.enemy.bossParts);
     else {
       switch(d.enemy.type) {
@@ -573,6 +596,24 @@ export function renderWorld(engine: GameEngine) {
       }
     }
     ctx.restore();
+
+    if(!d.enemy.isBoss){
+      const burst=1-deathT,cx=d.enemy.x+d.enemy.size/2,cy=d.enemy.y+d.enemy.size/2;
+      ctx.save();ctx.globalAlpha=deathT*.55;
+      const tech=d.enemy.type==='dron_policial'||d.enemy.type==='toaster_turret';
+      const bread=d.enemy.type==='rolling_bagel'||d.enemy.type==='evil_croissant';
+      const heavy=d.enemy.type==='policia_antidisturbios'||d.enemy.type==='guard_goose';
+      const col=tech?'#8fb5c0':bread?'#d9a263':heavy?'#8b9aa2':'#e7e1d5';
+      ctx.fillStyle=col;
+      const pieces=heavy?5:tech?4:3;
+      for(let i=0;i<pieces;i++){
+        const a=i/pieces*Math.PI*2+(d.enemy.id%11)*.2,r=4+burst*(tech?15:heavy?12:10);
+        const px=Math.round(cx+Math.cos(a)*r),py=Math.round(cy+Math.sin(a)*r*.65-burst*3);
+        ctx.fillRect(px,py,tech?2:bread?2:1,tech?2:1);
+      }
+      ctx.globalAlpha=deathT*.28;ctx.strokeStyle=col;ctx.beginPath();ctx.ellipse(cx,cy+5,5+burst*(heavy?17:12),2+burst*5,0,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
   }
   for (const p of engine.projectiles) {
     ctx.save();
