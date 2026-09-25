@@ -3781,7 +3781,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   } else if(boss.moveTimer>0) {
     boss.moveTimer--;
     moveEnemy(boss,room,Math.cos(boss.moveAngle)*spd*(tier==='mini'?2.8:2.45),Math.sin(boss.moveAngle)*spd*(tier==='mini'?2.8:2.45));
-  } else if(def.pattern&&!def.legacy) {
+  } else if(def.pattern) {
     bossPatternMove(engine,boss,room,def,ang,spd);
   } else {
     const orbit=tier==='boss'?Math.sin(engine.frame*.018+boss.id)*.28:Math.sin(engine.frame*.026+boss.id)*.2;
