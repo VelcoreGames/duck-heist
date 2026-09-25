@@ -18,6 +18,8 @@ import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, dr
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
+import { drawRoomAtmosphere } from './roomArt';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -68,6 +70,24 @@ export function runSelfChecks():CheckReport {
         assert(scale>0,'escala segura inválida');
         assert(UI_BASE_WIDTH*scale<=safe.w+.001,'ancho legacy recortado');
         assert(CANVAS_HEIGHT*scale<=safe.h+.001,'alto legacy recortado');
+      }
+    });
+    check('Sistema visual Duck Heist renderiza componentes base sin excepción',()=>{
+      const uiCanvas=document.createElement('canvas');uiCanvas.width=480;uiCanvas.height=352;
+      const uiCtx=uiCanvas.getContext('2d')!;
+      for(const [accent,i] of [['#e6c56f',0],['#79b9d2',1],['#d85d58',2],['#78c99a',3]] as const){
+        drawMenuBackdrop(uiCtx,120+i*13,.92,accent);
+        drawMenuHeader(uiCtx,'DUCK HEIST','Prueba de jerarquía visual.',120+i*13,accent,'VAULT OPS');
+        drawMenuCard(uiCtx,36,82,408,72,i===1,accent,'rgba(8,20,26,.96)');
+        drawMouseButton(uiCtx,'ACCIÓN',168,178,144,30,i===2,accent,i===2,false);
+      }
+    });
+    check('Atmósferas de los seis sectores renderizan sin filtros costosos',()=>{
+      const art=document.createElement('canvas');art.width=480;art.height=352;
+      const artCtx=art.getContext('2d')!;
+      for(const deco of ['lobby','security','storage','bakery','vault','golden']){
+        artCtx.clearRect(0,0,480,352);
+        drawRoomAtmosphere(artCtx,deco,180,deco==='golden');
       }
     });
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
