@@ -211,7 +211,7 @@ function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss'
 // ---------------------------------------------------------------------------
 function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
   const content: RoomContent = {
-    enemies: [], pickups: [], items: [], puddles: [],
+    enemies: [], pickups: [], items: [], puddles: [], airStrikes: [],
     doorAnim: {}, lockFlash: 0, combatTimer: 0, ambient: random() * 100,
     magnet: 0,
   };
@@ -378,7 +378,7 @@ function getContent(engine: GameEngine, k = engine.currentKey): RoomContent {
 const currentRoom = (engine: GameEngine): MapRoom => engine.map.rooms.get(engine.currentKey)!;
 
 const EMPTY_CONTENT: RoomContent = {
-  enemies: [], pickups: [], items: [], puddles: [], doorAnim: {},
+  enemies: [], pickups: [], items: [], puddles: [], airStrikes: [], doorAnim: {},
   lockFlash: 0, combatTimer: 0, ambient: 0, magnet: 0,
 };
 
@@ -1927,6 +1927,38 @@ export function updateEngine(engine: GameEngine) {
     }
   }
 
+  // --- Artillería aérea de jefes/subjefes ---
+  // Antes estos ataques eran sólo óvalos de fuego dibujados en el suelo.
+  // Ahora existe un telegraph, un proyectil que baja desde fuera de pantalla y
+  // un impacto real exactamente en la zona marcada.
+  if(content.airStrikes?.length){
+    for(let i=content.airStrikes.length-1;i>=0;i--){
+      const a=content.airStrikes[i];
+      if(a.warning>0){
+        a.warning--;
+        if(a.warning===0) playDanger('charge');
+        continue;
+      }
+      if(a.fall>0){
+        a.fall--;
+        if(a.fall===0&&!a.impacted){
+          a.impacted=true;a.impact=14;
+          const dx=(player.x+7)-a.x,dy=(player.y+8)-a.y;
+          if(player.iFrames<=0&&player.dashTimer<=0&&dx*dx+dy*dy<a.radius*a.radius){
+            damagePlayer(engine,a.damage,'projectile');
+          }
+          spawn(engine,a.x,a.y,'spark',a.variant==='heavy'?10:6,'#ffd477');
+          spawn(engine,a.x,a.y,'smoke',a.variant==='heavy'?7:4,'#7a756a');
+          engine.shakeIntensity=Math.max(engine.shakeIntensity,a.variant==='heavy'?3.2:2.0);
+          playExplosion();
+        }
+        continue;
+      }
+      if(a.impact>0){a.impact--;continue;}
+      content.airStrikes.splice(i,1);
+    }
+  }
+
   // --- Charcos ---
   for (let i = content.puddles.length - 1; i >= 0; i--) {
     const p = content.puddles[i];
@@ -3189,10 +3221,39 @@ function bossFan(engine:GameEngine,boss:Enemy,angle:number,count:number,spread:n
     enemyShoot(engine,boss,angle+(i-mid)*spread,speed+(i%2)*.18,type,0,j===0);
   }
 }
+function queueBossAirStrike(
+  content:RoomContent,x:number,y:number,radius=18,
+  variant:'shell'|'heavy'|'rapid'='shell',warning=42
+) {
+  const list=content.airStrikes??(content.airStrikes=[]);
+  // Evita llenar la misma zona con telegraphs idénticos en el mismo frame.
+  if(list.some(a=>!a.impacted&&Math.hypot(a.x-x,a.y-y)<10))return;
+  list.push({
+    x:clamp(x,38,CANVAS_WIDTH-38),
+    y:clamp(y,42,CANVAS_HEIGHT-38),
+    warning,
+    warningTotal:warning,
+    fall:variant==='heavy'?24:variant==='rapid'?13:18,
+    fallTotal:variant==='heavy'?24:variant==='rapid'?13:18,
+    impact:0,
+    radius,
+    damage:variant==='heavy'?1.5:1,
+    variant,
+  });
+}
+
 function bossHazardRing(content:RoomContent,x:number,y:number,count:number,radius:number,life=150) {
+  const warning=Math.max(30,Math.min(54,Math.round(life*.26)));
   for(let i=0;i<count;i++) {
     const a=(i/count)*Math.PI*2;
-    content.puddles.push({x:x+Math.cos(a)*radius,y:y+Math.sin(a)*radius,life,kind:'fire',radius:16+(i%2)*3});
+    queueBossAirStrike(
+      content,
+      x+Math.cos(a)*radius,
+      y+Math.sin(a)*radius,
+      16+(i%2)*3,
+      i%3===0?'heavy':'shell',
+      warning+(i%2)*5
+    );
   }
 }
 function bossSupport(engine:GameEngine,room:MapRoom,content:RoomContent,pool:string[],max:number) {
@@ -3260,11 +3321,14 @@ function bossSignatureAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:R
       // Cierre de bóveda: cuatro sellos delimitan el espacio y un pulso obliga a recolocarse.
       for(let i=0;i<4+phase+extra;i++){
         const a=i/(4+phase+extra)*Math.PI*2+(step%2)*.35;
-        content.puddles.push({
-          x:clamp(px+Math.cos(a)*(58+phase*8),42,CANVAS_WIDTH-42),
-          y:clamp(py+Math.sin(a)*(58+phase*8),42,CANVAS_HEIGHT-42),
-          life:135+phase*25,kind:'fire',radius:14+phase*2,
-        });
+        queueBossAirStrike(
+          content,
+          clamp(px+Math.cos(a)*(58+phase*8),42,CANVAS_WIDTH-42),
+          clamp(py+Math.sin(a)*(58+phase*8),42,CANVAS_HEIGHT-42),
+          14+phase*2,
+          i%2===0?'heavy':'shell',
+          38+i*4
+        );
       }
       bossRing(engine,boss,6+phase*2,2.35+phase*.16,'drone_shot',engine.frame*.025);
       break;
@@ -3315,7 +3379,7 @@ function bossPatternAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:Roo
     for(let i=0;i<n;i++){
       const a=engine.frame*.017+i/n*Math.PI*2;
       const radius=44+(i%3)*24+phase*6;
-      content.puddles.push({x:clamp(px+Math.cos(a)*radius,45,CANVAS_WIDTH-45),y:clamp(py+Math.sin(a)*radius,45,CANVAS_HEIGHT-45),life:hazardLife+20,kind:'fire',radius:Math.max(13,p.hazardRadius-2)});
+      queueBossAirStrike(content,clamp(px+Math.cos(a)*radius,45,CANVAS_WIDTH-45),clamp(py+Math.sin(a)*radius,45,CANVAS_HEIGHT-45),Math.max(13,p.hazardRadius-2),i%3===0?'heavy':'shell',34+(i%3)*5);
     }
     bossRing(engine,boss,Math.max(6,Math.ceil(count*.7)),speed*.68,p.altProjectile,engine.frame*.018);
   } else if(attack==='lanes') {
@@ -3326,7 +3390,7 @@ function bossPatternAttack(engine:GameEngine,boss:Enemy,room:MapRoom,content:Roo
     for(let v=58;v<max-48;v+=laneStep){
       const x=horizontal?v:CANVAS_WIDTH/2+laneOffset,y=horizontal?CANVAS_HEIGHT/2+laneOffset:v;
       if(dist(x,y,px,py)<32)continue;
-      content.puddles.push({x,y,life:hazardLife,kind:'fire',radius:Math.max(12,p.hazardRadius-3)});
+      queueBossAirStrike(content,x,y,Math.max(12,p.hazardRadius-3),'rapid',28+(Math.floor(v/laneStep)%3)*4);
     }
     bossFan(engine,boss,ang,Math.max(3,Math.ceil(count*.55)),spread*.75,speed,projectile);
   } else if(attack==='rush') {
@@ -3445,7 +3509,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         if(atk===0) bossFan(engine,boss,ang,phase?5:3,.17,3.1,'briefcase');
         else if(atk===1) {boss.moveAngle=ang;boss.moveTimer=phase?28:22;playDanger('charge');}
         else if(atk===2) {
-          for(const da of [-.45,0,.45]) content.puddles.push({x:px+Math.cos(ang+da)*38,y:py+Math.sin(ang+da)*38,life:120,kind:'fire',radius:17});
+          for(const [i,da] of [-.45,0,.45].entries()) queueBossAirStrike(content,px+Math.cos(ang+da)*38,py+Math.sin(ang+da)*38,17,i===1?'heavy':'shell',34+i*5);
         } else bossRing(engine,boss,10,2.5,'briefcase',engine.frame*.025);
       } else if(type==='sargento_migajas') {
         if(atk===0) bossFan(engine,boss,ang,phase?7:5,.14,3.25,'buckshot');
@@ -3466,7 +3530,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       } else {
         if(atk===0) bossFan(engine,boss,ang,phase?5:3,.2,2.8,'dough_ball');
         else if(atk===1) bossHazardRing(content,bx,by,phase?7:5,phase?64:48,phase?190:155);
-        else {boss.moveAngle=ang;boss.moveTimer=phase?24:16;content.puddles.push({x:px,y:py,life:145,kind:'fire',radius:22});}
+        else {boss.moveAngle=ang;boss.moveTimer=phase?24:16;queueBossAirStrike(content,px,py,22,'heavy',38);}
         if(phase&&atk===3) bossRing(engine,boss,10,2.25,'dough_ball',engine.frame*.03);
       }
       boss.attackTimer=Math.max(38,boss.attackCooldown*(phase?.68:1));
@@ -3475,12 +3539,12 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         if(atk===0) bossFan(engine,boss,ang,phase?7:5,.17,3,'dough_ball');
         else if(atk===1) bossHazardRing(content,bx,by,phase?8:6,phase?78:56,phase?200:165);
         else {boss.moveAngle=ang;boss.moveTimer=phase?30:20;playDanger('charge');}
-        if(phase&&atk===3){bossRing(engine,boss,12,2.45,'dough_ball',engine.frame*.03);content.puddles.push({x:px,y:py,life:180,kind:'fire',radius:26});}
+        if(phase&&atk===3){bossRing(engine,boss,12,2.45,'dough_ball',engine.frame*.03);queueBossAirStrike(content,px,py,26,'heavy',42);}
       } else if(type==='el_auditor') {
         if(atk===0) bossFan(engine,boss,ang,phase?7:5,.14,3.1,'coin_proj');
         else if(atk===1) {
           const pts=[[52,45],[-52,45],[52,-45],[-52,-45]];
-          for(const [dx,dy] of pts) content.puddles.push({x:clamp(px+dx,45,CANVAS_WIDTH-45),y:clamp(py+dy,45,CANVAS_HEIGHT-45),life:phase?190:145,kind:'fire',radius:19});
+          for(const [i,[dx,dy]] of pts.entries()) queueBossAirStrike(content,clamp(px+dx,45,CANVAS_WIDTH-45),clamp(py+dy,45,CANVAS_HEIGHT-45),19,i%2?'shell':'heavy',36+i*4);
         } else bossRing(engine,boss,phase?14:10,2.5,'briefcase',engine.frame*.018);
         if(phase&&atk===3) bossFan(engine,boss,ang,9,.11,3.4,'coin_proj');
       } else if(type==='ganso_antidisturbios') {
@@ -3529,7 +3593,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         case 'don_levadura':
           if(atk===0) bossFan(engine,boss,ang,5+phase*2,.19,2.9,'dough_ball');
           else if(atk===1) bossHazardRing(content,bx,by,6+phase*3,48+phase*18,190);
-          else if(atk===2){bossSupport(engine,room,content,['evil_croissant','rolling_bagel'],5+phase);content.puddles.push({x:px,y:py,life:170,kind:'fire',radius:22+phase*3});}
+          else if(atk===2){bossSupport(engine,room,content,['evil_croissant','rolling_bagel'],5+phase);queueBossAirStrike(content,px,py,22+phase*3,'heavy',40);}
           else if(atk===3) bossRing(engine,boss,12+phase*4,2.45,'dough_ball',engine.frame*.03);
           else {bossRing(engine,boss,18,2.85,'dough_ball',engine.frame*.06);bossHazardRing(content,px,py,8,72,210);}
           break;
