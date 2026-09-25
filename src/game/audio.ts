@@ -308,41 +308,52 @@ export function playDashReady() {
   } catch { /* ignorar */ }
 }
 
-export function playShoot(weapon='quack_blaster') {
+export function playShoot(weapon='quack_blaster'){
   const rapid=weapon==='feather_gun'||weapon==='quack_laser'||weapon==='homing_crumbs';
-  if(!allow(weapon,rapid?45:weapon==='breadcrumb_shotgun'?120:weapon==='plasma_baker'?180:55)) return;
+  if(!allow(weapon,rapid?42:weapon==='breadcrumb_shotgun'?115:weapon==='plasma_baker'?170:52))return;
 
-  // Todos son sonidos procedurales: ataque seco + cuerpo grave + cola corta,
-  // ajustados por clase para que una 9 mm, escopeta, fusil y .50 no suenen igual.
-  switch(weapon) {
-    case 'quack_blaster': // pistola 9 mm
-      noise(.050,.038);blip('triangle',520,145,.060,.040);blip('sine',135,82,.075,.025,.008);break;
+  const crack=(high:number,body:number,tail:number,vol:number)=>{
+    filteredNoise(.040,vol*.72,{type:'highpass',freq:high,q:.55});
+    filteredNoise(.075,vol*.48,{type:'bandpass',freq:body,q:.75});
+    tone(tail,.095,vol*.50,{type:'sine',to:Math.max(34,tail*.58),attack:.003,cutoff:520});
+  };
+
+  switch(weapon){
+    case 'quack_blaster': // 9 mm
+      crack(3200,1250,118,.047);break;
     case 'breadcrumb_shotgun': // 12 ga
-      noise(.115,.082);blip('triangle',175,48,.120,.070);blip('sine',82,42,.145,.052,.008);break;
-    case 'feather_gun': // subfusil 9 mm
-      noise(.034,.030);blip('square',610,185,.040,.030);blip('sine',155,95,.045,.017);break;
-    case 'bread_boomerang': // carabina 5.56
-      noise(.052,.043);blip('triangle',720,170,.055,.037);blip('sine',120,70,.075,.027,.006);break;
-    case 'rubber_duck_cannon': // fusil 7.62
-      noise(.070,.055);blip('triangle',470,92,.080,.048);blip('sine',95,48,.105,.040,.006);break;
+      filteredNoise(.13,.082,{type:'lowpass',freq:1650,q:.42});
+      filteredNoise(.060,.045,{type:'highpass',freq:2800,q:.5});
+      lowImpact(68,.070);tone(115,.15,.040,{type:'triangle',to:42,attack:.003,cutoff:520});break;
+    case 'feather_gun': // SMG
+      crack(3900,1550,132,.035);break;
+    case 'bread_boomerang': // 5.56
+      crack(4300,1750,105,.046);tone(620,.045,.010,{type:'triangle',to:410,attack:.002,cutoff:1500});break;
+    case 'rubber_duck_cannon': // 7.62
+      crack(3500,1280,82,.060);lowImpact(55,.027,.005);break;
     case 'baguette_launcher': // 40 mm
-      noise(.125,.060);blip('sine',105,34,.160,.072);blip('triangle',225,74,.090,.030,.012);break;
-    case 'quack_laser': // ametralladora ligera
-      noise(.042,.038);blip('square',520,135,.047,.034);blip('sine',105,62,.060,.024);break;
+      filteredNoise(.11,.052,{type:'lowpass',freq:950,q:.5});
+      lowImpact(62,.070);tone(150,.14,.030,{type:'triangle',to:48,attack:.004,cutoff:500});break;
+    case 'quack_laser': // automática pesada
+      crack(3000,1100,76,.052);lowImpact(49,.022);break;
     case 'golden_egg_revolver': // .357
-      noise(.072,.060);blip('triangle',560,82,.095,.055);blip('sine',100,46,.125,.042,.006);break;
+      crack(3600,1350,74,.068);lowImpact(48,.034,.004);break;
     case 'tactical_toaster': // .45 suprimida
-      noise(.040,.020);blip('triangle',240,92,.065,.030);blip('sine',82,58,.070,.021);break;
+      filteredNoise(.050,.021,{type:'bandpass',freq:780,q:.9});
+      filteredNoise(.030,.010,{type:'highpass',freq:2500,q:.5});
+      tone(96,.080,.025,{type:'sine',to:62,attack:.003,cutoff:360});break;
     case 'egg_cannon': // DMR 7.62
-      noise(.064,.050);blip('triangle',520,86,.080,.046);blip('sine',92,48,.110,.037,.006);break;
-    case 'baguette_sniper': // .308 cerrojo
-      noise(.085,.060);blip('triangle',430,62,.110,.058);blip('sine',82,38,.145,.047,.008);break;
+      crack(3700,1450,76,.058);tone(410,.060,.011,{type:'triangle',to:290,attack:.003,cutoff:1100});break;
+    case 'baguette_sniper': // .308
+      crack(3300,1120,58,.074);lowImpact(43,.040,.005);tone(230,.13,.014,{type:'triangle',to:95,attack:.004,cutoff:650});break;
     case 'plasma_baker': // .50
-      noise(.120,.078);blip('sine',78,28,.190,.082);blip('triangle',310,52,.115,.052,.006);break;
-    case 'homing_crumbs': // PDW 5.7
-      noise(.030,.025);blip('square',780,235,.036,.027);blip('sine',175,110,.040,.014);break;
+      filteredNoise(.15,.086,{type:'lowpass',freq:1350,q:.42});
+      filteredNoise(.055,.052,{type:'highpass',freq:2600,q:.55});
+      lowImpact(34,.090);tone(92,.20,.050,{type:'triangle',to:31,attack:.003,cutoff:420});break;
+    case 'homing_crumbs': // PDW
+      crack(4600,1850,145,.032);break;
     default:
-      noise(.045,.032);blip('triangle',480,120,.055,.032);
+      crack(3400,1300,105,.040);
   }
 }
 export function playHit(){
