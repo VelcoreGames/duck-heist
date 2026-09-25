@@ -517,14 +517,25 @@ export function renderWorld(engine: GameEngine) {
   for (const p of engine.projectiles) {
     ctx.save();
     ctx.translate(p.x,p.y);
-    if(p.friendly&&BALLISTIC_PLAYER_PROJECTILES.has(p.type)) ctx.rotate(Math.atan2(p.vy,p.vx));
+    const speed=Math.hypot(p.vx,p.vy)||1,dx=p.vx/speed,dy=p.vy/speed;
+    const directional=p.friendly&&BALLISTIC_PLAYER_PROJECTILES.has(p.type)||p.type==='enemy_bullet'||p.type==='pistol'||p.type==='buckshot'||p.type==='drone_shot'||p.type==='sniper_baguette';
+    if(directional)ctx.rotate(Math.atan2(p.vy,p.vx));
+
+    // Estela corta y orientada para leer velocidad/dirección sin blur ni filtros.
+    if(speed>1.8&&(directional||p.type==='coin_proj'||p.type==='toast'||p.type==='dough_ball')){
+      ctx.save();
+      if(!directional)ctx.rotate(Math.atan2(p.vy,p.vx));
+      const hostile=!p.friendly,trail=hostile?(p.type==='drone_shot'?'#ff6058':p.type==='buckshot'?'#f1a45c':'#d86b58'):'#e6c56f';
+      ctx.globalAlpha=hostile?.14:.11;ctx.fillStyle=trail;
+      ctx.fillRect(-Math.min(12,3+speed*1.5),-1,Math.min(10,2+speed),2);
+      ctx.globalAlpha=hostile?.07:.055;ctx.fillRect(-Math.min(18,6+speed*2),0,Math.min(8,2+speed*.7),1);
+      ctx.restore();
+    }
 
     if(p.nuclear){
       // El antiguo aura era un fillRect verde y se veía como un cuadrado
       // pegado al proyectil. Ahora el efecto es radial, pixel-art y barato:
       // dos halos circulares + una estela corta en la dirección del disparo.
-      const len=Math.hypot(p.vx,p.vy)||1;
-      const dx=p.vx/len,dy=p.vy/len;
       ctx.globalAlpha=.12;
       ctx.fillStyle='#96e05e';
       ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
@@ -689,12 +700,29 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1;
   }
 
-  // fundido de transición entre salas
+  // Transición entre salas como compuerta de bóveda direccional.
   if (engine.transition.active) {
-    const t = engine.transition.timer / engine.transition.total;
-    const a = t < 0.5 ? t * 2 : (1 - t) * 2;
-    ctx.fillStyle = `rgba(4,5,12,${a})`;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const t=clamp(engine.transition.timer/engine.transition.total,0,1);
+    const close=t<.5?smoothStep(0,.5,t):1-smoothStep(.5,1,t);
+    const dir=engine.transition.dir;
+    ctx.save();
+    ctx.fillStyle=`rgba(2,8,11,${.28+.48*close})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.fillStyle='#101d22';ctx.globalAlpha=.92;
+    if(dir==='E'||dir==='W'){
+      const shutter=Math.round(CANVAS_WIDTH*.52*close);
+      ctx.fillRect(0,0,shutter,CANVAS_HEIGHT);ctx.fillRect(CANVAS_WIDTH-shutter,0,shutter,CANVAS_HEIGHT);
+      ctx.fillStyle='#496066';ctx.fillRect(shutter-3,0,3,CANVAS_HEIGHT);ctx.fillRect(CANVAS_WIDTH-shutter,0,3,CANVAS_HEIGHT);
+    }else{
+      const shutter=Math.round(CANVAS_HEIGHT*.52*close);
+      ctx.fillRect(0,0,CANVAS_WIDTH,shutter);ctx.fillRect(0,CANVAS_HEIGHT-shutter,CANVAS_WIDTH,shutter);
+      ctx.fillStyle='#496066';ctx.fillRect(0,shutter-3,CANVAS_WIDTH,3);ctx.fillRect(0,CANVAS_HEIGHT-shutter,CANVAS_WIDTH,3);
+    }
+    ctx.globalAlpha=.22*close;ctx.fillStyle='#e6c56f';
+    for(let i=0;i<6;i++){
+      if(dir==='E'||dir==='W')ctx.fillRect(CANVAS_WIDTH/2-2,CANVAS_HEIGHT/2-52+i*20,4,8);
+      else ctx.fillRect(CANVAS_WIDTH/2-52+i*20,CANVAS_HEIGHT/2-2,8,4);
+    }
+    ctx.restore();
   }
 }
 
