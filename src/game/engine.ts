@@ -2394,13 +2394,17 @@ export function updateEngine(engine: GameEngine) {
   }
 
   // --- Temblor ---
-  if (engine.shakeIntensity > 0 && engine.settings.shake > 0) {
-    const amp = engine.shakeIntensity * engine.settings.shake;
-    engine.shakeX = rng(-amp, amp);
-    engine.shakeY = rng(-amp, amp);
-    engine.shakeIntensity *= 0.88;
-    if (engine.shakeIntensity < 0.3) engine.shakeIntensity = 0;
-  } else { engine.shakeX = 0; engine.shakeY = 0; engine.shakeIntensity = 0; }
+  // Movimiento amortiguado y coherente en vez de ruido totalmente aleatorio.
+  // Conserva la intensidad de cada evento, pero evita micro-jitter que cansa
+  // durante ráfagas largas o combates de jefe.
+  if(engine.shakeIntensity>0&&engine.settings.shake>0){
+    const amp=engine.shakeIntensity*engine.settings.shake;
+    const phase=engine.frame*.93;
+    engine.shakeX=Math.sin(phase*1.37+engine.shakeIntensity*.41)*amp;
+    engine.shakeY=Math.cos(phase*1.83+engine.shakeIntensity*.29)*amp*.72;
+    engine.shakeIntensity*=.88;
+    if(engine.shakeIntensity<.3)engine.shakeIntensity=0;
+  }else{engine.shakeX=0;engine.shakeY=0;engine.shakeIntensity=0;}
 
   // --- Muerte ---
   if (player.hp <= 0) {
