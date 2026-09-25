@@ -1392,6 +1392,72 @@ function drawIconicBossCore(ctx:Ctx,bossType:string,frame:number,phase:number,v:
   return false;
 }
 
+function drawBossPhaseTransformation(ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual){
+  if(phase<=0)return;
+  const pulse=.5+.5*Math.sin(frame*.16+def.visualIndex*.27);
+  const hot=phase>=2?'#ff554f':v.secondary;
+  ctx.save();
+  switch(def.role){
+    case 'artillery':
+      for(const x of [-24,24]){rect(ctx,x-4,-31-phase*3,8,10+phase*3,'#20282d');rect(ctx,x-2,-38-phase*4,4,9,hot);}
+      if(phase>=2){rect(ctx,-17,18,34,5,'#4a2424');px(ctx,-3,19,'#ff9b55',6);}
+      break;
+    case 'duelist':
+      rect(ctx,-10,11,6,5,'#6c3737');
+      if(phase>=2){ctx.save();ctx.translate(-16,0);ctx.rotate(.52);rect(ctx,-2,-16,4,31,'#252d31');rect(ctx,-4,-18,8,5,hot);ctx.restore();}
+      break;
+    case 'bulwark':
+      ctx.globalAlpha=.45+.25*pulse;rect(ctx,15,-5,7,18,hot);ctx.globalAlpha=1;
+      if(phase>=2){rect(ctx,22,-8,7,25,'#2b3034');rect(ctx,25,-5,3,18,'#ff6a55');}
+      break;
+    case 'swarm':
+      for(let i=0;i<2+phase*2;i++){const a=frame*.05+i*Math.PI*2/(2+phase*2);px(ctx,Math.cos(a)*(31+phase*3)-2,Math.sin(a)*(16+phase*2)-2,i%2?hot:v.accent,4);}
+      break;
+    case 'sniper':
+      rect(ctx,-15,17,30,4,'#4a2628');
+      if(phase>=2){ctx.save();ctx.translate(5,-12);ctx.rotate(-.04);rect(ctx,0,-3,48,6,'#1b2226');rect(ctx,34,-5,14,10,hot);ctx.restore();}
+      break;
+    case 'storm':
+      ctx.strokeStyle=hot;ctx.lineWidth=2;ctx.globalAlpha=.45+.28*pulse;
+      for(let i=0;i<2+phase;i++){const a=frame*(i%2?.06:-.052)+i*1.7;ctx.beginPath();ctx.arc(0,0,30+i*5,a,a+.85);ctx.stroke();}
+      ctx.globalAlpha=1;
+      break;
+    case 'warden':
+      for(const x of [-31,31]){rect(ctx,x-3,-22,6,47,'#252d32');rect(ctx,x-1,-18,2,39,hot);}
+      if(phase>=2){rect(ctx,-20,-19,40,4,'#424d52');rect(ctx,-14,-21,28,2,v.accent);}
+      break;
+    case 'charger':
+      ctx.fillStyle='#69777c';
+      ctx.beginPath();ctx.moveTo(-28,-4);ctx.lineTo(-42-phase*4,-13);ctx.lineTo(-35,3);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(28,-4);ctx.lineTo(42+phase*4,-13);ctx.lineTo(35,3);ctx.closePath();ctx.fill();
+      if(phase>=2)rect(ctx,-15,16,30,6,hot);
+      break;
+    case 'vortex':
+      ctx.strokeStyle=hot;ctx.lineWidth=phase>=2?4:3;ctx.globalAlpha=.6;ctx.beginPath();ctx.arc(0,1,23+phase*6,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      for(let i=0;i<phase*2;i++){const a=frame*.045+i*Math.PI/phase;px(ctx,Math.cos(a)*(35+phase*2)-2,1+Math.sin(a)*(23+phase)-2,v.accent,4);}
+      break;
+    case 'executioner':
+      rect(ctx,-17,-19,6,42,'#292f33');rect(ctx,-15,-16,2,36,hot);
+      if(phase>=2){ctx.save();ctx.translate(18,0);ctx.rotate(.42);rect(ctx,-3,-24,6,47,'#252b2f');rect(ctx,-6,-26,12,7,hot);ctx.restore();}
+      break;
+    case 'reactor':
+      ctx.globalAlpha=.24+.2*pulse;ctx.fillStyle=hot;ctx.beginPath();ctx.arc(0,3,18+phase*7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      if(phase>=2){for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(Math.cos(a)*15,3+Math.sin(a)*15);ctx.lineTo(Math.cos(a)*32,3+Math.sin(a)*32);ctx.stroke();}}
+      break;
+    case 'trickster':
+      for(const side of [-1,1]){ctx.globalAlpha=.35+.25*pulse;ctx.strokeStyle=side<0?v.accent:hot;ctx.lineWidth=2;ctx.beginPath();ctx.arc(side*(22+phase*2),-5,12+phase*2,frame*.05*side,frame*.05*side+Math.PI*1.55);ctx.stroke();}
+      ctx.globalAlpha=1;
+      break;
+  }
+  if(phase>=2){
+    ctx.strokeStyle='#161b1f';ctx.lineWidth=2;ctx.globalAlpha=.8;
+    ctx.beginPath();ctx.moveTo(-9,-8);ctx.lineTo(-3,-1);ctx.lineTo(-8,6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(8,-5);ctx.lineTo(3,2);ctx.lineTo(9,8);ctx.stroke();
+    ctx.globalAlpha=.35+.3*pulse;px(ctx,-2,1,hot,5);ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+
 function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
@@ -1489,6 +1555,8 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     drawBossFrontIdentity(ctx,key,tier,v);
     drawBossCrest(ctx,key,v);
   }
+
+  if(!def.finalBoss)drawBossPhaseTransformation(ctx,def,frame,phase,v);
 
   drawBossAttackHardware(ctx,{accent:v.accent,secondary:v.secondary,family:v.family,bob:v.bob},def.pattern.sequence,frame,phase);
 
