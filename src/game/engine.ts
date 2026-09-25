@@ -3567,7 +3567,7 @@ function bossPatternMove(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,a
     Math.cos(ang)*spd*forward+Math.cos(ang+Math.PI/2)*spd*wobble,
     Math.sin(ang)*spd*forward+Math.sin(ang+Math.PI/2)*spd*wobble);
 }
-function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:number,tier:'mini'|'sub'|'boss') {
+function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',content:RoomContent) {
   boss.bossPhase=phase;
   boss.attackTimer=tier==='boss'?78:tier==='sub'?62:38;
   boss.stunned=tier==='boss'?50:tier==='sub'?38:18;
@@ -3619,7 +3619,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   if(!def) return;
 
   const nextPhase=tier==='boss'?(pct<=.33?2:pct<=.66?1:0):tier==='sub'?(pct<=.5?1:0):(pct<=.35?1:0);
-  if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def,nextPhase,tier);
+  if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def,nextPhase,tier,content);
 
   const phase=boss.bossPhase;
   const ang=Math.atan2(py-by,px-bx);
