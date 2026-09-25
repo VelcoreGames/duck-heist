@@ -720,7 +720,7 @@ function resetEndlessArena(engine:GameEngine) {
   const content=getContent(engine);
   // La arena persiste; el botín sobrante ya se resuelve al cerrar cada ronda.
   // Aquí solo se limpia combate temporal.
-  content.enemies=[];content.puddles=[];content.choices=undefined;
+  content.enemies=[];content.puddles=[];content.airStrikes=[];content.choices=undefined;
   content.pedestal=undefined;content.chest=undefined;content.stairs=undefined;content.shopItems=undefined;
   content.damaged=false;content.clearCounted=false;content.perfectAwarded=false;content.combatTimer=0;
   content.alarmTimer=undefined;content.securityTimer=undefined;content.modifierResolved=false;
@@ -3731,6 +3731,8 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   if(random()<build.radiation) content.puddles.push({x:e.x+e.size/2,y:e.y+e.size/2,life:240,kind:'radiation',radius:32});
 
   if (e.isBoss) {
+    // Ningún ataque aéreo pendiente debe caer después de derrotar al jefe.
+    content.airStrikes=[];
     spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'spark', 26, '#f4d03f');
     if(BOSSES[e.bossType]) engine.run.bosses++;
     if (engine.gameMode!=='endless' && room.type !== RoomType.BOSS) {
