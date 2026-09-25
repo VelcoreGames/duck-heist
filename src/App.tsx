@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,getContentOf,restoreCurrentRoomMusic,
+  createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,restoreCurrentRoomMusic,
   restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
   resumeEndlessGame, clearEndlessCheckpoint, resumeHeistGame, clearHeistCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
@@ -26,7 +26,7 @@ import { collectionMove, collectionTab, collectionClick, collectionViewEntries, 
 import { CONTROL_ROWS, remapBinding, keyLabel } from './game/controls';
 import { controlsHit, resetControls } from './game/controlsUI';
 import { careerClick, careerTab } from './game/careerUI';
-import { SKINS, BOSSES } from './game/data';
+import { SKINS } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
 
