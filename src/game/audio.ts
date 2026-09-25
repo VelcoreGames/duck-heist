@@ -14,6 +14,8 @@ export type MusicMood='menu'|'pause'|'start'|'combat'|'run'|'shop'|'gunvan'|'caf
 let musicMood:MusicMood='off';
 let musicFloor=0;
 let musicVariant='';
+let musicIntensity=0;
+let pauseSnapshot:{mood:Exclude<MusicMood,'off'|'pause'>;floor:number;variant:string;step:number}|null=null;
 let testMode=false;
 export function setAudioTestMode(value:boolean) { testMode=value; }
 let priorityUntil=0;
@@ -264,7 +266,7 @@ const RUN_ROOTS=[73.42,82.41,65.41,69.30,61.74,55.00];
 const MINOR=[1,Math.pow(2,3/12),Math.pow(2,7/12),Math.pow(2,10/12)];
 const DARK=[1,Math.pow(2,3/12),Math.pow(2,6/12),Math.pow(2,10/12)];
 
-export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
+export function setMusic(mood:MusicMood,floor=musicFloor,variant='',resumeStep?:number){
   if(testMode)return;
   if(musicMood===mood&&musicFloor===floor&&musicVariant===variant)return;
 
@@ -279,7 +281,7 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
 
   const startTheme=()=>{
     if(serial!==musicTransitionSerial||mood==='off')return;
-    musicStep=0;
+    musicStep=resumeStep??0;
     const variantSeed=musicHash(variant||mood);
     const bossIdentity=bossMusicIdentity(variant);
     const bossTempoBoost=bossIdentity.phase*6;
@@ -513,6 +515,25 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
     tickBossMusic(mood,step,sec,variant);
     return;
   }
+}
+
+export function setMusicIntensity(value:number){
+  musicIntensity=Math.max(0,Math.min(1,value));
+}
+
+export function enterPauseMusic(floor=musicFloor){
+  if(musicMood!=='pause'&&musicMood!=='off'){
+    pauseSnapshot={mood:musicMood as Exclude<MusicMood,'off'|'pause'>,floor:musicFloor,variant:musicVariant,step:musicStep};
+  }
+  setMusic('pause',floor);
+}
+
+export function resumePauseMusic(){
+  const snapshot=pauseSnapshot;
+  pauseSnapshot=null;
+  if(!snapshot)return false;
+  setMusic(snapshot.mood,snapshot.floor,snapshot.variant,snapshot.step);
+  return true;
 }
 
 export function stopMusic(){setMusic('off');}
