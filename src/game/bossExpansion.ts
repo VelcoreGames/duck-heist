@@ -5,6 +5,9 @@ export type BossTier='mini'|'sub'|'boss';
 export type BossFamily='command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth'|'vault';
 export type BossAttackKind='fan'|'ring'|'spiral'|'crossfire'|'cage'|'mines'|'lanes'|'rush'|'summon'|'sniper'|'nova'|'warp';
 export type BossMobility='hunter'|'orbit'|'skirmish'|'fortress'|'ambush';
+export type BossCombatRole=
+  |'artillery'|'duelist'|'bulwark'|'swarm'|'sniper'|'storm'
+  |'warden'|'charger'|'vortex'|'executioner'|'reactor'|'trickster';
 
 export interface BossPatternDef {
   signature:string;
@@ -34,6 +37,10 @@ export interface BossDef {
   scaleX:number;scaleY:number;hitboxW:number;hitboxH:number;
   /** Algunos encuentros son estructuras gigantes que dominan la arena sin perseguir. */
   stationary?:boolean;
+  /** Rol de combate: cambia armas, ritmo, movimiento, efectos y lectura visual. */
+  role:BossCombatRole;
+  /** Variante 0-3 del rol. Modifica geometría y firma sin duplicar el encuentro. */
+  roleVariant:number;
   legacy?:boolean;
   finalBoss?:boolean;
 }
@@ -53,6 +60,18 @@ export const BOSS_FAMILY_STYLE:Record<BossFamily,{accent:string;secondary:string
 
 const ATTACKS:BossAttackKind[]=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
 const MOBILITY:BossMobility[]=['hunter','orbit','skirmish','fortress','ambush'];
+const COMBAT_ROLES:BossCombatRole[]=[
+  'artillery','duelist','bulwark','swarm','sniper','storm',
+  'warden','charger','vortex','executioner','reactor','trickster',
+];
+
+function combatRoleFor(tier:BossTier,index:number):BossCombatRole {
+  // La rotación cambia por jerarquía para que el mismo índice de miniboss,
+  // subjefe y jefe no repita rol. En 48 entradas cada rol aparece 4 veces,
+  // pero con variante, familia y secuencia de ataques distintas.
+  const offset=tier==='mini'?0:tier==='sub'?5:9;
+  return COMBAT_ROLES[(index*5+offset)%COMBAT_ROLES.length];
+}
 
 function permutationCount(n:number,k:number){
   let total=1;for(let i=0;i<k;i++)total*=n-i;return total;
@@ -142,19 +161,25 @@ function build(seed:Seed,index:number,tier:BossTier):BossDef {
     [.72,1.46], // torre / francotirador
   ][profile] as [number,number];
 
-  const fortress=pattern.mobility==='fortress';
-  const stationary=fortress && (tier!=='mini' || index%2===0);
-  const giant=stationary || profile===4;
-  const size=Math.round(baseSize*(giant?(tier==='boss'?1.28:tier==='sub'?1.2:1.12):1));
-  const scaleX=proportions[0],scaleY=proportions[1];
+  const role=combatRoleFor(tier,index);
+  const roleVariant=Math.floor(index/12)%4;
+  const fortress=pattern.mobility==='fortress'||role==='bulwark'||role==='artillery';
+  const stationary=(role==='artillery'||role==='bulwark'||fortress) && (tier!=='mini' || index%2===0);
+  const giant=stationary || profile===4 || role==='reactor';
+  const roleSize=role==='sniper'||role==='duelist'?.94:role==='bulwark'||role==='reactor'?1.1:1;
+  const size=Math.round(baseSize*(giant?(tier==='boss'?1.28:tier==='sub'?1.2:1.12):1)*roleSize);
+  const scaleX=proportions[0]*(role==='charger'?1.12:role==='sniper'?.88:1);
+  const scaleY=proportions[1]*(role==='sniper'?1.15:role==='bulwark'?.9:1);
   const hitboxW=Math.max(18,Math.round(size*scaleX*.88));
   const hitboxH=Math.max(18,Math.round(size*scaleY*.84));
-  const speed=stationary?0.06:baseSpeed;
+  const roleSpeed=role==='charger'?1.14:role==='duelist'?1.08:role==='sniper'?.95:1;
+  const speed=stationary?0.06:baseSpeed*roleSpeed;
 
   const base:BossDef={
     id,name,subtitle,hp,speed,size,phases:tier==='mini'?1:tier==='sub'?2:3,
     family,accent:style.accent,secondary:style.secondary,
-    pattern,floorBand:band,visualIndex:index,scaleX,scaleY,hitboxW,hitboxH,stationary,legacy,
+    pattern,floorBand:band,visualIndex:index,scaleX,scaleY,hitboxW,hitboxH,stationary,
+    role,roleVariant,legacy,
   };
   const merged={...base,...(LEGACY_STATS[id]??{})};
   // Si un legado cambia size, su hurtbox debe seguir la nueva silueta.
@@ -1060,6 +1085,7 @@ export const FINAL_BOSS:BossDef={
   hp:560,speed:1.18,size:44,phases:3,family:'wealth',
   accent:'#f4d03f',secondary:'#fff1a3',floorBand:5,finalBoss:true,
   visualIndex:47,scaleX:1.18,scaleY:1.22,hitboxW:46,hitboxH:45,stationary:false,
+  role:'executioner',roleVariant:4,
   pattern:{
     signature:'FINAL:wealth:warp:nova:crossfire:cage:summon:spiral',
     sequence:['warp','nova','crossfire','cage','summon','spiral'],
