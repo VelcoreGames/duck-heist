@@ -67,6 +67,14 @@ export interface Enemy {
   phaseTransition?:number;
   /** Secuencia aprendible de la firma de combate de jefes data-driven. */
   bossAttackIndex?:number;
+  /** Hurtbox elíptica opcional para jefes con siluetas no cuadradas. */
+  hitboxW?:number;
+  hitboxH?:number;
+  /** Escala visual específica del jefe. */
+  visualScaleX?:number;
+  visualScaleY?:number;
+  /** Estructuras/jefes anclados que no persiguen al jugador. */
+  stationaryBoss?:boolean;
 }
 
 export type PickupType =
