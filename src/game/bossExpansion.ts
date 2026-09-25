@@ -102,20 +102,22 @@ function patternFor(tier:BossTier,index:number,family:BossFamily):BossPatternDef
 }
 
 const LEGACY_STATS:Record<string,Partial<BossDef>>={
-  tax_collector:{hp:125,speed:1.9,size:25},
-  sargento_migajas:{hp:135,speed:1.4,size:27},
-  dron_centinela:{hp:145,speed:1.5,size:27},
-  panadero_loco:{hp:150,speed:1.25,size:27},
-  head_baker:{hp:190,speed:1.25,size:30},
-  el_auditor:{hp:185,speed:1.2,size:30},
-  ganso_antidisturbios:{hp:220,speed:1,size:32},
-  cajero_3000:{hp:230,speed:.85,size:34},
-  captain_honk:{hp:260,speed:1.55,size:34},
-  comisario_pico_duro:{hp:300,speed:1.4,size:34},
-  toaster_9000:{hp:340,speed:.9,size:42},
-  general_ganso:{hp:380,speed:1.15,size:38},
-  don_levadura:{hp:360,speed:1.05,size:38},
-  director_seguridad:{hp:420,speed:1.02,size:40},
+  // Los encuentros clásicos reciben perfiles explícitos para que tampoco
+  // compartan la silueta genérica del sistema anterior.
+  tax_collector:{hp:125,speed:1.9,size:27,scaleX:.74,scaleY:1.38},
+  sargento_migajas:{hp:135,speed:1.35,size:32,scaleX:1.42,scaleY:.80},
+  dron_centinela:{hp:145,speed:1.55,size:30,scaleX:1.48,scaleY:.70},
+  panadero_loco:{hp:150,speed:1.25,size:31,scaleX:1.05,scaleY:1.18},
+  head_baker:{hp:190,speed:1.18,size:36,scaleX:.88,scaleY:1.34},
+  el_auditor:{hp:185,speed:1.22,size:34,scaleX:.72,scaleY:1.46},
+  ganso_antidisturbios:{hp:220,speed:.92,size:40,scaleX:1.46,scaleY:.82},
+  cajero_3000:{hp:230,speed:.06,size:48,scaleX:1.52,scaleY:.86,stationary:true},
+  captain_honk:{hp:260,speed:1.5,size:38,scaleX:1.02,scaleY:1.18},
+  comisario_pico_duro:{hp:300,speed:1.35,size:37,scaleX:.86,scaleY:1.28},
+  toaster_9000:{hp:340,speed:.06,size:56,scaleX:1.58,scaleY:.82,stationary:true},
+  general_ganso:{hp:380,speed:1.08,size:44,scaleX:.84,scaleY:1.34},
+  don_levadura:{hp:360,speed:.86,size:50,scaleX:1.28,scaleY:1.18},
+  director_seguridad:{hp:420,speed:.06,size:60,scaleX:1.62,scaleY:.92,stationary:true},
 };
 
 function build(seed:Seed,index:number,tier:BossTier):BossDef {
