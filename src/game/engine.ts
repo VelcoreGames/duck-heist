@@ -1558,6 +1558,10 @@ function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
   setMusic('run',floor,musicVariant);
 }
 
+export function restoreCurrentRoomMusic(engine:GameEngine){
+  setRoomMusic(engine,currentRoom(engine),getContent(engine));
+}
+
 export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
   const room = engine.map.rooms.get(k);
   if (!room) return;
