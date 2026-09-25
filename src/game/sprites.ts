@@ -2327,6 +2327,23 @@ export function drawDoor(
   ctx.fill();
   ctx.globalAlpha = 1;
 
+  // Umbral y mecanismo: cada puerta se siente como parte de la bóveda, no como un tile decorativo.
+  ctx.globalAlpha=.55;
+  if(horizontal){
+    rect(ctx,bx+5,by+(dir==='N'?T-6:4),T-10,2,pal.dark);
+    for(const ox of [7,T-9])px(ctx,bx+ox,by+(dir==='N'?T-5:5),pal.bolt,1);
+  }else{
+    rect(ctx,bx+(dir==='W'?T-6:4),by+5,2,T-10,pal.dark);
+    for(const oy of [7,T-9])px(ctx,bx+(dir==='W'?T-5:5),by+oy,pal.bolt,1);
+  }
+  ctx.globalAlpha=1;
+  if(locked&&openAmount<.2){
+    const cxp=bx+T/2,cyp=by+T/2;
+    ctx.fillStyle='#1a1112';ctx.fillRect(cxp-5,cyp-5,10,10);
+    ctx.strokeStyle=pal.light;ctx.lineWidth=1;ctx.strokeRect(cxp-4.5,cyp-4.5,9,9);
+    ctx.fillStyle=lightCol;ctx.globalAlpha=.75+.2*Math.sin(frame*.18);ctx.fillRect(cxp-1,cyp-2,3,4);ctx.globalAlpha=1;
+  }
+
   // Partículas doradas alrededor de la puerta de objeto
   if (style === 'gold') {
     for (let i = 0; i < 3; i++) {
@@ -2720,33 +2737,23 @@ export function drawBankerChicken(ctx: Ctx, x: number, y: number, frame: number,
 }
 
 export function drawShopPigeon(ctx: Ctx, x: number, y: number, frame: number) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  const bob = Math.sin(frame * 0.1) * 1;
-  
-  // Body
-  rect(ctx, bx + 4, by + 8 + bob, 10, 10, '#9e9e9e');
-  rect(ctx, bx + 3, by + 10 + bob, 12, 6, '#8e8e8e');
-  
-  // Head
-  rect(ctx, bx + 4, by + 3 + bob, 9, 7, '#a8a8a8');
-  
-  // Suspicious eyes
-  px(ctx, bx + 5, by + 5 + bob, '#333', 2);
-  px(ctx, bx + 10, by + 5 + bob, '#333', 2);
-  
-  // Tiny hat
-  rect(ctx, bx + 3, by + 1 + bob, 11, 3, '#333');
-  rect(ctx, bx + 5, by - 1 + bob, 7, 3, '#333');
-  
-  // Beak
-  rect(ctx, bx + 7, by + 7 + bob, 4, 2, '#d4a574');
-  
-  // Trenchcoat
-  rect(ctx, bx + 2, by + 10 + bob, 14, 8, '#5d4037');
-  rect(ctx, bx + 8, by + 10 + bob, 1, 8, '#4e342e');
-  
-  // Feet
-  rect(ctx, bx + 4, by + 18, 3, 2, '#bf6060');
-  rect(ctx, bx + 10, by + 18, 3, 2, '#bf6060');
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.1)),look=Math.sin(frame*.025)>0?1:-1;
+  ctx.save();
+  enemyShadow(ctx,bx+9,by+20,8,.28);
+
+  rect(ctx,bx+3,by+8+bob,12,10,'#7d8788');rect(ctx,bx+4,by+4+bob,10,7,'#a8adab');
+  rect(ctx,bx+1,by+10+bob,16,9,'#493a32');rect(ctx,bx+3,by+11+bob,12,8,'#5c473a');
+  rect(ctx,bx+8,by+10+bob,2,9,'#2d2724');rect(ctx,bx+2,by+9+bob,4,4,'#352c29');rect(ctx,bx+13,by+9+bob,4,4,'#352c29');
+
+  rect(ctx,bx+1,by+2+bob,16,3,'#20282b');rect(ctx,bx+5,by-2+bob,9,5,'#2b3335');
+  rect(ctx,bx+6,by-1+bob,7,1,'#59625f');
+  px(ctx,bx+(look>0?11:6),by+5+bob,'#111718',2);
+  px(ctx,bx+(look>0?6:11),by+5+bob,'#3d4949',1);
+  rect(ctx,bx+7,by+7+bob,5,2,'#c68b4c');
+
+  rect(ctx,bx+15,by+13+bob,7,6,'#2a3031');rect(ctx,bx+16,by+14+bob,5,4,'#6c5a3b');rect(ctx,bx+17,by+12+bob,3,2,'#8c7b56');px(ctx,bx+18,by+16+bob,'#e6c56f',1);
+  rect(ctx,bx+5,by+12+bob,4,2,'#c28b50');px(ctx,bx+6,by+11+bob,'#efd69a',1);
+  rect(ctx,bx+4,by+19,3,2,'#b45f58');rect(ctx,bx+11,by+19,3,2,'#b45f58');
+  if(frame%90<18){ctx.globalAlpha=.6;px(ctx,bx+20,by+10+bob,'#e6c56f',1);ctx.globalAlpha=1;}
+  ctx.restore();
 }
