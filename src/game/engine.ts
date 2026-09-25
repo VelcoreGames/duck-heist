@@ -3713,10 +3713,14 @@ function startIconicBossSequence(boss:Enemy,attack:number,delay:number){
   boss.bossSequenceTimer=delay;
 }
 
-function finishIconicBossSequence(boss:Enemy){
+function finishIconicBossSequence(boss:Enemy,recovery=0){
   boss.bossSequenceAttack=undefined;
   boss.bossSequenceStep=undefined;
   boss.bossSequenceTimer=undefined;
+  if(recovery>0){
+    boss.bossAttackRecovery=recovery;
+    boss.bossAttackRecoveryMax=recovery;
+  }
 }
 
 function runIconicBossSequence(engine:GameEngine,boss:Enemy,room:MapRoom,content:RoomContent){
@@ -3862,8 +3866,10 @@ function runIconicBossSequence(engine:GameEngine,boss:Enemy,room:MapRoom,content
       break;
   }
 
-  if(done)finishIconicBossSequence(boss);
-  else {boss.bossSequenceStep=step+1;boss.bossSequenceTimer=next;}
+  if(done){
+    const recovery=BOSSES[boss.bossType]?18:SUBBOSSES[boss.bossType]?15:12;
+    finishIconicBossSequence(boss,recovery);
+  }else{boss.bossSequenceStep=step+1;boss.bossSequenceTimer=next;}
 }
 
 function bossPhaseTransition(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',content:RoomContent) {
@@ -4132,8 +4138,15 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       boss.attackTimer=Math.max(boss.attackTimer,tier==='boss'?72:tier==='sub'?56:46);
     }
     const recovery=tier==='boss'?18:tier==='sub'?15:12;
-    boss.bossAttackRecovery=recovery;
-    boss.bossAttackRecoveryMax=recovery;
+    if(def.legacy&&boss.bossSequenceAttack!==undefined){
+      // El recovery empieza al terminar el último paso del combo, no al disparar
+      // el primer paso. Así la ventana de castigo existe de verdad.
+      boss.bossAttackRecovery=0;
+      boss.bossAttackRecoveryMax=0;
+    }else{
+      boss.bossAttackRecovery=recovery;
+      boss.bossAttackRecoveryMax=recovery;
+    }
     if(!def.legacy)bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
     if(def.stationary&&!def.legacy){
       // Las estructuras gigantes dominan el mapa con artillería real. En los
