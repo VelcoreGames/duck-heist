@@ -872,7 +872,9 @@ function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
   engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
   engine.bossIntroSubtitle=doubleThreat?names.join(' + '):`${engine.endless.threatRank} · ${endlessStage(engine.endless.round)}`;
   engine.bossIntroTimer=doubleThreat?150:tier==='boss'?122:tier==='sub'?104:82;
-  playBossRoar();setMusic(tier==='boss'?'boss':tier==='sub'?'subboss':'miniboss',engine.map.floorIndex,ids.join('+'));
+  const musicDef=tier==='mini'?MINIBOSSES[ids[0]]:tier==='sub'?SUBBOSSES[ids[0]]:BOSSES[ids[0]];
+  const musicVariant=musicDef?`${ids.join('+')}|${musicDef.family}|${musicDef.role}|0`:ids.join('+');
+  playBossRoar();setMusic(tier==='boss'?'boss':tier==='sub'?'subboss':'miniboss',engine.map.floorIndex,musicVariant);
   engine.state=GameState.BOSS_INTRO;engine.onStateChange?.(engine.state);
 }
 
@@ -1519,10 +1521,15 @@ function loadNextFloor(engine: GameEngine) {
   if(engine.gameMode==='heist')saveHeistCheckpoint(engine);
 }
 
+function bossMusicVariant(bossType:string,phase=0){
+  const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
+  return def?`${bossType}|${def.family}|${def.role}|${phase}`:bossType;
+}
+
 function roomMusicVariant(room:MapRoom,content?:RoomContent){
   const encounterBoss=content?.enemies.find(e=>e.isBoss);
   const identity=`${room.type}:${room.gx},${room.gy}`;
-  return encounterBoss?.bossType??identity;
+  return encounterBoss?.bossType?bossMusicVariant(encounterBoss.bossType,encounterBoss.bossPhase??0):identity;
 }
 
 function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
@@ -4000,6 +4007,7 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossD
       bossHazardRing(content,cx,cy,5+phase*2,44+phase*12,130+phase*20);
     }
   }
+  setMusic(tier==='boss'?'boss':tier==='sub'?'subboss':'miniboss',engine.map.floorIndex,bossMusicVariant(def.id,phase));
   playBossPhase(tier);
 }
 
