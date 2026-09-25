@@ -102,47 +102,117 @@ function noise(dur: number, vol: number, delay = 0, decay = 0.25) {
   } catch { /* ignorar */ }
 }
 
-// ---------------------------------------------------------------------------
-// MÚSICA
-// ---------------------------------------------------------------------------
-const MENUS = [220, 0, 277, 0, 330, 0, 277, 0];
-const RUN = [147, 0, 175, 0, 196, 175, 147, 0];
-const BOSS = [131, 156, 131, 110, 131, 175, 156, 110];
-const EVENT = [92, 0, 138, 0, 176, 138, 92, 70];
-const FLOOR_SEQ = [RUN,[147,220,0,175,147,0,233,196],[110,0,147,110,0,165,147,0],[147,175,208,0,196,175,147,233],[98,147,0,131,196,0,147,110],[82,123,164,0,110,147,98,0]];
-
-export function setMusic(mood: 'menu' | 'run' | 'boss' | 'event' | 'off',floor=musicFloor) {
-  if(testMode) return;
-  if (musicMood === mood && musicFloor===floor) return;
-  musicFloor=floor;
-  musicMood = mood;
-  if (musicTimer !== null) { clearInterval(musicTimer); musicTimer = null; }
-  if (mood === 'off') return;
-  musicStep = 0;
-  const bpm = mood === 'event' ? 148 : mood === 'boss' ? 132 : mood === 'run' ? 108 : 84;
-  const beat = 60000 / bpm / 2;
-  musicTimer = window.setInterval(() => tickMusic(mood, beat), beat);
+function tone(freq:number,dur:number,vol:number,opts:{type?:OscillatorType;delay?:number;to?:number;attack?:number;cutoff?:number;detune?:number;kind?:'sfx'|'music'}={}){
+  if(!enabled())return;
+  const kind=opts.kind??'sfx';
+  if((kind==='sfx'?sfxVol:musicVol)<=.001)return;
+  try{
+    const ctx=getCtx(),t0=ctx.currentTime+(opts.delay??0),osc=ctx.createOscillator(),gain=out(vol,kind),filter=ctx.createBiquadFilter();
+    osc.type=opts.type??'sine';osc.detune.value=opts.detune??0;osc.frequency.setValueAtTime(Math.max(1,freq),t0);
+    if(opts.to&&opts.to!==freq)osc.frequency.exponentialRampToValueAtTime(Math.max(1,opts.to),t0+dur);
+    filter.type='lowpass';filter.frequency.value=opts.cutoff??9000;filter.Q.value=.55;
+    osc.connect(filter);filter.connect(gain);
+    const peak=vol*masterVol*(kind==='sfx'?sfxVol:musicVol),attack=Math.min(dur*.35,opts.attack??.012);
+    gain.gain.setValueAtTime(.0008,t0);gain.gain.exponentialRampToValueAtTime(Math.max(.001,peak),t0+Math.max(.003,attack));gain.gain.exponentialRampToValueAtTime(.0008,t0+dur);
+    osc.start(t0);osc.stop(t0+dur+.02);osc.onended=()=>{osc.disconnect();filter.disconnect();gain.disconnect();};
+  }catch{/* ignorar */}
 }
 
-function tickMusic(mood: 'menu' | 'run' | 'boss' | 'event', beat: number) {
-  if (musicVol <= 0.001 || masterVol <= 0.001) return;
-  const seq = mood === 'menu' ? MENUS : mood === 'run' ? FLOOR_SEQ[Math.min(5,musicFloor)] : mood === 'event' ? EVENT : BOSS;
-  const f = seq[musicStep % seq.length];
-  const s = musicStep % seq.length;
-  if (f > 0) {
-    blip(mood === 'menu' ? 'triangle' : mood === 'event' ? 'sawtooth' : 'square', f, f * 0.99, (beat / 1000) * 0.85,
-      mood === 'menu' ? 0.030 : 0.026, 0, 'music');
-    if (mood !== 'menu' && s % 2 === 0) {
-      blip('triangle', f * 3, f * 3, (beat / 1000) * 0.4, 0.016, beat / 2000, 'music');
+function filteredNoise(dur:number,vol:number,opts:{delay?:number;type?:BiquadFilterType;freq?:number;q?:number;kind?:'sfx'|'music'}={}){
+  if(!enabled())return;
+  const kind=opts.kind??'sfx';
+  if((kind==='sfx'?sfxVol:musicVol)<=.001)return;
+  try{
+    const ctx=getCtx(),t0=ctx.currentTime+(opts.delay??0),src=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=out(vol,kind);
+    src.buffer=getNoiseBuffer(ctx);filter.type=opts.type??'bandpass';filter.frequency.value=opts.freq??1800;filter.Q.value=opts.q??.8;
+    src.connect(filter);filter.connect(gain);
+    const peak=vol*masterVol*(kind==='sfx'?sfxVol:musicVol);gain.gain.setValueAtTime(Math.max(.001,peak),t0);gain.gain.exponentialRampToValueAtTime(.0008,t0+dur);
+    src.start(t0,Math.random()*Math.max(0,1-dur-.01),dur);src.onended=()=>{src.disconnect();filter.disconnect();gain.disconnect();};
+  }catch{/* ignorar */}
+}
+
+function chord(root:number,ratios:number[],dur:number,vol:number,delay=0,cutoff=1800){
+  ratios.forEach((r,i)=>tone(root*r,dur,vol/(1+i*.32),{type:i===0?'sine':'triangle',delay:delay+i*.004,attack:.045,cutoff,detune:(i-1)*3,kind:'music'}));
+}
+function lowImpact(freq=58,vol=.05,delay=0,kind:'sfx'|'music'='sfx'){
+  tone(freq,.20,vol,{type:'sine',to:Math.max(28,freq*.55),delay,attack:.004,cutoff:320,kind});
+  filteredNoise(.07,vol*.42,{delay,type:'lowpass',freq:420,q:.5,kind});
+}
+
+// ---------------------------------------------------------------------------
+// MÚSICA CINEMÁTICA PROCEDURAL
+// ---------------------------------------------------------------------------
+const RUN_ROOTS=[73.42,82.41,65.41,69.30,61.74,55.00];
+const MINOR=[1,Math.pow(2,3/12),Math.pow(2,7/12),Math.pow(2,10/12)];
+const DARK=[1,Math.pow(2,3/12),Math.pow(2,6/12),Math.pow(2,10/12)];
+
+export function setMusic(mood:'menu'|'run'|'boss'|'event'|'off',floor=musicFloor){
+  if(testMode)return;
+  if(musicMood===mood&&musicFloor===floor)return;
+  musicFloor=floor;musicMood=mood;
+  if(musicTimer!==null){clearInterval(musicTimer);musicTimer=null;}
+  if(mood==='off')return;
+  musicStep=0;
+  const bpm=mood==='boss'?74:mood==='event'?116:mood==='run'?94:68;
+  const beat=60000/bpm/2;
+  tickMusic(mood,beat);
+  musicTimer=window.setInterval(()=>tickMusic(mood,beat),beat);
+}
+
+function tickMusic(mood:'menu'|'run'|'boss'|'event',beat:number){
+  if(musicVol<=.001||masterVol<=.001)return;
+  const step=musicStep++,sec=beat/1000;
+
+  if(mood==='menu'){
+    const roots=[73.42,65.41,58.27,65.41],root=roots[Math.floor(step/4)%roots.length];
+    if(step%4===0){chord(root,[1,1.5,2],sec*3.8,.016,0,1050);tone(root/2,sec*3.6,.015,{type:'sine',attack:.18,cutoff:240,kind:'music'});}
+    if(step%2===0)tone(root*2,sec*.7,.006,{type:'triangle',attack:.05,cutoff:1300,kind:'music'});
+    return;
+  }
+
+  if(mood==='run'){
+    const root=RUN_ROOTS[Math.min(5,musicFloor)]*(step%16>=8?Math.pow(2,-2/12):1);
+    if(step%8===0)chord(root,MINOR,sec*7.2,.014,0,1500);
+    if(step%2===0){
+      tone(root/2,sec*.78,.020,{type:'sine',to:root/2*.97,attack:.008,cutoff:260,kind:'music'});
+      filteredNoise(.055,.007,{type:'highpass',freq:3200,q:.55,kind:'music'});
     }
+    if(step%4===2)tone(root*2,sec*.46,.006,{type:'triangle',attack:.015,cutoff:1700,kind:'music'});
+    return;
   }
-  if (mood !== 'menu' && s % 2 === 1) {
-    try { noise(0.035, 0.012); } catch { /* ignorar */ }
+
+  if(mood==='event'){
+    const root=65.41*(step%8>=4?Math.pow(2,2/12):1);
+    if(step%4===0)chord(root,DARK,sec*3.6,.014,0,1350);
+    lowImpact(step%8===0?52:64,.022,0,'music');
+    if(step%2===1)filteredNoise(.065,.010,{type:'highpass',freq:2200,q:.8,kind:'music'});
+    tone(root*(step%4===0?2:1.5),sec*.42,.007,{type:'sawtooth',attack:.01,cutoff:780,kind:'music'});
+    return;
   }
-  musicStep++;
+
+  // Boss: fantasía oscura original; lenta, ceremonial y amenazante.
+  const phase=step%16,root=[55,51.91,46.25,49][Math.floor(step/8)%4];
+  if(phase===0||phase===8){
+    lowImpact(43,phase===0?.060:.050,0,'music');
+    chord(root/2,DARK,sec*7.6,.024,0,850);
+    chord(root,[1,1.5,2.02],sec*5.8,.012,.03,1150);
+  }
+  if(phase===2||phase===10) chord(root,[2,2*Math.pow(2,3/12),3],sec*4.8,.010,0,1250);
+  if(phase%2===0){
+    const ost=[1,1,1.5,Math.pow(2,6/12)][(phase/2)%4];
+    tone(root*ost,sec*.72,.016,{type:'sawtooth',to:root*ost*.985,attack:.035,cutoff:520,kind:'music'});
+  }
+  if(phase===0||phase===4||phase===8||phase===12||phase===14){
+    lowImpact(phase===14?62:48,phase===14?.036:.030,0,'music');
+    filteredNoise(.095,.010,{type:'lowpass',freq:520,q:.65,kind:'music'});
+  }
+  if(phase===6||phase===15){
+    tone(116.54,sec*1.5,.008,{type:'triangle',to:110,attack:.006,cutoff:980,kind:'music'});
+    tone(174.61,sec*1.2,.005,{type:'sine',attack:.006,cutoff:1200,kind:'music'});
+  }
 }
 
-export function stopMusic() { setMusic('off'); }
+export function stopMusic(){setMusic('off');}
 
 // ---------------------------------------------------------------------------
 // EFECTOS DE SONIDO REALISTAS Y PULIDOS
