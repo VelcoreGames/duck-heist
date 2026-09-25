@@ -200,7 +200,7 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
   const family=identity.family||['command','finance','tech','war','bakery','vault','riot','wealth'][seed%8];
   const phase=identity.phase;
   const slot=step%16;
-  const tierWeight=tier==='boss'?1:tier==='subboss'?.78:.62;
+  const tierWeight=tier==='boss'?1:tier==='subboss' ? .78 : .62;
   const phaseWeight=1+phase*.16;
   const root=bossFamilyRoot(family)*Math.pow(2,([-2,0,2,3][(seed>>>6)%4])/12);
   const hit=(v:number)=>v*tierWeight*phaseWeight;
@@ -354,6 +354,7 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   const variantSeed=musicHash(variant||mood);
   const variantPitch=variant?Math.pow(2,([-4,-2,0,2,3,5][variantSeed%6])/12):1;
   const phaseOffset=variant?((variantSeed>>>8)%8):0;
+  const roomStyle=variant?variantSeed%3:0;
 
   if(mood==='menu'){
     const roots=[73.42,65.41,58.27,65.41],root=roots[Math.floor(step/4)%roots.length];
@@ -373,13 +374,21 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   if(mood==='combat'){
     const root=RUN_ROOTS[Math.min(5,musicFloor)]*variantPitch;
     const phase=(step+phaseOffset)%16;
-    if(phase%8===0)chord(root,MINOR,sec*6.8,.013,0,1450);
-    if(phase%2===0){
-      tone(root/2,sec*.62,.021,{type:'sine',to:root/2*.97,attack:.006,cutoff:280,kind:'music'});
-      filteredNoise(.048,.0065,{type:'highpass',freq:3150,q:.62,kind:'music'});
+    const harmony=roomStyle===0?MINOR:roomStyle===1?DARK:[1,Math.pow(2,2/12),1.5,Math.pow(2,10/12)];
+    if(phase%8===0)chord(root,harmony,sec*6.8,.013,0,roomStyle===1?1180:1450);
+    if(roomStyle===0){
+      if(phase%2===0){tone(root/2,sec*.62,.021,{type:'sine',to:root/2*.97,attack:.006,cutoff:280,kind:'music'});filteredNoise(.048,.0065,{type:'highpass',freq:3150,q:.62,kind:'music'});}
+      if(phase===3||phase===11)tone(root*2.25,sec*.28,.0055,{type:'triangle',attack:.01,cutoff:1850,kind:'music'});
+    }else if(roomStyle===1){
+      if([0,3,6,8,11,14].includes(phase))musicKick(.020);
+      if(phase===4||phase===12)musicSnare(.008);
+      if(phase%4===2)tone(root*1.5,sec*.34,.006,{type:'sawtooth',attack:.006,cutoff:760,kind:'music'});
+    }else{
+      if(phase%2===0)musicPluck(root*[1,1.5,1.26,1.78][(phase/2)%4],.008);
+      if(phase===0||phase===8)tone(root/2,sec*2.8,.016,{type:'sine',attack:.08,cutoff:260,kind:'music'});
+      if(phase===5||phase===13)filteredNoise(.05,.0055,{type:'bandpass',freq:2200,q:1.1,kind:'music'});
     }
-    if(phase===3||phase===11)tone(root*2.25,sec*.28,.0055,{type:'triangle',attack:.01,cutoff:1850,kind:'music'});
-    if(phase===7||phase===15)lowImpact(58,.014,0,'music');
+    if(phase===7||phase===15)lowImpact(58+roomStyle*4,.012,0,'music');
     return;
   }
 
