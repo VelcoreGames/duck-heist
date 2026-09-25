@@ -343,6 +343,15 @@ export function runSelfChecks():CheckReport {
       assert(new Set(keys).size===all.length,'dos encuentros comparten la misma firma visual estructural');
       assert(bossVisualIdentityKey(FINAL_BOSS_ID)==='final:bread_banker:imperial-vault','firma final incorrecta');
     });
+    check('Jefes usan proporciones e hitboxes realmente diversas',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES).filter(b=>!b.finalBoss)];
+      const proportions=new Set(all.map(b=>`${b.scaleX.toFixed(2)}x${b.scaleY.toFixed(2)}`));
+      assert(proportions.size>=6,'faltan perfiles corporales distintos');
+      assert(all.every(b=>b.hitboxW>0&&b.hitboxH>0),'hurtbox inválida');
+      assert(all.some(b=>b.hitboxW>b.hitboxH*1.35),'falta jefe claramente ancho');
+      assert(all.some(b=>b.hitboxH>b.hitboxW*1.35),'falta jefe claramente alto');
+      assert(all.some(b=>b.stationary),'faltan jefes-fortaleza estáticos');
+    });
     check('El roster completo utiliza las doce familias de ataque',()=>{
       const expected=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
       for(const group of [Object.values(MINIBOSSES),Object.values(SUBBOSSES),Object.values(BOSSES).filter(b=>!b.finalBoss)]){
