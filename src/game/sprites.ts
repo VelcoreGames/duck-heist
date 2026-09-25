@@ -618,7 +618,9 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
       break;
     }
     case 'buckshot_player': {
-      rect(ctx,bx-2,by-2,4,4,'#d3c2a1');rect(ctx,bx-1,by-1,2,2,'#fff1cf');
+      // Perdigón individual: pequeño, brillante y claramente separado de una bala.
+      ctx.globalAlpha=.22;rect(ctx,bx-4,by-1,3,2,'#b98d58');ctx.globalAlpha=1;
+      rect(ctx,bx-1,by-1,2,2,'#d8c49f');px(ctx,bx,by-1,'#fff1cf',1);
       break;
     }
     case 'grenade_40mm': {
