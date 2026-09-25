@@ -202,32 +202,39 @@ export function setMusic(mood:MusicMood,floor=musicFloor){
     musicTimer=window.setInterval(()=>tickMusic(mood,beat),beat);
   };
 
+  const fadingBus=musicBus;
+
   if(mood==='off'){
     try{
-      const ctx=getCtx(),bus=getMusicBus(ctx),now=ctx.currentTime;
+      const ctx=getCtx(),bus=fadingBus??getMusicBus(ctx),now=ctx.currentTime;
       bus.gain.cancelScheduledValues(now);
       bus.gain.setValueAtTime(Math.max(.001,bus.gain.value),now);
       bus.gain.linearRampToValueAtTime(.001,now+.22);
+      if(musicBus===bus)musicBus=null;
+      window.setTimeout(()=>{try{bus.disconnect();}catch{/* ya desconectado */}},1400);
     }catch{/* audio bloqueado por navegador */}
     return;
   }
 
-  if(previous==='off'){
+  if(previous==='off'||!fadingBus){
     startTheme();
     return;
   }
 
-  // Fundido de salida corto + entrada del nuevo tema. Las colas de las notas
-  // anteriores se apagan con el bus común, evitando cortes secos al cruzar salas.
+  // Cada tema usa su propio bus. El anterior baja y queda aislado; el nuevo
+  // entra en otro bus, de modo que las colas largas nunca reaparecen.
   try{
-    const ctx=getCtx(),bus=getMusicBus(ctx),now=ctx.currentTime;
-    bus.gain.cancelScheduledValues(now);
-    bus.gain.setValueAtTime(Math.max(.001,bus.gain.value),now);
-    bus.gain.linearRampToValueAtTime(.001,now+.20);
+    const ctx=getCtx(),now=ctx.currentTime;
+    fadingBus.gain.cancelScheduledValues(now);
+    fadingBus.gain.setValueAtTime(Math.max(.001,fadingBus.gain.value),now);
+    fadingBus.gain.linearRampToValueAtTime(.001,now+.20);
   }catch{/* audio bloqueado por navegador */}
   musicSwitchTimer=window.setTimeout(()=>{
     musicSwitchTimer=null;
+    if(serial!==musicTransitionSerial)return;
+    if(musicBus===fadingBus)musicBus=null;
     startTheme();
+    window.setTimeout(()=>{try{fadingBus.disconnect();}catch{/* ya desconectado */}},1400);
   },205);
 }
 
