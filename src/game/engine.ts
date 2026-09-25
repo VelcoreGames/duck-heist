@@ -4101,6 +4101,10 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       boss.attackTimer=Math.max(32,boss.attackCooldown*(1-phase*.2));
     }
     if(def.legacy)boss.bossAttackIndex=attackStep+1;
+    if(def.legacy&&boss.bossSequenceAttack!==undefined){
+      // Un combo emblemático debe terminar antes de iniciar el siguiente windup.
+      boss.attackTimer=Math.max(boss.attackTimer,tier==='boss'?72:tier==='sub'?56:46);
+    }
     const recovery=tier==='boss'?18:tier==='sub'?15:12;
     boss.bossAttackRecovery=recovery;
     boss.bossAttackRecoveryMax=recovery;
