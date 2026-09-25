@@ -1519,28 +1519,33 @@ function loadNextFloor(engine: GameEngine) {
   if(engine.gameMode==='heist')saveHeistCheckpoint(engine);
 }
 
+function roomMusicVariant(room:MapRoom,content?:RoomContent){
+  const encounterBoss=content?.enemies.find(e=>e.isBoss);
+  const identity=`${room.type}:${room.gx},${room.gy}`;
+  return encounterBoss?.bossType?`${encounterBoss.bossType}|${identity}`:identity;
+}
+
 function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
   const floor=engine.map.floorIndex;
-  const encounterBoss=content?.enemies.find(e=>e.isBoss);
-  const musicVariant=encounterBoss?.bossType??'';
+  const musicVariant=roomMusicVariant(room,content);
   if(room.type===RoomType.BOSS){setMusic('boss',floor,musicVariant);return;}
   if(room.type===RoomType.SUBBOSS){setMusic('subboss',floor,musicVariant);return;}
   if(room.type===RoomType.MINIBOSS){setMusic('miniboss',floor,musicVariant);return;}
-  if(room.type===RoomType.GUN_VAN){setMusic('gunvan',floor);return;}
-  if(room.type===RoomType.SHOP){setMusic('shop',floor);return;}
+  if(room.type===RoomType.GUN_VAN){setMusic('gunvan',floor,musicVariant);return;}
+  if(room.type===RoomType.SHOP){setMusic('shop',floor,musicVariant);return;}
   if(room.type===RoomType.EVENT){
-    if(content?.cafe)setMusic('cafe',floor);
-    else setMusic('event',floor);
+    if(content?.cafe)setMusic('cafe',floor,musicVariant);
+    else setMusic('event',floor,musicVariant);
     return;
   }
-  if(room.type===RoomType.CHALLENGE){setMusic('challenge',floor);return;}
-  if(room.type===RoomType.ITEM){setMusic('item',floor);return;}
-  if(room.type===RoomType.CHOICE){setMusic('choice',floor);return;}
-  if(room.type===RoomType.TREASURE){setMusic('treasure',floor);return;}
-  if(room.type===RoomType.SECRET){setMusic('secret',floor);return;}
-  if(room.type===RoomType.START){setMusic('start',floor);return;}
-  if(room.type===RoomType.COMBAT){setMusic('combat',floor);return;}
-  setMusic('run',floor);
+  if(room.type===RoomType.CHALLENGE){setMusic('challenge',floor,musicVariant);return;}
+  if(room.type===RoomType.ITEM){setMusic('item',floor,musicVariant);return;}
+  if(room.type===RoomType.CHOICE){setMusic('choice',floor,musicVariant);return;}
+  if(room.type===RoomType.TREASURE){setMusic('treasure',floor,musicVariant);return;}
+  if(room.type===RoomType.SECRET){setMusic('secret',floor,musicVariant);return;}
+  if(room.type===RoomType.START){setMusic('start',floor,musicVariant);return;}
+  if(room.type===RoomType.COMBAT){setMusic('combat',floor,musicVariant);return;}
+  setMusic('run',floor,musicVariant);
 }
 
 export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
@@ -1626,11 +1631,11 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
       engine.transition.timer = 0;
       engine.bossIntroSeen[boss.bossType] = true;
       if(room.type===RoomType.BOSS){
-        playBossRoar();setMusic('boss',engine.map.floorIndex,boss.bossType);
+        playBossRoar();setMusic('boss',engine.map.floorIndex,roomMusicVariant(room,content));
       }else if(room.type===RoomType.SUBBOSS){
-        playBossRoar();setMusic('subboss',engine.map.floorIndex,boss.bossType);
+        playBossRoar();setMusic('subboss',engine.map.floorIndex,roomMusicVariant(room,content));
       }else if(room.type===RoomType.MINIBOSS){
-        playBossPhase('mini');setMusic('miniboss',engine.map.floorIndex,boss.bossType);
+        playBossPhase('mini');setMusic('miniboss',engine.map.floorIndex,roomMusicVariant(room,content));
       }
       engine.state = GameState.BOSS_INTRO;
       engine.onStateChange?.(engine.state);
@@ -1718,7 +1723,7 @@ function updateDangerEvent(engine:GameEngine) {
   }
   if(!content.dangerEventActive) return;
   engine.dangerEventMusic=true;
-  setMusic('challenge',floor);
+  setMusic('challenge',floor,roomMusicVariant(room,content));
   room.cleared=false;
   if((content.dangerEventTimer ?? 0)>0) content.dangerEventTimer!--;
   const total=content.dangerEventTotal ?? 1,timer=content.dangerEventTimer ?? 0;
@@ -2363,8 +2368,8 @@ export function updateEngine(engine: GameEngine) {
       if(content.challenge==='alarm' || !content.damaged) content.items.push({x:CANVAS_WIDTH/2-8,y:150,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     }
     if(content.event?.kind==='interrogation') content.items.push({x:CANVAS_WIDTH/2-8,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
-    if(room.type===RoomType.BOSS){content.rewardTimer=75;setMusic('treasure',engine.map.floorIndex);}
-    else if(room.type===RoomType.SUBBOSS||room.type===RoomType.MINIBOSS)setMusic('treasure',engine.map.floorIndex);
+    if(room.type===RoomType.BOSS){content.rewardTimer=75;setMusic('treasure',engine.map.floorIndex,roomMusicVariant(room,content)+'|clear');}
+    else if(room.type===RoomType.SUBBOSS||room.type===RoomType.MINIBOSS)setMusic('treasure',engine.map.floorIndex,roomMusicVariant(room,content)+'|clear');
     if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
 
