@@ -3866,7 +3866,7 @@ function runIconicBossSequence(engine:GameEngine,boss:Enemy,room:MapRoom,content
   else {boss.bossSequenceStep=step+1;boss.bossSequenceTimer=next;}
 }
 
-function bossPhaseTransition(engine:GameEngine,boss:Enemy,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',content:RoomContent) {
+function bossPhaseTransition(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',content:RoomContent) {
   boss.bossPreparedAttack=undefined;boss.bossAttackRecovery=0;boss.bossAttackRecoveryMax=0;finishIconicBossSequence(boss);
   boss.bossPhase=phase;
   boss.attackTimer=tier==='boss'?78:tier==='sub'?62:38;
@@ -3973,7 +3973,7 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   if(def.legacy&&(!boss.bossParts||boss.bossParts.length===0)) boss.bossParts=bossPartsFor(type);
 
   const nextPhase=tier==='boss'?(pct<=.33?2:pct<=.66?1:0):tier==='sub'?(pct<=.5?1:0):(pct<=.35?1:0);
-  if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,def,nextPhase,tier,content);
+  if(nextPhase>boss.bossPhase) bossPhaseTransition(engine,boss,room,def,nextPhase,tier,content);
   if(def.legacy) runIconicBossSequence(engine,boss,room,content);
 
   const phase=boss.bossPhase;
