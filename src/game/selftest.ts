@@ -72,6 +72,18 @@ export function runSelfChecks():CheckReport {
         assert(CANVAS_HEIGHT*scale<=safe.h+.001,'alto legacy recortado');
       }
     });
+    check('Pato jugador renderiza locomoción, combate, dash, interacción y muerte',()=>{
+      for(const skin of ['robber','chef','executive','ninja','pirate','gold','king']){
+        for(const dir of ['up','down','left','right'] as const){
+          drawDuckSkin(ctx,80,80,120,skin,dir,false,false,false,false,false);
+          drawDuckSkin(ctx,80,80,126,skin,dir,true,false,false,false,false);
+          drawDuckSkin(ctx,80,80,132,skin,dir,true,false,false,true,false);
+          drawDuckSkin(ctx,80,80,138,skin,dir,true,false,true,false,false);
+          drawDuckSkin(ctx,80,80,144,skin,dir,false,true,false,false,false);
+          drawDuckSkin(ctx,80,80,150,skin,dir,false,false,false,false,true);
+        }
+      }
+    });
     check('Props, puertas y proyectiles rediseñados renderizan sin excepción',()=>{
       const art=document.createElement('canvas');art.width=480;art.height=352;
       const a=art.getContext('2d')!;
