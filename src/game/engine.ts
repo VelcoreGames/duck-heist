@@ -2377,6 +2377,8 @@ export function updateEngine(engine: GameEngine) {
     if(content.event?.kind==='interrogation') content.items.push({x:CANVAS_WIDTH/2-8,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     if(room.type===RoomType.BOSS){content.rewardTimer=75;setMusic('treasure',engine.map.floorIndex,roomMusicVariant(room,content)+'|clear');}
     else if(room.type===RoomType.SUBBOSS||room.type===RoomType.MINIBOSS)setMusic('treasure',engine.map.floorIndex,roomMusicVariant(room,content)+'|clear');
+    else if(room.type===RoomType.CHALLENGE)setMusic('treasure',engine.map.floorIndex,roomMusicVariant(room,content)+'|clear');
+    else if(room.type===RoomType.COMBAT)setMusic('run',engine.map.floorIndex,roomMusicVariant(room,content)+'|clear');
     if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
 
