@@ -10,7 +10,7 @@ import {
   type GameEngine,
 } from './game/engine';
 import { renderWorld, renderUI } from './game/render';
-import { initAudio, setMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
+import { initAudio, setMusic, enterPauseMusic, resumePauseMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
   mainMenuHit, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
@@ -136,10 +136,12 @@ export default function App() {
     // ENTRADA
     // ------------------------------------------------------------------
     const goTo = (s: GameState) => {
+      const previous=engine.state;
       engine.state=s;engine.mouseDown=false;engine.keys={};
       engine.onStateChange?.(s);
-      if(s===GameState.PLAYING) restoreCurrentRoomMusic(engine);
-      else if(s===GameState.PAUSED) setMusic('pause',engine.map.floorIndex);
+      if(s===GameState.PLAYING) {
+        if(previous!==GameState.PAUSED||!resumePauseMusic()) restoreCurrentRoomMusic(engine);
+      } else if(s===GameState.PAUSED) enterPauseMusic(engine.map.floorIndex);
       else if(s===GameState.MENU) setMusic('menu');
     };
     let subReturn: GameState = GameState.MENU;
