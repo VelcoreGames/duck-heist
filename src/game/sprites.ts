@@ -2590,34 +2590,36 @@ export function drawDronPolicial(ctx: Ctx, x: number, y: number, frame: number, 
 
 /** Pedestal de la sala de objeto */
 export function drawPedestal(ctx: Ctx, x: number, y: number, frame: number, taken: boolean, rarityColor='#f4d03f') {
-  const bx = Math.floor(x), by = Math.floor(y);
+  const bx=Math.floor(x),by=Math.floor(y),pulse=.5+.5*Math.sin(frame*.07);
+  ctx.save();
 
-  // Halo de luz
-  if (!taken) {
-    const glow = 0.18 + Math.sin(frame * 0.05) * 0.08;
-    const g = ctx.createRadialGradient(bx + 12, by + 4, 2, bx + 12, by + 4, 40);
-    g.addColorStop(0,`${rarityColor}60`);
-    g.addColorStop(1,`${rarityColor}00`);
-    ctx.fillStyle = g;
-    ctx.fillRect(bx - 28, by - 36, 80, 80);
-    void glow;
+  ctx.globalAlpha=.32;ctx.fillStyle='#02070a';ctx.beginPath();ctx.ellipse(bx+12,by+29,17,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  if(!taken){
+    const g=ctx.createRadialGradient(bx+12,by+4,2,bx+12,by+4,42);
+    g.addColorStop(0,rarityColor+'55');g.addColorStop(.45,rarityColor+'20');g.addColorStop(1,rarityColor+'00');
+    ctx.fillStyle=g;ctx.fillRect(bx-30,by-38,84,84);
+
+    ctx.globalAlpha=.22+.12*pulse;ctx.strokeStyle=rarityColor;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(bx+12,by+4,15+pulse*3,6+pulse*2,0,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
   }
 
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(bx - 2, by + 26, 28, 4);
+  // Pedestal de bóveda con base metálica y núcleo ritual.
+  rect(ctx,bx-3,by+23,30,6,'#171d22');rect(ctx,bx-1,by+21,26,4,'#2c353d');
+  rect(ctx,bx+3,by+9,18,13,'#332e46');rect(ctx,bx+5,by+9,14,13,'#4d4569');
+  rect(ctx,bx+7,by+11,10,9,'#5e5481');
+  rect(ctx,bx+2,by+5,20,5,'#58606b');rect(ctx,bx+4,by+5,16,2,'#a1a9a5');
+  rect(ctx,bx+7,by+7,10,2,rarityColor);
 
-  // Base escalonada
-  rect(ctx, bx - 2, by + 22, 28, 6, '#2b2340');
-  rect(ctx, bx, by + 20, 24, 4, '#3d3358');
-  rect(ctx, bx + 4, by + 8, 16, 13, '#4a3e6b');
-  rect(ctx, bx + 6, by + 8, 12, 13, '#5b4d83');
-  // Vetas
-  rect(ctx, bx + 9, by + 10, 1, 9, '#6f5f9c');
-  // Tapa
-  rect(ctx, bx + 2, by + 4, 20, 5, '#6f5f9c');
-  rect(ctx, bx + 3, by + 4, 18, 2, '#8878b8');
-  // Grabado de pan
-  rect(ctx, bx + 9, by + 24, 6, 2, '#d4a574');
+  // Grabado Duck Heist / pan en la base.
+  rect(ctx,bx+8,by+24,8,2,'#9e7334');rect(ctx,bx+9,by+23,6,2,'#d4a574');px(ctx,bx+10,by+23,'#efd69a',1);
+  for(const sx of [bx+1,bx+22]){px(ctx,sx,by+24,'#718085',2);}
+
+  if(taken){
+    ctx.globalAlpha=.38;ctx.fillStyle='#28343a';ctx.fillRect(bx+6,by+7,12,2);ctx.globalAlpha=1;
+  }
+  ctx.restore();
 }
 
 /** Vela ambiental para la sala de objeto */
@@ -2647,46 +2649,44 @@ export function drawWeaponIcon(ctx: Ctx, x: number, y: number, weaponId: string)
 }
 
 export function drawParticle(ctx: Ctx, x: number, y: number, type: string, life: number, color?: string) {
-  const alpha = Math.max(0, life);
-  ctx.globalAlpha = alpha;
-  
-  switch (type) {
+  const alpha=Math.max(0,life),ix=Math.floor(x),iy=Math.floor(y);
+  ctx.save();ctx.globalAlpha=alpha;
+
+  switch(type){
     case 'feather':
-      ctx.fillStyle = color || '#f0f0f0';
-      ctx.beginPath();
-      ctx.ellipse(x, y, 3, 1, life * 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle=color||'#f0f0f0';ctx.beginPath();ctx.ellipse(x,y,3.5,1.2,life*2.4,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=alpha*.35;ctx.fillRect(ix-1,iy+2,2,1);
       break;
     case 'crumb':
-      ctx.fillStyle = color || '#d4a574';
-      ctx.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+      ctx.fillStyle=color||'#d4a574';ctx.fillRect(ix,iy,2,2);
+      if(alpha>.55){ctx.globalAlpha=alpha*.38;ctx.fillRect(ix+2,iy+1,1,1);}
       break;
     case 'coin':
-      ctx.fillStyle = '#f4d03f';
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle='#f4d03f';ctx.beginPath();ctx.ellipse(x,y,2.5,1.5+.8*Math.abs(Math.sin(life*8)),0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=alpha*.55;ctx.fillStyle='#fff0a0';ctx.fillRect(ix,iy-1,1,1);
       break;
     case 'hit':
-      ctx.fillStyle = color || '#fff';
-      ctx.fillRect(Math.floor(x) - 1, Math.floor(y) - 1, 3, 3);
+      ctx.fillStyle=color||'#fff';ctx.fillRect(ix-1,iy-1,3,3);
+      ctx.globalAlpha=alpha*.45;ctx.fillRect(ix-4,iy,2,1);ctx.fillRect(ix+3,iy,2,1);
       break;
-    case 'spark':
-      ctx.fillStyle = color || '#f4d03f';
-      ctx.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+    case 'spark': {
+      const len=2+Math.round((1-alpha)*3);
+      ctx.fillStyle=color||'#f4d03f';ctx.fillRect(ix,iy,len,1);ctx.fillRect(ix+1,iy-1,1,3);
+      ctx.globalAlpha=alpha*.28;ctx.fillRect(ix-len,iy,Math.max(1,len-1),1);
       break;
-    case 'smoke':
-      ctx.fillStyle = color || '#555';
-      ctx.beginPath();
-      ctx.arc(x, y, 3 * (1 - life * 0.5), 0, Math.PI * 2);
-      ctx.fill();
+    }
+    case 'smoke': {
+      const r=2.5+(1-alpha)*3.5;
+      ctx.fillStyle=color||'#586065';ctx.globalAlpha=alpha*.58;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=alpha*.22;ctx.beginPath();ctx.arc(x+2,y-2,r*.62,0,Math.PI*2);ctx.fill();
       break;
+    }
     default:
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+      ctx.fillStyle=color||'#fff';ctx.fillRect(ix,iy,2,2);
   }
-  
-  ctx.globalAlpha = 1;
+
+  ctx.restore();
 }
 
 export function drawEvilCroissant(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
