@@ -736,33 +736,36 @@ export function renderWorld(engine: GameEngine) {
     const heavyStance=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const moveAngle=Math.hypot(p.vx,p.vy)>.25?Math.atan2(p.vy,p.vx):p.facingAngle;
     const strafe=Math.sin(p.facingAngle-moveAngle);
+    const interact=clamp((p.interactFlash??0)/12,0,1);
     const bodyLean=p.dashTimer>0?0:clamp(strafe*(p.moving?.055:.025),-.07,.07);
     ctx.save();
-    ctx.translate(drawX+7,drawY+9);
-    ctx.rotate(bodyLean);
+    ctx.translate(drawX+7,drawY+9+interact*1.5);
+    ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
     if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
-    ctx.scale(sx,sy);
+    ctx.scale(sx*(1+interact*.025),sy*(1-interact*.045));
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,p.dir,p.moving,
       p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0);
     ctx.restore();
 
     // Ala de apoyo: con armas largas/pesadas la silueta comunica que el pato
     // realmente la sostiene, en vez de mostrar un icono flotando delante.
-    if(heavyStance||longGun){
+    if(heavyStance||longGun||interact>0){
       ctx.save();ctx.translate(drawX+7,drawY+9);ctx.rotate(p.facingAngle);
-      ctx.globalAlpha=p.shootFlash>0?.9:.72;
+      ctx.globalAlpha=interact>0?.86:(p.shootFlash>0?.9:.72);
       ctx.fillStyle='#d6b83f';
-      ctx.fillRect(1,-2,4,3);
-      ctx.fillStyle='#aa8e2c';ctx.fillRect(3,0,4,2);
-      if(heavyStance){ctx.fillStyle='#ece15b';ctx.fillRect(-1,1,3,2);}
+      ctx.fillRect(1,-2,interact>0?6:4,3);
+      ctx.fillStyle='#aa8e2c';ctx.fillRect(3,0,interact>0?5:4,2);
+      if(heavyStance&&!interact){ctx.fillStyle='#ece15b';ctx.fillRect(-1,1,3,2);}
+      if(interact>0){ctx.fillStyle='#f0dc55';ctx.fillRect(7,-1,2,2);}
       ctx.restore();
     }
 
     // El arma equipada ahora se ve físicamente en las manos del pato. Cada ID
     // usa el nuevo arte balístico del atlas y rota con la dirección de apuntado.
     ctx.save();
-    ctx.translate(drawX+7,drawY+9);
-    ctx.rotate(p.facingAngle);
+    ctx.translate(drawX+7,drawY+9+interact*3);
+    ctx.rotate(p.facingAngle+interact*.10);
+    ctx.globalAlpha=1-interact*.38;
     const gunSize=longGun?16:14;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
