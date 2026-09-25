@@ -397,7 +397,7 @@ export interface GameEngine {
     activeWeapon: number;
     switchAnim: number;
     fireCooldown: number;
-    dir: DuckDir; moving: boolean; shootFlash: number;
+    dir: DuckDir; moving: boolean; shootFlash: number; interactFlash:number;
     hurtTimer: number; iFrames: number; flash: number;
     dashTimer: number; dashCooldown: number; dashDir: Vec2;
     crumbs: number; goldenCrumbs: number;
