@@ -10,7 +10,7 @@ let musicSwitchTimer:number|null=null;
 let musicStep=0;
 let musicBus:GainNode|null=null;
 let musicTransitionSerial=0;
-export type MusicMood='menu'|'start'|'combat'|'run'|'shop'|'gunvan'|'cafe'|'event'|'challenge'|'item'|'choice'|'treasure'|'secret'|'miniboss'|'subboss'|'boss'|'off';
+export type MusicMood='menu'|'pause'|'start'|'combat'|'run'|'shop'|'gunvan'|'cafe'|'event'|'challenge'|'item'|'choice'|'treasure'|'secret'|'miniboss'|'subboss'|'boss'|'off';
 let musicMood:MusicMood='off';
 let musicFloor=0;
 let musicVariant='';
@@ -287,6 +287,7 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
       mood==='boss'?([66,70,74,78][variantSeed%4]+bossTempoBoost):
       mood==='subboss'?([80,86,92,76][variantSeed%4]+bossTempoBoost):
       mood==='miniboss'?([98,104,110,94][variantSeed%4]+bossTempoBoost):
+      mood==='pause'?56:
       mood==='event'?118:
       mood==='challenge'?112:
       mood==='gunvan'?86:
@@ -352,17 +353,49 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   const roomStyle=variant?variantSeed%3:0;
 
   if(mood==='menu'){
-    const roots=[73.42,65.41,58.27,65.41],root=roots[Math.floor(step/4)%roots.length];
-    if(step%4===0){chord(root,[1,1.5,2],sec*3.8,.016,0,1050);tone(root/2,sec*3.6,.015,{type:'sine',attack:.18,cutoff:240,kind:'music'});}
-    if(step%2===0)tone(root*2,sec*.7,.006,{type:'triangle',attack:.05,cutoff:1300,kind:'music'});
+    // MENÚ PRINCIPAL — "planear el golpe".
+    // Seguro, travieso y memorable: bajo sincopado + motivo de cinco notas.
+    const phase=step%32;
+    const roots=[73.42,65.41,58.27,69.30];
+    const root=roots[Math.floor(phase/8)%roots.length];
+    if(phase%8===0){
+      chord(root,[1,1.26,1.5,2],sec*7.1,.011,0,1550);
+      tone(root/2,sec*6.5,.014,{type:'sine',attack:.14,cutoff:260,kind:'music'});
+    }
+    if([0,4,8,12,16,20,24,28].includes(phase))musicKick(phase%8===0?.017:.011);
+    const motifSteps=[2,3,6,10,14,18,19,22,26,30];
+    if(motifSteps.includes(phase)){
+      const motif=[2,2.52,3,2.25,2,1.5,2,2.67,2.52,2];
+      musicPluck(root*motif[motifSteps.indexOf(phase)],.0075);
+    }
+    if(phase===15||phase===31)musicBell(root*4,.42,.0045);
+    return;
+  }
+
+  if(mood==='pause'){
+    // PAUSA — "el atraco queda suspendido".
+    // Sin beat de combate: respiración grave, espacio y un reloj musical mínimo.
+    const phase=step%16,root=43.65;
+    if(phase===0||phase===8){
+      tone(root/2,sec*7.4,.012,{type:'sine',attack:.28,cutoff:210,kind:'music'});
+      chord(root,[1,Math.pow(2,3/12),1.5,2],sec*7.1,.0075,0,760);
+    }
+    if(phase===3||phase===11)tone(root*2,sec*.32,.0045,{type:'triangle',attack:.008,cutoff:1200,kind:'music'});
+    if(phase===5)musicBell(root*3,.72,.0042);
+    if(phase===13)musicBell(root*2.52,.82,.0038);
     return;
   }
 
   if(mood==='start'){
-    const root=[65.41,69.30,61.74,65.41][Math.floor((step+phaseOffset)/4)%4]*variantPitch;
-    if(step%8===0)chord(root,[1,1.5,2],sec*7.2,.010,0,1300);
-    if(step%4===2)tone(root*2,sec*.55,.0045,{type:'triangle',attack:.06,cutoff:1700,kind:'music'});
-    if(step%8===6)filteredNoise(.04,.003,{type:'highpass',freq:3400,q:.5,kind:'music'});
+    // ENTRADA — anticipación/infiltración: el plan empieza a moverse.
+    const phase=step%16,root=55;
+    if(phase===0||phase===8){
+      tone(root/2,sec*7,.013,{type:'sine',attack:.2,cutoff:230,kind:'music'});
+      chord(root,DARK,sec*6.5,.0085,0,900);
+    }
+    const rise=[1,1.19,1.5,1.78];
+    if([2,4,6,10,12,14].includes(phase))musicPluck(root*rise[Math.floor((phase%8)/2)%4]*2,.0055);
+    if(phase===7||phase===15)lowImpact(50,.012,0,'music');
     return;
   }
 
@@ -466,14 +499,13 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='run'){
-    const shiftedStep=step+phaseOffset;
-    const root=RUN_ROOTS[Math.min(5,musicFloor)]*(shiftedStep%16>=8?Math.pow(2,-2/12):1)*variantPitch;
-    if(step%8===0)chord(root,MINOR,sec*7.2,.014,0,1500);
-    if(step%2===0){
-      tone(root/2,sec*.78,.020,{type:'sine',to:root/2*.97,attack:.008,cutoff:260,kind:'music'});
-      filteredNoise(.055,.007,{type:'highpass',freq:3200,q:.55,kind:'music'});
-    }
-    if(step%4===2)tone(root*2,sec*.46,.006,{type:'triangle',attack:.015,cutoff:1700,kind:'music'});
+    // ATRACO SIN FIN / movimiento continuo: persecución sostenida, sin fanfarria.
+    const phase=step%16,root=RUN_ROOTS[Math.min(5,musicFloor)];
+    if(phase===0||phase===8)chord(root,DARK,sec*6.4,.011,0,1050);
+    if([0,3,5,8,11,13].includes(phase))musicKick(phase===0||phase===8?.022:.014);
+    if(phase===4||phase===12)musicSnare(.008);
+    if(phase%2===0)musicPluck(root*[1,1.5,1.26,1.78][(phase/2)%4],.0065);
+    if(phase===7||phase===15)tone(root/2,sec*.55,.012,{type:'sine',to:root*.46,attack:.015,cutoff:280,kind:'music'});
     return;
   }
 
