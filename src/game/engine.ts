@@ -1521,6 +1521,25 @@ function loadNextFloor(engine: GameEngine) {
   if(engine.gameMode==='heist')saveHeistCheckpoint(engine);
 }
 
+function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
+  const floor=engine.map.floorIndex;
+  if(room.type===RoomType.BOSS){setMusic('boss',floor);return;}
+  if(room.type===RoomType.SUBBOSS){setMusic('subboss',floor);return;}
+  if(room.type===RoomType.MINIBOSS){setMusic('miniboss',floor);return;}
+  if(room.type===RoomType.GUN_VAN){setMusic('gunvan',floor);return;}
+  if(room.type===RoomType.SHOP){setMusic('shop',floor);return;}
+  if(room.type===RoomType.EVENT){
+    if(content?.cafe)setMusic('cafe',floor);
+    else setMusic('event',floor);
+    return;
+  }
+  if(room.type===RoomType.CHALLENGE){setMusic('challenge',floor);return;}
+  if(room.type===RoomType.ITEM){setMusic('item',floor);return;}
+  if(room.type===RoomType.TREASURE||room.type===RoomType.CHOICE){setMusic('treasure',floor);return;}
+  if(room.type===RoomType.SECRET){setMusic('secret',floor);return;}
+  setMusic('run',floor);
+}
+
 export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
   const room = engine.map.rooms.get(k);
   if (!room) return;
@@ -1541,7 +1560,8 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
     const v=DIR_VECTORS[dir],target=engine.map.rooms.get(key(room.gx+v.x,room.gy+v.y)),t=DOOR_TILE[dir];
     if(target?.type===RoomType.SECRET && !target.revealed) room.layout[t.y][t.x]=TILE_WALL;
   }
-  const content = getContent(engine, k);
+  const content=getContent(engine,k);
+  setRoomMusic(engine,room,content);
   engine.player.roomShield=getBuild(engine.player).roomShield;
   engine.player.firstHitUsed=false;
   if(getBuild(engine.player).reveal) {
@@ -1602,10 +1622,12 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
       engine.transition.active = false;
       engine.transition.timer = 0;
       engine.bossIntroSeen[boss.bossType] = true;
-      if (room.type === RoomType.BOSS || room.type === RoomType.SUBBOSS) {
-        playBossRoar();setMusic('boss');
-      } else if(room.type===RoomType.MINIBOSS) {
-        playBossPhase('mini');setMusic('event');
+      if(room.type===RoomType.BOSS){
+        playBossRoar();setMusic('boss',engine.map.floorIndex);
+      }else if(room.type===RoomType.SUBBOSS){
+        playBossRoar();setMusic('subboss',engine.map.floorIndex);
+      }else if(room.type===RoomType.MINIBOSS){
+        playBossPhase('mini');setMusic('miniboss',engine.map.floorIndex);
       }
       engine.state = GameState.BOSS_INTRO;
       engine.onStateChange?.(engine.state);
@@ -1669,12 +1691,12 @@ function updateDangerEvent(engine:GameEngine) {
   if(!(room.type===RoomType.EVENT && !content.cafe)) {
     if(engine.dangerEventMusic) {
       engine.dangerEventMusic=false;
-      setMusic(room.type===RoomType.BOSS?'boss':'run',engine.map.floorIndex);
+      setRoomMusic(engine,room,content);
     }
     return;
   }
   if(content.dangerEventDone) {
-    if(engine.dangerEventMusic) {engine.dangerEventMusic=false;setMusic('run',engine.map.floorIndex);}
+    if(engine.dangerEventMusic){engine.dangerEventMusic=false;setRoomMusic(engine,room,content);}
     return;
   }
   const floor=clamp(engine.map.floorIndex,0,5);
@@ -1710,7 +1732,7 @@ function updateDangerEvent(engine:GameEngine) {
   }
   if(timer<=0 && content.enemies.length===0) {
     content.dangerEventActive=false;content.dangerEventDone=true;
-    engine.dangerEventMusic=false;setMusic('run',floor);
+    engine.dangerEventMusic=false;setRoomMusic(engine,room,content);
     engine.toast='EVENTO SUPERADO';engine.toastTimer=90;
   }
 }
@@ -2338,7 +2360,7 @@ export function updateEngine(engine: GameEngine) {
       if(content.challenge==='alarm' || !content.damaged) content.items.push({x:CANVAS_WIDTH/2-8,y:150,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     }
     if(content.event?.kind==='interrogation') content.items.push({x:CANVAS_WIDTH/2-8,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
-    if(room.type===RoomType.BOSS) {content.rewardTimer=75;setMusic('run',engine.map.floorIndex);}
+    if(room.type===RoomType.BOSS){content.rewardTimer=75;setMusic('treasure',engine.map.floorIndex);}
     if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
 
@@ -2748,9 +2770,19 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
   const count=baseCount*(b.twinCannon?2:1);
 
   for (let i = 0; i < count; i++) {
-    let a = Math.atan2(dy, dx);
-    if (count > 1) a += (i-(count-1)/2)*(w.spread || .15)/(b.twinCannon?1.6:1);
-    if (!continuous) a += rng(-.045,.045)*b.accuracy;
+    let a=Math.atan2(dy,dx);
+    if(count>1){
+      if(w.id==='breadcrumb_shotgun'){
+        // En escopeta, "spread" es el ancho TOTAL del cono. Los perdigones
+        // se distribuyen dentro de ese abanico frontal, todos hacia el mismo lado.
+        const cone=(w.spread||.68)/(b.twinCannon?1.25:1);
+        const slot=count===1?0:(i/(count-1)-.5);
+        a+=slot*cone+rng(-.018,.018)*b.accuracy;
+      }else{
+        a+=(i-(count-1)/2)*(w.spread||.15)/(b.twinCannon?1.6:1);
+      }
+    }
+    if(!continuous&&w.id!=='breadcrumb_shotgun')a+=rng(-.045,.045)*b.accuracy;
 
     let type = w.projectileType;
     let dmg=(w.damage+b.damage)*b.damageScale*p.damageMultiplier*(b.debt?1+Math.min(.3,Math.floor(p.crumbs/10)*.01):1);
@@ -2786,9 +2818,10 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
     const speed=w.projectileSpeed*b.projectileSpeed;
     const radius=(w.explode ?? 0)*(b.uranium?1.5:1)*Math.sqrt(b.explosionScale);
 
-    const proj = makeProjectile(
-      p.x + 7, p.y + 8,
-      Math.cos(a)*speed, Math.sin(a)*speed,
+    const muzzleForward=w.id==='breadcrumb_shotgun'?8:0;
+    const proj=makeProjectile(
+      p.x+7+dx*muzzleForward,p.y+8+dy*muzzleForward,
+      Math.cos(a)*speed,Math.sin(a)*speed,
       type, dmg, true, w.boomerang?62:continuous?46:w.projectileType==='buckshot_player'?26:80,
       {bounces,piercing:w.piercing,boomerang:w.boomerang,burning,explode:radius,sourceWeapon:w.id,baseSpeed:speed,
         penetration:b.penetration+(piercingShot&&w.id==='plasma_baker'?2:0),knockback:w.knockback,orbit:b.spiral?30:b.orbit?21:0,radius:projRadius,nuclear:b.uranium>0,damageScaled:true,bounceBoost:0,originDamage:dmg},
