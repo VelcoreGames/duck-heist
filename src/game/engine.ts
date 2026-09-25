@@ -873,7 +873,7 @@ function spawnEndlessBoss(engine:GameEngine,tier:'mini'|'sub'|'boss') {
   engine.bossIntroName=doubleThreat?'DOBLE AMENAZA':names[0];
   engine.bossIntroSubtitle=doubleThreat?names.join(' + '):`${engine.endless.threatRank} · ${endlessStage(engine.endless.round)}`;
   engine.bossIntroTimer=doubleThreat?150:tier==='boss'?122:tier==='sub'?104:82;
-  playBossRoar();setMusic('boss');
+  playBossRoar();setMusic(tier==='boss'?'boss':tier==='sub'?'subboss':'miniboss',engine.map.floorIndex);
   engine.state=GameState.BOSS_INTRO;engine.onStateChange?.(engine.state);
 }
 
@@ -1715,7 +1715,7 @@ function updateDangerEvent(engine:GameEngine) {
   }
   if(!content.dangerEventActive) return;
   engine.dangerEventMusic=true;
-  setMusic('event',floor);
+  setMusic('challenge',floor);
   room.cleared=false;
   if((content.dangerEventTimer ?? 0)>0) content.dangerEventTimer!--;
   const total=content.dangerEventTotal ?? 1,timer=content.dangerEventTimer ?? 0;
@@ -2361,6 +2361,7 @@ export function updateEngine(engine: GameEngine) {
     }
     if(content.event?.kind==='interrogation') content.items.push({x:CANVAS_WIDTH/2-8,y:155,itemId:rollBossRewardItem(engine),isWeapon:false,isActive:false});
     if(room.type===RoomType.BOSS){content.rewardTimer=75;setMusic('treasure',engine.map.floorIndex);}
+    else if(room.type===RoomType.SUBBOSS||room.type===RoomType.MINIBOSS)setMusic('treasure',engine.map.floorIndex);
     if(room.type===RoomType.COMBAT && random()<.12) content.pickups.push({x:CANVAS_WIDTH/2,y:198,type:'hp',value:1,lifetime:99999});
   }
 
