@@ -352,6 +352,17 @@ export function runSelfChecks():CheckReport {
         drawBoss(ctx,80,80,id,180,def.hp,def.hp,false,Math.min(2,def.phases-1),.85,parts);
       }
     });
+    check('Coreografía manual renderiza windup, ataque y recuperación por boss icónico',()=>{
+      const ids=['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','head_baker','el_auditor','ganso_antidisturbios','cajero_3000'];
+      for(const id of ids){
+        const def=BOSSES[id]??SUBBOSSES[id]??MINIBOSSES[id];
+        const parts=bossPartsFor(id);
+        for(let atk=0;atk<Math.min(5,def.phases+2);atk++){
+          drawBoss(ctx,80,80,id,210+atk*3,def.hp,def.hp,false,Math.min(def.phases-1,1),.72,parts,atk,0,18);
+          drawBoss(ctx,80,80,id,230+atk*3,def.hp,def.hp,false,Math.min(def.phases-1,1),0,parts,undefined,12,18);
+        }
+      }
+    });
     check('Buckshot conserva identidad real de escopeta',()=>{
       const w=WEAPONS.breadcrumb_shotgun;
       assert(w.projectileType==='buckshot_player','escopeta de jugador sin proyectil buckshot');
