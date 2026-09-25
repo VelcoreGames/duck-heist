@@ -174,18 +174,23 @@ export function drawBar(ctx: Ctx, x: number, y: number, w: number, value: number
 }
 
 export const MENU_THEME = {
-  ink:'#071015',
-  panel:'#0d1a21',
-  panel2:'#12252d',
-  line:'#35515a',
-  muted:'#789097',
-  text:'#dce8df',
+  ink:'#050b0f',
+  ink2:'#081319',
+  panel:'#0b1920',
+  panel2:'#10262e',
+  steel:'#233a42',
+  steel2:'#49626a',
+  line:'#355a62',
+  lineSoft:'rgba(117,164,168,.18)',
+  muted:'#7f9798',
+  text:'#dce7df',
   gold:'#e6c56f',
-  gold2:'#9d7932',
-  paper:'#eadfb9',
+  goldBright:'#f7dda0',
+  gold2:'#8e6d2f',
+  paper:'#efe2bd',
   cyan:'#73c7c8',
-  red:'#d85d58',
-  green:'#6fc18d',
+  red:'#dc6159',
+  green:'#72c796',
 };
 
 /** Fondo común para pantallas de menú: oscurece el mundo sin borrar su contexto. */
@@ -234,54 +239,82 @@ export function drawMenuHeader(
   accent=MENU_THEME.gold,eyebrow='EXPEDIENTE DEL ATRACO',
 ) {
   ctx.save();
-  ctx.fillStyle='rgba(5,13,18,.92)';ctx.fillRect(22,16,UI_BASE_WIDTH-44,44);
-  ctx.strokeStyle='rgba(126,157,161,.18)';ctx.strokeRect(22.5,16.5,UI_BASE_WIDTH-45,43);
-  ctx.fillStyle=accent;ctx.fillRect(22,16,5,44);
-  ctx.globalAlpha=.34;ctx.fillRect(27,16,UI_BASE_WIDTH-49,1);ctx.globalAlpha=1;
+  const x=22,y=15,w=UI_BASE_WIDTH-44,h=46;
 
-  // Identificador del expediente.
-  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(33,22,8,8);
-  ctx.fillStyle=accent;ctx.globalAlpha=.75;ctx.fillRect(35,24,4,4);ctx.globalAlpha=1;
-  text(ctx,eyebrow,47,30,5.2,accent,'left',true,false);
-  titleText(ctx,title,34,50,15.5,MENU_THEME.paper,'left',false);
+  ctx.fillStyle='rgba(3,11,15,.94)';ctx.fillRect(x,y,w,h);
+  ctx.fillStyle='rgba(255,255,255,.025)';ctx.fillRect(x+5,y+5,w-10,h-10);
+  ctx.strokeStyle='rgba(126,166,169,.20)';ctx.strokeRect(x+.5,y+.5,w-1,h-1);
 
-  // El subtítulo funciona como descripción contextual, no como segundo título.
-  text(ctx,subtitle,UI_BASE_WIDTH-34,48,5.5,MENU_THEME.muted,'right',false,false);
+  // Banda de seguridad: color de contexto + doble guía de bóveda.
+  ctx.fillStyle=accent;ctx.fillRect(x,y,5,h);
+  ctx.globalAlpha=.34;ctx.fillRect(x+5,y,w-5,1);ctx.fillRect(x+5,y+h-2,w-5,1);ctx.globalAlpha=1;
+  ctx.fillStyle=MENU_THEME.steel2;ctx.fillRect(x+12,y+8,1,h-16);
 
-  const pulse=.28+.3*Math.sin(frame*.08);
+  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(x+18,y+8,9,9);
+  ctx.strokeStyle=accent;ctx.globalAlpha=.72;ctx.strokeRect(x+19.5,y+9.5,6,6);ctx.globalAlpha=1;
+
+  text(ctx,eyebrow,x+34,y+15,5.1,accent,'left',true,false);
+  titleText(ctx,title,x+18,y+36,15.2,MENU_THEME.paper,'left',false);
+
+  // Subtítulo como estado/contexto técnico, alineado y más legible.
+  const maxSub=subtitle.length>48?subtitle.slice(0,47)+'…':subtitle;
+  text(ctx,maxSub,x+w-16,y+34,5.2,MENU_THEME.muted,'right',false,false);
+
+  const pulse=.28+.26*Math.sin(frame*.08);
   ctx.globalAlpha=pulse;ctx.fillStyle=accent;
-  for(let i=0;i<3;i++)ctx.fillRect(UI_BASE_WIDTH-62+i*9,25,6,2);
-  ctx.globalAlpha=.18;ctx.fillRect(31,56,UI_BASE_WIDTH-62,1);
+  for(let i=0;i<3;i++)ctx.fillRect(x+w-39+i*8,y+10,5,2);
+  ctx.globalAlpha=1;
+
+  // Código visual fijo de Duck Heist.
+  text(ctx,'DH // VAULT OPS',x+w-16,y+14,4.1,'#587176','right',true,false);
   ctx.restore();
 }
 
 /** Tarjeta de menú coherente con bordes recortados y jerarquía fuerte. */
 export function drawMenuCard(
   ctx:Ctx,x:number,y:number,w:number,h:number,
-  selected=false,accent=MENU_THEME.gold,fill='rgba(12,25,32,.93)',
+  selected=false,accent=MENU_THEME.gold,fill='rgba(10,24,30,.94)',
 ) {
   ctx.save();
-  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=12;}
-  ctx.fillStyle='rgba(0,0,0,.52)';ctx.fillRect(x+3,y+4,w,h);
-  ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
 
-  // Capas internas: una tarjeta grande necesita más profundidad que un rectángulo plano.
-  const sheen=ctx.createLinearGradient(x,y,x+w,y+h);
-  sheen.addColorStop(0,selected?'rgba(255,255,255,.075)':'rgba(255,255,255,.032)');
-  sheen.addColorStop(.55,'rgba(255,255,255,0)');
-  sheen.addColorStop(1,'rgba(0,0,0,.16)');
-  ctx.fillStyle=sheen;ctx.fillRect(x+3,y+2,w-4,h-3);
+  // Sombra dura de píxel + halo sólo en selección. Evita blur continuo en gameplay;
+  // estas tarjetas sólo viven en interfaces/menús.
+  ctx.fillStyle='rgba(0,0,0,.48)';
+  ctx.fillRect(x+4,y+5,w,h);
+  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=10;}
 
-  ctx.fillStyle=selected?accent:MENU_THEME.line;ctx.fillRect(x,y,4,h);
-  ctx.globalAlpha=selected?.72:.24;ctx.fillStyle=accent;ctx.fillRect(x+4,y,w-4,1);ctx.globalAlpha=1;
-  ctx.strokeStyle=selected?accent:'#243b43';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.fillStyle=fill;
+  ctx.fillRect(x,y,w,h);
 
-  // Cortes y marcas técnicas en esquinas.
+  const top=ctx.createLinearGradient(x,y,x,y+h);
+  top.addColorStop(0,selected?'rgba(255,255,255,.075)':'rgba(255,255,255,.032)');
+  top.addColorStop(.42,'rgba(255,255,255,0)');
+  top.addColorStop(1,'rgba(0,0,0,.24)');
+  ctx.fillStyle=top;ctx.fillRect(x+3,y+2,w-6,h-4);
+
+  // Lomo de expediente / placa de bóveda.
+  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
+  ctx.globalAlpha=selected?.95:.55;ctx.fillRect(x,y,4,h);ctx.globalAlpha=1;
+
+  ctx.strokeStyle=selected?accent:MENU_THEME.line;
+  ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.globalAlpha=selected?.52:.20;ctx.fillStyle=accent;ctx.fillRect(x+4,y,w-8,1);ctx.globalAlpha=1;
+
+  // Esquinas técnicas recortadas y remaches: firma común de toda la UI.
   ctx.fillStyle=MENU_THEME.ink;
-  ctx.fillRect(x+w-7,y,7,3);ctx.fillRect(x+w-3,y,3,7);
-  ctx.fillRect(x,y+h-3,7,3);ctx.fillRect(x,y+h-7,3,7);
-  ctx.globalAlpha=selected?.6:.22;ctx.fillStyle=accent;
-  ctx.fillRect(x+w-14,y+h-4,7,1);ctx.fillRect(x+w-4,y+h-14,1,7);
+  ctx.fillRect(x+w-8,y,8,3);ctx.fillRect(x+w-3,y,3,8);
+  ctx.fillRect(x,y+h-3,8,3);ctx.fillRect(x,y+h-8,3,8);
+  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
+  ctx.globalAlpha=selected?.76:.42;
+  for(const [rx,ry] of [[x+8,y+7],[x+w-10,y+h-9]] as const){
+    ctx.fillRect(rx,ry,2,2);
+  }
+  ctx.globalAlpha=1;
+
+  // Línea de lectura horizontal: hace que tarjetas grandes parezcan paneles construidos.
+  if(h>=34){
+    ctx.fillStyle='rgba(255,255,255,.025)';ctx.fillRect(x+10,y+h-8,w-20,1);
+  }
   ctx.restore();
 }
 
@@ -301,10 +334,25 @@ export function drawMenuChoice(
 }
 
 export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,h:number,hover=false,accent=MENU_THEME.gold,danger=false,disabled=false){
-  const col=disabled?'#536067':danger?'#d85d58':accent;
-  drawMenuCard(ctx,x,y,w,h,hover&&!disabled,col,disabled?'rgba(12,19,22,.84)':hover?(danger?'rgba(54,26,30,.98)':'rgba(30,40,34,.98)'):'rgba(9,22,28,.96)');
-  if(hover&&!disabled){ctx.save();ctx.globalAlpha=.13;ctx.fillStyle=col;ctx.fillRect(x+4,y+3,w-8,h-6);ctx.restore();}
-  text(ctx,label,x+w/2,y+h/2+4,6.35,disabled?'#66767a':hover?'#fff5dc':'#cbd6d0','center',true,false);
+  const col=disabled?'#526167':danger?MENU_THEME.red:accent;
+  drawMenuCard(
+    ctx,x,y,w,h,hover&&!disabled,col,
+    disabled?'rgba(10,17,21,.86)':hover
+      ?(danger?'rgba(58,26,30,.98)':'rgba(28,38,34,.98)')
+      :'rgba(7,19,25,.96)'
+  );
+  ctx.save();
+  if(!disabled){
+    // Ranura de acción: comunica clic/selección sin convertir cada botón en un bloque dorado.
+    ctx.fillStyle=col;ctx.globalAlpha=hover?.18:.055;
+    ctx.fillRect(x+5,y+4,w-10,h-8);ctx.globalAlpha=1;
+    if(hover){
+      ctx.fillStyle=col;ctx.fillRect(x+7,y+h-4,Math.max(12,w*.26),1);
+      text(ctx,'›',x+w-10,y+h/2+3,7,col,'center',true,false);
+    }
+  }
+  text(ctx,label,x+w/2-(hover?3:0),y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
+  ctx.restore();
 }
 
 /** Pie consistente de controles. */
