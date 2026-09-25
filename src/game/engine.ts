@@ -697,7 +697,6 @@ export function startGame(engine: GameEngine) {
   enterRoom(engine, engine.map.startKey, null);
   engine.floorIntroTimer = 110;
   engine.state = GameState.FLOOR_INTRO;
-  setMusic('run',0);
   engine.onStateChange?.(engine.state);
   saveProgress(engine);
   saveHeistCheckpoint(engine);
@@ -726,7 +725,7 @@ export function startDailyChallenge(engine:GameEngine) {
   engine.knownSynergies=[];engine.synergyNotice=null;engine.newRecord=false;engine.runRecorded=false;engine.tooltip={key:'',since:0};
   engine.bossIntroSeen={};engine.overlayLabels=[];engine.transition={active:false,timer:0,total:22,dir:null,targetKey:null};
   enterRoom(engine,engine.map.startKey,null);engine.floorIntroTimer=110;engine.state=GameState.FLOOR_INTRO;
-  engine.roomLabel='DESAFÍO DIARIO';engine.roomLabelTimer=90;setMusic('run',0);engine.onStateChange?.(engine.state);saveProgress(engine);
+  engine.roomLabel='DESAFÍO DIARIO';engine.roomLabelTimer=90;engine.onStateChange?.(engine.state);saveProgress(engine);
 }
 
 export function beginHeist(engine:GameEngine) {
@@ -1010,7 +1009,7 @@ export function resumeHeistGame(engine:GameEngine):boolean {
     engine.roomLabelTimer=100;
     engine.heistCheckpointFloor=cp.floorIndex+1;
     engine.heistCheckpointDifficulty=engine.difficulty;
-    setMusic('run',cp.floorIndex);
+    setRoomMusic(engine,currentRoom(engine),getContent(engine));
     engine.onStateChange?.(engine.state);
     return true;
   } catch {return false;}
@@ -1511,7 +1510,6 @@ function loadNextFloor(engine: GameEngine) {
   engine.deathEchoes=[];engine.decoy=null;engine.hitStop=0;engine.tooltip={key:'',since:0};
   applyFloorPassives(engine);
   engine.run.floorReached = idx + 1;
-  setMusic('run',idx);
   // vida restaurada parcialmente entre pisos
   engine.player.hp = Math.min(engine.player.maxHp, engine.player.hp + DIFFICULTIES[engine.difficulty].floorHeal);
   enterRoom(engine, engine.map.startKey, null);
@@ -1535,8 +1533,11 @@ function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
   }
   if(room.type===RoomType.CHALLENGE){setMusic('challenge',floor);return;}
   if(room.type===RoomType.ITEM){setMusic('item',floor);return;}
-  if(room.type===RoomType.TREASURE||room.type===RoomType.CHOICE){setMusic('treasure',floor);return;}
+  if(room.type===RoomType.CHOICE){setMusic('choice',floor);return;}
+  if(room.type===RoomType.TREASURE){setMusic('treasure',floor);return;}
   if(room.type===RoomType.SECRET){setMusic('secret',floor);return;}
+  if(room.type===RoomType.START){setMusic('start',floor);return;}
+  if(room.type===RoomType.COMBAT){setMusic('combat',floor);return;}
   setMusic('run',floor);
 }
 
