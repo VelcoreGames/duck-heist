@@ -198,22 +198,23 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
     if(serial!==musicTransitionSerial||mood==='off')return;
     musicStep=0;
     const variantSeed=musicHash(variant||mood);
+    const tempoNudge=variant?((((variantSeed>>>5)%5)-2)*2):0;
     const bpm=
       mood==='boss'?[62,68,74,80,86,70][variantSeed%6]:
       mood==='subboss'?[78,86,92,72][variantSeed%4]:
       mood==='miniboss'?[104,112,96][variantSeed%3]:
-      mood==='event'?116:
-      mood==='challenge'?108:
-      mood==='gunvan'?82:
-      mood==='shop'?76:
-      mood==='cafe'?72:
-      mood==='secret'?66:
-      mood==='treasure'?70:
-      mood==='choice'?74:
-      mood==='item'?68:
-      mood==='start'?72:
-      mood==='combat'?96:
-      mood==='run'?94:68;
+      mood==='event'?116+tempoNudge:
+      mood==='challenge'?108+tempoNudge:
+      mood==='gunvan'?82+tempoNudge:
+      mood==='shop'?76+tempoNudge:
+      mood==='cafe'?72+tempoNudge:
+      mood==='secret'?66+tempoNudge:
+      mood==='treasure'?70+tempoNudge:
+      mood==='choice'?74+tempoNudge:
+      mood==='item'?68+tempoNudge:
+      mood==='start'?72+tempoNudge:
+      mood==='combat'?96+tempoNudge:
+      mood==='run'?94+tempoNudge:68;
     const beat=60000/bpm/2;
 
     try{
@@ -266,6 +267,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   if(musicVol<=.001||masterVol<=.001)return;
   const step=musicStep++,sec=beat/1000;
   const variantSeed=musicHash(variant||mood);
+  const variantPitch=variant?Math.pow(2,([-4,-2,0,2,3,5][variantSeed%6])/12):1;
+  const phaseOffset=variant?((variantSeed>>>8)%8):0;
 
   if(mood==='menu'){
     const roots=[73.42,65.41,58.27,65.41],root=roots[Math.floor(step/4)%roots.length];
@@ -275,7 +278,7 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='start'){
-    const root=[65.41,69.30,61.74,65.41][Math.floor(step/4)%4];
+    const root=[65.41,69.30,61.74,65.41][Math.floor((step+phaseOffset)/4)%4]*variantPitch;
     if(step%8===0)chord(root,[1,1.5,2],sec*7.2,.010,0,1300);
     if(step%4===2)tone(root*2,sec*.55,.0045,{type:'triangle',attack:.06,cutoff:1700,kind:'music'});
     if(step%8===6)filteredNoise(.04,.003,{type:'highpass',freq:3400,q:.5,kind:'music'});
@@ -283,8 +286,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='combat'){
-    const root=RUN_ROOTS[Math.min(5,musicFloor)];
-    const phase=step%16;
+    const root=RUN_ROOTS[Math.min(5,musicFloor)]*variantPitch;
+    const phase=(step+phaseOffset)%16;
     if(phase%8===0)chord(root,MINOR,sec*6.8,.013,0,1450);
     if(phase%2===0){
       tone(root/2,sec*.62,.021,{type:'sine',to:root/2*.97,attack:.006,cutoff:280,kind:'music'});
@@ -296,7 +299,7 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='choice'){
-    const root=[69.3,65.41,73.42,65.41][Math.floor(step/4)%4];
+    const root=[69.3,65.41,73.42,65.41][Math.floor((step+phaseOffset)/4)%4]*variantPitch;
     if(step%8===0)chord(root,[1,Math.pow(2,4/12),1.5,2],sec*7,.0095,0,1550);
     if(step%4===1||step%4===3)tone(root*(step%8<4?2:2.5),sec*.48,.004,{type:'sine',attack:.04,cutoff:2100,kind:'music'});
     if(step%8===6)tone(root*3,sec*.3,.0035,{type:'triangle',attack:.01,cutoff:2600,kind:'music'});
@@ -304,8 +307,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='shop'||mood==='gunvan'||mood==='cafe'){
-    const root=mood==='gunvan'?49:mood==='cafe'?65.41:58.27;
-    const phase=step%16;
+    const root=(mood==='gunvan'?49:mood==='cafe'?65.41:58.27)*variantPitch;
+    const phase=(step+phaseOffset)%16;
     if(phase%8===0)chord(root,mood==='cafe'?MINOR:[1,1.25,1.5,2],sec*7,.011,0,mood==='gunvan'?900:1300);
     if(phase%2===0)tone(root*(phase%4===0?2:1.5),sec*.65,mood==='cafe'?.004:.006,{type:mood==='gunvan'?'sawtooth':'triangle',attack:.03,cutoff:mood==='gunvan'?620:1500,kind:'music'});
     if(mood==='cafe'&&phase%4===2)tone(root*3,sec*.28,.0035,{type:'sine',attack:.02,cutoff:2200,kind:'music'});
@@ -314,8 +317,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='item'||mood==='treasure'||mood==='secret'){
-    const root=mood==='secret'?51.91:mood==='treasure'?69.3:61.74;
-    const phase=step%16;
+    const root=(mood==='secret'?51.91:mood==='treasure'?69.3:61.74)*variantPitch;
+    const phase=(step+phaseOffset)%16;
     if(phase%8===0)chord(root,[1,Math.pow(2,4/12),1.5,2],sec*7.5,.010,0,1500);
     if(phase===2||phase===6||phase===10||phase===14)tone(root*(mood==='secret'?1.5:2),sec*.85,.0045,{type:'sine',attack:.08,cutoff:1800,kind:'music'});
     if(mood==='treasure'&&(phase===4||phase===12))tone(root*3,sec*.32,.004,{type:'triangle',attack:.01,cutoff:2600,kind:'music'});
@@ -324,8 +327,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='challenge'){
-    const root=RUN_ROOTS[Math.min(5,musicFloor)]*Math.pow(2,-2/12);
-    const phase=step%16;
+    const root=RUN_ROOTS[Math.min(5,musicFloor)]*Math.pow(2,-2/12)*variantPitch;
+    const phase=(step+phaseOffset)%16;
     if(phase%8===0)chord(root,DARK,sec*6.5,.012,0,1200);
     if(phase%2===0){tone(root/2,sec*.55,.019,{type:'sawtooth',attack:.006,cutoff:360,kind:'music'});filteredNoise(.045,.006,{type:'highpass',freq:3000,q:.7,kind:'music'});}
     if(phase===6||phase===14)tone(root*2.5,sec*.32,.006,{type:'triangle',attack:.01,cutoff:1800,kind:'music'});
@@ -333,7 +336,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='run'){
-    const root=RUN_ROOTS[Math.min(5,musicFloor)]*(step%16>=8?Math.pow(2,-2/12):1);
+    const shiftedStep=step+phaseOffset;
+    const root=RUN_ROOTS[Math.min(5,musicFloor)]*(shiftedStep%16>=8?Math.pow(2,-2/12):1)*variantPitch;
     if(step%8===0)chord(root,MINOR,sec*7.2,.014,0,1500);
     if(step%2===0){
       tone(root/2,sec*.78,.020,{type:'sine',to:root/2*.97,attack:.008,cutoff:260,kind:'music'});
@@ -344,7 +348,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
   }
 
   if(mood==='event'){
-    const root=65.41*(step%8>=4?Math.pow(2,2/12):1);
+    const shiftedStep=step+phaseOffset;
+    const root=65.41*(shiftedStep%8>=4?Math.pow(2,2/12):1)*variantPitch;
     if(step%4===0)chord(root,DARK,sec*3.6,.014,0,1350);
     lowImpact(step%8===0?52:64,.022,0,'music');
     if(step%2===1)filteredNoise(.065,.010,{type:'highpass',freq:2200,q:.8,kind:'music'});
