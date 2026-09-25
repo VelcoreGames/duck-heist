@@ -1822,13 +1822,13 @@ export function updateEngine(engine: GameEngine) {
   const room = currentRoom(engine);
   const content = getContent(engine);
   const activeThreats=content.enemies.length;
-  const musicPressure=room.cleared?.08:
-    room.type===RoomType.BOSS?1:
-    room.type===RoomType.SUBBOSS?.9:
-    room.type===RoomType.MINIBOSS?.78:
-    room.type===RoomType.CHALLENGE?Math.min(1,.48+activeThreats*.09):
-    room.type===RoomType.COMBAT?Math.min(.92,.30+activeThreats*.085):
-    engine.gameMode==='endless'?Math.min(.9,.32+activeThreats*.07):.12;
+  const musicPressure=room.cleared ? .08 :
+    room.type===RoomType.BOSS ? 1 :
+    room.type===RoomType.SUBBOSS ? .9 :
+    room.type===RoomType.MINIBOSS ? .78 :
+    room.type===RoomType.CHALLENGE ? Math.min(1,.48+activeThreats*.09) :
+    room.type===RoomType.COMBAT ? Math.min(.92,.30+activeThreats*.085) :
+    engine.gameMode==='endless' ? Math.min(.9,.32+activeThreats*.07) : .12;
   setMusicIntensity(musicPressure);
   engine.run.time++;
   if(engine.gameMode==='daily')engine.daily.score=dailyScore(engine,'live');
