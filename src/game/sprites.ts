@@ -148,19 +148,19 @@ export function drawDuck(
     rect(ctx,bx+2+hx,hy+1,1,2,pal.mask);
     rect(ctx,bx+13+hx,hy+1,1,2,pal.mask);
     if (!blink) {
-      rect(ctx, bx + 5, hy + 2, 2, 2, '#fff');
-      rect(ctx, bx + 9, hy + 2, 2, 2, '#fff');
-      px(ctx, bx + 6, hy + 2, '#0a0a0a', 1);
-      px(ctx, bx + 10, hy + 2, '#0a0a0a', 1);
+      rect(ctx,bx+5+hx,hy+2,2,2,'#fff');
+      rect(ctx,bx+9+hx,hy+2,2,2,'#fff');
+      px(ctx,bx+6+hx,hy+2,'#0a0a0a',1);
+      px(ctx,bx+10+hx,hy+2,'#0a0a0a',1);
     } else {
-      rect(ctx, bx + 5, hy + 3, 2, 1, '#0a0a0a');
-      rect(ctx, bx + 9, hy + 3, 2, 1, '#0a0a0a');
+      rect(ctx,bx+5+hx,hy+3,2,1,'#0a0a0a');
+      rect(ctx,bx+9+hx,hy+3,2,1,'#0a0a0a');
     }
-    rect(ctx, bx + 6, hy + 5, 4, 2, pal.beak);
-    rect(ctx, bx + 6, hy + 6, 4, 1, pal.beakDark);
+    rect(ctx,bx+6+hx,hy+5,4,2,pal.beak);
+    rect(ctx,bx+6+hx,hy+6,4,1,pal.beakDark);
   } else {
     const flip = dir === 'left';
-    const fx = (v: number) => flip ? bx + 15 - v : bx + v;
+    const fx=(v:number)=>(flip?bx+15-v:bx+v)+hx;
     rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
     if (!blink) {
       rect(ctx, fx(9), hy + 2, 2, 2, '#fff');
@@ -168,7 +168,7 @@ export function drawDuck(
     } else {
       rect(ctx, fx(9), hy + 3, 2, 1, '#0a0a0a');
     }
-    const bxp = flip ? bx - 2 : bx + 12;
+    const bxp=(flip?bx-2:bx+12)+hx;
     rect(ctx, bxp, hy + 4, 5, 2, pal.beak);
     rect(ctx, bxp + (flip ? 0 : 1), hy + 6, 4, 1, pal.beakDark);
     rect(ctx, flip ? bx + 12 : bx + 1, by + 9 + waddle, 3, 3, pal.shade);
