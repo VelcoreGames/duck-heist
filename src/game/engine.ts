@@ -1955,8 +1955,13 @@ export function updateEngine(engine: GameEngine) {
     engine.shakeIntensity=Math.max(engine.shakeIntensity,kick);
     const muzzleColor=w.id==='baguette_launcher'?'#ffcf82':w.id==='tactical_toaster'?'#b9b09b':w.id==='plasma_baker'?'#ffe1a3':'#fff0b0';
     spawn(engine,player.x+7+sx*12,player.y+8+sy*12,'spark',kick>2?4:kick>1?3:1,muzzleColor);
-    if (Math.abs(sx) > Math.abs(sy)) player.dir = sx > 0 ? 'right' : 'left';
-    else if (sy !== 0) player.dir = sy > 0 ? 'down' : 'up';
+    // La orientación corporal pertenece a la locomoción. Sólo al estar casi
+    // quieto el pato gira el torso completo hacia el arma; en movimiento puede
+    // strafe-ar y apuntar independientemente.
+    if(!player.moving||Math.hypot(player.vx,player.vy)<.5){
+      if(Math.abs(sx)>Math.abs(sy)) player.dir=sx>0?'right':'left';
+      else if(sy!==0) player.dir=sy>0?'down':'up';
+    }
     playShoot(activeWeapon(player).id);
   }
 
