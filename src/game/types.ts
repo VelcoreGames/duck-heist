@@ -83,6 +83,11 @@ export interface Enemy {
   phaseTransition?:number;
   /** Secuencia aprendible de la firma de combate de jefes data-driven. */
   bossAttackIndex?:number;
+  /** Ataque elegido al comenzar el windup. Permite coreografía legible antes de disparar. */
+  bossPreparedAttack?:number;
+  /** Recuperación visual/corporal después de ejecutar un ataque importante. */
+  bossAttackRecovery?:number;
+  bossAttackRecoveryMax?:number;
   /** Hurtbox elíptica opcional para jefes con siluetas no cuadradas. */
   hitboxW?:number;
   hitboxH?:number;
