@@ -1000,7 +1000,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       const accent=bossDef?.accent??(BOSSES[e.bossType]?'#ff6a63':SUBBOSSES[e.bossType]?'#f1a26f':'#ffd166');
       const secondary=bossDef?.secondary??accent;
       const step=e.bossAttackIndex??0;
-      const preview=bossDef?.pattern?.sequence.length
+      const preview=!bossDef?.legacy&&bossDef?.pattern?.sequence.length
         ? bossDef.pattern.sequence[(step+e.bossPhase*bossDef.pattern.phaseShift)%bossDef.pattern.sequence.length]
         : undefined;
       const px=engine.player.x+7,py=engine.player.y+8;
@@ -1052,8 +1052,61 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
         ctx.setLineDash([]);
       }
 
+      // Los bosses clásicos muestran la geometría real del ataque YA elegido,
+      // no una previsualización procedural que pueda contradecir su coreografía corporal.
+      if(bossDef?.legacy&&e.bossPreparedAttack!==undefined){
+        const atk=e.bossPreparedAttack;
+        ctx.globalAlpha=.12+t*.32;ctx.strokeStyle=secondary;ctx.lineWidth=1.5;
+        const aimLine=(width=1)=>{
+          ctx.lineWidth=width+t*1.5;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();ctx.setLineDash([]);
+        };
+        const targetRing=(x:number,y:number,r:number)=>{
+          ctx.beginPath();ctx.ellipse(x,y+2,r,r*.46,0,0,Math.PI*2);ctx.stroke();
+        };
+        switch(e.bossType){
+          case 'captain_honk':
+            if(atk===1)aimLine(2);else if(atk===2){for(let i=0;i<4;i++){const a=i*Math.PI/2+f*.01;ctx.fillStyle=secondary;ctx.fillRect(cx+Math.cos(a)*42-2,cy+Math.sin(a)*30-2,4,4);}}else if(atk>=3)targetRing(cx,cy,38+t*22);else aimLine();
+            break;
+          case 'comisario_pico_duro':
+            if(atk===2||atk===4)aimLine(2);else if(atk===1||atk===3)targetRing(cx,cy,42+t*20);else aimLine();
+            break;
+          case 'toaster_9000':
+            if(atk===1){for(let i=0;i<6+e.bossPhase*2;i++){const a=i/(6+e.bossPhase*2)*Math.PI*2;targetRing(cx+Math.cos(a)*(55+e.bossPhase*14),cy+Math.sin(a)*(55+e.bossPhase*14),8+t*5);}}
+            else if(atk===4)targetRing(px,py,28+t*18);
+            else targetRing(cx,cy,34+t*25);
+            break;
+          case 'general_ganso':
+            if(atk===0||atk===1||atk===4)aimLine(atk===0?2:1);else targetRing(cx,cy,38+t*22);
+            break;
+          case 'don_levadura':
+            if(atk===1)targetRing(cx,cy,48+e.bossPhase*18);
+            else if(atk===2||atk===4)targetRing(px,py,24+t*18);
+            else targetRing(cx,cy,34+t*18);
+            break;
+          case 'director_seguridad':
+            if(atk===3||atk===4){for(let i=0;i<4;i++){const a=i*Math.PI/2+f*.008;targetRing(px+Math.cos(a)*50,py+Math.sin(a)*38,10+t*7);}}
+            else if(atk===2){for(const off of [-.22,.22]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px+Math.cos(ang+Math.PI/2)*off*130,py+Math.sin(ang+Math.PI/2)*off*130);ctx.stroke();}}
+            else targetRing(cx,cy,36+t*24);
+            break;
+          case 'head_baker':
+            if(atk===2)aimLine(2);else if(atk===1)targetRing(cx,cy,e.bossPhase?78:56);else if(atk===3)targetRing(px,py,24+t*16);else aimLine();
+            break;
+          case 'el_auditor':
+            if(atk===1){for(const [dx,dy] of [[52,45],[-52,45],[52,-45],[-52,-45]])targetRing(px+dx,py+dy,10+t*7);}
+            else if(atk===2)targetRing(cx,cy,36+t*22);else aimLine();
+            break;
+          case 'ganso_antidisturbios':
+            if(atk===0)aimLine(3);else if(atk===1||atk===3)targetRing(cx,cy,38+t*22);else aimLine();
+            break;
+          case 'cajero_3000':
+            if(atk===1){for(const off of [-.18,.18]){const a=ang+off;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*(95+t*55),cy+Math.sin(a)*(95+t*55));ctx.stroke();}}
+            else if(atk>=2)targetRing(cx,cy,40+t*24);else aimLine();
+            break;
+        }
+      }
+
       // Firma del rol: incluso antes del disparo se entiende qué clase de amenaza es.
-      if(bossDef){
+      if(bossDef&&!bossDef.legacy){
         ctx.globalAlpha=.12+t*.26;
         ctx.strokeStyle=accent;
         ctx.lineWidth=1.5;
