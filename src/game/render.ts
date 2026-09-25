@@ -1277,19 +1277,38 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
   const player = engine.player;
   const dirX = (player.x + 7) > (e.x + e.size / 2) ? 1 : -1;
 
-  if (e.spawnAnim > 0) {
+  if(e.spawnAnim>0){
     const total=e.isBoss?42:Math.max(18,e.spawnAnim);
     const t=clamp(1-e.spawnAnim/total,0,1);
     const cx=e.x+e.size/2,cy=e.y+e.size/2;
+    const tech=e.type==='dron_policial'||e.type==='toaster_turret'||e.behavior==='turret'||e.behavior==='camera'||e.behavior==='atm';
+    const rush=e.behavior==='roller'||e.behavior==='swarmer'||e.behavior==='k9';
+    const heavy=e.behavior==='shielded'||e.type==='guard_goose';
+    const col=e.isBoss?'#ff6b63':e.elite?'#f4d03f':tech?'#74b8c9':heavy?'#d79b69':'#ff8a63';
     ctx.save();
-    ctx.globalAlpha=.18+.55*(1-t);
-    ctx.strokeStyle=e.isBoss?'#ff6b63':e.elite?'#f4d03f':'#ff8a63';
-    ctx.lineWidth=e.isBoss?2:1;
-    ctx.beginPath();ctx.ellipse(cx,cy+e.size*.36,e.size*(.7-.25*t),e.size*(.3-.1*t),0,0,Math.PI*2);ctx.stroke();
-    ctx.globalAlpha=.18+.4*(1-t);
-    ctx.fillStyle=e.isBoss?'#ff5d63':'#ff8b68';
-    ctx.fillRect(cx-1,e.y-18-(1-t)*7,2,18+(1-t)*7);
-    ctx.fillRect(cx-7+(t*5),cy-1,14-t*10,2);
+    if(tech){
+      // Seguridad tecnológica entra mediante haz vertical y anillo de calibración.
+      ctx.globalAlpha=.12+.42*(1-t);ctx.fillStyle=col;
+      ctx.fillRect(cx-1,e.y-26-(1-t)*8,2,26+(1-t)*8);
+      ctx.globalAlpha=.16+.35*(1-t);ctx.strokeStyle=col;ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(cx,cy+e.size*.35,e.size*(.8-.3*t),e.size*(.26-.08*t),0,0,Math.PI*2);ctx.stroke();
+    }else if(rush){
+      // Enemigos de carrera "entran deslizándose": líneas bajas, no rayo vertical.
+      ctx.globalAlpha=.16+.34*(1-t);ctx.strokeStyle=col;ctx.lineWidth=1;
+      for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(cx-20-(1-t)*14,cy+i*4);ctx.lineTo(cx-4,cy+i*3);ctx.stroke();}
+      ctx.beginPath();ctx.ellipse(cx,cy+e.size*.42,e.size*(.72-.2*t),e.size*.20,0,0,Math.PI*2);ctx.stroke();
+    }else if(heavy){
+      // Unidades pesadas aterrizan con una compresión de suelo.
+      ctx.globalAlpha=.16+.36*(1-t);ctx.strokeStyle=col;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.ellipse(cx,cy+e.size*.44,e.size*(.95-.22*t),e.size*(.25-.06*t),0,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.10+.20*(1-t);ctx.fillStyle=col;ctx.fillRect(cx-8,cy+e.size*.28,16,2);
+    }else{
+      ctx.globalAlpha=.18+.55*(1-t);ctx.strokeStyle=col;ctx.lineWidth=e.isBoss?2:1;
+      ctx.beginPath();ctx.ellipse(cx,cy+e.size*.36,e.size*(.7-.25*t),e.size*(.3-.1*t),0,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.18+.4*(1-t);ctx.fillStyle=col;
+      ctx.fillRect(cx-1,e.y-18-(1-t)*7,2,18+(1-t)*7);
+      ctx.fillRect(cx-7+t*5,cy-1,14-t*10,2);
+    }
     ctx.globalAlpha=t;
     ctx.restore();
   }
