@@ -3860,10 +3860,50 @@ function killEnemy(engine: GameEngine, e: Enemy, content: RoomContent) {
   spawn(engine, e.x + e.size / 2, e.y + e.size / 2, 'crumb', 6, '#d4a574');
   if(e.isBoss) {
     const floor=!!BOSSES[e.bossType],sub=!!SUBBOSSES[e.bossType];
+    const def=BOSSES[e.bossType]??SUBBOSSES[e.bossType]??MINIBOSSES[e.bossType];
+    const cx=e.x+e.size/2,cy=e.y+e.size/2;
     engine.hitStop=Math.max(engine.hitStop,floor?8:sub?5:3);
     engine.shakeIntensity=Math.max(engine.shakeIntensity,floor?13:sub?9:6);
-    spawn(engine,e.x+e.size/2,e.y+e.size/2,'spark',floor?42:sub?30:22,floor?'#ffd85a':sub?'#ff9b68':'#f4d03f');
-    spawn(engine,e.x+e.size/2,e.y+e.size/2,'smoke',floor?24:sub?16:10,'#69737c');
+    spawn(engine,cx,cy,'spark',floor?42:sub?30:22,floor?'#ffd85a':sub?'#ff9b68':'#f4d03f');
+    spawn(engine,cx,cy,'smoke',floor?24:sub?16:10,'#69737c');
+
+    // La derrota también vende la identidad del encuentro.
+    if(def){
+      switch(def.role){
+        case 'artillery':
+          for(const ox of [-24,0,24]){spawn(engine,cx+ox,cy-8+Math.abs(ox)*.15,'spark',10,def.secondary);spawn(engine,cx+ox,cy,'smoke',5,'#4e575b');}
+          break;
+        case 'bulwark':
+          for(const ox of [-22,-10,10,22])spawn(engine,cx+ox,cy+rng(-8,10),'spark',7,'#9ba7ab');
+          break;
+        case 'swarm':
+          for(let i=0;i<6;i++){const a=i*Math.PI/3;spawn(engine,cx+Math.cos(a)*24,cy+Math.sin(a)*15,'spark',5,i%2?def.accent:def.secondary);}
+          break;
+        case 'sniper':
+        case 'executioner':
+          spawn(engine,cx,cy-18,'spark',18,def.secondary);spawn(engine,cx+18,cy,'smoke',7,'#3e474c');
+          break;
+        case 'storm':
+        case 'vortex':
+          for(let i=0;i<8;i++){const a=i*Math.PI/4;spawn(engine,cx+Math.cos(a)*22,cy+Math.sin(a)*16,'spark',4,i%2?def.accent:def.secondary);}
+          break;
+        case 'warden':
+          spawn(engine,cx-25,cy,'spark',12,def.accent);spawn(engine,cx+25,cy,'spark',12,def.secondary);
+          break;
+        case 'charger':
+          spawn(engine,cx-18,cy+8,'feather',12,'#e8e5db');spawn(engine,cx+18,cy+8,'feather',12,'#e8e5db');
+          break;
+        case 'reactor':
+          spawn(engine,cx,cy,'spark',36,def.accent);spawn(engine,cx,cy,'smoke',18,def.secondary);engine.shakeIntensity=Math.max(engine.shakeIntensity,floor?16:11);
+          break;
+        case 'trickster':
+          spawn(engine,cx-18,cy-8,'smoke',9,def.accent);spawn(engine,cx+18,cy+8,'smoke',9,def.secondary);
+          break;
+        case 'duelist':
+          spawn(engine,cx+15,cy-12,'spark',12,def.secondary);spawn(engine,cx-12,cy+10,'feather',8,'#e7e4dc');
+          break;
+      }
+    }
     if(floor) playBossWin(); else playEnemyDeath();
   } else playEnemyDeath();
 
