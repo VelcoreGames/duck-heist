@@ -2,7 +2,7 @@
 // All sprites are drawn procedurally - no external assets needed
 
 import { TILE_SIZE } from './constants';
-import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette } from './data';
+import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
 
 type Ctx = CanvasRenderingContext2D;
@@ -1011,7 +1011,7 @@ function drawBossStructuralRig(ctx:Ctx,key:number,tier:number,phase:number,frame
   ctx.restore();
 }
 function drawBossRoleHardware(
-  ctx:Ctx,def:NonNullable<ReturnType<typeof bossDef>>,frame:number,phase:number,v:BossVisual
+  ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual
 ){
   const pulse=.5+.5*Math.sin(frame*.12+def.roleVariant);
   const v2=def.roleVariant??0;
