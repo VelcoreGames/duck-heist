@@ -34,7 +34,7 @@ import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 import type {
-  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind,
+  GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind, BossPartState,
 } from './types';
 import {
   playShoot, playHit, playPickup, playHurt, playExplosion, playDash,
@@ -183,6 +183,99 @@ function makeEnemy(typeKey: string, sc: DiffScale, tx: number, ty: number, elite
 }
 type floorIndexScale = { hp: number; dmg: number; speed: number; fire: number; pattern: number };
 
+type BossPartBlueprint=Omit<BossPartState,'hp'|'destroyed'>;
+const ICONIC_BOSS_PARTS:Record<string,BossPartBlueprint[]>={
+  head_baker:[
+    {id:'oven_core',kind:'oven',offsetX:0,offsetY:7,w:20,h:15,maxHp:52,exposedPhase:1},
+    {id:'paddle',kind:'weapon',offsetX:23,offsetY:3,w:12,h:34,maxHp:38},
+  ],
+  el_auditor:[
+    {id:'execution_seal',kind:'seal',offsetX:19,offsetY:-2,w:18,h:25,maxHp:40},
+    {id:'briefcase',kind:'briefcase',offsetX:-15,offsetY:9,w:13,h:17,maxHp:36},
+  ],
+  ganso_antidisturbios:[
+    {id:'riot_shield',kind:'shield',offsetX:22,offsetY:5,w:27,h:41,maxHp:88},
+  ],
+  cajero_3000:[
+    {id:'coin_cannon_l',kind:'cannon',offsetX:-27,offsetY:-4,w:12,h:31,maxHp:46},
+    {id:'coin_cannon_r',kind:'cannon',offsetX:27,offsetY:-4,w:12,h:31,maxHp:46},
+    {id:'emergency_core',kind:'core',offsetX:0,offsetY:-3,w:28,h:15,maxHp:62,exposedPhase:1},
+  ],
+  captain_honk:[
+    {id:'command_radio',kind:'radio',offsetX:-21,offsetY:8,w:10,h:18,maxHp:34},
+    {id:'sidearm',kind:'weapon',offsetX:25,offsetY:9,w:24,h:11,maxHp:38},
+  ],
+  comisario_pico_duro:[
+    {id:'execution_rifle',kind:'weapon',offsetX:20,offsetY:2,w:13,h:43,maxHp:48},
+    {id:'command_pack',kind:'radio',offsetX:-18,offsetY:8,w:9,h:20,maxHp:34},
+  ],
+  toaster_9000:[
+    {id:'heater_l',kind:'reactor',offsetX:-18,offsetY:-14,w:25,h:17,maxHp:54},
+    {id:'heater_r',kind:'reactor',offsetX:18,offsetY:-14,w:25,h:17,maxHp:54},
+    {id:'thermal_core',kind:'core',offsetX:0,offsetY:5,w:31,h:17,maxHp:72,exposedPhase:1},
+  ],
+  general_ganso:[
+    {id:'command_radio',kind:'radio',offsetX:-23,offsetY:5,w:11,h:29,maxHp:42},
+    {id:'battle_rifle',kind:'weapon',offsetX:25,offsetY:8,w:37,h:14,maxHp:58},
+  ],
+  don_levadura:[
+    {id:'dough_arm_l',kind:'arm',offsetX:-27,offsetY:7,w:22,h:29,maxHp:50},
+    {id:'dough_arm_r',kind:'arm',offsetX:27,offsetY:7,w:22,h:29,maxHp:50},
+    {id:'oven_core',kind:'oven',offsetX:0,offsetY:8,w:25,h:20,maxHp:68,exposedPhase:1},
+  ],
+  director_seguridad:[
+    {id:'turret_l',kind:'turret',offsetX:-35,offsetY:-3,w:18,h:30,maxHp:58},
+    {id:'turret_r',kind:'turret',offsetX:35,offsetY:-3,w:18,h:30,maxHp:58},
+    {id:'camera_array',kind:'camera',offsetX:0,offsetY:-23,w:30,h:14,maxHp:52},
+    {id:'security_core',kind:'core',offsetX:0,offsetY:7,w:34,h:24,maxHp:86,exposedPhase:2},
+  ],
+};
+
+export function bossPartsFor(bossType:string):BossPartState[] {
+  return (ICONIC_BOSS_PARTS[bossType]??[]).map(part=>({...part,hp:part.maxHp,destroyed:false}));
+}
+function bossPartAlive(boss:Enemy,id:string) {
+  const part=boss.bossParts?.find(p=>p.id===id);
+  return part ? !part.destroyed : true;
+}
+function bossPartTargetAt(boss:Enemy,x:number,y:number,radius:number) {
+  if(!boss.bossParts?.length)return undefined;
+  const cx=boss.x+boss.size/2,cy=boss.y+boss.size/2;
+  let best:BossPartState|undefined,bestDist=Infinity;
+  for(const part of boss.bossParts){
+    if(part.destroyed||boss.bossPhase<(part.exposedPhase??0))continue;
+    const dx=x-(cx+part.offsetX),dy=y-(cy+part.offsetY);
+    const rx=part.w/2+radius,ry=part.h/2+radius;
+    if((dx*dx)/(rx*rx)+(dy*dy)/(ry*ry)>1)continue;
+    const d=dx*dx+dy*dy;
+    if(d<bestDist){best=part;bestDist=d;}
+  }
+  return best;
+}
+function damageBossPart(engine:GameEngine,boss:Enemy,part:BossPartState,dmg:number,crit:boolean) {
+  if(part.destroyed||part.hp<=0)return 0;
+  const actual=Math.min(part.hp,dmg);
+  part.hp-=dmg;
+  engine.run.dmgDealt+=actual;
+  const x=boss.x+boss.size/2+part.offsetX,y=boss.y+boss.size/2+part.offsetY;
+  if(engine.settings.damageNumbers){
+    if(engine.damageNumbers.length>=42)engine.damageNumbers.shift();
+    engine.damageNumbers.push({x,y:y-part.h/2-4,value:dmg,life:1,crit});
+  }
+  spawn(engine,x,y,'spark',crit?5:2,part.kind==='oven'||part.kind==='reactor'||part.kind==='core'?'#ff9b54':'#d5e0e4');
+  if(part.hp<=0){
+    part.hp=0;part.destroyed=true;
+    engine.hitStop=Math.max(engine.hitStop,3);
+    engine.shakeIntensity=Math.max(engine.shakeIntensity,4.5);
+    spawn(engine,x,y,'spark',16,part.kind==='oven'||part.kind==='reactor'||part.kind==='core'?'#ff7a42':'#d9e2e5');
+    spawn(engine,x,y,'smoke',9,'#545e62');
+    engine.roomLabel='MÓDULO DESTRUIDO · '+part.id.replace(/_/g,' ').toUpperCase();
+    engine.roomLabelTimer=62;
+    playExplosion();
+  }else playHit();
+  return actual;
+}
+
 function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss', sc: floorIndexScale): Enemy {
   const hpMult = tier === 'boss' ? 2.65 : tier === 'sub' ? 1.9 : 1.35;
   const hp = Math.round(def.hp * hpMult * (1 + (sc.hp - 1) * 0.78));
@@ -206,6 +299,7 @@ function makeBossEnemy(def: BossDef, bossType: string, tier: 'mini'|'sub'|'boss'
     spawnAnim: tier === 'boss' ? 42 : tier === 'sub' ? 34 : 26,
     dmgMul: sc.dmg * tierDamage,
     shieldAngle: 0, recover: 0,
+    bossParts:bossPartsFor(bossType),
   };
 }
 
@@ -2799,10 +2893,12 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         const ex=e.x+e.size/2,ey=e.y+e.size/2;
         const pr=p.radius ?? 4,dx=p.x-ex,dy=p.y-ey;
         const rx=(e.hitboxW ?? e.size)/2+pr,ry=(e.hitboxH ?? e.size)/2+pr;
-        if ((dx*dx)/(rx*rx)+(dy*dy)/(ry*ry) > 1) continue;
+        const bossPart=e.isBoss?bossPartTargetAt(e,p.x,p.y,pr):undefined;
+        const bodyHit=(dx*dx)/(rx*rx)+(dy*dy)/(ry*ry)<=1;
+        if (!bodyHit&&!bossPart) continue;
         if(p.explode>0) {explode(engine,p,content);engine.projectiles.splice(i,1);removed=true;break;}
 
-        if ((e.behavior === 'shielded' || e.bossType === 'ganso_antidisturbios') && e.recover <= 0) {
+        if ((e.behavior === 'shielded' || (e.bossType === 'ganso_antidisturbios'&&bossPartAlive(e,'riot_shield'))) && e.recover <= 0 && bossPart?.kind!=='shield') {
           const il = Math.hypot(p.vx, p.vy) || 1;
           const dot = Math.cos(e.shieldAngle) * (-p.vx / il) + Math.sin(e.shieldAngle) * (-p.vy / il);
           if (dot > (e.elite ? 0.15 : 0.3)) {
@@ -2837,9 +2933,14 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         if(crit && build.sneeze) {e.stunned=Math.max(e.stunned ?? 0,build.sneeze);e.fireCooldown=Math.max(45,e.fireCooldown);e.windup=0;e.chargeTimer=0;e.recover=40;}
 
         const final = Math.max(1, Math.floor(dmg));
-        trackWeaponDamage(engine,p.sourceWeapon,Math.min(e.hp,final),final>=e.hp);
-        damageEnemy(engine, e, final, crit, content);
-        if((p.knockback ?? 0)>0 && e.hp>0) {
+        if(bossPart){
+          trackWeaponDamage(engine,p.sourceWeapon,Math.min(bossPart.hp,final),final>=bossPart.hp);
+          damageBossPart(engine,e,bossPart,final,crit);
+        }else{
+          trackWeaponDamage(engine,p.sourceWeapon,Math.min(e.hp,final),final>=e.hp);
+          damageEnemy(engine, e, final, crit, content);
+        }
+        if((p.knockback ?? 0)>0 && e.hp>0 && !bossPart) {
           const len=Math.hypot(p.vx,p.vy)||1;const k=(p.knockback ?? 1)*(e.isBoss?.4:1.5);
           moveEnemy(e,room,p.vx/len*k,p.vy/len*k);
         }
@@ -3672,23 +3773,36 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
       boss.attackTimer=Math.max(38,boss.attackCooldown*(phase?.68:1));
     } else if(tier==='sub') {
       if(type==='head_baker') {
-        if(atk===0) bossFan(engine,boss,ang,phase?7:5,.17,3,'dough_ball');
-        else if(atk===1) bossHazardRing(content,bx,by,phase?8:6,phase?78:56,phase?200:165);
-        else {boss.moveAngle=ang;boss.moveTimer=phase?30:20;playDanger('charge');}
-        if(phase&&atk===3){bossRing(engine,boss,12,2.45,'dough_ball',engine.frame*.03);queueBossAirStrike(content,px,py,26,'heavy',42);}
+        const oven=bossPartAlive(boss,'oven_core'),paddle=bossPartAlive(boss,'paddle');
+        if(atk===0) bossFan(engine,boss,ang,phase?(oven?7:5):5,.17,oven?3:2.65,'dough_ball');
+        else if(atk===1) oven?bossHazardRing(content,bx,by,phase?8:6,phase?78:56,phase?200:165):bossFan(engine,boss,ang,3,.2,2.7,'dough_ball');
+        else if(paddle){boss.moveAngle=ang;boss.moveTimer=phase?30:20;playDanger('charge');}
+        else bossRing(engine,boss,6,2.15,'dough_ball',engine.frame*.025);
+        if(phase&&atk===3){bossRing(engine,boss,oven?12:8,2.45,'dough_ball',engine.frame*.03);if(oven)queueBossAirStrike(content,px,py,26,'heavy',42);}
       } else if(type==='el_auditor') {
-        if(atk===0) bossFan(engine,boss,ang,phase?7:5,.14,3.1,'coin_proj');
-        else if(atk===1) {
+        const seal=bossPartAlive(boss,'execution_seal'),briefcase=bossPartAlive(boss,'briefcase');
+        if(atk===0) bossFan(engine,boss,ang,phase?(seal?7:5):5,.14,seal?3.1:2.85,'coin_proj');
+        else if(atk===1&&seal) {
           const pts=[[52,45],[-52,45],[52,-45],[-52,-45]];
           for(const [i,[dx,dy]] of pts.entries()) queueBossAirStrike(content,clamp(px+dx,45,CANVAS_WIDTH-45),clamp(py+dy,45,CANVAS_HEIGHT-45),19,i%2?'shell':'heavy',36+i*4);
-        } else bossRing(engine,boss,phase?14:10,2.5,'briefcase',engine.frame*.018);
-        if(phase&&atk===3) bossFan(engine,boss,ang,9,.11,3.4,'coin_proj');
+        } else if(atk===1) bossFan(engine,boss,ang,3,.05,4.4,'coin_proj');
+        else bossRing(engine,boss,briefcase?(phase?14:10):6,briefcase?2.5:2.15,briefcase?'briefcase':'coin_proj',engine.frame*.018);
+        if(phase&&atk===3) bossFan(engine,boss,ang,seal?9:5,.11,seal?3.4:3.05,'coin_proj');
       } else if(type==='ganso_antidisturbios') {
+        const shield=bossPartAlive(boss,'riot_shield');
         boss.shieldAngle=ang;
-        if(atk===0){boss.moveAngle=ang;boss.moveTimer=phase?38:26;playDanger('charge');}
-        else if(atk===1) bossRing(engine,boss,phase?12:8,phase?3:2.5,'enemy_bullet',engine.frame*.018);
-        else {bossFan(engine,boss,ang,phase?5:3,.18,3.2,'enemy_bullet');boss.moveAngle=ang;boss.moveTimer=16;}
-        if(phase&&atk===3){bossRing(engine,boss,16,2.4,'enemy_bullet',engine.frame*.04);boss.moveTimer=30;}
+        if(atk===0){boss.moveAngle=ang;boss.moveTimer=phase?(shield?38:48):(shield?26:34);playDanger('charge');}
+        else if(atk===1) bossRing(engine,boss,phase?(shield?12:8):(shield?8:6),phase?3:2.5,'enemy_bullet',engine.frame*.018);
+        else {bossFan(engine,boss,ang,phase?(shield?5:7):(shield?3:5),shield?.18:.13,shield?3.2:3.55,shield?'enemy_bullet':'buckshot');boss.moveAngle=ang;boss.moveTimer=shield?16:24;}
+        if(phase&&atk===3){bossRing(engine,boss,shield?16:10,shield?2.4:2.8,'enemy_bullet',engine.frame*.04);boss.moveTimer=shield?30:42;}
+      } else if(type==='cajero_3000') {
+        const cannons=Number(bossPartAlive(boss,'coin_cannon_l'))+Number(bossPartAlive(boss,'coin_cannon_r'));
+        const core=bossPartAlive(boss,'emergency_core');
+        if(atk===0) bossFan(engine,boss,ang,3+cannons*2+phase*2,.13,3.0,'coin_proj');
+        else if(atk===1&&cannons>0){if(bossPartAlive(boss,'coin_cannon_l'))bossFan(engine,boss,ang-.32,2,.07,4.15,'drone_shot');if(bossPartAlive(boss,'coin_cannon_r'))bossFan(engine,boss,ang+.32,2,.07,4.15,'drone_shot');}
+        else if(atk===1) bossRing(engine,boss,5,2.2,'coin_proj',engine.frame*.02);
+        else bossRing(engine,boss,6+cannons*3+(phase?2:0),2.55,'coin_proj',engine.frame*.025);
+        if(phase&&atk===3){bossRing(engine,boss,core?12:7,core?3.15:2.5,'drone_shot',engine.frame*.055);if(core)bossHazardRing(content,bx,by,6,72,160);}
       } else {
         if(atk===0) bossFan(engine,boss,ang,phase?9:6,.13,3.1,'coin_proj');
         else if(atk===1) {bossFan(engine,boss,ang-.32,3,.08,4.3,'drone_shot');bossFan(engine,boss,ang+.32,3,.08,4.3,'drone_shot');}
@@ -3701,44 +3815,47 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
         case 'captain_honk':
           if(atk===0) bossFan(engine,boss,ang,5+phase*2,.13,3.25+phase*.18,'enemy_bullet');
           else if(atk===1){boss.moveAngle=ang;boss.moveTimer=24+phase*7;playDanger('charge');}
-          else if(atk===2){bossSupport(engine,room,content,phase?['policia_rapido','dron_policial']:['policia_pato','policia_rapido'],5+phase);bossFan(engine,boss,ang,3+phase*2,.16,3,'enemy_bullet');}
+          else if(atk===2){if(bossPartAlive(boss,'command_radio'))bossSupport(engine,room,content,phase?['policia_rapido','dron_policial']:['policia_pato','policia_rapido'],5+phase);if(bossPartAlive(boss,'sidearm'))bossFan(engine,boss,ang,3+phase*2,.16,3,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=30+phase*8;playDanger('charge');}}
           else if(atk===3) bossRing(engine,boss,12+phase*3,2.65+phase*.15,'enemy_bullet',engine.frame*.025);
-          else {bossRing(engine,boss,18,3,'enemy_bullet',engine.frame*.05);bossHazardRing(content,px,py,6,58,150);}
+          else {if(bossPartAlive(boss,'sidearm'))bossRing(engine,boss,18,3,'enemy_bullet',engine.frame*.05);else {boss.moveAngle=ang;boss.moveTimer=38;playDanger('charge');}if(bossPartAlive(boss,'command_radio'))bossHazardRing(content,px,py,6,58,150);}
           break;
         case 'comisario_pico_duro':
           if(atk===0) bossFan(engine,boss,ang,7+phase*2,.11,3.15+phase*.2,'enemy_bullet');
           else if(atk===1) bossRing(engine,boss,10+phase*4,2.45+phase*.2,'enemy_bullet',engine.frame*.02);
           else if(atk===2){boss.moveAngle=ang;boss.moveTimer=22+phase*8;bossFan(engine,boss,ang,3,.24,3.5,'enemy_bullet');}
-          else if(atk===3){bossSupport(engine,room,content,['policia_pato','policia_antidisturbios'],6);bossRing(engine,boss,14,2.75,'enemy_bullet',-engine.frame*.025);}
-          else bossFan(engine,boss,ang,11,.08,4.2,'enemy_bullet');
+          else if(atk===3){if(bossPartAlive(boss,'command_pack'))bossSupport(engine,room,content,['policia_pato','policia_antidisturbios'],6);bossRing(engine,boss,bossPartAlive(boss,'execution_rifle')?14:8,2.75,'enemy_bullet',-engine.frame*.025);}
+          else if(bossPartAlive(boss,'execution_rifle'))bossFan(engine,boss,ang,11,.08,4.2,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=34+phase*8;playDanger('charge');}
           break;
         case 'toaster_9000':
-          if(atk===0) bossRing(engine,boss,10+phase*4,2.25+phase*.2,'toast',engine.frame*.025);
-          else if(atk===1) bossHazardRing(content,bx,by,6+phase*2,55+phase*14,180);
-          else if(atk===2) bossFan(engine,boss,ang,5+phase*2,.15,3.2,'enemy_bullet');
-          else if(atk===3){bossRing(engine,boss,14,3,'drone_shot',engine.frame*.06);bossRing(engine,boss,10,1.8,'toast',-engine.frame*.035);}
-          else {bossHazardRing(content,px,py,8,68,190);bossRing(engine,boss,18,3.1,'toast',engine.frame*.08);}
+          {const heaters=Number(bossPartAlive(boss,'heater_l'))+Number(bossPartAlive(boss,'heater_r')),core=bossPartAlive(boss,'thermal_core');
+          if(atk===0) bossRing(engine,boss,6+heaters*2+phase*(heaters?3:1),2.25+phase*.2,'toast',engine.frame*.025);
+          else if(atk===1) heaters?bossHazardRing(content,bx,by,4+heaters+phase*2,48+phase*14,180):bossFan(engine,boss,ang,3,.2,2.55,'toast');
+          else if(atk===2) bossFan(engine,boss,ang,3+heaters+phase*2,.15,heaters?3.2:2.8,'enemy_bullet');
+          else if(atk===3){if(core)bossRing(engine,boss,10+heaters*2,3,'drone_shot',engine.frame*.06);bossRing(engine,boss,6+heaters*2,1.8,'toast',-engine.frame*.035);}
+          else {if(core)bossHazardRing(content,px,py,4+heaters*2,68,190);bossRing(engine,boss,8+heaters*5,core?3.1:2.6,'toast',engine.frame*.08);}}
           break;
         case 'general_ganso':
           if(atk===0){boss.moveAngle=ang;boss.moveTimer=28+phase*10;playDanger('charge');}
-          else if(atk===1) bossFan(engine,boss,ang,5+phase*2,.16,3.3+phase*.15,'enemy_bullet');
-          else if(atk===2){bossSupport(engine,room,content,['policia_capitan','policia_rapido'],5+phase);bossRing(engine,boss,8+phase*4,2.55,'enemy_bullet',engine.frame*.02);}
+          else if(atk===1) {if(bossPartAlive(boss,'battle_rifle'))bossFan(engine,boss,ang,5+phase*2,.16,3.3+phase*.15,'enemy_bullet');else {boss.moveAngle=ang;boss.moveTimer=36+phase*8;playDanger('charge');}}
+          else if(atk===2){if(bossPartAlive(boss,'command_radio'))bossSupport(engine,room,content,['policia_capitan','policia_rapido'],5+phase);bossRing(engine,boss,bossPartAlive(boss,'battle_rifle')?8+phase*4:6+phase*2,2.55,'enemy_bullet',engine.frame*.02);}
           else if(atk===3) bossRing(engine,boss,14+phase*3,2.9,'enemy_bullet',engine.frame*.05);
-          else {bossFan(engine,boss,ang,9,.09,4.05,'enemy_bullet');boss.moveAngle=ang;boss.moveTimer=36;}
+          else {if(bossPartAlive(boss,'battle_rifle'))bossFan(engine,boss,ang,9,.09,4.05,'enemy_bullet');boss.moveAngle=ang;boss.moveTimer=bossPartAlive(boss,'battle_rifle')?36:52;playDanger('charge');}
           break;
         case 'don_levadura':
-          if(atk===0) bossFan(engine,boss,ang,5+phase*2,.19,2.9,'dough_ball');
-          else if(atk===1) bossHazardRing(content,bx,by,6+phase*3,48+phase*18,190);
-          else if(atk===2){bossSupport(engine,room,content,['evil_croissant','rolling_bagel'],5+phase);queueBossAirStrike(content,px,py,22+phase*3,'heavy',40);}
-          else if(atk===3) bossRing(engine,boss,12+phase*4,2.45,'dough_ball',engine.frame*.03);
-          else {bossRing(engine,boss,18,2.85,'dough_ball',engine.frame*.06);bossHazardRing(content,px,py,8,72,210);}
+          {const arms=Number(bossPartAlive(boss,'dough_arm_l'))+Number(bossPartAlive(boss,'dough_arm_r')),core=bossPartAlive(boss,'oven_core');
+          if(atk===0) bossFan(engine,boss,ang,3+arms+phase*2,.19,2.7+arms*.1,'dough_ball');
+          else if(atk===1) core?bossHazardRing(content,bx,by,4+phase*3+arms,48+phase*18,190):bossRing(engine,boss,5+arms,2.15,'dough_ball',engine.frame*.025);
+          else if(atk===2){if(core)bossSupport(engine,room,content,['evil_croissant','rolling_bagel'],4+phase+arms);if(arms>0)queueBossAirStrike(content,px,py,18+phase*3,'heavy',40);}
+          else if(atk===3) bossRing(engine,boss,6+arms*3+phase*3,2.45,'dough_ball',engine.frame*.03);
+          else {bossRing(engine,boss,8+arms*5,2.65+arms*.1,'dough_ball',engine.frame*.06);if(core)bossHazardRing(content,px,py,5+arms,72,210);}}
           break;
         case 'director_seguridad':
-          if(atk===0) bossFan(engine,boss,ang,5+phase*2,.12,3.8,'drone_shot');
-          else if(atk===1) bossRing(engine,boss,12+phase*4,2.7+phase*.2,'drone_shot',engine.frame*.04);
-          else if(atk===2){bossSupport(engine,room,content,['dron_policial','security_camera'],6+phase);bossFan(engine,boss,ang,3,.2,4.5,'drone_shot');}
-          else if(atk===3){bossHazardRing(content,px,py,6,62,150);bossRing(engine,boss,16,3.05,'drone_shot',-engine.frame*.055);}
-          else {bossRing(engine,boss,20,3.15,'drone_shot',engine.frame*.08);bossFan(engine,boss,ang,9,.08,4.4,'drone_shot');}
+          {const turrets=Number(bossPartAlive(boss,'turret_l'))+Number(bossPartAlive(boss,'turret_r')),camera=bossPartAlive(boss,'camera_array'),core=bossPartAlive(boss,'security_core');
+          if(atk===0) bossFan(engine,boss,ang,3+turrets*2+phase,.12,3.5+turrets*.15,'drone_shot');
+          else if(atk===1) bossRing(engine,boss,6+turrets*3+phase*3,2.55+phase*.2,'drone_shot',engine.frame*.04);
+          else if(atk===2){if(camera)bossSupport(engine,room,content,['dron_policial','security_camera'],5+phase+turrets);if(turrets>0)bossFan(engine,boss,ang,1+turrets,.2,4.5,'drone_shot');}
+          else if(atk===3){if(camera)bossHazardRing(content,px,py,4+turrets,62,150);bossRing(engine,boss,8+turrets*4,core?3.05:2.6,'drone_shot',-engine.frame*.055);}
+          else {if(core)bossRing(engine,boss,10+turrets*5,3.15,'drone_shot',engine.frame*.08);if(turrets>0)bossFan(engine,boss,ang,3+turrets*3,.08,4.2,'drone_shot');}}
           break;
         default:
           if(atk===0) bossFan(engine,boss,ang,5+phase*3,.12,3.3,'coin_proj');
@@ -3753,9 +3870,14 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
     if(def.legacy)boss.bossAttackIndex=attackStep+1;
     bossSignatureAttack(engine,boss,room,content,def,phase,tier,ang,attackStep);
     if(def.stationary){
-      // Las estructuras gigantes dominan el mapa con artillería y fuego desde
-      // el cielo para compensar que no persiguen al jugador.
-      const salvo=tier==='boss'?3+phase:tier==='sub'?2+phase:2;
+      // Las estructuras gigantes dominan el mapa con artillería real. En los
+      // encuentros icónicos, destruir control/cámara/núcleo degrada también este sistema.
+      const directorPenalty=type==='director_seguridad'
+        ? Number(!bossPartAlive(boss,'camera_array'))+Number(!bossPartAlive(boss,'security_core'))*2 : 0;
+      const cajeroPenalty=type==='cajero_3000'
+        ? Number(!bossPartAlive(boss,'coin_cannon_l'))+Number(!bossPartAlive(boss,'coin_cannon_r')) : 0;
+      const salvo=Math.max(0,(tier==='boss'?3+phase:tier==='sub'?2+phase:2)-directorPenalty-cajeroPenalty);
+      if(salvo===0){applyBossMutationAttack(engine,boss,room,content,ang,tier);return;}
       for(let i=0;i<salvo;i++){
         const a=i/salvo*Math.PI*2+engine.frame*.015;
         queueBossAirStrike(
