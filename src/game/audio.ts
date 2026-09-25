@@ -174,6 +174,89 @@ function musicPluck(freq:number,vol=.008,delay=0){
   tone(freq,.22,vol,{type:'triangle',to:freq*.985,delay,attack:.003,cutoff:2100,kind:'music'});
 }
 
+type BossMusicTier='miniboss'|'subboss'|'boss';
+interface BossMusicIdentity { id:string; family:string; role:string; phase:number; }
+
+function bossMusicIdentity(variant:string):BossMusicIdentity {
+  const [id='',family='',role='',phaseRaw='0']=variant.split('|');
+  const parsed=Number.parseInt(phaseRaw,10);
+  return {id,family,role,phase:Number.isFinite(parsed)?Math.max(0,Math.min(3,parsed)):0};
+}
+
+function bossFamilyRoot(family:string){
+  return family==='war'?43.65:
+    family==='riot'?46.25:
+    family==='tech'?49:
+    family==='vault'?41.2:
+    family==='finance'?51.91:
+    family==='wealth'?58.27:
+    family==='bakery'?55:
+    49;
+}
+
+function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string){
+  const identity=bossMusicIdentity(variant);
+  const seed=musicHash(identity.id||variant||tier);
+  const family=identity.family||['command','finance','tech','war','bakery','vault','riot','wealth'][seed%8];
+  const phase=identity.phase;
+  const slot=step%16;
+  const tierWeight=tier==='boss'?1:tier==='subboss'?.78:.62;
+  const phaseWeight=1+phase*.16;
+  const root=bossFamilyRoot(family)*Math.pow(2,([-2,0,2,3][(seed>>>6)%4])/12);
+  const hit=(v:number)=>v*tierWeight*phaseWeight;
+
+  if(family==='command'){
+    if(slot===0||slot===8){musicKick(hit(.035));chord(root/2,DARK,sec*6.4,hit(.014),0,800);}
+    if(slot===4||slot===12)musicSnare(hit(.015));
+    if(slot%2===0)tone(root*(slot%4===0?1:1.5),sec*.52,hit(.010),{type:'sawtooth',attack:.015,cutoff:650,kind:'music'});
+    if(phase>=1&&(slot===6||slot===14))musicBell(root*3,.28,hit(.0045));
+  }else if(family==='finance'){
+    if(slot===0||slot===8){tone(root/2,sec*6.6,hit(.016),{type:'sine',attack:.18,cutoff:260,kind:'music'});chord(root,[1,1.26,1.5,2],sec*5.8,hit(.010),0,1200);}
+    if([2,5,10,13].includes(slot))musicBell(root*[2,2.52,3,2.25][slot%4],.42,hit(.006));
+    if(slot%4===3)musicPluck(root*1.5,hit(.006));
+    if(phase>=2&&(slot===4||slot===12))filteredNoise(.045,hit(.005),{type:'highpass',freq:2700,q:1.1,kind:'music'});
+  }else if(family==='wealth'){
+    if(slot===0||slot===8)chord(root,[1,1.26,1.5,2],sec*6.2,hit(.013),0,1750);
+    if(slot%2===0)musicBell(root*[2,2.52,3,4][(slot/2)%4],.48,hit(.0065));
+    if(slot===7||slot===15)tone(root/2,sec*.7,hit(.009),{type:'sine',to:root*.45,attack:.04,cutoff:420,kind:'music'});
+    if(phase>=1&&slot%4===1)musicPluck(root*2.25,hit(.0045));
+  }else if(family==='bakery'){
+    if(slot===0||slot===8){chord(root,[1,1.5,2,2.52],sec*6.5,hit(.012),0,1150);tone(root/2,sec*6,hit(.013),{type:'triangle',attack:.16,cutoff:520,kind:'music'});}
+    if([1,5,9,13].includes(slot))musicPluck(root*[1.5,2,1.78,2.52][Math.floor(slot/4)],hit(.007));
+    if(slot===6||slot===14)filteredNoise(.08,hit(.005),{type:'lowpass',freq:650,q:.55,kind:'music'});
+    if(phase>=2&&(slot===3||slot===11))musicKick(hit(.022));
+  }else if(family==='tech'){
+    if(slot===0||slot===8)tone(root/2,sec*4.8,hit(.015),{type:'square',attack:.08,cutoff:360,kind:'music'});
+    if([0,3,6,8,11,14].includes(slot))musicKick(hit(.025));
+    if(slot%2===1)tone(root*[2,2.52,3,3.56][slot%4],sec*.22,hit(.0055),{type:'square',attack:.003,cutoff:1900,kind:'music'});
+    if([2,7,10,15].includes(slot))filteredNoise(.05,hit(.006),{type:'bandpass',freq:1900+phase*240,q:1.3,kind:'music'});
+  }else if(family==='vault'){
+    if(slot===0||slot===8){lowImpact(36+phase*3,hit(.038),0,'music');chord(root/2,DARK,sec*7.4,hit(.018),0,720);}
+    if(slot===3||slot===11)musicBell(root*3,.8,hit(.006));
+    if(slot===6||slot===14)tone(root*1.5,sec*1.2,hit(.007),{type:'sine',to:root*1.42,attack:.12,cutoff:1000,kind:'music'});
+    if(phase>=1&&slot%4===1)musicPluck(root*2,hit(.004));
+  }else if(family==='riot'){
+    if([0,3,6,8,11,14].includes(slot))musicKick(hit(slot===0||slot===8?.044:.030));
+    if(slot===4||slot===12)musicSnare(hit(.017));
+    if(slot%2===0)tone(root/2,sec*.48,hit(.014),{type:'sawtooth',attack:.008,cutoff:430,kind:'music'});
+    if(slot===0||slot===8)chord(root,DARK,sec*5.5,hit(.010),0,700);
+  }else{
+    // WAR: percusión frontal y bajo militar.
+    if([0,2,5,8,10,13].includes(slot))musicKick(hit(slot===0||slot===8?.048:.034));
+    if(slot===4||slot===12)musicSnare(hit(.016));
+    if(slot%2===0)tone(root,sec*.55,hit(.013),{type:'sawtooth',to:root*.985,attack:.012,cutoff:520,kind:'music'});
+    if(slot===0||slot===8)chord(root/2,DARK,sec*6.7,hit(.017),0,760);
+  }
+
+  // El rol añade una firma secundaria sin destruir la identidad de familia.
+  if(identity.role==='charger'&&(slot===6||slot===14))musicKick(hit(.026));
+  else if(identity.role==='sniper'&&(slot===7||slot===15))musicBell(root*4,.34,hit(.006));
+  else if(identity.role==='reactor'&&(slot===0||slot===8))tone(root/4,sec*7,hit(.011),{type:'sine',attack:.2,cutoff:180,kind:'music'});
+  else if(identity.role==='vortex'&&slot%4===2)musicPluck(root*[1.5,2,2.52,3][Math.floor(slot/4)],hit(.0055));
+  else if(identity.role==='swarm'&&phase>=1&&slot%2===1)musicPluck(root*2.25,hit(.004));
+  else if(identity.role==='executioner'&&(slot===3||slot===11))lowImpact(44,hit(.025),0,'music');
+}
+
 // ---------------------------------------------------------------------------
 // MÚSICA CINEMÁTICA PROCEDURAL
 // ---------------------------------------------------------------------------
@@ -199,10 +282,12 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant=''){
     musicStep=0;
     const variantSeed=musicHash(variant||mood);
     const tempoNudge=variant?((((variantSeed>>>5)%5)-2)*2):0;
+    const bossIdentity=bossMusicIdentity(variant);
+    const bossTempoBoost=bossIdentity.phase*6;
     const bpm=
-      mood==='boss'?[62,68,74,80,86,70][variantSeed%6]:
-      mood==='subboss'?[78,86,92,72][variantSeed%4]:
-      mood==='miniboss'?[104,112,96][variantSeed%3]:
+      mood==='boss'?([66,70,74,78][variantSeed%4]+bossTempoBoost):
+      mood==='subboss'?([80,86,92,76][variantSeed%4]+bossTempoBoost):
+      mood==='miniboss'?([98,104,110,94][variantSeed%4]+bossTempoBoost):
       mood==='event'?116+tempoNudge:
       mood==='challenge'?108+tempoNudge:
       mood==='gunvan'?82+tempoNudge:
@@ -357,111 +442,8 @@ function tickMusic(mood:Exclude<MusicMood,'off'>,beat:number,variant=''){
     return;
   }
 
-  if(mood==='miniboss'){
-    const style=variantSeed%3,phase=step%16;
-    if(style===0){
-      // Percusión seca y bajo marcial.
-      const root=[73.42,69.3,65.41,69.3][Math.floor(step/4)%4];
-      if(phase%4===0)musicKick(.026);
-      if(phase===4||phase===12)musicSnare(.012);
-      if(phase%2===0)musicPluck(root*(phase%4===0?1:1.5),.010);
-      if(phase===0||phase===8)chord(root/2,DARK,sec*6,.010,0,820);
-    }else if(style===1){
-      // Mecánico: pulsos sincopados y campanas metálicas.
-      const root=[58.27,61.74,55,58.27][Math.floor(step/4)%4];
-      if(phase===0||phase===8)tone(root/2,sec*7,.018,{type:'sine',attack:.15,cutoff:240,kind:'music'});
-      if([1,4,7,10,13].includes(phase))musicBell(root*(phase%2?3:2.5),.32,.006);
-      if(phase%4===2)filteredNoise(.04,.006,{type:'highpass',freq:3000,q:1.1,kind:'music'});
-    }else{
-      // Cacería nerviosa: ostinato rápido y silencios marcados.
-      const root=[65.41,61.74,58.27,55][Math.floor(step/4)%4];
-      if(phase%2===0)musicPluck(root*[1,1.5,1.78,1.5][(phase/2)%4],.011);
-      if(phase===0||phase===6||phase===10)musicKick(.021);
-      if(phase===7||phase===15)filteredNoise(.07,.008,{type:'bandpass',freq:2100,q:1.4,kind:'music'});
-    }
-    return;
-  }
-
-  if(mood==='subboss'){
-    const style=variantSeed%4,phase=step%16;
-    if(style===0){
-      // Militar pesado.
-      const root=[55,49,51.91,46.25][Math.floor(step/4)%4];
-      if(phase%4===0)musicKick(.035);
-      if(phase===4||phase===12)musicSnare(.014);
-      if(phase%2===0)tone(root,sec*.55,.013,{type:'sawtooth',attack:.02,cutoff:520,kind:'music'});
-      if(phase===0||phase===8)chord(root/2,DARK,sec*7,.018,0,760);
-    }else if(style===1){
-      // Litúrgico / siniestro: casi sin percusión, voces sintéticas y campanas.
-      const root=[46.25,43.65,41.2,43.65][Math.floor(step/4)%4];
-      if(phase===0||phase===8){chord(root,[1,1.5,2,2.52],sec*7.5,.017,0,1000);tone(root/2,sec*7.2,.018,{type:'sine',attack:.25,cutoff:220,kind:'music'});}
-      if(phase===3||phase===11)musicBell(root*4,.8,.006);
-      if(phase===7||phase===15)filteredNoise(.14,.006,{type:'bandpass',freq:900,q:2.4,kind:'music'});
-    }else if(style===2){
-      // Industrial: golpes y pulsos cortos.
-      const root=[61.74,55,58.27,51.91][Math.floor(step/4)%4];
-      if([0,3,6,8,11,14].includes(phase))musicKick(.03);
-      if([2,5,10,13].includes(phase))filteredNoise(.055,.009,{type:'bandpass',freq:1750,q:.8,kind:'music'});
-      if(phase%4===1)tone(root*.5,sec*.35,.015,{type:'square',attack:.004,cutoff:410,kind:'music'});
-      if(phase===0||phase===8)chord(root,DARK,sec*4.8,.010,0,720);
-    }else{
-      // Duelista: cuerda/pluck rápida, prácticamente sin drones.
-      const root=[69.3,65.41,73.42,61.74][Math.floor(step/4)%4];
-      const seq=[1,1.5,1.26,1.78,1.5,2,1.78,1.5];
-      if(phase%2===0)musicPluck(root*seq[(phase/2)%seq.length],.012);
-      if(phase===0||phase===8)musicKick(.022);
-      if(phase===6||phase===14)musicBell(root*3,.36,.005);
-    }
-    return;
-  }
-
-  if(mood==='boss'){
-    const style=variantSeed%6,phase=step%16;
-    if(style===0){
-      // WAR DRUMS: jefe militar, enorme y frontal.
-      const root=[43.65,41.2,38.89,41.2][Math.floor(step/4)%4];
-      if([0,3,6,8,11,14].includes(phase))musicKick(phase===0||phase===8?.050:.035);
-      if(phase===4||phase===12)musicSnare(.017);
-      if(phase%2===0)tone(root,sec*.68,.016,{type:'sawtooth',to:root*.985,attack:.025,cutoff:460,kind:'music'});
-      if(phase===0||phase===8)chord(root/2,DARK,sec*7.8,.021,0,720);
-    }else if(style===1){
-      // CATEDRAL: lento, coral, campanas; casi nada rítmico.
-      const root=[41.2,38.89,36.71,34.65][Math.floor(step/8)%4];
-      if(phase===0||phase===8){
-        chord(root/2,[1,1.5,2,2.52],sec*8,.026,0,900);
-        chord(root,[1,Math.pow(2,3/12),1.5,2],sec*7,.013,.08,1250);
-      }
-      if(phase===2||phase===10)musicBell(root*4,1.1,.008);
-      if(phase===6||phase===14)tone(root*2.52,sec*2.2,.006,{type:'sine',to:root*2.38,attack:.15,cutoff:1300,kind:'music'});
-    }else if(style===2){
-      // INDUSTRIAL: reactor/máquina pesada.
-      const root=[49,46.25,43.65,46.25][Math.floor(step/4)%4];
-      if([0,2,5,8,10,13].includes(phase))musicKick(.040);
-      if([3,7,11,15].includes(phase))filteredNoise(.075,.012,{type:'bandpass',freq:1300,q:.7,kind:'music'});
-      if(phase%2===0)tone(root/2,sec*.4,.019,{type:'square',attack:.004,cutoff:330,kind:'music'});
-      if(phase===0||phase===8)tone(root,sec*4.5,.010,{type:'sawtooth',attack:.1,cutoff:650,kind:'music'});
-    }else if(style===3){
-      // VÓRTICE: arpegios circulares y pulsos dobles.
-      const root=[55,51.91,58.27,49][Math.floor(step/4)%4];
-      const seq=[1,1.5,2,Math.pow(2,6/12),2,1.5,1.26,1.5];
-      musicPluck(root*seq[phase%8],.008);
-      if(phase%2===1)musicPluck(root*seq[(15-phase)%8]*.5,.006,.03);
-      if(phase===0||phase===8){musicKick(.028);chord(root/2,DARK,sec*6.8,.014,0,780);}
-    }else if(style===4){
-      // EJECUTOR: espacio, golpe seco, silencio y frase amenazante.
-      const root=[46.25,43.65,49,41.2][Math.floor(step/4)%4];
-      if(phase===0||phase===8){lowImpact(38,.060,0,'music');chord(root/2,DARK,sec*7.5,.022,0,700);}
-      if(phase===3||phase===11){musicSnare(.019);musicBell(root*3,.42,.007,.03);}
-      if(phase===6||phase===14)tone(root*1.5,sec*.9,.010,{type:'sawtooth',to:root,attack:.02,cutoff:620,kind:'music'});
-    }else{
-      // ENJAMBRE/CAOS: ritmo más rápido y capas que se responden.
-      const root=[61.74,55,58.27,51.91][Math.floor(step/4)%4];
-      if(phase%2===0)musicKick(.026);
-      if(phase%4===2)musicSnare(.010);
-      musicPluck(root*[1,1.5,1.78,2][phase%4],.007);
-      if(phase%4===1)musicBell(root*[2,2.52,3,2.67][Math.floor(phase/4)],.25,.004);
-      if(phase===0||phase===8)chord(root/2,DARK,sec*5.5,.013,0,850);
-    }
+  if(mood==='miniboss'||mood==='subboss'||mood==='boss'){
+    tickBossMusic(mood,step,sec,variant);
     return;
   }
 }
