@@ -770,16 +770,24 @@ export function renderWorld(engine: GameEngine) {
       const barrel=longGun?18:15;
       const mx=drawX+7+Math.cos(p.facingAngle)*barrel,my=drawY+9+Math.sin(p.facingAngle)*barrel;
       ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);
-      const heavy=currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='breadcrumb_shotgun';
-      const flash=heavy?9:currentWeapon.id==='baguette_sniper'||currentWeapon.id==='rubber_duck_cannon'?7:5;
+      const shotgun=currentWeapon.id==='breadcrumb_shotgun';
+      const plasma=currentWeapon.id==='plasma_baker'||currentWeapon.id==='quack_laser';
+      const bread=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='tactical_toaster';
+      const heavy=plasma||bread||shotgun;
+      const flash=shotgun?10:plasma?9:bread?8:currentWeapon.id==='baguette_sniper'||currentWeapon.id==='rubber_duck_cannon'?7:5;
       ctx.globalAlpha=.76;
-      ctx.fillStyle='#fff4c4';
-      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-3);ctx.lineTo(flash-2,0);ctx.lineTo(flash,3);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#f0ad43';ctx.fillRect(1,-1,Math.max(2,flash-3),2);
-      // Vaina visual: sólo dibujo, sin entidad física ni coste en la simulación.
-      if(currentWeapon.id!=='baguette_launcher'&&currentWeapon.id!=='tactical_toaster'){
-        ctx.globalAlpha=.72;ctx.fillStyle='#c9a44e';ctx.fillRect(-4,-5,2,1);
+      ctx.fillStyle=plasma?'#fff0a8':bread?'#ffe0a0':shotgun?'#fff2c2':'#fff4d6';
+      if(plasma){
+        ctx.beginPath();ctx.arc(2,0,3+p.shootFlash*.35,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=.42;ctx.strokeStyle='#f2c95b';ctx.beginPath();ctx.arc(2,0,6+p.shootFlash*.6,0,Math.PI*2);ctx.stroke();
+      }else if(shotgun){
+        for(const off of [-.28,0,.28]){
+          ctx.save();ctx.rotate(off);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-2);ctx.lineTo(flash-3,0);ctx.lineTo(flash,2);ctx.closePath();ctx.fill();ctx.restore();
+        }
+      }else{
+        ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-3);ctx.lineTo(flash-2,0);ctx.lineTo(flash,3);ctx.closePath();ctx.fill();
       }
+      ctx.fillStyle=plasma?'#f2c95b':bread?'#d99a4b':'#efad4a';ctx.fillRect(1,-1,Math.max(2,flash-3),2);
       ctx.restore();
     }
     if(p.iFrames>0&&p.dashTimer<=0&&Math.floor(f*.35)%2===0){
@@ -2982,8 +2990,15 @@ function renderGameOverUI(engine: GameEngine) {
 
   const r=engine.run,s2=engine.stats;
   drawMenuCard(ctx,34,74,138,190,false,'#d85d58','rgba(12,18,23,.96)');
-  ctx.save();ctx.translate(103,104);ctx.scale(2.4,2.4);
-  drawDuckSkin(ctx,-8,-8,engine.frame,engine.equippedSkin,'down',false,false,false,false,true);ctx.restore();
+  ctx.save();
+  const failPulse=.5+.5*Math.sin(engine.frame*.06);
+  ctx.globalAlpha=.18;ctx.strokeStyle='#d85d58';ctx.beginPath();ctx.ellipse(103,136,32+failPulse*3,8+failPulse,0,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=1;ctx.translate(103,118);ctx.rotate(-.72);ctx.scale(2.45,1.3);
+  drawDuckSkin(ctx,-8,-8,engine.frame,engine.equippedSkin,'right',false,true,false,false,true);
+  ctx.restore();
+  ctx.save();ctx.globalAlpha=.26;ctx.fillStyle='#f0e7cf';
+  for(const [ox,oy] of [[-24,-5],[-16,-12],[19,-8],[27,1]] as const)ctx.fillRect(103+ox,124+oy,2,1);
+  ctx.restore();
   text(ctx,engine.newRecord?'NUEVO RÉCORD':'MEJOR PISO',103,160,5.2,engine.newRecord?'#e6c56f':'#7f9195','center',true,false);
   text(ctx,engine.newRecord?'PISO '+r.floorReached+'/6':'PISO '+engine.bestFloor+'/6',103,178,10,engine.newRecord?'#e6c56f':'#e2e7df','center',true,false);
   text(ctx,'DIFICULTAD',103,205,4.8,'#5f747a','center',false,false);
