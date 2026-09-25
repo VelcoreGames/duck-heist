@@ -1270,6 +1270,152 @@ function bossPartIsAlive(parts:BossPartState[]|undefined,id:string){
   return part ? !part.destroyed : true;
 }
 
+type BossAttackPose={dx:number;dy:number;rot:number;sx:number;sy:number};
+function iconicAttackPose(bossType:string,attack:number|undefined,wind:number,recovery:number,recoveryMax:number):BossAttackPose{
+  const recoil=recoveryMax>0?recovery/recoveryMax:0;
+  const pose:BossAttackPose={dx:0,dy:0,rot:0,sx:1,sy:1};
+  if(attack===undefined&&recoil<=0)return pose;
+  switch(bossType){
+    case 'captain_honk':
+      if(attack===1){pose.dx=wind*4;pose.rot=-wind*.07;pose.sx=1+wind*.03;pose.sy=1-wind*.04;}
+      else if(attack===2){pose.rot=Math.sin(wind*Math.PI)*-.035;pose.dy=-wind*2;}
+      else {pose.rot=-wind*.025+recoil*.04;pose.dx=-recoil*2;}
+      break;
+    case 'comisario_pico_duro':
+      pose.rot=attack===2?-wind*.08:attack===4?-wind*.035:-wind*.018;
+      pose.dx=attack===2?wind*3:-recoil*2;pose.sy=1-wind*.025;
+      break;
+    case 'toaster_9000':
+      pose.sy=1+wind*(attack===1?.07:.03);pose.sx=1+wind*(attack===0?.035:.015);
+      pose.dy=-wind*(attack===0?2:0)+recoil*2;
+      break;
+    case 'general_ganso':
+      if(attack===0){pose.dx=wind*5;pose.rot=-wind*.065;pose.sy=1-wind*.05;}
+      else if(attack===1||attack===4){pose.rot=-wind*.04;pose.dx=wind*2-recoil*3;}
+      else if(attack===2){pose.dy=-wind*2;pose.sx=1+wind*.025;}
+      break;
+    case 'don_levadura':
+      pose.sx=1+wind*(attack===1?.09:.045);pose.sy=1+wind*(attack===1?.1:.025);
+      pose.dy=attack===0?wind*2:-wind*2+recoil*2;pose.rot=Math.sin(wind*Math.PI)*.025;
+      break;
+    case 'director_seguridad':
+      pose.sx=1+wind*(attack===3?.025:.01);pose.sy=1+wind*(attack===3?.025:.01);
+      pose.dy=recoil*1.5;
+      break;
+    case 'head_baker':
+      pose.rot=attack===2?wind*.07:-wind*.015;pose.dx=attack===2?wind*3:0;pose.sy=1+wind*(attack===1?.04:0);
+      break;
+    case 'el_auditor':
+      pose.dy=-wind*3;pose.sx=1-wind*.025;pose.sy=1+wind*.055;pose.rot=attack===1?-wind*.025:wind*.012;
+      break;
+    case 'ganso_antidisturbios':
+      pose.dx=attack===0?wind*5:0;pose.sx=1+wind*.04;pose.sy=1-wind*.035;pose.rot=-recoil*.025;
+      break;
+    case 'cajero_3000':
+      pose.sx=1+wind*(attack===3?.035:.015);pose.sy=1+wind*(attack===3?.035:.01);pose.dy=recoil*2;
+      break;
+  }
+  return pose;
+}
+
+function applyIconicAttackPose(ctx:Ctx,bossType:string,attack:number|undefined,wind:number,recovery:number,recoveryMax:number){
+  const p=iconicAttackPose(bossType,attack,wind,recovery,recoveryMax);
+  ctx.translate(p.dx,p.dy);ctx.rotate(p.rot);ctx.scale(p.sx,p.sy);
+}
+
+function drawIconicAttackHardware(
+  ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,attack:number|undefined,
+  wind:number,recovery:number,recoveryMax:number,parts?:BossPartState[]
+){
+  if((attack===undefined||wind<=0)&&recovery<=0)return;
+  const alive=(id:string)=>bossPartIsAlive(parts,id);
+  const recoil=recoveryMax>0?recovery/recoveryMax:0;
+  const pulse=.5+.5*Math.sin(frame*.22);
+  ctx.save();
+  switch(bossType){
+    case 'captain_honk':
+      if(attack===2&&alive('command_radio')){
+        ctx.globalAlpha=.35+.5*wind;ctx.strokeStyle=v.accent;ctx.lineWidth=1.5;
+        for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(-19,6,7+i*5+wind*4,-2.3,-.8);ctx.stroke();}
+      }
+      if((attack===0||attack===4)&&alive('sidearm')){
+        ctx.save();ctx.translate(21,8);ctx.rotate(-.45*wind);rect(ctx,7,-2,10+wind*7,3,'#bbc3c5');ctx.restore();
+        ctx.globalAlpha=.2+.35*wind;ctx.strokeStyle='#ffd36b';ctx.beginPath();ctx.moveTo(32,1);ctx.lineTo(52+wind*20,-7);ctx.stroke();
+      }
+      break;
+    case 'comisario_pico_duro':
+      if(alive('execution_rifle')&&(attack===0||attack===4||attack===2)){
+        ctx.save();ctx.translate(18,3);ctx.rotate(-.62-wind*.42);rect(ctx,-2,-28,4,13+wind*8,'#9aa5aa');ctx.restore();
+        ctx.globalAlpha=.15+.3*wind;ctx.strokeStyle='#e85a52';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(30,-14);ctx.lineTo(62,-32);ctx.stroke();ctx.setLineDash([]);
+      }
+      if(attack===3&&alive('command_pack')){ctx.globalAlpha=.3+.45*wind;ctx.strokeStyle=v.secondary;for(let i=0;i<2;i++){ctx.beginPath();ctx.arc(-18,5,8+i*6,-2.4,-.8);ctx.stroke();}}
+      break;
+    case 'toaster_9000': {
+      const heat=attack===0||attack===1||attack===4;
+      if(heat){
+        for(const [x,id] of [[-24,'heater_l'],[-8,'heater_l'],[8,'heater_r'],[24,'heater_r']] as const){
+          if(!alive(id))continue;
+          const lift=wind*(attack===0?10:4);
+          ctx.globalAlpha=.45+.45*wind;rect(ctx,x-3,-27-lift,6,8+lift,phase>=2?'#fff3a1':'#ff8a43');
+          ctx.globalAlpha=.22+.28*wind;ctx.fillStyle='#ff6b3f';ctx.beginPath();ctx.arc(x,-22-lift,5+wind*3,0,Math.PI*2);ctx.fill();
+        }
+      }
+      if((attack===3||attack===4)&&alive('thermal_core')){
+        ctx.globalAlpha=.3+.45*wind;ctx.strokeStyle='#ff9b55';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,4,12+wind*11,0,Math.PI*2);ctx.stroke();
+      }
+      break;
+    }
+    case 'general_ganso':
+      if((attack===1||attack===4)&&alive('battle_rifle')){
+        ctx.save();ctx.translate(19,7);ctx.rotate(-.38-wind*.32);rect(ctx,22,-4,15+wind*8,4,'#7f8b90');ctx.restore();
+        ctx.globalAlpha=.16+.32*wind;ctx.strokeStyle='#e45c50';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(44,-6);ctx.lineTo(74,-20);ctx.stroke();ctx.setLineDash([]);
+      }
+      if(attack===2&&alive('command_radio')){ctx.globalAlpha=.35+.45*wind;ctx.strokeStyle=v.secondary;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(-22,-1,7+i*5,-2.4,-.65);ctx.stroke();}}
+      if(recoil>.05&&alive('battle_rifle')){ctx.globalAlpha=.25*recoil;ctx.fillStyle='#ffd17a';ctx.beginPath();ctx.arc(47,-4,3+recoil*4,0,Math.PI*2);ctx.fill();}
+      break;
+    case 'don_levadura': {
+      const arms=4+phase*2;
+      if(attack===0||attack===3||attack===4){
+        for(let i=0;i<arms;i++){const a=i/arms*Math.PI*2+frame*.012;const side=Math.cos(a)<0?'dough_arm_l':'dough_arm_r';if(!alive(side))continue;
+          const reach=31+phase*3+wind*(attack===0?12:7);
+          ctx.strokeStyle=i%2?'#e2b578':'#c88851';ctx.lineWidth=3+wind*2;ctx.globalAlpha=.45+.35*wind;
+          ctx.beginPath();ctx.moveTo(Math.cos(a)*18,7+Math.sin(a)*12);ctx.quadraticCurveTo(Math.cos(a+.35)*reach*.7,7+Math.sin(a+.35)*reach*.55,Math.cos(a)*reach,7+Math.sin(a)*reach*.62);ctx.stroke();
+        }
+      }
+      if((attack===1||attack===2)&&alive('oven_core')){ctx.globalAlpha=.28+.5*wind;ctx.fillStyle=phase>=2?'#fff09a':'#ff793b';ctx.beginPath();ctx.arc(0,12,6+wind*7,0,Math.PI*2);ctx.fill();}
+      break;
+    }
+    case 'director_seguridad':
+      if((attack===0||attack===1||attack===4)){
+        for(const [x,id] of [[-31,'turret_l'],[31,'turret_r']] as const){if(!alive(id))continue;ctx.save();ctx.translate(x,-7);ctx.rotate((x<0?1:-1)*wind*.18);rect(ctx,-2,-27,4,16+wind*7,'#91a1a6');rect(ctx,-4,-30,8,4,v.secondary);ctx.restore();}
+      }
+      if(attack===2&&alive('camera_array')){ctx.globalAlpha=.35+.45*wind;ctx.strokeStyle=v.accent;for(const x of [-7,7]){ctx.beginPath();ctx.arc(x,-25,7+wind*7,frame*.04,frame*.04+Math.PI*1.4);ctx.stroke();}}
+      if((attack===3||attack===4)&&alive('security_core')){ctx.globalAlpha=.28+.5*wind;ctx.strokeStyle=phase>=2?'#ff6258':v.secondary;ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(0,3,15+i*6+wind*5,0,Math.PI*2);ctx.stroke();}}
+      break;
+    case 'head_baker':
+      if(attack===2&&alive('paddle')){ctx.save();ctx.translate(23,2);ctx.rotate(-.5-wind*.85);rect(ctx,-2,-27,5,43,'#9b6a3b');rect(ctx,-8,-31,17,7,'#d39758');ctx.restore();}
+      if((attack===1||attack===3)&&alive('oven_core')){ctx.globalAlpha=.25+.5*wind;ctx.fillStyle='#ff7d3e';ctx.beginPath();ctx.arc(0,8,6+wind*6,0,Math.PI*2);ctx.fill();}
+      break;
+    case 'el_auditor':
+      if(attack===1&&alive('execution_seal')){ctx.save();ctx.translate(18,2-wind*13);ctx.rotate(.18-wind*.12);rect(ctx,-3,-18,6,33,'#5a3b2c');rect(ctx,-9,-23,18,8,'#b13f4a');ctx.restore();}
+      if((attack===0||attack===3)&&alive('briefcase')){const count=3+phase;for(let i=0;i<count;i++){const a=i/count*Math.PI*2;const r=26-wind*9;ctx.globalAlpha=.35+.35*wind;rect(ctx,Math.cos(a)*r-5,-3+Math.sin(a)*r*.55-3,10,6,'#efe4ca');}}
+      if(recoil>.05){ctx.globalAlpha=.25*recoil;rect(ctx,-12,18,24,2,'#b74049');}
+      break;
+    case 'ganso_antidisturbios':
+      if(alive('riot_shield')&&(attack===0||attack===1)){ctx.globalAlpha=.25+.4*wind;ctx.strokeStyle='#d4dde1';ctx.lineWidth=2;ctx.strokeRect(8-wind*3,-15-wind*2,27+wind*6,42+wind*4);}
+      if(!alive('riot_shield')&&attack===2){ctx.save();ctx.translate(-22,4);ctx.rotate(-.15-wind*.28);rect(ctx,-10,-3,28+wind*6,7,'#2b3338');ctx.restore();}
+      break;
+    case 'cajero_3000':
+      if(attack===1||attack===0||attack===3){
+        for(const [x,id] of [[-27,'coin_cannon_l'],[27,'coin_cannon_r']] as const){if(!alive(id))continue;const extend=wind*(attack===1?10:5);rect(ctx,x-3,-27-extend,6,15+extend,'#738187');px(ctx,x-2,-31-extend,v.secondary,4);}
+      }
+      if((attack===3||attack===4)&&alive('emergency_core')){ctx.globalAlpha=.3+.45*wind;ctx.strokeStyle='#64e1ae';ctx.lineWidth=2;ctx.strokeRect(-15,-10,30,17);for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(0,-2,12+i*6+wind*4,0,Math.PI*2);ctx.stroke();}}
+      break;
+  }
+  if(recoil>.05&&bossType!=='el_auditor'){ctx.globalAlpha=.18*recoil;ctx.strokeStyle=v.secondary;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,3,24+recoil*10,0,Math.PI*2);ctx.stroke();}
+  ctx.restore();
+}
+
 function drawIconicBossCore(ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,parts?:BossPartState[]):boolean{
   const pulse=.5+.5*Math.sin(frame*.12);
   const alive=(id:string)=>bossPartIsAlive(parts,id);
@@ -1487,7 +1633,7 @@ function drawBossPhaseTransformation(ctx:Ctx,def:BossDef,frame:number,phase:numb
   ctx.restore();
 }
 
-function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean,parts?:BossPartState[]){
+function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean,parts?:BossPartState[],preparedAttack?:number,telegraph=0,recovery=0,recoveryMax=0){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
   const h=bossVisualHash(bossType),tier=floorBoss?2:subBoss?1:0,key=def.visualIndex??(h%48);
@@ -1500,7 +1646,14 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
 
   if(!def.finalBoss&&!def.legacy)drawBossStructuralRig(ctx,key,tier,phase,frame,v,!!def.stationary);
 
-  const iconic=!def.finalBoss&&!!def.legacy&&drawIconicBossCore(ctx,bossType,frame,phase,v,parts);
+  let iconic=false;
+  if(!def.finalBoss&&!!def.legacy){
+    ctx.save();
+    applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
+    iconic=drawIconicBossCore(ctx,bossType,frame,phase,v,parts);
+    drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
+    ctx.restore();
+  }
   const roleCoreDrawn=!def.finalBoss&&!def.legacy;
   if(roleCoreDrawn)drawRoleBossCore(ctx,def,frame,phase,v);
   if(def.finalBoss){
@@ -1721,7 +1874,7 @@ function drawBossPartStatus(ctx:Ctx,x:number,y:number,bossType:string,phase:numb
   ctx.restore();
 }
 
-export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean, phase = 0, telegraph = 0, parts?:BossPartState[]) {
+export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean, phase = 0, telegraph = 0, parts?:BossPartState[], preparedAttack?:number, recovery=0, recoveryMax=0) {
   const visual=bossVisual(bossType);
   const bob=visual ? Math.sin(frame*.075 + bossType.length)*visual.bob : 0;
   const finalRage=phase>=2 ? Math.sin(frame*.65)*.7 : 0;
@@ -1745,7 +1898,7 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
   }
   
   if (visual) {
-    drawPremiumBossBody(ctx,bx,by,bossType,frame,phase,visual,floorBoss,subBoss,parts);
+    drawPremiumBossBody(ctx,bx,by,bossType,frame,phase,visual,floorBoss,subBoss,parts,preparedAttack,telegraph,recovery,recoveryMax);
   } else if (bossType === 'captain_honk') {
     // Large armored goose
     // Shadow
