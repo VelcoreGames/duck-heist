@@ -14,6 +14,7 @@ function r(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: nu
 export function drawRichTile(
   ctx: CanvasRenderingContext2D, x: number, y: number, wall: boolean,
   theme: FloorTheme, gx: number, gy: number, frame: number,
+  wallProps = true,
 ) {
   const px = x * T, py = y * T;
   const h = hash(x + gx * ROOM_WIDTH, y + gy * 11, theme.deco.charCodeAt(0));
@@ -25,7 +26,7 @@ export function drawRichTile(
     r(ctx, px, py + 10, T, 1, 'rgba(0,0,0,.22)');
     r(ctx, px, py + 21, T, 1, 'rgba(0,0,0,.18)');
     if (h % 5 === 0) r(ctx, px + 6, py + 8, 4, 3, 'rgba(255,255,255,.05)');
-    drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);
+    if (wallProps) drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);
     return;
   }
   const checker = (x + y) % 2 === 0;
