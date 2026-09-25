@@ -1528,7 +1528,10 @@ function bossMusicVariant(bossType:string,phase=0){
 
 function roomMusicVariant(room:MapRoom,content?:RoomContent){
   const encounterBoss=content?.enemies.find(e=>e.isBoss);
-  const identity=`${room.type}:${room.gx},${room.gy}`;
+  // Las salas del mismo tipo comparten una identidad musical continua dentro
+  // del piso. Así cruzar entre dos combates equivalentes no reinicia ni pausa
+  // la canción. Los tipos distintos sí tienen composiciones propias.
+  const identity=`${room.type}|floor:${room.floor ?? 'x'}`;
   return encounterBoss?.bossType?bossMusicVariant(encounterBoss.bossType,encounterBoss.bossPhase??0):identity;
 }
 
