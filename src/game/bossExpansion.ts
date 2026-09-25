@@ -166,13 +166,13 @@ function build(seed:Seed,index:number,tier:BossTier):BossDef {
   const fortress=pattern.mobility==='fortress'||role==='bulwark'||role==='artillery';
   const stationary=(role==='artillery'||role==='bulwark'||fortress) && (tier!=='mini' || index%2===0);
   const giant=stationary || profile===4 || role==='reactor';
-  const roleSize=role==='sniper'||role==='duelist'?.94:role==='bulwark'||role==='reactor'?1.1:1;
+  const roleSize=(role==='sniper'||role==='duelist')?0.94:(role==='bulwark'||role==='reactor')?1.1:1;
   const size=Math.round(baseSize*(giant?(tier==='boss'?1.28:tier==='sub'?1.2:1.12):1)*roleSize);
-  const scaleX=proportions[0]*(role==='charger'?1.12:role==='sniper'?.88:1);
-  const scaleY=proportions[1]*(role==='sniper'?1.15:role==='bulwark'?.9:1);
+  const scaleX=proportions[0]*(role==='charger'?1.12:role==='sniper'?0.88:1);
+  const scaleY=proportions[1]*(role==='sniper'?1.15:role==='bulwark'?0.9:1);
   const hitboxW=Math.max(18,Math.round(size*scaleX*.88));
   const hitboxH=Math.max(18,Math.round(size*scaleY*.84));
-  const roleSpeed=role==='charger'?1.14:role==='duelist'?1.08:role==='sniper'?.95:1;
+  const roleSpeed=role==='charger'?1.14:role==='duelist'?1.08:role==='sniper'?0.95:1;
   const speed=stationary?0.06:baseSpeed*roleSpeed;
 
   const base:BossDef={
