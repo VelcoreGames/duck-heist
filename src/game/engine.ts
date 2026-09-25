@@ -1522,7 +1522,7 @@ function loadNextFloor(engine: GameEngine) {
 function roomMusicVariant(room:MapRoom,content?:RoomContent){
   const encounterBoss=content?.enemies.find(e=>e.isBoss);
   const identity=`${room.type}:${room.gx},${room.gy}`;
-  return encounterBoss?.bossType?`${encounterBoss.bossType}|${identity}`:identity;
+  return encounterBoss?.bossType??identity;
 }
 
 function setRoomMusic(engine:GameEngine,room:MapRoom,content?:RoomContent){
