@@ -2235,6 +2235,11 @@ function renderBossIntroUI(engine: GameEngine) {
     command:'MANDO',finance:'FINANZAS',bakery:'HORNO',tech:'SEGURIDAD TECNOLÓGICA',
     riot:'ANTIDISTURBIOS',war:'MILITAR',wealth:'CAPITAL',vault:'BÓVEDA',
   };
+  const roleLabels:Record<string,string>={
+    artillery:'ARTILLERÍA',duelist:'DUELISTA',bulwark:'BASTIÓN',swarm:'ENJAMBRE',
+    sniper:'FRANCOTIRADOR',storm:'TORMENTA',warden:'CARCELERO',charger:'ARIETE',
+    vortex:'VÓRTICE',executioner:'EJECUTOR',reactor:'REACTOR',trickster:'EMBOSCADOR',
+  };
   const attackLabels:Record<string,string>={
     fan:'ABANICO',ring:'ANILLO',spiral:'ESPIRAL',crossfire:'FUEGO CRUZADO',
     cage:'CERCO',mines:'MINAS',lanes:'CORREDORES',rush:'EMBESTIDA',
@@ -2242,7 +2247,7 @@ function renderBossIntroUI(engine: GameEngine) {
   };
   const accent=doubleThreat?'#ff6158':(def?.accent??'#f4d03f');
   const secondary=doubleThreat?'#f4d03f':(def?.secondary??'#e8c99b');
-  const family=doubleThreat?'MULTI-OBJETIVO':(def?.family?familyLabels[def.family]:'SEGURIDAD');
+  const family=doubleThreat?'MULTI-OBJETIVO':def?((familyLabels[def.family]??'SEGURIDAD')+' · '+(roleLabels[def.role]??'ÉLITE')):'SEGURIDAD';
   const phaseCount=def?.phases??(floorBoss?3:subBoss?2:1);
   const attackNames=(def?.pattern.sequence??[]).slice(0,3).map(a=>attackLabels[a]??a.toUpperCase());
   const location=engine.gameMode==='endless'?('RONDA '+engine.endless.round):('PISO '+(engine.map.floorIndex+1)+'/6');
@@ -2299,7 +2304,8 @@ function renderBossIntroUI(engine: GameEngine) {
   wrappedText(ctx,location,infoX+colW*2+6,infoY+28,colW-12,5.2,6.2,2,'#e0e6e3',true);
 
   text(ctx,'PATRÓN DE COMBATE',leftX+16,top+161,4.5,'#71898d','left',true,false);
-  const shown=attackNames.length?attackNames:['ATAQUE ESPECIAL','PRESIÓN DE ÁREA','CAMBIO DE FASE'];
+  const roleName=def?(roleLabels[def.role]??'ÉLITE'):'ATAQUE ESPECIAL';
+  const shown=attackNames.length?[roleName,...attackNames.slice(0,2)]:[roleName,'PRESIÓN DE ÁREA','CAMBIO DE FASE'];
   shown.forEach((label,i)=>{
     const y=top+170+i*21;
     ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(leftX+16,y,leftW-32,17);
