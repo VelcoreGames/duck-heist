@@ -352,6 +352,22 @@ export function runSelfChecks():CheckReport {
       assert(all.some(b=>b.hitboxH>b.hitboxW*1.35),'falta jefe claramente alto');
       assert(all.some(b=>b.stationary),'faltan jefes-fortaleza estáticos');
     });
+    check('Todos los subjefes y jefes cubren doce roles de combate',()=>{
+      const expected=['artillery','duelist','bulwark','swarm','sniper','storm','warden','charger','vortex','executioner','reactor','trickster'];
+      for(const group of [Object.values(SUBBOSSES),Object.values(BOSSES).filter(b=>!b.finalBoss)]){
+        const roles=new Set(group.map(b=>b.role));
+        assert(expected.every(role=>roles.has(role as never)),'jerarquía sin todos los roles');
+        assert(group.every(b=>b.roleVariant>=0&&b.roleVariant<=3),'variante de rol inválida');
+      }
+    });
+    check('Subjefes y jefes no repiten identidad completa de combate',()=>{
+      const all=[...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      const identities=all.map(b=>[
+        b.family,b.role,b.roleVariant,b.pattern.mobility,b.pattern.sequence.join('>'),
+        b.scaleX.toFixed(2),b.scaleY.toFixed(2),b.stationary?'fixed':'mobile'
+      ].join(':'));
+      assert(new Set(identities).size===identities.length,'dos jefes comparten la misma identidad completa');
+    });
     check('El roster completo utiliza las doce familias de ataque',()=>{
       const expected=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
       for(const group of [Object.values(MINIBOSSES),Object.values(SUBBOSSES),Object.values(BOSSES).filter(b=>!b.finalBoss)]){
