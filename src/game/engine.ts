@@ -190,15 +190,15 @@ const ICONIC_BOSS_PARTS:Record<string,BossPartBlueprint[]>={
     {id:'paddle',kind:'weapon',offsetX:23,offsetY:3,w:12,h:34,maxHp:38},
   ],
   el_auditor:[
-    {id:'execution_seal',kind:'seal',offsetX:19,offsetY:-2,w:18,h:25,maxHp:40},
-    {id:'briefcase',kind:'briefcase',offsetX:-15,offsetY:9,w:13,h:17,maxHp:36},
+    {id:'execution_seal',kind:'seal',offsetX:13,offsetY:-2,w:18,h:25,maxHp:40},
+    {id:'briefcase',kind:'briefcase',offsetX:-11,offsetY:9,w:13,h:17,maxHp:36},
   ],
   ganso_antidisturbios:[
-    {id:'riot_shield',kind:'shield',offsetX:22,offsetY:5,w:27,h:41,maxHp:88},
+    {id:'riot_shield',kind:'shield',offsetX:34,offsetY:5,w:27,h:41,maxHp:88},
   ],
   cajero_3000:[
-    {id:'coin_cannon_l',kind:'cannon',offsetX:-27,offsetY:-4,w:12,h:31,maxHp:46},
-    {id:'coin_cannon_r',kind:'cannon',offsetX:27,offsetY:-4,w:12,h:31,maxHp:46},
+    {id:'coin_cannon_l',kind:'cannon',offsetX:-43,offsetY:-4,w:12,h:31,maxHp:46},
+    {id:'coin_cannon_r',kind:'cannon',offsetX:43,offsetY:-4,w:12,h:31,maxHp:46},
     {id:'emergency_core',kind:'core',offsetX:0,offsetY:-3,w:28,h:15,maxHp:62,exposedPhase:1},
   ],
   captain_honk:[
@@ -206,26 +206,26 @@ const ICONIC_BOSS_PARTS:Record<string,BossPartBlueprint[]>={
     {id:'sidearm',kind:'weapon',offsetX:25,offsetY:9,w:24,h:11,maxHp:38},
   ],
   comisario_pico_duro:[
-    {id:'execution_rifle',kind:'weapon',offsetX:20,offsetY:2,w:13,h:43,maxHp:48},
-    {id:'command_pack',kind:'radio',offsetX:-18,offsetY:8,w:9,h:20,maxHp:34},
+    {id:'execution_rifle',kind:'weapon',offsetX:17,offsetY:2,w:13,h:43,maxHp:48},
+    {id:'command_pack',kind:'radio',offsetX:-15,offsetY:8,w:9,h:20,maxHp:34},
   ],
   toaster_9000:[
-    {id:'heater_l',kind:'reactor',offsetX:-18,offsetY:-14,w:25,h:17,maxHp:54},
-    {id:'heater_r',kind:'reactor',offsetX:18,offsetY:-14,w:25,h:17,maxHp:54},
+    {id:'heater_l',kind:'reactor',offsetX:-31,offsetY:-14,w:25,h:17,maxHp:54},
+    {id:'heater_r',kind:'reactor',offsetX:31,offsetY:-14,w:25,h:17,maxHp:54},
     {id:'thermal_core',kind:'core',offsetX:0,offsetY:5,w:31,h:17,maxHp:72,exposedPhase:1},
   ],
   general_ganso:[
-    {id:'command_radio',kind:'radio',offsetX:-23,offsetY:5,w:11,h:29,maxHp:42},
-    {id:'battle_rifle',kind:'weapon',offsetX:25,offsetY:8,w:37,h:14,maxHp:58},
+    {id:'command_radio',kind:'radio',offsetX:-19,offsetY:5,w:11,h:29,maxHp:42},
+    {id:'battle_rifle',kind:'weapon',offsetX:22,offsetY:8,w:37,h:14,maxHp:58},
   ],
   don_levadura:[
-    {id:'dough_arm_l',kind:'arm',offsetX:-27,offsetY:7,w:22,h:29,maxHp:50},
-    {id:'dough_arm_r',kind:'arm',offsetX:27,offsetY:7,w:22,h:29,maxHp:50},
+    {id:'dough_arm_l',kind:'arm',offsetX:-36,offsetY:7,w:22,h:29,maxHp:50},
+    {id:'dough_arm_r',kind:'arm',offsetX:36,offsetY:7,w:22,h:29,maxHp:50},
     {id:'oven_core',kind:'oven',offsetX:0,offsetY:8,w:25,h:20,maxHp:68,exposedPhase:1},
   ],
   director_seguridad:[
-    {id:'turret_l',kind:'turret',offsetX:-35,offsetY:-3,w:18,h:30,maxHp:58},
-    {id:'turret_r',kind:'turret',offsetX:35,offsetY:-3,w:18,h:30,maxHp:58},
+    {id:'turret_l',kind:'turret',offsetX:-54,offsetY:-3,w:18,h:30,maxHp:58},
+    {id:'turret_r',kind:'turret',offsetX:54,offsetY:-3,w:18,h:30,maxHp:58},
     {id:'camera_array',kind:'camera',offsetX:0,offsetY:-23,w:30,h:14,maxHp:52},
     {id:'security_core',kind:'core',offsetX:0,offsetY:7,w:34,h:24,maxHp:86,exposedPhase:2},
   ],
@@ -2917,6 +2917,12 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
         }
 
         let dmg = p.damageScaled?p.damage:p.damage*player.damageMultiplier;
+        // La escopeta conserva el golpe brutal cerca del cañón, pero pierde
+        // energía de forma marcada durante su corta vida útil.
+        if(p.type==='buckshot_player'){
+          const lifeRatio=clamp(p.lifetime/Math.max(1,p.maxLifetime),0,1);
+          dmg*=.28+.72*lifeRatio;
+        }
         // LÁSER CUAC: el daño sube mientras el haz se mantiene sobre el mismo objetivo
         if (p.type === 'quack_laser') {
           if (player.focusTarget === e.id) player.focusTime = Math.min(90, player.focusTime + 1);
@@ -2971,7 +2977,10 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
       if (removed) continue;
     } else if (player.iFrames <= 0 && player.dashTimer <= 0) {
       if (dist(p.x, p.y, player.x + 7, player.y + 8) < 10) {
-        damagePlayer(engine, p.damage,'projectile');
+        const pelletDamage=p.type==='buckshot'
+          ? p.damage*(.35+.65*clamp(p.lifetime/Math.max(1,p.maxLifetime),0,1))
+          : p.damage;
+        damagePlayer(engine, pelletDamage,'projectile');
         spawn(engine, p.x, p.y, 'hit', 4, '#ff9f9f');
         engine.projectiles.splice(i, 1);
       }
@@ -3050,8 +3059,12 @@ function moveEnemy(e: Enemy, room: MapRoom, dx: number, dy: number) {
 }
 
 function enemyShoot(engine: GameEngine, e: Enemy, ang: number, speed: number, type: string, jitter = 0, muzzleFx = true) {
-  const a = ang + (e.elite ? jitter * 0.25 : jitter) + rng(-jitter, jitter);
-  engine.projectiles.push(makeProjectile(e.x + e.size / 2, e.y + e.size / 2, Math.cos(a) * speed, Math.sin(a) * speed, type, e.behavior==='sniper'?2:1, false, e.behavior==='sniper'?145:110));
+  const shotgun=type==='buckshot';
+  const pelletJitter=shotgun?.025:0;
+  const a = ang + (e.elite ? jitter * 0.25 : jitter) + rng(-jitter-pelletJitter, jitter+pelletJitter);
+  const damage=shotgun?.55:e.behavior==='sniper'?2:1;
+  const life=shotgun?48:e.behavior==='sniper'?145:110;
+  engine.projectiles.push(makeProjectile(e.x + e.size / 2, e.y + e.size / 2, Math.cos(a) * speed, Math.sin(a) * speed, type, damage, false, life));
   // En ráfagas de jefes no generamos partículas por CADA proyectil. Antes una
   // espiral de 18 balas podía crear 36 partículas en el mismo frame, causando
   // un pico de trabajo perceptible como "trabón" aunque las balas sean pequeñas.
