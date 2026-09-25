@@ -1464,38 +1464,57 @@ export function renderUI(engine: GameEngine) {
 // PROMPTS Y FICHAS (coordenadas de mundo, tipografía nítida)
 // ---------------------------------------------------------------------------
 function renderRunStats(engine:GameEngine) {
-  const ctx=engine.ui!,r=engine.run,s=engine.stats,p=engine.player;
-  ctx.save();ctx.fillStyle='rgba(2,6,12,.82)';ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
-  drawPanel(ctx,104,50,272,244,'rgba(8,16,25,.98)','#d6b45f');
-  text(ctx,'ESTADÍSTICAS DE LA RUN',240,75,12,'#f4d03f','center',true);
-  text(ctx,`PISO  ${r.floorReached}/${TOTAL_FLOORS}`,128,104,8,'#e9dfbd','left',true);
-  text(ctx,`SALAS  ${s.roomsCleared}`,128,127,8,'#cbd5d9','left');
-  text(ctx,`ENEMIGOS  ${s.enemiesDefeated}`,128,150,8,'#cbd5d9','left');
-  text(ctx,`JEFES  ${r.bosses}`,128,173,8,'#cbd5d9','left');
-  text(ctx,`${engine.gameMode==='endless'?'MIGAS':'MIGAJAS'}  ${Math.floor(p.crumbs)}`,252,104,8,'#e9dfbd','left',true);
-  text(ctx,`PAN ROBADO  ${s.breadStolen}`,252,127,8,'#cbd5d9','left');
-  text(ctx,`OBJETOS  ${r.items}`,252,150,8,'#cbd5d9','left');
-  text(ctx,`ARMAS  ${r.weaponsFound}`,252,173,8,'#cbd5d9','left');
-  text(ctx,`DAÑO HECHO  ${Math.round(r.dmgDealt)}`,128,208,8,'#9ec6b8','left');
-  text(ctx,`DAÑO RECIBIDO  ${Math.round(r.dmgTaken)}`,128,231,8,'#d7a39c','left');
-  text(ctx,'SUELTA TAB PARA CERRAR',240,272,7,'#8fa1a8','center');
-  ctx.restore();
+  const ctx=engine.ui!,r=engine.run,s=engine.stats,p=engine.player,mf=menuFrame(engine);
+  drawMenuBackdrop(ctx,mf,.94,'#79b9d2');
+  drawMenuHeader(ctx,'DOSSIER DE LA RUN','Lectura rápida mientras mantienes TAB.',mf,'#79b9d2','ESTADO DE LA OPERACIÓN');
+
+  const metrics:[string,string,string][]=[
+    [engine.gameMode==='endless'?'RONDA':'PISO',engine.gameMode==='endless'?String(engine.endless.round):r.floorReached+'/'+TOTAL_FLOORS,'#e6c56f'],
+    ['SALAS',String(s.roomsCleared),'#dce7df'],
+    ['ENEMIGOS',String(s.enemiesDefeated),'#dce7df'],
+    ['JEFES',String(r.bosses),'#d86b58'],
+    [engine.gameMode==='endless'?'MIGAS':'MIGAJAS',String(Math.floor(p.crumbs)),'#e1c786'],
+    ['PAN ROBADO',String(s.breadStolen),'#d8b46e'],
+    ['OBJETOS',String(r.items),'#78c99a'],
+    ['ARMAS',String(r.weaponsFound),'#79b9d2'],
+    ['DAÑO HECHO',String(Math.round(r.dmgDealt)),'#78c99a'],
+    ['DAÑO RECIBIDO',String(Math.round(r.dmgTaken*10)/10),'#d85d58'],
+    ['TIEMPO',fmtTime(r.time),'#79b9d2'],
+    ['DIFICULTAD',difficultyLabel(engine),'#e6c56f'],
+  ];
+
+  drawMenuCard(ctx,34,76,412,216,false,'#79b9d2','rgba(8,20,26,.96)');
+  drawSectionLabel(ctx,'RENDIMIENTO EN CURSO',50,96,'#79b9d2');
+  metrics.forEach(([k,v,col],i)=>{
+    const colIdx=i%4,row=Math.floor(i/4),x=52+colIdx*97,y=122+row*51;
+    text(ctx,k,x,y,4.25,'#687d81','left',false,false);
+    text(ctx,v,x,y+17,8.2,col,'left',true,false);
+    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(x,y+25,78,1);
+  });
+
+  if(engine.gameMode==='endless'){
+    const pressureColor=engine.endless.pressure>=75?'#d85d58':engine.endless.pressure>=50?'#e6a04e':'#78c99a';
+    text(ctx,'PRESIÓN',52,278,4.3,'#687d81','left',false,false);
+    hudMeter(ctx,105,274,190,engine.endless.pressure/100,pressureColor);
+    text(ctx,`${Math.round(engine.endless.pressure)}% · ${engine.endless.threatRank}`,428,279,5,pressureColor,'right',true,false);
+  }else{
+    text(ctx,'SEMILLA · '+r.seed,52,279,4.8,'#708689','left',true,false);
+  }
+  drawMenuFooter(ctx,'SUELTA TAB PARA CERRAR','LECTURA TÁCTICA','#79b9d2');
 }
 
 function prompt(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, color = '#f4d03f') {
   ctx.save();
-  ctx.font = `600 8px ${"'Chakra Petch', sans-serif"}`;
-  const w = Math.min(230,ctx.measureText(label).width + 12);
-  ctx.fillStyle = 'rgba(6,8,16,0.9)';
-  ctx.fillRect(x - w / 2, y - 11, w, 18);
-  ctx.fillStyle = color;
-  ctx.fillRect(x - w / 2, y - 11, w, 1);
-  ctx.fillRect(x - w / 2, y + 6, w, 1);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillText(label, x + 1, y + 2);
-  ctx.fillStyle = '#fff6c9';
-  ctx.fillText(label, x, y + 2);
+  ctx.font = `700 7.2px ${"'Chakra Petch', sans-serif"}`;
+  const w = Math.min(236,ctx.measureText(label).width + 22),h=18,left=x-w/2,top=y-11;
+  ctx.fillStyle='rgba(3,11,15,.92)';ctx.fillRect(left,top,w,h);
+  ctx.strokeStyle='rgba(113,151,154,.30)';ctx.strokeRect(left+.5,top+.5,w-1,h-1);
+  ctx.fillStyle=color;ctx.fillRect(left,top,3,h);
+  ctx.globalAlpha=.28;ctx.fillRect(left+3,top,w-3,1);ctx.globalAlpha=1;
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillText(label,x+1,y+2);
+  ctx.fillStyle='#f0e6c8';ctx.fillText(label,x,y+2);
+  ctx.fillStyle=color;ctx.fillRect(x-8,top+h-3,16,1);
   ctx.restore();
 }
 
