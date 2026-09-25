@@ -154,7 +154,11 @@ function build(seed:Seed,index:number,tier:BossTier):BossDef {
     family,accent:style.accent,secondary:style.secondary,
     pattern,floorBand:band,visualIndex:index,scaleX,scaleY,hitboxW,hitboxH,stationary,legacy,
   };
-  return {...base,...(LEGACY_STATS[id]??{})};
+  const merged={...base,...(LEGACY_STATS[id]??{})};
+  // Si un legado cambia size, su hurtbox debe seguir la nueva silueta.
+  merged.hitboxW=Math.max(18,Math.round(merged.size*merged.scaleX*.88));
+  merged.hitboxH=Math.max(18,Math.round(merged.size*merged.scaleY*.84));
+  return merged;
 }
 
 const MINI_SEEDS:Seed[]=[
@@ -1053,6 +1057,7 @@ export const FINAL_BOSS:BossDef={
   subtitle:'Dueño del banco · tres fases · autoridad absoluta sobre toda la bóveda',
   hp:560,speed:1.18,size:44,phases:3,family:'wealth',
   accent:'#f4d03f',secondary:'#fff1a3',floorBand:5,finalBoss:true,
+  visualIndex:47,scaleX:1.18,scaleY:1.22,hitboxW:46,hitboxH:45,stationary:false,
   pattern:{
     signature:'FINAL:wealth:warp:nova:crossfire:cage:summon:spiral',
     sequence:['warp','nova','crossfire','cage','summon','spiral'],
