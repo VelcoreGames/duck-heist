@@ -39,6 +39,22 @@ export interface Particle {
 
 export interface DamageNumber { x: number; y: number; value: number; life: number; crit: boolean; }
 
+export type BossPartKind='turret'|'shield'|'weapon'|'radio'|'reactor'|'arm'|'camera'|'cannon'|'core'|'oven'|'briefcase'|'seal';
+
+export interface BossPartState {
+  id:string;
+  kind:BossPartKind;
+  offsetX:number;
+  offsetY:number;
+  w:number;
+  h:number;
+  hp:number;
+  maxHp:number;
+  destroyed:boolean;
+  /** La pieza sólo recibe daño a partir de esta fase. */
+  exposedPhase?:number;
+}
+
 export interface Enemy {
   id: number; type: string;
   x: number; y: number; vx: number; vy: number;
@@ -75,6 +91,8 @@ export interface Enemy {
   visualScaleY?:number;
   /** Estructuras/jefes anclados que no persiguen al jugador. */
   stationaryBoss?:boolean;
+  /** Módulos independientes para bosses icónicos: absorben daño y alteran el combate al romperse. */
+  bossParts?:BossPartState[];
 }
 
 export type PickupType =
