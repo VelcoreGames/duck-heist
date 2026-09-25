@@ -1078,7 +1078,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
       ctx.strokeStyle='#fff3c4';
       ctx.lineWidth=1;
       ctx.beginPath();
-      ctx.ellipse(cx,cy+1,e.size*.62,e.size*.50,0,0,Math.PI*2);
+      ctx.ellipse(cx,cy+1,(e.hitboxW??e.size)*.52,(e.hitboxH??e.size)*.52,0,0,Math.PI*2);
       ctx.stroke();
       ctx.restore();
     }
