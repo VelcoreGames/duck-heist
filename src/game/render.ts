@@ -52,6 +52,7 @@ import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChal
 import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
+import { obstacleHitbox, specialSolidRects, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -941,6 +942,10 @@ export function renderWorld(engine: GameEngine) {
     ctx.save();ctx.globalAlpha=.18*death;ctx.strokeStyle='#f4d384';ctx.beginPath();ctx.ellipse(p.x+7,p.y+15,10+fall*12,3+fall*3,0,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
 
+  // Segunda pasada de profundidad: props altos ocultan parcialmente a actores
+  // que están detrás, sin taparlos cuando caminan por delante.
+  drawForegroundProps(ctx,engine,room,content,f);
+
   for (const pt of engine.particles) drawParticle(ctx, pt.x, pt.y, pt.type, pt.life, pt.color);
 
   ctx.restore();
@@ -1151,6 +1156,100 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
   }
   ctx.restore();
   void engine;
+}
+
+function actorBehindRect(engine:GameEngine,content:RoomContent,r:WorldRect|{x:number;y:number;w:number;h:number}){
+  const actors=[
+    {x:engine.player.x+7,y:engine.player.y+15,flying:false},
+    ...content.enemies.map(e=>({x:e.x+e.size/2,y:e.y+e.size,flying:e.flying})),
+  ];
+  return actors.some(a=>!a.flying&&a.x>=r.x-8&&a.x<=r.x+r.w+8&&a.y>=r.y-18&&a.y<=r.y+4);
+}
+
+function drawForegroundProps(
+  ctx:CanvasRenderingContext2D,
+  engine:GameEngine,
+  room:ReturnType<typeof currentRoomOf>,
+  content:RoomContent,
+  f:number,
+){
+  // Obstáculos procedurales: se vuelve a dibujar sólo la franja que debe quedar
+  // delante de un actor situado detrás. La colisión usa la base real, por lo que
+  // el pato puede acercarse visualmente sin atravesar el objeto.
+  for(let ty=0;ty<ROOM_HEIGHT;ty++)for(let tx=0;tx<ROOM_WIDTH;tx++){
+    const tile=room.layout[ty][tx];
+    if(tile<OBSTACLE_BASE)continue;
+    const kind=tile-OBSTACLE_BASE,x=tx*TILE_SIZE,y=ty*TILE_SIZE;
+    const hit=obstacleHitbox(kind,x,y);
+    if(!actorBehindRect(engine,content,hit))continue;
+    const bandBottom=Math.min(y+TILE_SIZE,Math.max(y+12,hit.y+5));
+    ctx.save();
+    ctx.beginPath();ctx.rect(x-2,y-3,TILE_SIZE+4,bandBottom-y+3);ctx.clip();
+    drawObstacle(ctx,x,y,kind,f);
+    ctx.restore();
+  }
+
+  const rects=specialSolidRects(room.type,content);
+  const behind=(kind:WorldRect['kind'])=>{
+    const r=rects.find(q=>q.kind===kind);
+    return r&&actorBehindRect(engine,content,r)?r:null;
+  };
+
+  const chestRect=behind('chest');
+  if(content.chest&&chestRect){
+    ctx.save();ctx.beginPath();ctx.rect(content.chest.x-3,content.chest.y-3,26,chestRect.y-content.chest.y+8);ctx.clip();
+    drawChest(ctx,content.chest.x,content.chest.y,content.chest.opened,f);ctx.restore();
+  }
+
+  if(content.pedestal){
+    const r=rects.find(q=>q.kind==='pedestal'&&Math.abs(q.x-(content.pedestal!.x-2))<1);
+    if(r&&actorBehindRect(engine,content,r)){
+      ctx.save();ctx.beginPath();ctx.rect(content.pedestal.x-8,content.pedestal.y-30,40,r.y-content.pedestal.y+10);ctx.clip();
+      drawPedestalFull(ctx,content.pedestal,f,engine);ctx.restore();
+    }
+  }
+  for(const ped of content.choices ?? []){
+    if(ped.taken)continue;
+    const r=rects.find(q=>q.kind==='choice'&&Math.abs(q.x-(ped.x-2))<1);
+    if(r&&actorBehindRect(engine,content,r)){
+      ctx.save();ctx.beginPath();ctx.rect(ped.x-8,ped.y-30,40,r.y-ped.y+10);ctx.clip();
+      drawPedestalFull(ctx,ped,f,engine);ctx.restore();
+    }
+  }
+
+  if(content.event){
+    const r=behind('event');
+    if(r){
+      ctx.save();ctx.beginPath();ctx.rect(content.event.x-10,content.event.y-18,38,r.y-content.event.y+12);ctx.clip();
+      drawPedestal(ctx,content.event.x-4,content.event.y+9,f,content.event.used);
+      if(content.event.kind==='injured')drawDuckSkin(ctx,content.event.x,content.event.y,f,'robber','down',false,false,false,false,!content.event.used);
+      else drawItemIcon(ctx,content.event.x-8,content.event.y-11,EVENTS[content.event.kind].icon,32);
+      ctx.restore();
+    }
+  }
+
+  const vanRect=behind('gun_van');
+  if(vanRect){
+    ctx.save();ctx.beginPath();ctx.rect(vanRect.x-12,72,vanRect.w+24,vanRect.y-66);ctx.clip();
+    drawGunVanScene(ctx,f);ctx.restore();
+  }
+  const cafeRect=behind('cafe_counter');
+  if(cafeRect){
+    ctx.save();ctx.beginPath();ctx.rect(cafeRect.x-10,72,cafeRect.w+20,cafeRect.y-65);ctx.clip();
+    drawCafeScene(ctx,f);ctx.restore();
+  }
+
+  for(const it of content.shopItems ?? []){
+    if(it.sold)continue;
+    const r=rects.find(q=>q.kind==='shop_stand'&&Math.abs((q.x+18)-it.x)<1);
+    if(!r||!actorBehindRect(engine,content,r))continue;
+    ctx.save();ctx.beginPath();ctx.rect(it.x-24,it.y+5,48,13);ctx.clip();
+    drawShopStand(ctx,it.x,it.y,room.type===RoomType.GUN_VAN?'van':content.cafe?'cafe':'shop');
+    if(it.isFood)drawItemIcon(ctx,it.x-12,it.y-12,it.itemId,24);
+    else if(it.isWeapon)drawWeaponIcon(ctx,it.x-8,it.y-8,it.itemId);
+    else drawItem(ctx,it.x-8,it.y-8,it.itemId,f);
+    ctx.restore();
+  }
 }
 
 function drawBossMutationOverlay(ctx:CanvasRenderingContext2D,e:Enemy,f:number,engine:GameEngine){
