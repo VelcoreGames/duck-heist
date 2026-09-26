@@ -173,6 +173,8 @@ export interface RoomContent {
   /** escalera hacia el próximo piso (sólo tras matar al jefe) */
   stairs?: { x: number; y: number; unlocked: boolean; glow: number };
   doorAnim: Record<string, number>;
+  /** Estado de cerraduras especiales visto desde cada puerta de la sala actual. */
+  keyDoorLocks?:Record<string,boolean>;
   lockFlash: number;
   combatTimer: number;
   ambient: number;
