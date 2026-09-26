@@ -75,8 +75,8 @@ const LEAF_ONLY_TYPES = new Set<RoomType>([
 /**
  * Genera un mapa válido:
  *  - Sala inicial en (0,0)
- *  - La celda oeste de START (-1,0) queda siempre vacía: nunca existe una sala allí
- *  - START sólo conecta directamente con salas COMBAT
+ *  - START puede conectar en cualquier dirección, incluida la izquierda
+ *  - Toda sala conectada directamente con START debe ser COMBAT
  *  - Crecimiento aleatorio con ramificaciones y callejones sin salida
  *  - Una Sala de Objetos distribuida dentro del mapa; 12% de probabilidad de una segunda
  *  - Todas las salas alcanzables (por construcción: cada sala nace de una existente)
@@ -125,8 +125,6 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
 
     if (Math.abs(nx) > maxRadius || Math.abs(ny) > maxRadius) continue;
     if (rooms.has(key(nx, ny))) continue;
-    // Reserva permanente: nunca existe una sala inmediatamente al oeste de START.
-    if (nx===-1 && ny===0) continue;
 
     // Limitar el número de vecinos para crear pasillos y ramas en vez de un bloque macizo
     const neighbourCount = DIRS.filter(d => {
@@ -152,7 +150,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   const startKey = key(0, 0);
   const start = rooms.get(startKey)!;
   if(![...rooms.values()].some(r=>r.doors.length>=3)) {
-    const branch=DIRS.find(d=>d!=='W'&&!rooms.has(key(DIR_VECTORS[d].x,DIR_VECTORS[d].y)));
+    const branch=DIRS.find(d=>!rooms.has(key(DIR_VECTORS[d].x,DIR_VECTORS[d].y)));
     if(branch) {
       const v=DIR_VECTORS[branch],r=makeRoom(v.x,v.y,RoomType.COMBAT);
       start.doors.push(branch);r.doors.push(OPPOSITE[branch]);
@@ -181,7 +179,8 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   };
   const leafSlots=(parent:MapRoom)=>shuffledLocal(DIRS).filter(d=>{
     const v=DIR_VECTORS[d],nx=parent.gx+v.x,ny=parent.gy+v.y;
-    if(nx===-1&&ny===0)return false;
+    // Las salas especiales creadas como ramas nunca pueden quedar pegadas a START.
+    if(Math.abs(nx)+Math.abs(ny)===1)return false;
     if(rooms.has(key(nx,ny)))return false;
     const touching=DIRS.filter(nd=>{
       const nv=DIR_VECTORS[nd];
@@ -487,9 +486,7 @@ export function validateMap(map:GameMap):string[] {
   if(itemCount<1||itemCount>2) issues.push('item room count');
   if(map.rooms.get(map.itemRoomKey)?.type!==RoomType.ITEM) issues.push('item room key');
   const start=map.rooms.get(map.startKey);
-  if(map.rooms.has(key(-1,0))) issues.push('west of start must be empty');
   if(start) {
-    if(start.doors.includes('W')) issues.push('start west door');
     for(const d of start.doors) {
       const v=DIR_VECTORS[d];
       const neighbour=map.rooms.get(key(start.gx+v.x,start.gy+v.y));
