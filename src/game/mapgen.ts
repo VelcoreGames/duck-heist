@@ -294,11 +294,6 @@ function pruneDanglingDoors(rooms: Map<string, MapRoom>) {
   }
 }
 
-function assignFarthest(pool: MapRoom[], type: RoomType) {
-  if (!pool.length) return;
-  const sorted = [...pool].sort((a, b) => b.distance - a.distance);
-  sorted[0].type = type;
-}
 function assignMiddle(pool: MapRoom[], type: RoomType) {
   if (!pool.length) return;
   const sorted = [...pool].sort((a, b) => a.distance - b.distance);
