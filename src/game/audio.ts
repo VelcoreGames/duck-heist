@@ -2,7 +2,8 @@
 let audioCtx: AudioContext | null = null;
 
 let masterVol = 0.9;
-let musicVol = 0.45;
+let musicVol = 0.58;
+const MUSIC_BUS_GAIN=1.28;
 let sfxVol = 0.9;
 
 let musicTimer:number|null=null;
@@ -52,7 +53,7 @@ export function initAudio() {
 function getMusicBus(ctx:AudioContext){
   if(!musicBus){
     musicBus=ctx.createGain();
-    musicBus.gain.value=1;
+    musicBus.gain.value=MUSIC_BUS_GAIN;
     musicBus.connect(ctx.destination);
   }
   return musicBus;
@@ -173,7 +174,28 @@ function musicBell(freq:number,dur=.45,vol=.006,delay=0){
   tone(freq*2.01,dur*.72,vol*.34,{type:'sine',delay:delay+.003,attack:.003,cutoff:5000,kind:'music'});
 }
 function musicPluck(freq:number,vol=.008,delay=0){
-  tone(freq,.22,vol,{type:'triangle',to:freq*.985,delay,attack:.003,cutoff:2100,kind:'music'});
+  tone(freq,.20,vol,{type:'triangle',to:freq*.992,delay,attack:.002,cutoff:3600,kind:'music'});
+}
+function musicHat(vol=.0045,delay=0){
+  filteredNoise(.032,vol,{delay,type:'highpass',freq:5200,q:.45,kind:'music'});
+}
+function musicClap(vol=.006,delay=0){
+  filteredNoise(.055,vol,{delay,type:'bandpass',freq:2350,q:.55,kind:'music'});
+  filteredNoise(.028,vol*.45,{delay:delay+.018,type:'highpass',freq:4200,q:.4,kind:'music'});
+}
+function musicLead(freq:number,vol=.0065,delay=0,dur=.18){
+  tone(freq,dur,vol,{type:'square',delay,attack:.002,cutoff:4200,kind:'music'});
+  tone(freq*2,dur*.72,vol*.18,{type:'triangle',delay:delay+.002,attack:.002,cutoff:5600,kind:'music'});
+}
+function musicKeys(root:number,ratios:number[],dur:number,vol:number,delay=0){
+  ratios.forEach((r,i)=>{
+    tone(root*r,dur,vol/(1+i*.25),{type:'triangle',delay:delay+i*.006,attack:.012,cutoff:4200,detune:(i-1)*2,kind:'music'});
+    if(i<2)tone(root*r*2,dur*.55,vol*.13,{type:'sine',delay:delay+i*.006,attack:.005,cutoff:6200,kind:'music'});
+  });
+}
+function musicBass(freq:number,vol=.013,delay=0,dur=.24){
+  tone(freq,dur,vol,{type:'square',to:freq*.985,delay,attack:.003,cutoff:720,kind:'music'});
+  tone(freq/2,dur*.9,vol*.42,{type:'sine',to:freq*.49,delay,attack:.004,cutoff:260,kind:'music'});
 }
 
 type BossMusicTier='miniboss'|'subboss'|'boss';
@@ -286,6 +308,9 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
 const RUN_ROOTS=[73.42,82.41,65.41,69.30,61.74,55.00];
 const MINOR=[1,Math.pow(2,3/12),Math.pow(2,7/12),Math.pow(2,10/12)];
 const DARK=[1,Math.pow(2,3/12),Math.pow(2,6/12),Math.pow(2,10/12)];
+const BRIGHT=[1,Math.pow(2,4/12),Math.pow(2,7/12),Math.pow(2,11/12)];
+const FUNK=[1,Math.pow(2,4/12),Math.pow(2,7/12),Math.pow(2,10/12)];
+const POWER=[1,Math.pow(2,2/12),Math.pow(2,7/12),Math.pow(2,9/12)];
 const FLOOR_TONAL_SHIFT=[0,2,-2,5,-5,7];
 const HEIST_MOTIF=[0,3,7,5,2];
 
@@ -340,7 +365,7 @@ export function setMusic(mood:MusicMood,floor=musicFloor,variant='',resumeStep?:
     try{
       const ctx=getCtx(),bus=ctx.createGain(),now=ctx.currentTime;
       bus.gain.setValueAtTime(.001,now);
-      bus.gain.linearRampToValueAtTime(1,now+.32);
+      bus.gain.linearRampToValueAtTime(MUSIC_BUS_GAIN,now+.24);
       bus.connect(ctx.destination);
       musicBus=bus;
     }catch{/* audio bloqueado por navegador */}
