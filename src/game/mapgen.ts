@@ -50,8 +50,8 @@ export interface GameMap {
 /**
  * Genera un mapa válido:
  *  - Sala inicial en (0,0)
- *  - SIEMPRE una puerta OESTE desde el inicio hacia una SALA DE OBJETO en (-1,0)
  *  - Crecimiento aleatorio con ramificaciones y callejones sin salida
+ *  - Una Sala de Objetos distribuida dentro del mapa; 12% de probabilidad de una segunda
  *  - Todas las salas alcanzables (por construcción: cada sala nace de una existente)
  *  - Jefe en la sala más lejana; minijefe en otra rama lejana
  */
@@ -75,11 +75,10 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   // 1) Sala inicial
   makeRoom(0, 0, RoomType.START);
 
-  // 2) SALA DE OBJETO GARANTIZADA al OESTE del inicio
-  makeRoom(-1, 0, RoomType.ITEM);
-
-  // 3) Crecimiento procedural
-  // inicio + sala de objeto + 6-12 combate + tienda/tesoro/desafío/minijefe/jefe
+  // 2) Crecimiento procedural
+  // La Sala de Objetos ya no ocupa una posición fija: se asigna después,
+  // junto con el resto de salas especiales.
+  // inicio + combate + tienda/tesoro/desafío/minijefe/subjefe/jefe
   const targetRooms = rInt(14, 19);
   const maxRadius = 4;
   let guard = 0;
@@ -88,9 +87,8 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
     guard++;
     // Si cuesta crecer, relajamos la restricción de ramificación
     const relaxed = guard > 700;
-    // Elegimos una sala existente para expandir (evitamos expandir desde la sala de objeto:
-    // debe ser un callejón sin salida para que se sienta especial)
-    const candidates = [...rooms.values()].filter(r => r.type !== RoomType.ITEM);
+    // Elegimos cualquier sala existente para expandir.
+    const candidates = [...rooms.values()];
     const from = pick(candidates);
 
     const dir = pick(DIRS);
@@ -100,8 +98,6 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
 
     if (Math.abs(nx) > maxRadius || Math.abs(ny) > maxRadius) continue;
     if (rooms.has(key(nx, ny))) continue;
-    // No permitir que nada nazca pegado al oeste del inicio salvo la sala de objeto
-    if (nx === -1 && ny === 0) continue;
 
     // Limitar el número de vecinos para crear pasillos y ramas en vez de un bloque macizo
     const neighbourCount = DIRS.filter(d => {
@@ -113,30 +109,19 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
     makeRoom(nx, ny, RoomType.COMBAT);
   }
 
-  // 4) Derivar puertas a partir de la adyacencia (bidireccional garantizado)
-  //    La sala de objeto sólo conecta con el inicio.
+  // 3) Derivar puertas a partir de la adyacencia (bidireccional garantizado)
   for (const room of rooms.values()) {
     room.doors = [];
     for (const d of DIRS) {
       const v = DIR_VECTORS[d];
       const nKey = key(room.gx + v.x, room.gy + v.y);
-      const neighbour = rooms.get(nKey);
-      if (!neighbour) continue;
-      // La sala de objeto es un callejón: sólo puerta ESTE hacia el inicio
-      if (room.type === RoomType.ITEM && !(room.gx === -1 && room.gy === 0 && d === 'E')) continue;
-      if (neighbour.type === RoomType.ITEM && !(neighbour.gx === -1 && neighbour.gy === 0 && OPPOSITE[d] === 'E')) continue;
+      if (!rooms.has(nKey)) continue;
       room.doors.push(d);
     }
   }
 
   const startKey = key(0, 0);
-  const itemRoomKey = key(-1, 0);
-
-  // Garantía dura: el inicio tiene puerta OESTE
   const start = rooms.get(startKey)!;
-  if (!start.doors.includes('W')) start.doors.push('W');
-  const itemRoom = rooms.get(itemRoomKey)!;
-  if (!itemRoom.doors.includes('E')) itemRoom.doors.push('E');
   if(![...rooms.values()].some(r=>r.doors.length>=3)) {
     const branch=DIRS.find(d=>!rooms.has(key(DIR_VECTORS[d].x,DIR_VECTORS[d].y)));
     if(branch) {
@@ -190,8 +175,11 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   if (remaining().length > 7 && random() < 0.42) assignDeadEndOrRandom(remaining(), RoomType.GUN_VAN, random);
   // Tesoro: preferentemente callejón sin salida
   assignDeadEndOrRandom(remaining(), RoomType.TREASURE,random);
-  // Segunda sala de objeto opcional
-  if (random() < 0.35) assignDeadEndOrRandom(remaining(), RoomType.ITEM,random);
+  // Sala de Objetos: exactamente una base, distribuida dentro del piso sin
+  // posición fija ni conexión especial con la entrada.
+  assignRandom(remaining(), RoomType.ITEM,random);
+  // Sólo 12% de los pisos reciben una segunda Sala de Objetos.
+  if (remaining().length && random() < 0.12) assignRandom(remaining(), RoomType.ITEM,random);
   // Desafío
   assignRandom(remaining(), RoomType.CHALLENGE,random);
   // Bóveda secreta opcional
@@ -224,8 +212,10 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   }
 
   const bossFinal = [...rooms.values()].find(r => r.type === RoomType.BOSS);
+  const itemFinal = [...rooms.values()].find(r => r.type === RoomType.ITEM);
   return {
-    rooms, startKey, itemRoomKey,
+    rooms, startKey,
+    itemRoomKey: itemFinal ? key(itemFinal.gx,itemFinal.gy) : startKey,
     bossKey: bossFinal ? key(bossFinal.gx, bossFinal.gy) : startKey,
     floorIndex,
   };
@@ -448,8 +438,10 @@ export function freeTiles(layout: number[][], margin = 2): { x: number; y: numbe
 }
 
 export function validateMap(map:GameMap):string[] {
-  const issues:string[]=[],start=map.rooms.get(map.startKey),item=map.rooms.get(map.itemRoomKey);
-  if(!start?.doors.includes('W')||item?.type!==RoomType.ITEM||item.gx!==start.gx-1||item.gy!==start.gy) issues.push('west item room');
+  const issues:string[]=[];
+  const itemCount=[...map.rooms.values()].filter(r=>r.type===RoomType.ITEM).length;
+  if(itemCount<1||itemCount>2) issues.push('item room count');
+  if(map.rooms.get(map.itemRoomKey)?.type!==RoomType.ITEM) issues.push('item room key');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.BOSS).length!==1) issues.push('boss count');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.SUBBOSS).length!==1) issues.push('subboss count');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.MINIBOSS).length!==1) issues.push('miniboss count');
