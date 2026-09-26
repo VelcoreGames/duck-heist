@@ -39,15 +39,27 @@ export function pedestalInteractPoint(ped:{x:number;y:number}) {
  */
 export function obstacleHitbox(kind:number,x:number,y:number):ObstacleRect {
   switch(kind){
-    case 0:return {x:x+2,y:y+12,w:28,h:16}; // mostrador
-    case 1:return {x:x+3,y:y+13,w:26,h:15}; // barrera
-    case 2:return {x:x+3,y:y+10,w:26,h:18}; // estantería
-    case 3:return {x:x+6,y:y+13,w:20,h:16}; // saco
-    case 4:return {x:x+3,y:y+11,w:26,h:17}; // caja
-    case 5:return {x:x+6,y:y+4,w:20,h:27};  // columna
-    case 6:return {x:x+3,y:y+10,w:26,h:19}; // caja fuerte
-    default:return {x:x+5,y:y+15,w:22,h:13}; // escombros
+    case 0:return {x:x+2,y:y+14,w:28,h:14}; // mostrador
+    case 1:return {x:x+3,y:y+16,w:26,h:12}; // barrera
+    case 2:return {x:x+3,y:y+12,w:26,h:16}; // estantería
+    case 3:return {x:x+6,y:y+18,w:20,h:11}; // bolsa de efectivo
+    case 4:return {x:x+3,y:y+14,w:26,h:14}; // caja blindada
+    case 5:return {x:x+6,y:y+5,w:20,h:26};  // columna
+    case 6:return {x:x+3,y:y+12,w:26,h:17}; // caja fuerte
+    case 7:return {x:x+5,y:y+18,w:22,h:10}; // panel/escombro
+    case 8:return {x:x+3,y:y+11,w:26,h:18}; // lockers
+    case 9:return {x:x+5,y:y+20,w:22,h:9};  // maletín
+    case 10:return {x:x+4,y:y+21,w:24,h:8}; // bandeja efectivo
+    case 11:return {x:x+3,y:y+15,w:26,h:14}; // carrito valores
+    case 12:return {x:x+3,y:y+11,w:26,h:18}; // archivador
+    case 13:return {x:x+3,y:y+16,w:26,h:13}; // contenedor blindado
+    default:return {x:x+5,y:y+18,w:22,h:10};
   }
+}
+
+export function obstacleOccludes(kind:number){
+  return kind===0||kind===2||kind===4||kind===5||kind===6||
+    kind===8||kind===11||kind===12||kind===13;
 }
 
 /** Rectángulos sólidos de props especiales dibujados fuera del tilemap. */
