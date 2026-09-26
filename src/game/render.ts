@@ -52,7 +52,7 @@ import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChal
 import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { obstacleHitbox, specialSolidRects, type WorldRect } from './worldProps';
+import { obstacleHitbox, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -1202,7 +1202,7 @@ function drawForegroundProps(
   }
 
   if(content.pedestal){
-    const r=rects.find(q=>q.kind==='pedestal'&&Math.abs(q.x-(content.pedestal!.x-2))<1);
+    const r=rects.find(q=>q.kind==='pedestal'&&Math.abs(q.x-(content.pedestal!.x-3))<1);
     if(r&&actorBehindRect(engine,content,r)){
       ctx.save();ctx.beginPath();ctx.rect(content.pedestal.x-8,content.pedestal.y-30,40,r.y-content.pedestal.y+10);ctx.clip();
       drawPedestalFull(ctx,content.pedestal,f,engine);ctx.restore();
@@ -1210,7 +1210,7 @@ function drawForegroundProps(
   }
   for(const ped of content.choices ?? []){
     if(ped.taken)continue;
-    const r=rects.find(q=>q.kind==='choice'&&Math.abs(q.x-(ped.x-2))<1);
+    const r=rects.find(q=>q.kind==='choice'&&Math.abs(q.x-(ped.x-3))<1);
     if(r&&actorBehindRect(engine,content,r)){
       ctx.save();ctx.beginPath();ctx.rect(ped.x-8,ped.y-30,40,r.y-ped.y+10);ctx.clip();
       drawPedestalFull(ctx,ped,f,engine);ctx.restore();
@@ -2037,9 +2037,10 @@ function renderPrompts(engine: GameEngine) {
   const targets:TooltipTarget[]=[];
   for(const ped of [content.pedestal,...(content.choices ?? [])]) {
     if(!ped || ped.taken) continue;
+    const use=pedestalInteractPoint(ped);
     const action=`${actionPrompt(engine,'interact')} · ${ped.isWeapon&&isFull(p)?'REEMPLAZAR ARMA':'RECOGER'}`;
-    targets.push({id:ped.itemId,x:ped.x+12,y:ped.y,action,header:ped.bossLoot?T.bossLoot:content.choices?'ELIGE SOLO UNO':undefined});
-    if(dist(p.x+7,p.y+8,ped.x+12,ped.y)<34) prompt(ctx,ped.x+12,ped.y+38,actionPrompt(engine,'interact')+' · '+(content.choices?'ELEGIR':'RECOGER'));
+    targets.push({id:ped.itemId,x:use.x,y:use.y,action,header:ped.bossLoot?T.bossLoot:content.choices?'ELIGE SOLO UNO':undefined});
+    if(dist(p.x+7,p.y+8,use.x,use.y)<PEDESTAL_INTERACT_RADIUS+2) prompt(ctx,ped.x+12,ped.y+42,actionPrompt(engine,'interact')+' · '+(content.choices?'ELEGIR':'RECOGER'));
   }
   for(const it of content.items) {
     targets.push({id:it.itemId,x:it.x+8,y:it.y+8,action:`${actionPrompt(engine,'interact')} · ${it.isWeapon&&isFull(p)?'REEMPLAZAR ARMA':'RECOGER'}`});
