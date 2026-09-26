@@ -20,6 +20,17 @@ export interface ObstacleRect {
   h:number;
 }
 
+/** Pedestal: la colisión sólo ocupa la base metálica visible. */
+export const PEDESTAL_INTERACT_RADIUS=42;
+export function pedestalHitbox(ped:{x:number;y:number}):ObstacleRect {
+  return {x:ped.x-3,y:ped.y+27,w:30,h:8};
+}
+export function pedestalInteractPoint(ped:{x:number;y:number}) {
+  // Centro de uso, no centro del objeto flotante: permite interactuar desde
+  // cualquier lado permaneciendo fuera de la base sólida.
+  return {x:ped.x+12,y:ped.y+18};
+}
+
 /**
  * Huella física de cada obstáculo procedural.
  * La zona sólida coincide con la base visible, no con el tile completo.
@@ -45,12 +56,8 @@ export function specialSolidRects(roomType:RoomType,content:RoomContent):WorldRe
   if(content.chest) out.push({
     x:content.chest.x+1,y:content.chest.y+10,w:18,h:8,kind:'chest',
   });
-  if(content.pedestal) out.push({
-    x:content.pedestal.x-2,y:content.pedestal.y+27,w:28,h:9,kind:'pedestal',
-  });
-  for(const ped of content.choices ?? []) if(!ped.taken) out.push({
-    x:ped.x-2,y:ped.y+27,w:28,h:9,kind:'choice',
-  });
+  if(content.pedestal) out.push({...pedestalHitbox(content.pedestal),kind:'pedestal'});
+  for(const ped of content.choices ?? []) if(!ped.taken) out.push({...pedestalHitbox(ped),kind:'choice'});
   if(content.event) out.push({
     x:content.event.x-6,y:content.event.y+27,w:28,h:12,kind:'event',
   });
