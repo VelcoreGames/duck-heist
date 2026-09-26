@@ -224,7 +224,7 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
   const family=identity.family||['command','finance','tech','war','bakery','vault','riot','wealth'][seed%8];
   const phase=identity.phase;
   const phrase=step%32,slot=phrase%16,section=phrase>=16?1:0;
-  const tierWeight=tier==='boss'?1:tier==='subboss'?.84:.70;
+  const tierWeight=tier==='boss' ? 1 : tier==='subboss' ? .84 : .70;
   const phaseWeight=1+phase*.13+musicIntensity*.08;
   const root=bossFamilyRoot(family)*semitoneRatio((seed>>>6)%3-1);
   const hit=(v:number)=>v*tierWeight*phaseWeight;
@@ -289,7 +289,7 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
     const signature=[0,2+(seed%3),5+((seed>>>4)%3),7+((seed>>>8)%3),10+((seed>>>12)%2)];
     const position=[1,3,6,9,11,14].indexOf(slot);
     const motifIndex=section?Math.max(0,4-(position%5)):(position%5);
-    musicLead(root*2*semitoneRatio(signature[motifIndex]),hit(tier==='boss'?.0053:tier==='subboss'?.0043:.0036),0,.10);
+    musicLead(root*2*semitoneRatio(signature[motifIndex]),hit(tier==='boss' ? .0053 : tier==='subboss' ? .0043 : .0036),0,.10);
   }
 }
 
