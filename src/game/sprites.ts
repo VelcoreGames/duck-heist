@@ -790,6 +790,33 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
   }
 }
 
+export function drawBankKey(ctx:Ctx,x:number,y:number,frame:number,size=16) {
+  const s=Math.max(8,size),scale=s/16,bx=Math.floor(x),by=Math.floor(y);
+  const bob=Math.round(Math.sin(frame*.08+x*.015)*1.2);
+  ctx.save();ctx.translate(bx,by+bob);ctx.scale(scale,scale);
+
+  // Sombra y halo: debe leerse como recurso importante, no como moneda.
+  ctx.globalAlpha=.28;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(8,15,8,2.5,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.14+.06*Math.sin(frame*.10);ctx.fillStyle='#e6c56f';ctx.beginPath();ctx.ellipse(8,11,11,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  // Cabeza inspirada en dial de bóveda.
+  ctx.fillStyle='#6f5625';ctx.beginPath();ctx.arc(5,6,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#d5b663';ctx.beginPath();ctx.arc(5,6,4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f2dda0';ctx.beginPath();ctx.arc(4,5,2.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#4b3b1d';ctx.beginPath();ctx.arc(5,6,1.4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#7f672f';ctx.lineWidth=1;
+  for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
+    ctx.beginPath();ctx.moveTo(5+Math.cos(a)*2,6+Math.sin(a)*2);ctx.lineTo(5+Math.cos(a)*3.7,6+Math.sin(a)*3.7);ctx.stroke();
+  }
+
+  // Vástago industrial + dientes.
+  rect(ctx,8,5,7,3,'#b8954c');rect(ctx,8,5,7,1,'#f1d892');
+  rect(ctx,12,8,3,3,'#b8954c');rect(ctx,14,9,2,4,'#8c6d32');
+  rect(ctx,10,8,2,2,'#d2b15d');
+  px(ctx,3,3,'#fff4c7',1);
+  ctx.restore();
+}
+
 export function drawCoin(ctx: Ctx, x: number, y: number, frame: number, golden: boolean = false) {
   const bx=Math.floor(x),by=Math.floor(y),bounce=Math.abs(Math.sin(frame*.08))*2,squash=.72+.28*Math.abs(Math.cos(frame*.08)),cy=by-bounce;
   ctx.save();
