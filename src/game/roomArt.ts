@@ -165,94 +165,122 @@ function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, dec
 }
 
 export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, frame: number, special = false) {
-  const baseLights = deco === 'lobby' ? [[120, 48], [360, 48]] : deco === 'security' ? [[80, 40], [240, 36], [400, 40]]
-    : deco === 'bakery' ? [[90, 52], [390, 52]] : deco === 'vault' ? [[240, 40]] : deco === 'golden' ? [[160, 44], [320, 44]] : [[140, 50], [340, 50]];
+  const accent=decoMetal(deco);
+  const baseLights=deco==='lobby'?[[120,48],[360,48]]:
+    deco==='security'?[[80,42],[240,38],[400,42]]:
+    deco==='bakery'?[[100,48],[380,48]]:
+    deco==='vault'?[[160,42],[320,42]]:
+    deco==='golden'?[[150,42],[330,42]]:
+    [[140,48],[340,48]];
   const lights=baseLights.map(([x,y])=>[x/480*CANVAS_WIDTH,y] as [number,number]);
 
-  // Luz arquitectónica por piso: cada sector debe reconocerse incluso sin mirar el HUD.
-  for (const [lx, ly] of lights) {
-    const g = ctx.createRadialGradient(lx, ly, 4, lx, ly + 40, 92);
-    const col = deco === 'bakery' ? '255,140,60' : deco === 'golden' || deco === 'vault' ? '244,208,63' : deco === 'security' ? '79,157,216' : deco === 'storage' ? '198,167,126' : '200,220,240';
-    const base=deco==='golden'?.20:deco==='security'?.17:.15;
-    g.addColorStop(0, `rgba(${col},${base + Math.sin(frame * .04 + lx) * .035})`);
-    g.addColorStop(.42, `rgba(${col},${base*.34})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(lx - 92, ly - 10, 184, 162);
+  // Iluminación arquitectónica: luminarias de pared que bañan piedra y metal.
+  for(const [lx,ly] of lights){
+    const g=ctx.createRadialGradient(lx,ly,3,lx,ly+44,108);
+    const col=deco==='bakery'?'226,164,111':
+      deco==='golden'?'255,229,154':
+      deco==='vault'?'230,208,131':
+      deco==='security'?'116,183,208':
+      deco==='storage'?'217,196,157':
+      '216,229,228';
+    const base=deco==='golden'?.22:deco==='lobby'?.18:.16;
+    g.addColorStop(0,'rgba('+col+','+(base+.025*Math.sin(frame*.035+lx))+')');
+    g.addColorStop(.38,'rgba('+col+','+(base*.42)+')');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(lx-108,ly-12,216,174);
+
+    // Luminaria física empotrada en el muro.
+    ctx.globalAlpha=.55;ctx.fillStyle=accent;ctx.fillRect(lx-9,38,18,2);
+    ctx.globalAlpha=.18;ctx.fillStyle='#fff8dd';ctx.fillRect(lx-5,40,10,2);
+    ctx.globalAlpha=1;
   }
 
   ctx.save();
+  // Marco interior continuo: incrustación que hace que la sala se lea como
+  // una estancia bancaria diseñada, no como un conjunto de tiles.
+  ctx.globalAlpha=deco==='golden'?.20:.11;
+  ctx.strokeStyle=accent;ctx.lineWidth=1;
+  ctx.strokeRect(43.5,43.5,CANVAS_WIDTH-87,CANVAS_HEIGHT-87);
+  ctx.globalAlpha=deco==='golden'?.10:.055;
+  ctx.strokeRect(49.5,49.5,CANVAS_WIDTH-99,CANVAS_HEIGHT-99);
+
+  // Eje central pulido/incrustado según sector.
   if(deco==='lobby'){
-    // Ejes ceremoniales del vestíbulo: banco elegante antes de volverse zona de guerra.
-    ctx.globalAlpha=.055;ctx.fillStyle='#e6c56f';
-    ctx.fillRect(CANVAS_WIDTH/2-2,42,4,CANVAS_HEIGHT-84);
-    ctx.fillRect(44,CANVAS_HEIGHT/2-1,CANVAS_WIDTH-88,2);
-    ctx.globalAlpha=.07;ctx.strokeStyle='#93b3b1';ctx.lineWidth=1;
-    ctx.strokeRect(56.5,52.5,CANVAS_WIDTH-113,CANVAS_HEIGHT-105);
+    ctx.globalAlpha=.09;ctx.fillStyle=accent;
+    ctx.fillRect(CANVAS_WIDTH/2-1,48,2,CANVAS_HEIGHT-96);
+    ctx.fillRect(48,CANVAS_HEIGHT/2-1,CANVAS_WIDTH-96,2);
+    ctx.globalAlpha=.06;ctx.strokeStyle='#dce7e4';ctx.strokeRect(62.5,57.5,CANVAS_WIDTH-125,CANVAS_HEIGHT-115);
   }else if(deco==='security'){
-    // Barridos de sensores que venden vigilancia sin tapar proyectiles.
-    const scan=48+(frame*.42)%(CANVAS_HEIGHT-96);
-    ctx.globalAlpha=.065;ctx.fillStyle='#4f9dd8';ctx.fillRect(42,scan,CANVAS_WIDTH-84,1);
-    ctx.globalAlpha=.035;ctx.fillRect(42,scan-5,CANVAS_WIDTH-84,11);
-    ctx.globalAlpha=.09;ctx.fillStyle='#d95e58';
-    for(const x of [72,CANVAS_WIDTH-76]) if(((frame+Math.floor(x))>>4)%2===0)ctx.fillRect(x,45,3,2);
+    const scan=52+(frame*.38)%(CANVAS_HEIGHT-104);
+    ctx.globalAlpha=.055;ctx.fillStyle='#74b7d0';ctx.fillRect(46,scan,CANVAS_WIDTH-92,1);
+    ctx.globalAlpha=.028;ctx.fillRect(46,scan-4,CANVAS_WIDTH-92,9);
+    ctx.globalAlpha=.075;ctx.fillStyle='#ba554d';
+    for(const x of [70,CANVAS_WIDTH-74])if(((frame+Math.floor(x))>>4)%2===0)ctx.fillRect(x,47,3,2);
   }else if(deco==='storage'){
-    // Marcas de carga y rutas industriales.
-    ctx.globalAlpha=.055;ctx.fillStyle='#d1ad73';
-    for(let x=62;x<CANVAS_WIDTH-55;x+=96){ctx.fillRect(x,54,2,CANVAS_HEIGHT-108);ctx.fillRect(x+5,54,1,CANVAS_HEIGHT-108);}
-    ctx.globalAlpha=.04;ctx.fillStyle='#0b0c0d';
-    for(let y=82;y<CANVAS_HEIGHT-60;y+=74)ctx.fillRect(44,y,CANVAS_WIDTH-88,5);
+    // Archivo de valores: líneas de bronce y zonas de circulación limpias.
+    ctx.globalAlpha=.075;ctx.fillStyle=accent;
+    for(let x=72;x<CANVAS_WIDTH-64;x+=112)ctx.fillRect(x,54,1,CANVAS_HEIGHT-108);
+    ctx.globalAlpha=.035;ctx.fillStyle='#050708';
+    for(let y=88;y<CANVAS_HEIGHT-64;y+=76)ctx.fillRect(54,y,CANVAS_WIDTH-108,2);
   }else if(deco==='bakery'){
-    // Calor y horno: pulsos bajos en bordes, sin filtro blur.
-    const heat=.045+.018*Math.sin(frame*.055);
-    ctx.globalAlpha=heat;ctx.fillStyle='#ff7b3d';
-    ctx.fillRect(34,40,8,CANVAS_HEIGHT-80);ctx.fillRect(CANVAS_WIDTH-42,40,8,CANVAS_HEIGHT-80);
-    ctx.globalAlpha=.035;ctx.fillStyle='#ffd39a';
-    for(let y=70;y<CANVAS_HEIGHT-58;y+=54){const off=Math.sin(frame*.035+y)*5;ctx.fillRect(58+off,y,CANVAS_WIDTH-116,1);}
+    // Servicios privados: calor contenido en líneas de cobre, sin suciedad visual.
+    const heat=.045+.014*Math.sin(frame*.05);
+    ctx.globalAlpha=heat;ctx.fillStyle=accent;
+    ctx.fillRect(42,50,3,CANVAS_HEIGHT-100);ctx.fillRect(CANVAS_WIDTH-45,50,3,CANVAS_HEIGHT-100);
+    ctx.globalAlpha=.032;ctx.fillStyle='#f0c39a';
+    for(let y=78;y<CANVAS_HEIGHT-62;y+=58)ctx.fillRect(58,y,CANVAS_WIDTH-116,1);
   }else if(deco==='vault'){
-    // Geometría concéntrica de la cámara de seguridad.
-    ctx.globalAlpha=.06;ctx.strokeStyle='#e6c56f';ctx.lineWidth=1;
-    for(let i=0;i<3;i++)ctx.strokeRect(50+i*18+.5,48+i*13+.5,CANVAS_WIDTH-101-i*36,CANVAS_HEIGHT-97-i*26);
-    ctx.globalAlpha=.04;ctx.fillStyle='#9aa8a7';
-    for(let x=66;x<CANVAS_WIDTH-60;x+=58)ctx.fillRect(x,51,1,CANVAS_HEIGHT-102);
+    ctx.globalAlpha=.075;ctx.strokeStyle=accent;
+    for(let i=0;i<3;i++)ctx.strokeRect(54+i*16+.5,51+i*11+.5,CANVAS_WIDTH-109-i*32,CANVAS_HEIGHT-103-i*22);
+    ctx.globalAlpha=.035;ctx.fillStyle='#d7ddd8';
+    for(let x=74;x<CANVAS_WIDTH-68;x+=64)ctx.fillRect(x,54,1,CANVAS_HEIGHT-108);
   }else if(deco==='golden'){
-    const shimmer=.05+.025*Math.sin(frame*.05);
-    ctx.globalAlpha=shimmer;ctx.fillStyle='#ffe48a';
-    for(let i=0;i<7;i++){
-      const x=58+(i*71)%Math.max(80,CANVAS_WIDTH-116),y=64+((i*43+Math.floor(frame*.15))%(CANVAS_HEIGHT-128));
-      ctx.fillRect(x,y,i%3===0?3:1,1);
+    // Cámara principal: geometría simétrica y reflejos de oro muy controlados.
+    const shimmer=.06+.022*Math.sin(frame*.045);
+    ctx.globalAlpha=shimmer;ctx.strokeStyle=accent;
+    ctx.strokeRect(52.5,50.5,CANVAS_WIDTH-105,CANVAS_HEIGHT-101);
+    ctx.strokeRect(68.5,63.5,CANVAS_WIDTH-137,CANVAS_HEIGHT-127);
+    ctx.globalAlpha=.045;ctx.fillStyle='#ffe59a';
+    ctx.fillRect(CANVAS_WIDTH/2-1,52,2,CANVAS_HEIGHT-104);
+    for(let i=0;i<6;i++){
+      const x=78+(i*79)%Math.max(90,CANVAS_WIDTH-156),y=72+((i*41+Math.floor(frame*.1))%(CANVAS_HEIGHT-144));
+      ctx.fillRect(x,y,i%2?1:2,1);
     }
-    ctx.globalAlpha=.055;ctx.strokeStyle='#e6c56f';ctx.strokeRect(48.5,46.5,CANVAS_WIDTH-97,CANVAS_HEIGHT-93);
   }
   ctx.restore();
 
-  if (deco === 'bakery' || deco === 'storage') {
-    for (let i = 0; i < 10; i++) {
-      const t = (frame * 0.4 + i * 37) % 220;
-      ctx.globalAlpha = .10;
-      r(ctx, 40 + (i * 83 % Math.max(80,CANVAS_WIDTH-80)), 300 - t * .6, 2, 2, deco === 'bakery' ? '#e8c99b' : '#cbb89a');
-    }
-    ctx.globalAlpha = 1;
-  }
+  // Reflejo central tenue sobre el piso pulido.
+  const reflection=ctx.createLinearGradient(0,62,0,CANVAS_HEIGHT-56);
+  reflection.addColorStop(0,'rgba(255,255,255,0)');
+  reflection.addColorStop(.48,'rgba(255,255,255,.018)');
+  reflection.addColorStop(.55,'rgba(255,255,255,.032)');
+  reflection.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=reflection;ctx.fillRect(54,54,CANVAS_WIDTH-108,CANVAS_HEIGHT-108);
 
-  // Viñeta arquitectónica común para dirigir la mirada al espacio jugable.
-  const vignette=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,110,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.68);
+  const vignette=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,126,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
   vignette.addColorStop(0,'rgba(0,0,0,0)');
-  vignette.addColorStop(1,'rgba(1,7,10,.18)');
+  vignette.addColorStop(1,'rgba(1,6,9,.14)');
   ctx.fillStyle=vignette;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
-  if (special) {
-    const g = ctx.createRadialGradient(CANVAS_WIDTH/2, 176, 20, CANVAS_WIDTH/2, 176, 180);
-    g.addColorStop(0, 'rgba(180,80,220,.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  if(special){
+    const g=ctx.createRadialGradient(CANVAS_WIDTH/2,176,18,CANVAS_WIDTH/2,176,180);
+    g.addColorStop(0,'rgba(198,168,102,.10)');
+    g.addColorStop(.55,'rgba(86,55,70,.055)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   }
 }
 
 export function drawInnerWallShadow(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = 'rgba(0,0,0,.22)';
-  ctx.fillRect(T, T, CANVAS_WIDTH - T * 2, 6);
-  ctx.fillRect(T, T, 6, CANVAS_HEIGHT - T * 2);
-  ctx.fillStyle = 'rgba(255,255,255,.03)';
-  ctx.fillRect(T, CANVAS_HEIGHT - T - 4, CANVAS_WIDTH - T * 2, 3);
+  // Profundidad de muro + zócalo interior.
+  ctx.fillStyle='rgba(0,0,0,.24)';
+  ctx.fillRect(T,T,CANVAS_WIDTH-T*2,5);
+  ctx.fillRect(T,T,5,CANVAS_HEIGHT-T*2);
+  ctx.fillRect(CANVAS_WIDTH-T-5,T,5,CANVAS_HEIGHT-T*2);
+  ctx.fillStyle='rgba(255,255,255,.032)';
+  ctx.fillRect(T+5,T+5,CANVAS_WIDTH-T*2-10,1);
+  ctx.fillStyle='rgba(0,0,0,.16)';
+  ctx.fillRect(T+5,CANVAS_HEIGHT-T-5,CANVAS_WIDTH-T*2-10,4);
 }
 
 export { TILE_DOOR };
