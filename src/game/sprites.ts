@@ -2384,30 +2384,31 @@ export function drawDoor(
 /** Obstáculos sólidos del banco */
 export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number) {
   const bx=Math.floor(x),by=Math.floor(y),T=TILE_SIZE,pulse=.5+.5*Math.sin(frame*.055+kind);
+  const shadowY=[28,28,29,29,28,31,29,28,29,29,29,29,29,29][kind]??28;
+  const shadowW=[14,14,14,11,14,12,14,12,14,12,13,14,14,14][kind]??13;
 
   ctx.save();
-  // Sombra de contacto: anclada a la huella real y más suave que el antiguo bloque rectangular.
-  const shadowY=kind===5?by+30:kind===3?by+29:by+28;
   ctx.globalAlpha=.30;ctx.fillStyle='#020609';ctx.beginPath();
-  ctx.ellipse(bx+T/2,shadowY,kind===3?11:kind===5?12:14,kind===5?3:4,0,0,Math.PI*2);ctx.fill();
+  ctx.ellipse(bx+T/2,by+shadowY,shadowW,kind===5?3:4,0,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
 
   switch(kind){
-    case 0: { // mostrador / teller counter
-      rect(ctx,bx+1,by+8,T-2,20,'#382823');
-      rect(ctx,bx+2,by+10,T-4,17,'#5f4338');
-      rect(ctx,bx+1,by+6,T-2,5,'#a9b5b9');
-      rect(ctx,bx+2,by+6,T-4,2,'#e4eceb');
-      rect(ctx,bx+3,by+11,T-6,2,'#2a1f1b');
-      rect(ctx,bx+4,by+15,T-8,9,'#765448');
-      rect(ctx,bx+6,by+17,7,5,'#18263b');
-      rect(ctx,bx+18,by+17,7,5,'#253a42');
-      rect(ctx,bx+4,by+26,5,2,'#20282a');rect(ctx,bx+23,by+26,5,2,'#20282a');
-      px(ctx,bx+4,by+9,'#d7dedd',1);px(ctx,bx+27,by+9,'#667579',1);
+    case 0: { // mostrador bancario premium
+      rect(ctx,bx+1,by+8,T-2,20,'#24292d');
+      rect(ctx,bx+2,by+10,T-4,17,'#4c3c32');
+      rect(ctx,bx+1,by+6,T-2,5,'#8f999b');
+      rect(ctx,bx+2,by+6,T-4,2,'#d7dfdd');
+      rect(ctx,bx+3,by+11,T-6,2,'#241d1a');
+      rect(ctx,bx+4,by+15,T-8,9,'#6b4d3e');
+      rect(ctx,bx+6,by+17,7,5,'#172532');
+      rect(ctx,bx+18,by+17,7,5,'#273d45');
+      rect(ctx,bx+4,by+26,5,2,'#1a2225');rect(ctx,bx+23,by+26,5,2,'#1a2225');
+      rect(ctx,bx+9,by+9,14,1,'#b89562');
+      px(ctx,bx+4,by+9,'#e5ebe7',1);px(ctx,bx+27,by+9,'#667579',1);
       break;
     }
     case 1: { // barrera de seguridad
-      rect(ctx,bx+2,by+10,T-4,5,'#e3be35');
+      rect(ctx,bx+2,by+10,T-4,5,'#c99e36');
       for(let i=0;i<4;i++)rect(ctx,bx+3+i*7,by+10,3,5,'#1c2225');
       rect(ctx,bx+4,by+15,3,11,'#737f84');rect(ctx,bx+T-7,by+15,3,11,'#737f84');
       rect(ctx,bx+3,by+16,1,8,'#b8c4c5');rect(ctx,bx+T-7,by+16,1,8,'#b8c4c5');
@@ -2416,60 +2417,142 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       if(frame%50<25)px(ctx,bx+T-5,by+11,'#ff675e',2);
       break;
     }
-    case 2: { // estantería metálica
-      rect(ctx,bx+2,by+4,T-4,T-5,'#323b40');
-      rect(ctx,bx+4,by+5,2,T-8,'#77858a');rect(ctx,bx+T-6,by+5,2,T-8,'#77858a');
-      for(const sy of [7,15,23]){rect(ctx,bx+4,by+sy,T-8,2,'#69767a');rect(ctx,bx+5,by+sy,T-10,1,'#aab5b6');}
-      rect(ctx,bx+7,by+9,8,5,'#9d6b3c');rect(ctx,bx+17,by+9,7,5,'#d0aa6d');
-      rect(ctx,bx+7,by+17,6,5,'#324d5a');rect(ctx,bx+15,by+17,10,5,'#b88a52');
+    case 2: { // estantería / archivo de custodia
+      rect(ctx,bx+2,by+4,T-4,T-5,'#262e32');
+      rect(ctx,bx+4,by+5,2,T-8,'#7e898b');rect(ctx,bx+T-6,by+5,2,T-8,'#7e898b');
+      for(const sy of [7,15,23]){
+        rect(ctx,bx+4,by+sy,T-8,2,'#687477');rect(ctx,bx+5,by+sy,T-10,1,'#c0c8c6');
+      }
+      rect(ctx,bx+7,by+9,8,5,'#58483c');rect(ctx,bx+17,by+9,7,5,'#8b785c');
+      rect(ctx,bx+7,by+17,6,5,'#304953');rect(ctx,bx+15,by+17,10,5,'#5f5142');
+      rect(ctx,bx+8,by+10,6,1,'#c2a66d');rect(ctx,bx+18,by+10,5,1,'#c2a66d');
       rect(ctx,bx+5,by+28,5,2,'#1d2528');rect(ctx,bx+22,by+28,5,2,'#1d2528');
       break;
     }
-    case 3: { // saco de dinero
-      ctx.fillStyle='#6f554c';ctx.beginPath();ctx.ellipse(bx+T/2,by+21,11,9,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#92746a';ctx.beginPath();ctx.ellipse(bx+T/2-2,by+19,7,6,0,0,Math.PI*2);ctx.fill();
-      rect(ctx,bx+T/2-5,by+8,10,5,'#a88a7e');rect(ctx,bx+T/2-6,by+11,12,2,'#4d3933');
-      rect(ctx,bx+9,by+14,14,1,'rgba(255,255,255,.08)');
-      ctx.fillStyle='#e2bd3f';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText('$',bx+T/2,by+24);
-      px(ctx,bx+10,by+19,'#b7a097',1);
+    case 3: { // bolsa sellada de efectivo
+      ctx.fillStyle='#293840';ctx.beginPath();ctx.ellipse(bx+T/2,by+22,11,8,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#43545b';ctx.beginPath();ctx.ellipse(bx+T/2-2,by+20,7,5.5,0,0,Math.PI*2);ctx.fill();
+      rect(ctx,bx+T/2-5,by+11,10,4,'#56686d');
+      rect(ctx,bx+T/2-6,by+14,12,2,'#1f292d');
+      rect(ctx,bx+10,by+18,12,7,'#203039');
+      rect(ctx,bx+12,by+19,8,1,'#c5a761');
+      px(ctx,bx+15,by+21,'#e5d49b',2);
+      rect(ctx,bx+8,by+16,2,7,'#67777a');
+      rect(ctx,bx+22,by+17,2,6,'#12191c');
+      px(ctx,bx+21,by+13,'#db5e59',2); // precinto
       break;
     }
-    case 4: { // caja de pan
-      rect(ctx,bx+2,by+9,T-4,19,'#71451f');rect(ctx,bx+3,by+10,T-6,17,'#965e2e');
-      rect(ctx,bx+2,by+14,T-4,2,'#4c2e19');rect(ctx,bx+15,by+10,2,17,'#75431f');
-      rect(ctx,bx+5,by+6,9,5,'#d7b17b');rect(ctx,bx+17,by+5,8,5,'#c89255');
-      rect(ctx,bx+7,by+7,5,1,'#f0d7a8');rect(ctx,bx+19,by+6,4,1,'#e4c38f');
-      rect(ctx,bx+4,by+26,6,2,'#41281a');rect(ctx,bx+22,by+26,6,2,'#41281a');
+    case 4: { // caja blindada de traslado
+      rect(ctx,bx+2,by+10,T-4,18,'#252c30');
+      rect(ctx,bx+3,by+11,T-6,16,'#465156');
+      rect(ctx,bx+4,by+12,T-8,2,'#748186');
+      rect(ctx,bx+4,by+24,T-8,2,'#1e2528');
+      for(const xx of [5,24])for(const yy of [13,23])rect(ctx,bx+xx,by+yy,3,3,'#919d9f');
+      rect(ctx,bx+11,by+7,10,4,'#2d3538');rect(ctx,bx+13,by+6,6,2,'#879294');
+      rect(ctx,bx+11,by+17,10,6,'#1b2428');rect(ctx,bx+13,by+19,6,2,'#c2a66d');
+      px(ctx,bx+15,by+20,'#e9d7a0',2);
       break;
     }
-    case 5: { // columna
-      rect(ctx,bx+5,by,T-10,4,'#606c73');rect(ctx,bx+7,by+3,T-14,T-7,'#9aa5a8');
-      rect(ctx,bx+9,by+4,T-18,T-9,'#b9c3c3');rect(ctx,bx+12,by+5,2,T-12,'#d7dede');
-      rect(ctx,bx+5,by+27,T-10,4,'#59646a');rect(ctx,bx+3,by+30,T-6,2,'#30383c');
+    case 5: { // columna estructural
+      rect(ctx,bx+5,by,T-10,4,'#5a6469');rect(ctx,bx+7,by+3,T-14,T-7,'#929da0');
+      rect(ctx,bx+9,by+4,T-18,T-9,'#b5bebd');rect(ctx,bx+12,by+5,2,T-12,'#d6dcda');
+      rect(ctx,bx+5,by+27,T-10,4,'#555f63');rect(ctx,bx+3,by+30,T-6,2,'#30383c');
       rect(ctx,bx+8,by+1,5,1,'#d4dcdb');rect(ctx,bx+20,by+28,5,1,'#343c40');
+      rect(ctx,bx+7,by+26,T-14,1,'#b89562');
       break;
     }
-    case 6: { // caja fuerte
-      rect(ctx,bx+2,by+7,T-4,21,'#343d42');rect(ctx,bx+4,by+8,T-8,18,'#596369');
-      rect(ctx,bx+5,by+9,T-10,2,'#77858a');rect(ctx,bx+5,by+24,T-10,2,'#252c30');
-      ctx.strokeStyle='#c0cac9';ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx+T/2,by+17,5,0,Math.PI*2);ctx.stroke();
-      const ang=frame*.02;ctx.beginPath();ctx.moveTo(bx+T/2,by+17);ctx.lineTo(bx+T/2+Math.cos(ang)*5,by+17+Math.sin(ang)*5);ctx.stroke();
-      for(const da of [0,Math.PI/2,Math.PI,Math.PI*1.5]){px(ctx,bx+T/2+Math.cos(da)*4,by+17+Math.sin(da)*4,'#778286',1);}
-      rect(ctx,bx+24,by+14,2,7,'#252d31');px(ctx,bx+7,by+11,'#eef2ec',1);
+    case 6: { // caja fuerte ejecutiva
+      rect(ctx,bx+2,by+6,T-4,23,'#1c2226');
+      rect(ctx,bx+3,by+7,T-6,21,'#3c474c');
+      rect(ctx,bx+5,by+9,T-10,17,'#59656a');
+      rect(ctx,bx+6,by+10,T-12,2,'#7f8d90');
+      rect(ctx,bx+6,by+24,T-12,2,'#252d30');
+      rect(ctx,bx+4,by+9,2,17,'#20282b');
+      rect(ctx,bx+24,by+10,2,15,'#1f272a');
+      ctx.strokeStyle='#d1d8d5';ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx+15,by+18,5,0,Math.PI*2);ctx.stroke();
+      const ang=frame*.015;
+      ctx.strokeStyle='#9fa9aa';ctx.lineWidth=1.5;
+      for(const da of [0,Math.PI*2/3,Math.PI*4/3]){
+        ctx.beginPath();ctx.moveTo(bx+15,by+18);ctx.lineTo(bx+15+Math.cos(ang+da)*7,by+18+Math.sin(ang+da)*7);ctx.stroke();
+      }
+      rect(ctx,bx+21,by+15,2,7,'#1f272a');
+      rect(ctx,bx+7,by+13,5,3,'#aa8d51');px(ctx,bx+8,by+14,'#ecdca8',1);
+      rect(ctx,bx+4,by+28,6,2,'#111719');rect(ctx,bx+22,by+28,6,2,'#111719');
       break;
     }
-    default: { // escombros
-      rect(ctx,bx+4,by+17,9,7,'#3e474b');rect(ctx,bx+14,by+13,11,11,'#545e62');
-      rect(ctx,bx+9,by+21,8,5,'#30383c');rect(ctx,bx+17,by+10,5,4,'#707b7e');
-      rect(ctx,bx+22,by+19,5,6,'#444d50');px(ctx,bx+7,by+15,'#899496',2);px(ctx,bx+22,by+21,'#293135',2);
-      ctx.globalAlpha=.35+.15*pulse;px(ctx,bx+18,by+11,'#a9b3b2',1);ctx.globalAlpha=1;
+    case 7: { // panel de seguridad dañado
+      rect(ctx,bx+4,by+17,10,8,'#394348');rect(ctx,bx+14,by+13,12,12,'#505b60');
+      rect(ctx,bx+8,by+20,9,6,'#293237');rect(ctx,bx+17,by+10,6,5,'#6f7b7e');
+      rect(ctx,bx+19,by+14,5,2,'#1b2428');px(ctx,bx+21,by+15,'#d45b55',2);
+      ctx.strokeStyle='#768488';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx+7,by+16);ctx.lineTo(bx+4,by+11);ctx.lineTo(bx+9,by+8);ctx.stroke();
+      ctx.globalAlpha=.28+.14*pulse;px(ctx,bx+18,by+11,'#d5dedd',1);ctx.globalAlpha=1;
+      break;
+    }
+    case 8: { // casilleros de depósito
+      rect(ctx,bx+2,by+5,T-4,24,'#23292c');rect(ctx,bx+3,by+6,T-6,22,'#4e5656');
+      for(let row=0;row<3;row++)for(let col=0;col<2;col++){
+        const xx=bx+5+col*12,yy=by+8+row*6;
+        rect(ctx,xx,yy,10,5,'#646b68');rect(ctx,xx+1,yy+1,8,1,'#8a918c');
+        rect(ctx,xx+4,yy+2,3,2,'#b89562');
+      }
+      rect(ctx,bx+2,by+4,T-4,2,'#9da7a4');
+      rect(ctx,bx+4,by+28,6,2,'#161c1e');rect(ctx,bx+22,by+28,6,2,'#161c1e');
+      break;
+    }
+    case 9: { // maletín de valores
+      rect(ctx,bx+5,by+15,22,13,'#171e22');rect(ctx,bx+6,by+16,20,11,'#39464c');
+      rect(ctx,bx+8,by+18,16,7,'#4d5a5e');rect(ctx,bx+13,by+12,8,4,'#222a2e');
+      rect(ctx,bx+15,by+11,4,2,'#6d7a7c');
+      rect(ctx,bx+9,by+17,3,2,'#c1a15e');rect(ctx,bx+20,by+17,3,2,'#c1a15e');
+      rect(ctx,bx+6,by+25,20,2,'#20282c');
+      break;
+    }
+    case 10: { // bandeja de efectivo
+      rect(ctx,bx+4,by+20,24,8,'#252d31');rect(ctx,bx+5,by+21,22,6,'#566166');
+      for(let i=0;i<3;i++){
+        rect(ctx,bx+7+i*6,by+17+(i%2),6,5,'#718c68');
+        rect(ctx,bx+8+i*6,by+18+(i%2),4,1,'#cad5b4');
+        rect(ctx,bx+9+i*6,by+20+(i%2),2,1,'#b89562');
+      }
+      rect(ctx,bx+6,by+26,20,2,'#171d20');
+      break;
+    }
+    case 11: { // carrito de valores
+      rect(ctx,bx+4,by+9,22,17,'#2b3438');rect(ctx,bx+5,by+10,20,15,'#556166');
+      rect(ctx,bx+7,by+12,16,3,'#758186');rect(ctx,bx+7,by+17,16,6,'#30393d');
+      rect(ctx,bx+9,by+18,12,1,'#b89562');
+      rect(ctx,bx+24,by+6,3,18,'#68767a');rect(ctx,bx+26,by+5,4,3,'#9aa5a5');
+      ctx.fillStyle='#0d1214';ctx.beginPath();ctx.arc(bx+9,by+27,3,0,Math.PI*2);ctx.arc(bx+23,by+27,3,0,Math.PI*2);ctx.fill();
+      px(ctx,bx+9,by+27,'#7d898b',1);px(ctx,bx+23,by+27,'#7d898b',1);
+      break;
+    }
+    case 12: { // archivador de custodia
+      rect(ctx,bx+3,by+5,T-6,24,'#283034');rect(ctx,bx+4,by+6,T-8,22,'#566065');
+      for(let row=0;row<3;row++){
+        const yy=by+8+row*6;
+        rect(ctx,bx+6,yy,T-12,5,'#687277');rect(ctx,bx+7,yy+1,T-14,1,'#8d9799');
+        rect(ctx,bx+13,yy+2,6,2,'#b89562');
+      }
+      rect(ctx,bx+5,by+28,6,2,'#171d20');rect(ctx,bx+21,by+28,6,2,'#171d20');
+      break;
+    }
+    case 13: { // contenedor blindado
+      rect(ctx,bx+2,by+12,T-4,16,'#20272b');rect(ctx,bx+3,by+13,T-6,14,'#465156');
+      rect(ctx,bx+5,by+15,T-10,10,'#576369');
+      for(const xx of [4,24]){rect(ctx,bx+xx,by+14,3,3,'#8a9698');rect(ctx,bx+xx,by+23,3,3,'#8a9698');}
+      rect(ctx,bx+11,by+10,10,4,'#2d3538');rect(ctx,bx+13,by+9,6,2,'#8d999a');
+      rect(ctx,bx+12,by+18,8,4,'#252e32');rect(ctx,bx+14,by+19,4,2,'#c1a15e');
+      px(ctx,bx+15,by+20,'#efe0ad',1);
+      break;
+    }
+    default: {
+      rect(ctx,bx+6,by+18,20,10,'#3d474b');rect(ctx,bx+9,by+16,14,4,'#687477');
       break;
     }
   }
 
-  // Contacto con el piso y desgaste coherente.
-  ctx.globalAlpha=.12;ctx.fillStyle='#dce6df';ctx.fillRect(bx+5,by+5,T-10,1);ctx.globalAlpha=1;
-  if(kind!==3&&kind!==5){
+  ctx.globalAlpha=.10;ctx.fillStyle='#dce6df';ctx.fillRect(bx+5,by+5,T-10,1);ctx.globalAlpha=1;
+  if(![3,5,9,10].includes(kind)){
     const n=(kind*7+Math.floor(frame/90))|0;
     if((n&3)===0){px(ctx,bx+T-7,by+T-8,'#1c2528',2);px(ctx,bx+T-10,by+T-6,'#718083',1);}
   }
