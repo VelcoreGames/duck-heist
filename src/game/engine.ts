@@ -32,6 +32,7 @@ import { completeTutorial, updateTutorial } from './tutorial';
 import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
+import { obstacleHitbox, specialSolidRects, rectsOverlap, pointInRect } from './worldProps';
 import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 import type {
   GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind, BossPartState,
@@ -460,15 +461,18 @@ function rollWeapon(engine: GameEngine, biasRare = false): string {
   return pick(pool);
 }
 
+const collisionContent = new WeakMap<MapRoom,RoomContent>();
+
 function getContent(engine: GameEngine, k = engine.currentKey): RoomContent {
   let c = engine.contents.get(k);
+  const room = engine.map.rooms.get(k)!;
   if (!c) {
-    const room = engine.map.rooms.get(k)!;
     c = buildRoomContent(engine, room);
     engine.contents.set(k, c);
     room.generated = true;
     if (c.enemies.length === 0) room.cleared = true;
   }
+  collisionContent.set(room,c);
   return c;
 }
 
@@ -494,19 +498,35 @@ function applyDoorTiles(room: MapRoom) {
   }
 }
 
-function tileBlocked(room: MapRoom, tx: number, ty: number, flying = false): boolean {
-  if (tx < 0 || ty < 0 || tx >= ROOM_WIDTH || ty >= ROOM_HEIGHT) return true;
-  const t = room.layout[ty][tx];
-  if (t === TILE_WALL) return true;
-  if (t === TILE_DOOR) return !room.cleared;
-  if (t >= OBSTACLE_BASE) return !flying;
+function pointBlocked(room: MapRoom, px:number, py:number, flying=false):boolean {
+  const tx=Math.floor(px/TILE_SIZE),ty=Math.floor(py/TILE_SIZE);
+  if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return true;
+  const t=room.layout[ty][tx];
+  if(t===TILE_WALL)return true;
+  if(t===TILE_DOOR)return !room.cleared;
+  if(!flying&&t>=OBSTACLE_BASE){
+    return pointInRect(px,py,obstacleHitbox(t-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE));
+  }
+  if(!flying){
+    const content=collisionContent.get(room);
+    if(content&&specialSolidRects(room.type,content).some(r=>pointInRect(px,py,r)))return true;
+  }
   return false;
 }
 
 function boxBlocked(room: MapRoom, x: number, y: number, w: number, h: number, flying = false): boolean {
-  const pts = [[x + 2, y + 2], [x + w - 2, y + 2], [x + 2, y + h - 2], [x + w - 2, y + h - 2], [x + w / 2, y + h - 1]];
-  for (const [px, py] of pts) {
-    if (tileBlocked(room, Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE), flying)) return true;
+  const bx=x+2,by=y+2,bw=Math.max(1,w-4),bh=Math.max(1,h-4);
+  const minTx=Math.floor(bx/TILE_SIZE),maxTx=Math.floor((bx+bw-1)/TILE_SIZE);
+  const minTy=Math.floor(by/TILE_SIZE),maxTy=Math.floor((by+bh-1)/TILE_SIZE);
+  for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
+    if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return true;
+    const t=room.layout[ty][tx];
+    if(t===TILE_WALL||(t===TILE_DOOR&&!room.cleared))return true;
+    if(!flying&&t>=OBSTACLE_BASE&&rectsOverlap(bx,by,bw,bh,obstacleHitbox(t-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)))return true;
+  }
+  if(!flying){
+    const content=collisionContent.get(room);
+    if(content&&specialSolidRects(room.type,content).some(r=>rectsOverlap(bx,by,bw,bh,r)))return true;
   }
   return false;
 }
@@ -2953,7 +2973,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     const tx = Math.floor(p.x / TILE_SIZE), ty = Math.floor(p.y / TILE_SIZE);
     const outside = tx < 0 || ty < 0 || tx >= ROOM_WIDTH || ty >= ROOM_HEIGHT;
     const tile = outside ? TILE_WALL : room.layout[ty][tx];
-    const solid = outside || tile === TILE_WALL || tile >= OBSTACLE_BASE || (tile === TILE_DOOR && !room.cleared);
+    const solid = outside || pointBlocked(room,p.x,p.y,false);
     if (solid) {
       if(p.friendly && tile===TILE_WALL) {
         const direction=room.doors.find(d=>DOOR_TILE[d].x===tx&&DOOR_TILE[d].y===ty);
