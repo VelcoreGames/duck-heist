@@ -110,57 +110,81 @@ export function drawRichTile(
 }
 
 function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, deco: string, h: number, f: number, north: boolean, side: boolean) {
-  if (!north && !side && h % 4 !== 0) return;
-  const seed = h % 12;
-  if (deco === 'lobby') {
-    if (seed === 0) { // ATM
-      r(ctx, px + 5, py + 6, 22, 22, '#2a3140'); r(ctx, px + 7, py + 8, 18, 9, '#0c1220');
-      r(ctx, px + 8, py + 9, 16, 6, (f + px) % 80 < 50 ? '#3ad36a' : '#1a5a32');
-      r(ctx, px + 8, py + 19, 16, 5, '#8d98a6'); r(ctx, px + 10, py + 20, 4, 3, '#f4d03f');
-    } else if (seed === 1) { // bank sign
-      r(ctx, px + 3, py + 8, 26, 13, '#7a5a10'); r(ctx, px + 4, py + 9, 24, 11, '#f4d03f');
-      r(ctx, px + 7, py + 12, 18, 4, '#5a4208');
-    } else if (seed === 2) { // velvet rope hook
-      r(ctx, px + 14, py + 18, 4, 10, '#c9a227'); r(ctx, px + 8, py + 20, 16, 3, '#7a1f2b');
-    } else if (seed === 3) { // wanted poster
-      r(ctx, px + 8, py + 8, 16, 18, '#e8d5a3'); r(ctx, px + 10, py + 10, 12, 8, '#f9e547');
-      r(ctx, px + 10, py + 20, 12, 3, '#8a2c2c');
-    } else if (north && seed === 4) { // camera
-      r(ctx, px + 12, py + 4, 8, 5, '#4a5564'); r(ctx, px + 18, py + 5, 6, 4, '#1b2430');
-      r(ctx, px + 22, py + 6, 2, 2, f % 50 < 25 ? '#ef7768' : '#6a3038');
+  if(!north&&!side&&h%5!==0)return;
+  const seed=h%12,metal=decoMetal(deco);
+
+  if(deco==='lobby'){
+    if(seed===0){ // ATM empotrado
+      r(ctx,px+5,py+7,22,19,'#1a2228');r(ctx,px+6,py+8,20,17,'#3a454b');
+      r(ctx,px+8,py+9,16,7,'#0b1418');r(ctx,px+9,py+10,14,5,(f+px)%80<50?'#3b8f68':'#23533f');
+      r(ctx,px+8,py+18,16,5,'#9aa7a6');r(ctx,px+10,py+19,4,3,'#d9bd72');
+      r(ctx,px+5,py+6,22,1,metal);
+    }else if(seed===1){ // placa/escudo del banco
+      r(ctx,px+5,py+9,22,12,'#242b2d');r(ctx,px+6,py+10,20,10,metal);
+      r(ctx,px+8,py+12,16,6,'#3b382d');r(ctx,px+14,py+11,4,8,'#d9c784');
+      r(ctx,px+10,py+14,12,2,'#7c6b43');
+    }else if(seed===2){ // poste de fila / concierge
+      r(ctx,px+14,py+14,4,12,'#9b7d3e');r(ctx,px+13,py+13,6,3,'#d7bd72');
+      r(ctx,px+7,py+17,18,2,'#6d2730');r(ctx,px+6,py+16,3,4,'#aa3948');r(ctx,px+23,py+16,3,4,'#aa3948');
+    }else if(seed===3){ // arte financiero enmarcado
+      r(ctx,px+7,py+8,18,15,'#1b2225');r(ctx,px+8,py+9,16,13,metal);
+      r(ctx,px+10,py+11,12,9,'#26363d');r(ctx,px+11,py+17,3,2,'#b89562');r(ctx,px+15,py+14,3,5,'#d4c18a');r(ctx,px+19,py+12,2,7,'#90aeb3');
+    }else if(north&&seed===4){ // cámara discreta
+      r(ctx,px+12,py+5,8,4,'#59666a');r(ctx,px+18,py+6,6,3,'#1b2428');
+      r(ctx,px+22,py+6,2,2,f%50<25?'#ef7768':'#6a3038');
     }
-  } else if (deco === 'security') {
-    if (seed % 3 === 0) {
-      r(ctx, px + 5, py + 7, 22, 16, '#0b1018'); r(ctx, px + 7, py + 9, 18, 12, '#12314f');
-      r(ctx, px + 8, py + 10 + ((f >> 3) % 8), 16, 1, '#4f9dd8');
-      r(ctx, px + 24, py + 8, 2, 2, f % 70 < 35 ? '#ff5b4f' : '#3a1a18');
-    } else if (seed % 3 === 1) {
-      r(ctx, px + 8, py + 8, 16, 18, '#1a2436'); r(ctx, px + 10, py + 10, 12, 3, '#4f7ad4');
-      r(ctx, px + 10, py + 15, 12, 8, '#0e1624');
+  }else if(deco==='security'){
+    if(seed%3===0){ // videowall
+      r(ctx,px+5,py+7,22,16,'#0a1116');r(ctx,px+6,py+8,20,14,'#26343d');
+      r(ctx,px+8,py+10,7,4,'#123249');r(ctx,px+17,py+10,7,4,'#183849');
+      r(ctx,px+8,py+16,16,4,'#102532');r(ctx,px+8,py+10+((f>>3)%9),16,1,'rgba(116,183,208,.55)');
+      r(ctx,px+5,py+6,22,1,metal);
+    }else if(seed%3===1){ // panel biométrico
+      r(ctx,px+8,py+8,16,17,'#1a252b');r(ctx,px+10,py+10,12,3,metal);
+      r(ctx,px+10,py+15,12,7,'#0d171d');r(ctx,px+12,py+17,3,3,'#5f91a2');
+      r(ctx,px+19,py+18,2,2,f%60<30?'#64d590':'#315946');
     }
-  } else if (deco === 'storage') {
-    if (seed % 3 === 0) { r(ctx, px + 6, py + 10, 20, 16, '#8B5A2B'); r(ctx, px + 8, py + 6, 8, 6, '#e8c99b'); r(ctx, px + 16, py + 7, 7, 5, '#d4a574'); }
-    else { r(ctx, px + 8, py + 12, 16, 12, '#d9cba6'); r(ctx, px + 8, py + 12, 16, 3, '#b8a882'); }
-  } else if (deco === 'bakery') {
-    if (seed % 4 === 0) {
-      r(ctx, px + 5, py + 8, 22, 18, '#3a2418');
-      const glow = .45 + Math.sin(f * .1 + px) * .25;
-      ctx.fillStyle = `rgba(255,120,40,${glow})`; ctx.fillRect(px + 8, py + 11, 16, 10);
-      r(ctx, px + 10, py + 14, 12, 3, '#ffd08a');
-    } else if (seed % 4 === 1) {
-      r(ctx, px + 10, py + 4, 4, 20, '#6c5344'); r(ctx, px + 8, py + 6, 8, 3, '#8a94a0');
-      ctx.globalAlpha = .25 + Math.sin(f * .08 + px) * .1; r(ctx, px + 12, py + 8, 6, 10, '#dfe6ee'); ctx.globalAlpha = 1;
+  }else if(deco==='storage'){
+    if(seed%3===0){ // archivo de valores
+      r(ctx,px+5,py+8,22,17,'#2b2a27');r(ctx,px+6,py+9,20,15,'#51493f');
+      for(let yy=0;yy<3;yy++)for(let xx=0;xx<2;xx++){
+        const bx=px+8+xx*9,by=py+11+yy*4;
+        r(ctx,bx,by,7,3,'#6a5d4c');r(ctx,bx+2,by+1,3,1,metal);
+      }
+      r(ctx,px+5,py+7,22,1,metal);
+    }else{ // placa de custodia
+      r(ctx,px+8,py+10,16,12,'#302d28');r(ctx,px+9,py+11,14,10,'#8d744f');
+      r(ctx,px+11,py+13,10,2,'#d9c49d');r(ctx,px+11,py+17,7,1,'#5e4d36');
     }
-  } else if (deco === 'vault') {
-    if (seed % 5 === 0) {
-      r(ctx, px + 8, py + 5, 16, 5, '#4c5666');
-      if (Math.sin(f * .05 + px) > 0) { ctx.fillStyle = 'rgba(255,59,48,.5)'; ctx.fillRect(px + 14, py + 10, 2, T - 10); }
-    } else if (seed % 5 === 2) {
-      r(ctx, px + 7, py + 9, 18, 14, '#f4d03f'); r(ctx, px + 9, py + 11, 14, 10, '#8a6a10');
+  }else if(deco==='bakery'){
+    if(seed%4===0){ // panel térmico de servicio
+      r(ctx,px+5,py+8,22,17,'#2b2522');r(ctx,px+6,py+9,20,15,'#543b33');
+      r(ctx,px+8,py+11,16,8,'#251a18');
+      const glow=.22+.08*Math.sin(f*.08+px);
+      ctx.globalAlpha=glow;r(ctx,px+9,py+12,14,6,'#d98955');ctx.globalAlpha=1;
+      r(ctx,px+10,py+21,12,2,metal);
+    }else if(seed%4===1){ // tubería de cobre controlada
+      r(ctx,px+10,py+5,4,20,'#72503e');r(ctx,px+11,py+5,2,20,metal);
+      r(ctx,px+8,py+7,8,3,'#596268');r(ctx,px+8,py+20,8,3,'#596268');
+      ctx.globalAlpha=.16+.05*Math.sin(f*.06+px);r(ctx,px+15,py+11,5,8,'#e8d5c1');ctx.globalAlpha=1;
     }
-  } else if (deco === 'golden') {
-    r(ctx, px + 6, py + 7, 20, 16, '#ffe066'); r(ctx, px + 9, py + 10, 14, 10, '#8a6a10');
-    r(ctx, px + 12, py + 12, 3, 3, '#fff3b0');
+  }else if(deco==='vault'){
+    if(seed%5===0){ // emisor láser
+      r(ctx,px+8,py+6,16,5,'#505b60');r(ctx,px+10,py+7,12,2,'#9aa7a8');
+      if(Math.sin(f*.05+px)>0){ctx.fillStyle='rgba(255,70,62,.42)';ctx.fillRect(px+15,py+11,2,T-12);}
+    }else if(seed%5===2){ // caja de seguridad empotrada
+      r(ctx,px+6,py+9,20,14,'#4c5050');r(ctx,px+8,py+11,16,10,'#72746e');
+      r(ctx,px+10,py+13,12,6,'#313635');r(ctx,px+15,py+14,3,3,metal);
+      r(ctx,px+6,py+8,20,1,metal);
+    }
+  }else if(deco==='golden'){
+    // Celdas de depósito premium: oro como acento, no como bloque plano.
+    r(ctx,px+6,py+8,20,15,'#353128');r(ctx,px+7,py+9,18,13,'#5a503b');
+    for(let yy=0;yy<2;yy++)for(let xx=0;xx<2;xx++){
+      const bx=px+9+xx*8,by=py+11+yy*5;
+      r(ctx,bx,by,6,4,'#8a7444');r(ctx,bx+2,by+1,2,2,metal);
+    }
+    r(ctx,px+6,py+7,20,1,metal);
   }
 }
 
