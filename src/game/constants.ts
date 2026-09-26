@@ -122,18 +122,18 @@ export interface FloorTheme {
 }
 
 export const FLOOR_THEMES: FloorTheme[] = [
-  // 1 · vestíbulo: mármol limpio, mostradores, ATM
-  { floor: ['#1b2440', '#202a4a', '#141c33'], wall: ['#232c47', '#1a2138'], trim: '#98a2ae', glow: '#8fb3d5', deco: 'lobby' },
-  // 2 · oficinas de seguridad: azules, monitores
-  { floor: ['#12203a', '#16283f', '#0d1729'], wall: ['#1b2b46', '#131e33'], trim: '#4f7ad4', glow: '#4f9dd8', deco: 'security' },
-  // 3 · almacén de pan: cajas, sacos de harina
-  { floor: ['#2a2015', '#33281b', '#1e170e'], wall: ['#3b2d1e', '#2a2015'], trim: '#d4a574', glow: '#e8c99b', deco: 'storage' },
-  // 4 · panadería: hornos y fuego
-  { floor: ['#2c1710', '#361d13', '#1e0f0a'], wall: ['#41231a', '#2c1710'], trim: '#ff8a3d', glow: '#ff6b3d', deco: 'bakery' },
-  // 5 · alta seguridad: oro, acero, láseres
-  { floor: ['#1c1c26', '#23232f', '#141419'], wall: ['#2f323d', '#22242c'], trim: '#f4d03f', glow: '#f4d03f', deco: 'vault' },
-  // 6 · cámara del pan dorado
-  { floor: ['#3a2c0d', '#473613', '#2a200a'], wall: ['#5a4515', '#3d2f0f'], trim: '#fff3b0', glow: '#ffe066', deco: 'golden' },
+  // 1 · Gran vestíbulo: mármol azul pizarra, piedra tallada y latón satinado.
+  { floor: ['#26313a', '#2d3942', '#1c252d'], wall: ['#343f47', '#252f36'], trim: '#c6a866', glow: '#d8e5e4', deco: 'lobby' },
+  // 2 · Seguridad ejecutiva: granito azul-negro y acero cepillado.
+  { floor: ['#172631', '#1d2f3b', '#111c24'], wall: ['#243945', '#182832'], trim: '#8faeb7', glow: '#74b7d0', deco: 'security' },
+  // 3 · Archivo de valores: piedra cálida, nogal oscuro y bronce.
+  { floor: ['#302a24', '#393129', '#211d19'], wall: ['#403831', '#2d2823'], trim: '#b89562', glow: '#d9c49d', deco: 'storage' },
+  // 4 · Servicios privados: piedra borgoña, cobre y luz cálida controlada.
+  { floor: ['#342522', '#3d2c28', '#251b19'], wall: ['#49332f', '#322521'], trim: '#bd835c', glow: '#e6a46f', deco: 'bakery' },
+  // 5 · Alta seguridad: granito negro, titanio y latón.
+  { floor: ['#20252a', '#282e34', '#15191d'], wall: ['#353d43', '#252c31'], trim: '#c9ad62', glow: '#e7d083', deco: 'vault' },
+  // 6 · Cámara principal: mármol negro con incrustaciones de oro.
+  { floor: ['#29261f', '#342f25', '#191713'], wall: ['#474238', '#302c25'], trim: '#e6c56f', glow: '#ffe59a', deco: 'golden' },
 ];
 
 export enum RoomType {
