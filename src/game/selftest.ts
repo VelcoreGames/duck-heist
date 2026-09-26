@@ -20,7 +20,7 @@ import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
-import { obstacleHitbox, specialSolidRects } from './worldProps';
+import { obstacleHitbox, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -146,6 +146,16 @@ export function runSelfChecks():CheckReport {
       for(const kind of expected)assert(kinds.has(kind),`falta colisión ${kind}`);
       assert(rects.length===7,'coleccionables o escalera se volvieron sólidos');
     });
+    check('Pedestal: base física y alcance exterior coherentes',()=>{
+      const ped={x:220,y:150};
+      const hit=pedestalHitbox(ped),use=pedestalInteractPoint(ped);
+      assert(hit.x===217&&hit.y===177&&hit.w===30&&hit.h===8,'hitbox de pedestal desalineado');
+      assert(use.x===232&&use.y===168,'punto de interacción incorrecto');
+      const below={x:232,y:194};
+      assert(Math.hypot(below.x-use.x,below.y-use.y)<PEDESTAL_INTERACT_RADIUS,'no se puede recoger desde abajo fuera de colisión');
+      assert(!(below.x>=hit.x&&below.x<hit.x+hit.w&&below.y>=hit.y&&below.y<hit.y+hit.h),'punto de interacción quedó dentro de colisión');
+    });
+
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
     check('All content has a pickup category',()=>assert(report.manifest.entries.every(i=>!!i.pickup&&!!i.category),'missing pickup metadata'));
     check('Exactly eleven cosmetic skins',()=>assert(SKINS.length===11 && SKINS.every(s=>!('hp' in s)&&!('damage' in s)),'invalid cosmetics'));
