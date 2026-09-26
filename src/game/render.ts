@@ -541,29 +541,41 @@ export function renderWorld(engine: GameEngine) {
   }
 
   for (const p of content.pickups) {
+    const finiteLife=p.lifetime<99999;
+    const blinkWindow=180;
+    const blinkFast=p.lifetime<=60;
+    const blinkOn=!finiteLife||p.lifetime>blinkWindow||
+      (Math.floor(p.lifetime/(blinkFast?4:8))%2===0);
+    if(!blinkOn) continue;
+
+    ctx.save();
+    if(finiteLife&&p.lifetime<=blinkWindow){
+      const lifeFade=Math.max(.45,Math.min(1,p.lifetime/blinkWindow+.35));
+      ctx.globalAlpha=lifeFade;
+    }
     if (p.type === 'hp' || p.type === 'sandwich' || p.type === 'baguette' ||
         p.type === 'croissant' || p.type === 'torta' || p.type === 'pan_dorado') {
       drawItemIcon(ctx,p.x-12,p.y-12+Math.round(Math.sin(f*.08)),p.type,24);
       // halo curativo
-      ctx.globalAlpha = 0.16;
+      ctx.globalAlpha *= 0.16;
       ctx.fillStyle = '#ff8f9f';
       ctx.beginPath();
       ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 1;
     } else {
       if(engine.gameMode==='endless'){
         const golden=p.type==='golden_crumb';
-        ctx.save();
-        ctx.globalAlpha=golden?.22:.09;
+        const previousAlpha=ctx.globalAlpha;
+        ctx.globalAlpha=previousAlpha*(golden?.22:.09);
         ctx.strokeStyle=golden?'#f4d03f':'#d4a574';
         ctx.lineWidth=1;
         ctx.beginPath();ctx.ellipse(p.x,p.y+4,golden?8:6,golden?4:3,0,0,Math.PI*2);ctx.stroke();
-        if(golden){ctx.globalAlpha=.12+.06*Math.sin(f*.12);ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.stroke();}
-        ctx.restore();
+        if(golden){ctx.globalAlpha=previousAlpha*(.12+.06*Math.sin(f*.12));ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.stroke();}
+        ctx.globalAlpha=previousAlpha;
       }
       drawCoin(ctx, p.x, p.y, f, p.type === 'golden_crumb');
     }
+    ctx.restore();
   }
 
   let nearestEndlessItem:{x:number;y:number;itemId:string;isWeapon:boolean;isActive:boolean;d:number}|null=null;
