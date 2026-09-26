@@ -208,14 +208,14 @@ function bossMusicIdentity(variant:string):BossMusicIdentity {
 }
 
 function bossFamilyRoot(family:string){
-  return family==='war'?43.65:
-    family==='riot'?46.25:
-    family==='tech'?49:
-    family==='vault'?41.2:
-    family==='finance'?51.91:
-    family==='wealth'?58.27:
-    family==='bakery'?55:
-    49;
+  return family==='war'?87.31:
+    family==='riot'?92.50:
+    family==='tech'?103.83:
+    family==='vault'?82.41:
+    family==='finance'?110:
+    family==='wealth'?123.47:
+    family==='bakery'?116.54:
+    98;
 }
 
 function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string){
@@ -224,81 +224,72 @@ function tickBossMusic(tier:BossMusicTier,step:number,sec:number,variant:string)
   const family=identity.family||['command','finance','tech','war','bakery','vault','riot','wealth'][seed%8];
   const phase=identity.phase;
   const phrase=step%32,slot=phrase%16,section=phrase>=16?1:0;
-  const tierWeight=tier==='boss'?1:tier==='subboss' ? .78 : .62;
-  const phaseWeight=1+phase*.16+musicIntensity*.08;
-  const root=bossFamilyRoot(family)*Math.pow(2,([-2,0,2,3][(seed>>>6)%4])/12);
+  const tierWeight=tier==='boss'?1:tier==='subboss'?.84:.70;
+  const phaseWeight=1+phase*.13+musicIntensity*.08;
+  const root=bossFamilyRoot(family)*semitoneRatio((seed>>>6)%3-1);
   const hit=(v:number)=>v*tierWeight*phaseWeight;
-  const drive=musicIntensity*(tier==='boss'?1:.82);
+  const drive=musicIntensity*(tier==='boss'?1:.85);
 
-  if([0,4,8,12].includes(slot))musicKick(hit(.010+drive*.010));
-  if((phase>=1||drive>.6)&&(slot===2||slot===10))musicKick(hit(.008+drive*.006));
-  if((phase>=2||drive>.78)&&(slot===6||slot===14))musicSnare(hit(.004+drive*.004));
+  // Pulso común más vivo; cada familia lo interpreta con otra paleta.
+  if([0,3,6,8,11,14].includes(slot))musicKick(hit(.014+drive*.010));
+  if(slot===4||slot===12){musicSnare(hit(.007+drive*.004));musicClap(hit(.0035+drive*.002));}
+  if(slot%2===1)musicHat(hit(.0028+drive*.0018));
 
   if(family==='command'){
-    if(slot===0||slot===8){musicKick(hit(.035));chord(root/2,DARK,sec*6.4,hit(.014),0,800);}
-    if(slot===4||slot===12)musicSnare(hit(.015));
-    if(slot%2===0)tone(root*(slot%4===0?1:1.5),sec*.52,hit(.010),{type:'sawtooth',attack:.015,cutoff:650,kind:'music'});
-    if(phase>=1&&(slot===6||slot===14))musicBell(root*3,.28,hit(.0045));
+    if(slot===0||slot===8)musicKeys(root,POWER,sec*3.3,hit(.0095));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.013));
+    if([2,6,10,14].includes(slot))musicLead(motifFreq(root,(slot/2)+section,2),hit(.0058),0,.12);
   }else if(family==='finance'){
-    if(slot===0||slot===8){tone(root/2,sec*6.6,hit(.016),{type:'sine',attack:.18,cutoff:260,kind:'music'});chord(root,[1,1.26,1.5,2],sec*5.8,hit(.010),0,1200);}
-    if([2,5,10,13].includes(slot))musicBell(root*[2,2.52,3,2.25][slot%4],.42,hit(.006));
-    if(slot%4===3)musicPluck(root*1.5,hit(.006));
-    if(phase>=2&&(slot===4||slot===12))filteredNoise(.045,hit(.005),{type:'highpass',freq:2700,q:1.1,kind:'music'});
+    if(slot===0||slot===8)musicKeys(root,FUNK,sec*3.5,hit(.009));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.0105));
+    if([2,5,10,13].includes(slot))musicBell(motifFreq(root,slot%5,2),.28,hit(.0058));
+    if([3,7,11,15].includes(slot))musicPluck(motifFreq(root,(slot+section)%5,2),hit(.0055));
   }else if(family==='wealth'){
-    if(slot===0||slot===8)chord(root,[1,1.26,1.5,2],sec*6.2,hit(.013),0,1750);
-    if(slot%2===0)musicBell(root*[2,2.52,3,4][(slot/2)%4],.48,hit(.0065));
-    if(slot===7||slot===15)tone(root/2,sec*.7,hit(.009),{type:'sine',to:root*.45,attack:.04,cutoff:420,kind:'music'});
-    if(phase>=1&&slot%4===1)musicPluck(root*2.25,hit(.0045));
+    if(slot===0||slot===8)musicKeys(root,BRIGHT,sec*3.6,hit(.0105));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.009));
+    if(slot%2===0)musicBell(motifFreq(root,(slot/2)+section,2),.30,hit(.006));
+    if(phase>=1&&[3,7,11,15].includes(slot))musicLead(motifFreq(root,slot%5,2),hit(.0048),0,.12);
   }else if(family==='bakery'){
-    if(slot===0||slot===8){chord(root,[1,1.5,2,2.52],sec*6.5,hit(.012),0,1150);tone(root/2,sec*6,hit(.013),{type:'triangle',attack:.16,cutoff:520,kind:'music'});}
-    if([1,5,9,13].includes(slot))musicPluck(root*[1.5,2,1.78,2.52][Math.floor(slot/4)],hit(.007));
-    if(slot===6||slot===14)filteredNoise(.08,hit(.005),{type:'lowpass',freq:650,q:.55,kind:'music'});
-    if(phase>=2&&(slot===3||slot===11))musicKick(hit(.022));
+    if(slot===0||slot===8)musicKeys(root,[1,semitoneRatio(4),semitoneRatio(7),semitoneRatio(9)],sec*3.5,hit(.009));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.010));
+    if([2,6,10,14].includes(slot))musicPluck(motifFreq(root,(slot/2)+section,2),hit(.0065));
+    if([3,11].includes(slot))musicBell(root*3,.24,hit(.0048));
   }else if(family==='tech'){
-    if(slot===0||slot===8)tone(root/2,sec*4.8,hit(.015),{type:'square',attack:.08,cutoff:360,kind:'music'});
-    if([0,3,6,8,11,14].includes(slot))musicKick(hit(.025));
-    if(slot%2===1)tone(root*[2,2.52,3,3.56][slot%4],sec*.22,hit(.0055),{type:'square',attack:.003,cutoff:1900,kind:'music'});
-    if([2,7,10,15].includes(slot))filteredNoise(.05,hit(.006),{type:'bandpass',freq:1900+phase*240,q:1.3,kind:'music'});
+    if(slot===0||slot===8)musicKeys(root,POWER,sec*3.0,hit(.008));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.012));
+    if(slot%2===1)musicLead(motifFreq(root,slot+section,2),hit(.0056),0,.09);
+    if([2,6,10,14].includes(slot))musicHat(hit(.0045));
   }else if(family==='vault'){
-    if(slot===0||slot===8){lowImpact(36+phase*3,hit(.038),0,'music');chord(root/2,DARK,sec*7.4,hit(.018),0,720);}
-    if(slot===3||slot===11)musicBell(root*3,.8,hit(.006));
-    if(slot===6||slot===14)tone(root*1.5,sec*1.2,hit(.007),{type:'sine',to:root*1.42,attack:.12,cutoff:1000,kind:'music'});
-    if(phase>=1&&slot%4===1)musicPluck(root*2,hit(.004));
+    if(slot===0||slot===8)musicKeys(root,FUNK,sec*3.8,hit(.0088));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.013));
+    if([2,6,10,14].includes(slot))musicBell(motifFreq(root,(slot/2)+section,2),.36,hit(.0052));
+    if([3,11].includes(slot))musicLead(motifFreq(root,4-section,2),hit(.0048),0,.15);
   }else if(family==='riot'){
-    if([0,3,6,8,11,14].includes(slot))musicKick(hit(slot===0||slot===8?.044:.030));
-    if(slot===4||slot===12)musicSnare(hit(.017));
-    if(slot%2===0)tone(root/2,sec*.48,hit(.014),{type:'sawtooth',attack:.008,cutoff:430,kind:'music'});
-    if(slot===0||slot===8)chord(root,DARK,sec*5.5,hit(.010),0,700);
+    if(slot===0||slot===8)musicKeys(root,POWER,sec*3.0,hit(.0085));
+    if([1,3,5,9,11,13].includes(slot))musicBass(root/2,hit(.014));
+    if([2,6,10,14].includes(slot))musicLead(motifFreq(root,(slot/2)+section,2),hit(.0054),0,.10);
   }else{
-    // WAR: percusión frontal y bajo militar.
-    if([0,2,5,8,10,13].includes(slot))musicKick(hit(slot===0||slot===8?.048:.034));
-    if(slot===4||slot===12)musicSnare(hit(.016));
-    if(slot%2===0)tone(root,sec*.55,hit(.013),{type:'sawtooth',to:root*.985,attack:.012,cutoff:520,kind:'music'});
-    if(slot===0||slot===8)chord(root/2,DARK,sec*6.7,hit(.017),0,760);
+    // WAR: percusión agresiva, pero con medios/agudos claros y melodía.
+    if(slot===0||slot===8)musicKeys(root,POWER,sec*3.1,hit(.009));
+    if([1,5,9,13].includes(slot))musicBass(root/2,hit(.0145));
+    if([2,6,10,14].includes(slot))musicLead(motifFreq(root,(slot/2)+section,2),hit(.0058),0,.11);
+    if(phase>=2&&[3,7,11,15].includes(slot))musicPluck(motifFreq(root,slot%5,3),hit(.0042));
   }
 
-  // El rol añade una firma secundaria sin destruir la identidad de familia.
-  if(identity.role==='charger'&&(slot===6||slot===14))musicKick(hit(.026));
-  else if(identity.role==='sniper'&&(slot===7||slot===15))musicBell(root*4,.34,hit(.006));
-  else if(identity.role==='reactor'&&(slot===0||slot===8))tone(root/4,sec*7,hit(.011),{type:'sine',attack:.2,cutoff:180,kind:'music'});
-  else if(identity.role==='vortex'&&slot%4===2)musicPluck(root*[1.5,2,2.52,3][Math.floor(slot/4)],hit(.0055));
-  else if(identity.role==='swarm'&&phase>=1&&slot%2===1)musicPluck(root*2.25,hit(.004));
-  else if(identity.role==='executioner'&&(slot===3||slot===11))lowImpact(44,hit(.025),0,'music');
+  // Firma del rol.
+  if(identity.role==='charger'&&(slot===6||slot===14))musicKick(hit(.025));
+  else if(identity.role==='sniper'&&(slot===7||slot===15))musicBell(root*3,.24,hit(.0055));
+  else if(identity.role==='reactor'&&(slot===2||slot===10))musicLead(root*2.5,hit(.005),0,.18);
+  else if(identity.role==='vortex'&&slot%4===2)musicPluck(motifFreq(root,slot/2,2),hit(.005));
+  else if(identity.role==='swarm'&&phase>=1&&slot%2===1)musicPluck(motifFreq(root,slot,2),hit(.0042));
+  else if(identity.role==='executioner'&&(slot===3||slot===11))musicClap(hit(.008));
 
-  // Firma melódica individual: cada boss obtiene cinco intervalos estables
-  // derivados de su ID. La sección B invierte la frase para evitar un loop corto.
+  // Firma melódica individual estable por jefe.
   if([1,3,6,9,11,14].includes(slot)){
-    const signature=[
-      0,
-      2+(seed%3),
-      5+((seed>>>4)%3),
-      7+((seed>>>8)%3),
-      10+((seed>>>12)%2),
-    ];
+    const signature=[0,2+(seed%3),5+((seed>>>4)%3),7+((seed>>>8)%3),10+((seed>>>12)%2)];
     const position=[1,3,6,9,11,14].indexOf(slot);
     const motifIndex=section?Math.max(0,4-(position%5)):(position%5);
-    const freq=root*2*semitoneRatio(signature[motifIndex]);
-    musicPluck(freq,hit(tier==='boss' ? .0048 : tier==='subboss' ? .0038 : .003));
+    musicLead(root*2*semitoneRatio(signature[motifIndex]),hit(tier==='boss'?.0053:tier==='subboss'?.0043:.0036),0,.10);
   }
 }
 
