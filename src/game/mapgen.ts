@@ -330,7 +330,8 @@ function assignRandom(pool: MapRoom[], type: RoomType,random=Math.random) {
  */
 export const ROOM_TEMPLATES=['pillars','desks','vault','shelves','scatter','counters','open','islands','zigzag','corners',
   'deskMaze','tellerBooths','safeDiamond','twinLanes','loadingDocks','brokenOffice','horseshoes','crossCover',
-  'checkerCover','centralPillars','outerShelves','staggeredSafes','splitIslands','diagonalBarricade'];
+  'checkerCover','centralPillars','outerShelves','staggeredSafes','splitIslands','diagonalBarricade',
+  'depositLockers','valueCarts','archiveCabinets','transferCases'];
 
 export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTemplate?:string): number[][] {
   const rInt=(min:number,max:number)=>Math.floor(random()*(max-min+1))+min;
@@ -368,7 +369,14 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
 
   const pattern=forcedTemplate ?? pick(ROOM_TEMPLATES);
   room.template=pattern;
-  const propSets=[[0,5,6],[1,2,6],[2,3,4],[2,4,7],[1,5,6],[3,5,6]];
+  const propSets=[
+    [0,5,8,9,10,11],          // vestíbulo / cajas
+    [1,2,5,6,8,11,13],        // seguridad
+    [2,4,8,9,10,11,12,13],    // archivo de valores
+    [1,2,4,11,12,13],          // servicios privados
+    [5,6,8,9,11,12,13],        // alta seguridad
+    [5,6,8,9,10,11,13],        // cámara principal
+  ];
   const obstacle=()=>OBSTACLE_BASE+pick(propSets[Math.min(5,room.floorIndex ?? 0)]);
 
   const place = (x: number, y: number, id?: number) => {
@@ -382,12 +390,30 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
   const lx=(x:number)=>x+Math.floor((ROOM_WIDTH-15)/2);
 
   switch (pattern) {
+    case 'depositLockers':
+      for(const x of [3,ROOM_WIDTH-4])for(let y=2;y<=ROOM_HEIGHT-3;y+=2)place(x,y,OBSTACLE_BASE+8);
+      break;
+    case 'valueCarts':
+      for(const [x,y] of [[cx-4,3],[cx+4,3],[cx-4,7],[cx+4,7]]){
+        place(x,y,OBSTACLE_BASE+11);
+        place(x+(x<cx?1:-1),y,OBSTACLE_BASE+10);
+      }
+      break;
+    case 'archiveCabinets':
+      for(const x of [cx-5,cx+5])for(const y of [2,4,6,8])place(x,y,OBSTACLE_BASE+12);
+      break;
+    case 'transferCases':
+      for(const [x,y] of [[cx-4,2],[cx+4,2],[cx-5,6],[cx+5,6],[cx-2,8],[cx+2,8]])
+        place(x,y,OBSTACLE_BASE+(random()<.5?9:13));
+      break;
     case 'deskMaze':
       for(const[x,y]of[[2,2],[3,2],[4,2],[4,3],[9,2],[10,2],[10,3],[11,3],[2,7],[3,7],[3,8],[9,8],[10,8],[11,8]])place(lx(x),y);break;
     case 'tellerBooths':
       for(const x of [cx-5,cx-2,cx+2,cx+5])for(const y of [2,3,7,8])place(x,y);break;
     case 'safeDiamond':
-      for(const[x,y]of[[cx-2,2],[cx+2,2],[cx-4,4],[cx+4,4],[cx-4,6],[cx+4,6],[cx-2,8],[cx+2,8]])place(x,y,OBSTACLE_BASE+6);break;
+      for(const[x,y]of[[cx-2,2],[cx+2,2],[cx-4,4],[cx+4,4],[cx-4,6],[cx+4,6],[cx-2,8],[cx+2,8]])
+        place(x,y,OBSTACLE_BASE+(random()<.55?6:8));
+      break;
     case 'twinLanes':
       for(let y=2;y<9;y++){place(cx-3,y);place(cx+3,y);}break;
     case 'loadingDocks':
@@ -405,7 +431,9 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     case 'outerShelves':
       for(let x=2;x<ROOM_WIDTH-2;x++){place(x,2);place(x,8);}break;
     case 'staggeredSafes':
-      for(const[x,y]of[[3,2],[6,3],[10,2],[12,4],[3,6],[5,8],[9,7],[12,8]])place(lx(x),y,OBSTACLE_BASE+6);break;
+      for(const[x,y]of[[3,2],[6,3],[10,2],[12,4],[3,6],[5,8],[9,7],[12,8]])
+        place(lx(x),y,OBSTACLE_BASE+(random()<.6?6:13));
+      break;
     case 'splitIslands':
       for(const[ox,oy]of[[cx-4,2],[cx+3,7]])for(let x=ox;x<ox+2;x++)for(let y=oy;y<oy+2;y++)place(x,y);
       place(cx+3,3);place(cx-3,7);break;
@@ -431,11 +459,10 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
       break;
     }
     case 'vault': {
-      const id = OBSTACLE_BASE + 6;
-      place(cx - 3, cy - 2, id); place(cx + 3, cy - 2, id);
-      place(cx - 3, cy + 2, id); place(cx + 3, cy + 2, id);
-      place(cx - 4, cy - 2, OBSTACLE_BASE + 3);
-      place(cx + 4, cy + 2, OBSTACLE_BASE + 3);
+      place(cx-3,cy-2,OBSTACLE_BASE+6);place(cx+3,cy-2,OBSTACLE_BASE+8);
+      place(cx-3,cy+2,OBSTACLE_BASE+13);place(cx+3,cy+2,OBSTACLE_BASE+6);
+      place(cx-4,cy-2,OBSTACLE_BASE+9);
+      place(cx+4,cy+2,OBSTACLE_BASE+10);
       break;
     }
     case 'shelves': {
@@ -459,10 +486,11 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     }
     default: break;
   }
-  // Toque decorativo: algún saco de dinero / escombro suelto
-  if (random() < 0.6) {
-    for (let i = 0; i < rInt(1, 3); i++) {
-      place(rInt(2, ROOM_WIDTH - 3), rInt(2, ROOM_HEIGHT - 3), OBSTACLE_BASE + (random() < 0.5 ? 3 : 7));
+  // Props sueltos de custodia: variedad bancaria sin saturar la sala.
+  if(random()<.72){
+    const loose=[3,9,10,13];
+    for(let i=0;i<rInt(1,3);i++){
+      place(rInt(2,ROOM_WIDTH-3),rInt(2,ROOM_HEIGHT-3),OBSTACLE_BASE+pick(loose));
     }
   }
 
