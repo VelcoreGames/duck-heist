@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -20,7 +20,7 @@ import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
-import { obstacleHitbox, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { obstacleHitbox, obstacleOccludes, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -93,7 +93,7 @@ export function runSelfChecks():CheckReport {
         drawDoor(a,32,32,'N',style,true,0,120);
         drawDoor(a,64,32,'E',style,false,.8,140);
       }
-      for(let kind=0;kind<8;kind++)drawObstacle(a,32+kind*36,96,kind,180);
+      for(let kind=0;kind<OBSTACLES.length;kind++)drawObstacle(a,32+(kind%7)*36,96+Math.floor(kind/7)*40,kind,180);
       drawChest(a,80,180,false,180);drawChest(a,112,180,true,180);
       drawPedestal(a,160,180,180,false,'#e6c56f');
       drawShopPigeon(a,220,180,180);
@@ -119,13 +119,18 @@ export function runSelfChecks():CheckReport {
         drawRoomAtmosphere(artCtx,deco,180,deco==='golden');
       }
     });
-    check('Hitboxes de los ocho obstáculos coinciden con su tile',()=>{
-      for(let kind=0;kind<8;kind++){
+    check('Hitboxes de todos los props bancarios coinciden con su tile',()=>{
+      assert(OBSTACLES.length>=14,'catálogo de props no ampliado');
+      for(let kind=0;kind<OBSTACLES.length;kind++){
         const r=obstacleHitbox(kind,64,96);
-        assert(r.w>0&&r.h>0,'hitbox vacío');
-        assert(r.x>=64&&r.y>=96&&r.x+r.w<=96&&r.y+r.h<=128,'hitbox fuera del tile');
-        assert(r.y>96,'sin margen visual para pasar detrás');
+        assert(r.w>0&&r.h>0,`hitbox vacío ${OBSTACLES[kind]}`);
+        assert(r.x>=64&&r.y>=96&&r.x+r.w<=96&&r.y+r.h<=128,`hitbox fuera del tile ${OBSTACLES[kind]}`);
+        assert(r.y>96,`sin margen visual ${OBSTACLES[kind]}`);
       }
+      const tall=[0,2,4,5,6,8,11,12,13];
+      const low=[1,3,7,9,10];
+      for(const kind of tall)assert(obstacleOccludes(kind),`prop alto sin oclusión ${OBSTACLES[kind]}`);
+      for(const kind of low)assert(!obstacleOccludes(kind),`prop bajo oculta al pato ${OBSTACLES[kind]}`);
     });
     check('Props físicos especiales tienen colisión y botín de suelo no',()=>{
       const content:RoomContent={
@@ -567,6 +572,20 @@ export function runSelfChecks():CheckReport {
       const text=[...Object.values(T).flat().filter(v=>typeof v==='string'),...CATALOG.flatMap(i=>[i.name,i.description,i.flavor])].join(' ');
       assert(!/\b(coger|coge|pulsa|ratón|dash|cooldown|settings|room|shop|boss|skin|run|floor)\b/i.test(text),'terminología no localizada');
       assert(COLLECTION_TABS.map(t=>t.name).join('|')==='OBJETOS|ARMAS|ENEMIGOS|JEFES|ASPECTOS|SINERGIAS','secciones incorrectas');
+    });
+    check('Nuevos props bancarios aparecen en plantillas dedicadas',()=>{
+      const expected:Record<string,number[]>={
+        depositLockers:[8],
+        valueCarts:[10,11],
+        archiveCabinets:[12],
+        transferCases:[9],
+      };
+      for(const [template,kinds] of Object.entries(expected)){
+        const room:MapRoom={gx:0,gy:0,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,distance:2,floorIndex:4,layout:[]};
+        const layout=generateRoomLayout(room,()=>.4,template);
+        const ids=new Set(layout.flat().filter(v=>v>=OBSTACLE_BASE).map(v=>v-OBSTACLE_BASE));
+        for(const kind of kinds)assert(ids.has(kind),`${template} no genera ${OBSTACLES[kind]}`);
+      }
     });
     for(let floor=0;floor<6;floor++) for(const template of ROOM_TEMPLATES)check(`Plantilla ${floor}/${template}`,()=>{
       const room:MapRoom={gx:0,gy:0,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,distance:1,floorIndex:floor,layout:[]};
