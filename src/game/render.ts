@@ -1103,35 +1103,26 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
 }
 
 function drawStairs(ctx: CanvasRenderingContext2D, st: NonNullable<RoomContent['stairs']>, f: number) {
-  const px = st.x, py = st.y;
-  const glow = 0.35 + Math.sin(f * 0.06) * 0.18;
-  // luz subiendo desde abajo
-  const g = ctx.createLinearGradient(px, py - 40, px, py + 36);
-  g.addColorStop(0, `rgba(244,208,63,${0.28 * glow * st.glow})`);
-  g.addColorStop(1, 'rgba(244,208,63,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(px - 22, py - 44, 76, 80);
-
-  ctx.fillStyle = '#0a0d16';
-  ctx.fillRect(px - 2, py - 2, 36, 34);
-  // peldaños
-  for (let i = 0; i < 5; i++) {
-    const d = 1 - i * 0.15;
-    ctx.fillStyle = `rgb(${Math.round(40 * d)},${Math.round(46 * d)},${Math.round(62 * d)})`;
-    ctx.fillRect(px + i * 2, py + 26 - i * 6, 32 - i * 4, 6);
-    ctx.fillStyle = `rgba(255,214,102,${0.12 + i * 0.06})`;
-    ctx.fillRect(px + i * 2, py + 26 - i * 6, 32 - i * 4, 1);
+  const px=st.x,py=st.y,glow=.35+Math.sin(f*.06)*.18;
+  ctx.save();
+  ctx.globalAlpha=.42;ctx.fillStyle='#020508';ctx.beginPath();ctx.ellipse(px+16,py+29,25,8,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  const g=ctx.createLinearGradient(px,py-40,px,py+36);
+  g.addColorStop(0,'rgba(244,208,63,'+(.28*glow*st.glow)+')');g.addColorStop(1,'rgba(244,208,63,0)');
+  ctx.fillStyle=g;ctx.fillRect(px-22,py-44,76,80);
+  ctx.fillStyle='#080c12';ctx.fillRect(px-3,py-3,38,35);
+  ctx.strokeStyle='#343d48';ctx.lineWidth=1;ctx.strokeRect(px-2.5,py-2.5,36,34);
+  for(let i=0;i<5;i++){
+    const d=1-i*.15;
+    ctx.fillStyle='rgb('+Math.round(40*d)+','+Math.round(46*d)+','+Math.round(62*d)+')';
+    ctx.fillRect(px+i*2,py+26-i*6,32-i*4,6);
+    ctx.fillStyle='rgba(255,214,102,'+(.12+i*.06)+')';ctx.fillRect(px+i*2,py+26-i*6,32-i*4,1);
+    ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(px+i*2,py+31-i*6,32-i*4,1);
   }
-  // barandillas
-  ctx.fillStyle = '#f4d03f';
-  ctx.fillRect(px - 4, py - 4, 3, 32);
-  ctx.fillRect(px + 33, py - 4, 3, 32);
-  for (let i = 0; i < 3; i++) {
-    ctx.fillStyle = (f >> 4) % 2 === 0 ? '#39d353' : '#1c5c33';
-    ctx.fillRect(px - 3 + i * 18, py - 8, 3, 3);
-  }
+  ctx.fillStyle='#b7942f';ctx.fillRect(px-4,py-4,3,32);ctx.fillRect(px+33,py-4,3,32);
+  ctx.fillStyle='#f0cd61';ctx.fillRect(px-4,py-4,3,2);ctx.fillRect(px+33,py-4,3,2);
+  for(let i=0;i<3;i++){ctx.fillStyle=(f>>4)%2===0?'#4ce07a':'#1c5c33';ctx.fillRect(px-3+i*18,py-8,3,3);}
+  ctx.restore();
 }
-
 function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: number, engine: GameEngine) {
   const def=WEAPONS[ped.itemId]??ITEMS[ped.itemId]??ACTIVE_ITEMS[ped.itemId]??FOODS[ped.itemId];
   const color=ITEMS[ped.itemId]?.cursed?'#8b54a6':RARITY_COLORS[def?.rarity ?? 3];
