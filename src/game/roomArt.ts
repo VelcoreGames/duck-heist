@@ -11,50 +11,102 @@ function r(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: nu
   ctx.fillStyle = color; ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
 }
 
+function decoMetal(deco:string){
+  return deco==='security'?'#8faeb7':
+    deco==='storage'?'#b89562':
+    deco==='bakery'?'#bd835c':
+    deco==='vault'?'#c9ad62':
+    deco==='golden'?'#e6c56f':
+    '#c6a866';
+}
+
+function decoVein(deco:string){
+  return deco==='security'?'rgba(126,177,194,.11)':
+    deco==='storage'?'rgba(203,173,126,.10)':
+    deco==='bakery'?'rgba(211,143,104,.10)':
+    deco==='vault'?'rgba(215,202,163,.09)':
+    deco==='golden'?'rgba(255,230,156,.12)':
+    'rgba(220,229,225,.11)';
+}
+
 export function drawRichTile(
   ctx: CanvasRenderingContext2D, x: number, y: number, wall: boolean,
   theme: FloorTheme, gx: number, gy: number, frame: number,
   wallProps = true,
 ) {
-  const px = x * T, py = y * T;
-  const h = hash(x + gx * ROOM_WIDTH, y + gy * 11, theme.deco.charCodeAt(0));
-  if (wall) {
-    r(ctx, px, py, T, T, '#070910');
-    r(ctx, px + 1, py + 1, T - 2, T - 2, theme.wall[(x + y) % 2]);
-    r(ctx, px + 1, py + 1, T - 2, 3, 'rgba(255,255,255,.07)');
-    r(ctx, px + 2, py + T - 6, T - 4, 5, 'rgba(0,0,0,.45)');
-    r(ctx, px, py + 10, T, 1, 'rgba(0,0,0,.22)');
-    r(ctx, px, py + 21, T, 1, 'rgba(0,0,0,.18)');
-    if (h % 5 === 0) r(ctx, px + 6, py + 8, 4, 3, 'rgba(255,255,255,.05)');
-    if (wallProps) drawWallProp(ctx, px, py, theme.deco, h, frame, y === 0, x === 0 || x === ROOM_WIDTH - 1);
+  const px=x*T,py=y*T;
+  const h=hash(x+gx*ROOM_WIDTH,y+gy*11,theme.deco.charCodeAt(0));
+  const metal=decoMetal(theme.deco);
+
+  if(wall){
+    // Arquitectura bancaria continua: piedra/panel principal, moldura superior,
+    // panel empotrado y zócalo oscuro. El tile se lee como una sección de muro,
+    // no como un bloque independiente.
+    r(ctx,px,py,T,T,'#090d10');
+    r(ctx,px+1,py+1,T-2,T-2,theme.wall[(Math.floor(x/2)+Math.floor(y/2))%2]);
+    r(ctx,px+2,py+2,T-4,3,'rgba(255,255,255,.075)');
+    r(ctx,px+3,py+5,T-6,1,'rgba(0,0,0,.34)');
+
+    // Panel empotrado.
+    r(ctx,px+4,py+7,T-8,15,'rgba(4,8,10,.20)');
+    r(ctx,px+5,py+8,T-10,13,'rgba(255,255,255,.025)');
+    r(ctx,px+5,py+8,T-10,1,'rgba(255,255,255,.07)');
+    r(ctx,px+5,py+20,T-10,1,'rgba(0,0,0,.30)');
+
+    // Cornisa / filete metálico y zócalo.
+    r(ctx,px+2,py+4,T-4,1,metal);
+    ctx.globalAlpha=.28;r(ctx,px+2,py+5,T-4,1,metal);ctx.globalAlpha=1;
+    r(ctx,px+1,py+24,T-2,7,'rgba(4,8,10,.38)');
+    r(ctx,px+2,py+24,T-4,1,'rgba(255,255,255,.055)');
+    r(ctx,px+2,py+29,T-4,2,'rgba(0,0,0,.42)');
+
+    // Juntas verticales muy discretas: panelería grande, no mosaico.
+    if(x%2===0)r(ctx,px+1,py+6,1,18,'rgba(0,0,0,.28)');
+    if(x%2===1)r(ctx,px+T-2,py+6,1,18,'rgba(255,255,255,.025)');
+
+    // Herrajes mínimos y caros.
+    if(h%7===0){r(ctx,px+7,py+12,2,2,'rgba(220,225,220,.12)');r(ctx,px+T-9,py+12,2,2,'rgba(0,0,0,.20)');}
+    if(wallProps)drawWallProp(ctx,px,py,theme.deco,h,frame,y===0,x===0||x===ROOM_WIDTH-1);
     return;
   }
-  const checker = (x + y) % 2 === 0;
-  r(ctx, px, py, T, T, checker ? theme.floor[0] : theme.floor[1]);
-  r(ctx, px, py, T, 1, theme.floor[2]);
-  r(ctx, px, py, 1, T, theme.floor[2]);
-  r(ctx, px + T - 1, py + 1, 1, T - 1, 'rgba(255,255,255,.03)');
-  // grout / marble veins / stains by theme
-  if (theme.deco === 'lobby') {
-    if (h % 7 === 0) { r(ctx, px + 4, py + 6, 18, 1, 'rgba(200,210,230,.08)'); r(ctx, px + 10, py + 18, 12, 1, 'rgba(200,210,230,.06)'); }
-    if (h % 11 === 0) r(ctx, px + 8, py + 10, 6, 2, 'rgba(255,255,255,.05)');
-  } else if (theme.deco === 'security') {
-    if (h % 6 === 0) r(ctx, px + 2, py + 2, T - 4, 2, 'rgba(79,157,216,.12)');
-    if (h % 9 === 0) r(ctx, px + 12, py + 14, 8, 8, 'rgba(20,40,70,.25)');
-  } else if (theme.deco === 'storage') {
-    if (h % 5 === 0) r(ctx, px + 10, py + 16, 5, 4, 'rgba(0,0,0,.22)');
-    if (h % 8 === 0) r(ctx, px + 6, py + 8, 9, 3, 'rgba(212,165,116,.12)');
-  } else if (theme.deco === 'bakery') {
-    if (h % 4 === 0) r(ctx, px + 7, py + 9, 5, 3, 'rgba(232,201,155,.14)');
-    if (h % 10 === 0) r(ctx, px + 14, py + 18, 8, 2, 'rgba(255,100,40,.1)');
-  } else if (theme.deco === 'vault') {
-    if ((x + y) % 3 === 0) r(ctx, px + 4, py + 4, T - 8, T - 8, 'rgba(244,208,63,.05)');
-    if (h % 6 === 0) r(ctx, px + 2, py + 14, T - 4, 2, 'rgba(180,190,200,.08)');
-  } else if (theme.deco === 'golden') {
-    if (h % 3 === 0) r(ctx, px + 6, py + 8, T - 12, T - 16, 'rgba(255,224,102,.1)');
-    r(ctx, px + 3, py + 3, 2, 2, 'rgba(255,255,210,.12)');
+
+  // Losas grandes de piedra/mármol. Se agrupan visualmente en bloques 2x2
+  // para evitar el aspecto de tablero barato.
+  const slab=((Math.floor(x/2)+Math.floor(y/2))&1);
+  const base=slab?theme.floor[1]:theme.floor[0];
+  r(ctx,px,py,T,T,base);
+
+  // Juntas principales sólo cada dos tiles.
+  if(x%2===0)r(ctx,px,py,1,T,theme.floor[2]);
+  else r(ctx,px,py,1,T,'rgba(0,0,0,.045)');
+  if(y%2===0)r(ctx,px,py,T,1,theme.floor[2]);
+  else r(ctx,px,py,T,1,'rgba(0,0,0,.045)');
+
+  // Bisel y reflejo de piedra pulida.
+  r(ctx,px+1,py+1,T-2,1,'rgba(255,255,255,.055)');
+  r(ctx,px+1,py+2,1,T-3,'rgba(255,255,255,.025)');
+  r(ctx,px+1,py+T-2,T-2,1,'rgba(0,0,0,.09)');
+  r(ctx,px+T-2,py+1,1,T-2,'rgba(0,0,0,.075)');
+
+  // Vetas y reflejos específicos por sector.
+  const vein=decoVein(theme.deco);
+  if(theme.deco==='lobby'||theme.deco==='vault'||theme.deco==='golden'){
+    if(h%3===0){r(ctx,px+3,py+8,10,1,vein);r(ctx,px+12,py+9,9,1,vein);r(ctx,px+20,py+10,7,1,vein);}
+    if(h%5===0){r(ctx,px+7,py+22,8,1,vein);r(ctx,px+14,py+21,11,1,vein);}
+    if(h%11===0){ctx.globalAlpha=.18;r(ctx,px+5,py+4,18,2,metal);ctx.globalAlpha=1;}
+  }else if(theme.deco==='security'){
+    if(h%4===0){r(ctx,px+4,py+6,T-8,1,'rgba(126,177,194,.085)');r(ctx,px+8,py+18,T-14,1,'rgba(255,255,255,.035)');}
+    if((x+y)%5===0){ctx.globalAlpha=.18;r(ctx,px+T-4,py+3,1,T-6,metal);ctx.globalAlpha=1;}
+  }else if(theme.deco==='storage'){
+    if(h%4===0){r(ctx,px+4,py+11,22,1,vein);r(ctx,px+9,py+12,12,1,vein);}
+    if((x%4===0)&&(y%2===0)){ctx.globalAlpha=.20;r(ctx,px+2,py+T-4,T-4,1,metal);ctx.globalAlpha=1;}
+  }else if(theme.deco==='bakery'){
+    if(h%4===0){r(ctx,px+5,py+8,17,1,vein);r(ctx,px+12,py+9,12,1,vein);}
+    if(h%9===0){ctx.globalAlpha=.15;r(ctx,px+5,py+23,20,1,metal);ctx.globalAlpha=1;}
   }
-  if (h % 13 === 0) r(ctx, px + 5, py + 20, 14, 1, 'rgba(255,255,255,.04)');
+
+  // Brillo especular controlado: transmite pulido sin convertir el suelo en espejo.
+  if(h%13===0){r(ctx,px+6,py+5,13,1,'rgba(255,255,255,.075)');r(ctx,px+8,py+6,8,1,'rgba(255,255,255,.03)');}
 }
 
 function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, deco: string, h: number, f: number, north: boolean, side: boolean) {
