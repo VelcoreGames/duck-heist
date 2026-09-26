@@ -37,6 +37,8 @@ export interface MapRoom {
   revealed?:boolean;
   modifier?:'blackout'|'alarm'|'waxed'|'cameras'|'openVault';
   template?:string;
+  /** Puerta especial pagada durante esta run. */
+  keyUnlocked?:boolean;
 }
 
 export interface GameMap {
@@ -94,6 +96,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
       visited: false, cleared: false, generated: false,
       layout: [], distance: 0,
       floorIndex,
+      keyUnlocked:false,
     };
     rooms.set(key(gx, gy), r);
     return r;
@@ -250,8 +253,10 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   for(let i=1;i<bosses.length;i++)bosses[i].type=RoomType.COMBAT;
   for(let i=1;i<subbosses.length;i++)subbosses[i].type=RoomType.COMBAT;
 
-  // 8) Layouts (obstáculos) por sala
+  // 8) Layouts (obstáculos) por sala.
+  // El subtipo CAFÉ se decide aquí para conocer su costo de acceso antes de entrar.
   for (const room of rooms.values()) {
+    if(room.type===RoomType.EVENT) room.template=random()<.38?'cafe':'event';
     if(room.type===RoomType.COMBAT && room.distance>=2 && random()<.22) {
       const modifiers=['blackout','alarm','waxed','openVault',...(floorIndex>=1?['cameras']:[])] as NonNullable<MapRoom['modifier']>[];
       room.modifier=pick(modifiers);
