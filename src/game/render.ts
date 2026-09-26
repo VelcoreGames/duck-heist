@@ -12,7 +12,7 @@ import {
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
   drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
   drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
-  drawDuckSkin,
+  drawDuckSkin, drawBankKey,
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, ENEMIES, META_UPGRADES,
@@ -43,6 +43,7 @@ import { grenadeLanding } from './aim';
 import { ACTIVE_SWAP } from './layout';
 import { EVENTS } from './events';
 import { MODIFIER_LABELS } from './modifiers';
+import { specialRoomKeyCost, specialRoomLocked } from './keyAccess';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt } from './gamepad';
 import { keyLabel } from './controls';
@@ -501,8 +502,18 @@ export function renderWorld(engine: GameEngine) {
     const style = target?.type === RoomType.ITEM ? 'gold'
       : target?.type === RoomType.BOSS ? 'boss' : target?.type===RoomType.SHOP?'green'
       :target?.type===RoomType.GUN_VAN||target?.type===RoomType.MINIBOSS?'orange':target?.type===RoomType.CHOICE||target?.type===RoomType.TREASURE||target?.type===RoomType.SECRET?'purple':'silver';
-    const t = DOOR_TILE[d];
-    drawDoor(ctx, t.x * TILE_SIZE, t.y * TILE_SIZE, d, style, !room.cleared, content.doorAnim[d] ?? 0, f);
+    const t=DOOR_TILE[d],accessLocked=!!target&&specialRoomLocked(target);
+    drawDoor(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,!room.cleared||accessLocked,content.doorAnim[d]??0,f);
+    if(room.cleared&&accessLocked&&target){
+      const x=t.x*TILE_SIZE,y=t.y*TILE_SIZE,cx=x+16,cy=y+16,cost=specialRoomKeyCost(target);
+      ctx.save();
+      ctx.fillStyle='rgba(10,14,16,.88)';ctx.fillRect(cx-6,cy-7,12,14);
+      ctx.strokeStyle='#c6a866';ctx.lineWidth=1;ctx.strokeRect(cx-5.5,cy-6.5,11,13);
+      ctx.fillStyle='#d9bd72';ctx.beginPath();ctx.arc(cx,cy-2,2.2,0,Math.PI*2);ctx.fill();
+      ctx.fillRect(cx-1,cy,2,4);
+      if(cost===2){ctx.fillStyle='#c6a866';ctx.fillRect(cx-9,cy-1,2,5);ctx.fillRect(cx+7,cy-1,2,5);}
+      ctx.restore();
+    }
   }
 
   // obstáculos
@@ -573,7 +584,12 @@ export function renderWorld(engine: GameEngine) {
       ctx.globalAlpha=lifeFade;
     }
     const food=p.type==='hp'||p.type==='sandwich'||p.type==='baguette'||p.type==='croissant'||p.type==='torta'||p.type==='pan_dorado';
-    if(food){
+    if(p.type==='bank_key'){
+      drawGroundLootBase(ctx,p.x,p.y,'#e6c56f',f,.20,14);
+      drawBankKey(ctx,p.x-8,p.y-13,f,16);
+      ctx.globalAlpha=.32+.12*Math.sin(f*.10);
+      ctx.strokeStyle='#f2dda0';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(p.x,p.y+4,11,4,0,0,Math.PI*2);ctx.stroke();
+    }else if(food){
       const premium=p.type==='pan_dorado';
       drawGroundLootBase(ctx,p.x,p.y,premium?'#f4d03f':'#e98586',f,premium?.19:.10,premium?15:13);
       const bob=Math.round(Math.sin(f*.08+p.x*.02));
@@ -2129,12 +2145,18 @@ function renderPrompts(engine: GameEngine) {
     }
   }
   nearbyTooltip(engine,targets);
-  for(const d of room.doors) {
+  for(const d of room.doors){
     const v=DIR_VECTORS[d],target=engine.map.rooms.get(`${room.gx+v.x},${room.gy+v.y}`),tile=DOOR_TILE[d];
-    if(!target || target.type===RoomType.COMBAT || (target.type===RoomType.SECRET&&!target.revealed)) continue;
-    if(dist(p.x+7,p.y+8,tile.x*32+16,tile.y*32+16)<48) {
-      const xx=clamp(tile.x*32+16,95,385),yy=clamp(tile.y*32+16,42,285);
-      text(ctx,ROOM_STYLE[target.type].label,xx,yy,7.5,ROOM_STYLE[target.type].color,'center',true);
+    if(!target||(target.type===RoomType.SECRET&&!target.revealed))continue;
+    if(dist(p.x+7,p.y+8,tile.x*32+16,tile.y*32+16)<50){
+      const xx=clamp(tile.x*32+16,95,CANVAS_WIDTH-95),yy=clamp(tile.y*32+16,48,CANVAS_HEIGHT-67);
+      const cost=specialRoomKeyCost(target),locked=cost>0&&!target.keyUnlocked;
+      if(target.type!==RoomType.COMBAT)text(ctx,ROOM_STYLE[target.type].label,xx,yy,7.2,ROOM_STYLE[target.type].color,'center',true);
+      if(locked){
+        const enough=p.bankKeys>=cost;
+        const label=enough?`${actionPrompt(engine,'interact')} · ABRIR · ${cost} ${cost===1?'LLAVE':'LLAVES'}`:`REQUIERE ${cost} ${cost===1?'LLAVE':'LLAVES'}`;
+        text(ctx,label,xx,yy+12,5.2,enough?'#e6c56f':'#df746d','center',true,false);
+      }
     }
   }
   if(content.event && dist(p.x+7,p.y+8,content.event.x+8,content.event.y+8)<54) {
@@ -2363,15 +2385,20 @@ function drawHUD(engine: GameEngine) {
     drawMinimap(engine);
   }
 
-  // Economía y menú como utilidades secundarias en el extremo derecho.
-  const economyW=80,economyX=safeRight-economyW;
-  hudPlate(ctx,economyX,4,economyW,28,'#b99a50',.58);
+  // Economía y acceso: las llaves son recurso de la run, no metamoneda.
+  const economyW=80,economyX=safeRight-economyW,economyH=engine.gameMode==='endless'?28:40;
+  hudPlate(ctx,economyX,4,economyW,economyH,p.keyFlash>0?'#e6c56f':'#b99a50',p.keyFlash>0?.76:.58);
   drawItemIcon(ctx,economyX+5,6,'crumb',11);
   text(ctx,engine.gameMode==='endless'?'MIGAS':'MIGAJAS',economyX+19,12,4.4,'#829995','left',false,false);
   text(ctx,String(p.crumbs),economyX+73,13,6.3,'#e7d6ac','right',true,false);
   drawItemIcon(ctx,economyX+5,18,'golden_crumb',10);
   text(ctx,engine.gameMode==='endless'?'DORADAS':'MONEDAS',economyX+19,25,4.2,'#9e925f','left',false,false);
   text(ctx,String(engine.totalGoldenCrumbs),economyX+73,26,6.3,'#f4d03f','right',true,false);
+  if(engine.gameMode!=='endless'){
+    drawBankKey(ctx,economyX+5,29,engine.frame,10);
+    text(ctx,'LLAVES',economyX+19,37,4.2,p.keyFlash>0?'#e6c56f':'#a89261','left',true,false);
+    text(ctx,String(p.bankKeys),economyX+73,38,6.3,p.keyFlash>0?'#fff1b6':'#e6c56f','right',true,false);
+  }
 
   const menuBox=hudMenuRect();
   drawMouseButton(ctx,'MENÚ',menuBox.x,menuBox.y,menuBox.w,menuBox.h,inside(engine.mouseX,engine.mouseY,menuBox),'#8fb7c8');
