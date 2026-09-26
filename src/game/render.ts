@@ -52,7 +52,7 @@ import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChal
 import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { obstacleHitbox, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
+import { obstacleHitbox, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -1238,6 +1238,7 @@ function drawForegroundProps(
     const tile=room.layout[ty][tx];
     if(tile<OBSTACLE_BASE)continue;
     const kind=tile-OBSTACLE_BASE,x=tx*TILE_SIZE,y=ty*TILE_SIZE;
+    if(!obstacleOccludes(kind))continue;
     const hit=obstacleHitbox(kind,x,y);
     if(!actorBehindRect(engine,content,hit))continue;
     const bandBottom=Math.min(y+TILE_SIZE,Math.max(y+12,hit.y+5));
