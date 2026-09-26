@@ -105,7 +105,7 @@ export interface Enemy {
 }
 
 export type PickupType =
-  | 'crumb' | 'golden_crumb'
+  | 'crumb' | 'golden_crumb' | 'bank_key'
   | 'hp' | 'sandwich' | 'baguette' | 'croissant' | 'torta' | 'pan_dorado';
 
 export interface Pickup {
@@ -401,6 +401,7 @@ export interface GameEngine {
     hurtTimer: number; iFrames: number; flash: number;
     dashTimer: number; dashCooldown: number; dashDir: Vec2;
     crumbs: number; goldenCrumbs: number;
+    bankKeys:number; keyPity:number; keyDropsFloor:number; keyFlash:number;
     items: string[]; activeItem: string | null;
     activeItemCooldown: number; activeItemMaxCooldown: number;
     damageMultiplier: number; shotCounter: number;
