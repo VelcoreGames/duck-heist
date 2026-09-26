@@ -147,11 +147,20 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   const heavyKick=cin>0?Math.sin(Math.max(0,Math.min(1,(cin-.24)/.16))*Math.PI)*2:0;
   c.save(); c.translate(doorEase*75+heavyKick,Math.sin(doorEase*Math.PI)*-1); c.scale(1-doorEase*.18,1);
   disc(c,vx,vy,64,'#5c7271'); disc(c,vx,vy,61,'#314c53'); disc(c,vx,vy,57,'#273f45');
-  for(let a=0;a<Math.PI*2;a+=Math.PI/8) {
-    const xx=vx+Math.cos(a)*72,yy=vy+Math.sin(a)*72; bolt(c,xx,yy);
-    const xx2=vx+Math.cos(a+.06)*58,yy2=vy+Math.sin(a+.06)*58;
-    r(c,xx2,yy2,3,3,'#526966');
-  }
+  // Aro móvil limpio: no dibujar remaches fuera de la hoja.
+  // Antes se colocaban a radio 72 sobre una puerta de radio 64, por lo que
+  // quedaban suspendidos sobre el hueco al abrirse. El volumen del borde se
+  // resuelve con anillos concéntricos y reflejos apoyados físicamente en metal.
+  c.save();
+  c.globalAlpha=.42;
+  c.strokeStyle='#708783';
+  c.lineWidth=2;
+  c.beginPath();c.arc(vx,vy,60,0,Math.PI*2);c.stroke();
+  c.globalAlpha=.26;
+  c.strokeStyle='#172d33';
+  c.lineWidth=2;
+  c.beginPath();c.arc(vx,vy,55,0,Math.PI*2);c.stroke();
+  c.restore();
   // Bread engraving in the upper plate.
   r(c,vx-17,vy-44,34,18,'#8c834f'); r(c,vx-14,vy-48,28,6,'#c9b278');
   r(c,vx-14,vy-43,28,13,'#d8c28c');
