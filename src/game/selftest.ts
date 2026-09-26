@@ -5,7 +5,7 @@ import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules
 import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,GameState } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
-import type { GameEngine } from './types';
+import type { GameEngine, RoomContent } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
@@ -20,6 +20,7 @@ import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
+import { obstacleHitbox, specialSolidRects } from './worldProps';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -117,6 +118,33 @@ export function runSelfChecks():CheckReport {
         artCtx.clearRect(0,0,480,352);
         drawRoomAtmosphere(artCtx,deco,180,deco==='golden');
       }
+    });
+    check('Hitboxes de los ocho obstáculos coinciden con su tile',()=>{
+      for(let kind=0;kind<8;kind++){
+        const r=obstacleHitbox(kind,64,96);
+        assert(r.w>0&&r.h>0,'hitbox vacío');
+        assert(r.x>=64&&r.y>=96&&r.x+r.w<=96&&r.y+r.h<=128,'hitbox fuera del tile');
+        assert(r.y>96,'sin margen visual para pasar detrás');
+      }
+    });
+    check('Props físicos especiales tienen colisión y botín de suelo no',()=>{
+      const content:RoomContent={
+        enemies:[],pickups:[{x:10,y:10,type:'crumb',value:1,lifetime:300}],
+        items:[{x:20,y:20,itemId:'quack_blaster',isWeapon:true,isActive:false}],
+        puddles:[],airStrikes:[],doorAnim:{},lockFlash:0,combatTimer:0,ambient:0,magnet:0,
+        chest:{x:180,y:140,opened:false},
+        pedestal:{x:230,y:140,itemId:'hot_sauce',isWeapon:false,taken:false},
+        choices:[{x:280,y:140,itemId:'hot_sauce',isWeapon:false,taken:false}],
+        event:{kind:'safe',x:320,y:140,used:false,selected:0,message:''},
+        shopItems:[{itemId:'hot_sauce',cost:10,sold:false,isWeapon:false,x:210,y:230}],
+        cafe:true,
+        stairs:{x:120,y:120,unlocked:true,glow:1},
+      };
+      const rects=specialSolidRects(RoomType.GUN_VAN,content);
+      const kinds=new Set(rects.map(r=>r.kind));
+      const expected=['chest','pedestal','choice','event','shop_stand','gun_van','cafe_counter'] as const;
+      for(const kind of expected)assert(kinds.has(kind),`falta colisión ${kind}`);
+      assert(rects.length===7,'coleccionables o escalera se volvieron sólidos');
     });
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
     check('All content has a pickup category',()=>assert(report.manifest.entries.every(i=>!!i.pickup&&!!i.category),'missing pickup metadata'));
