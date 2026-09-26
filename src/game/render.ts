@@ -1047,70 +1047,107 @@ export function renderWorld(engine: GameEngine) {
 
 // ---------------------------------------------------------------------------
 function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof currentRoomOf>, content: RoomContent, f: number, floorIndex: number) {
-  const th = FLOOR_THEMES[Math.min(floorIndex, FLOOR_THEMES.length - 1)];
-  const special = room.type === RoomType.ITEM;
-  const floorPal = special ? ['#241634', '#2b1a3e', '#1a0f27'] : th.floor;
-  const wallPal = special ? ['#3b2a56', '#2a1d3e'] : th.wall;
+  const th=FLOOR_THEMES[Math.min(floorIndex,FLOOR_THEMES.length-1)];
+  const itemRoom=room.type===RoomType.ITEM;
+  const itemTheme={
+    floor:['#29252a','#332d32','#1b181c'],
+    wall:['#40383d','#2d282c'],
+    trim:'#c6a866',
+    glow:'#e2c88b',
+    deco:'vault',
+  };
+  const theme=itemRoom?itemTheme:th;
 
-  for (let y = 0; y < ROOM_HEIGHT; y++) {
-    for (let x = 0; x < ROOM_WIDTH; x++) {
-      const t = room.layout[y][x];
-      if (t === TILE_DOOR) {
-        ctx.fillStyle = '#07070f';
-        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      } else {
-        drawRichTile(ctx, x, y, t === 1, special ? { floor: floorPal, wall: wallPal, trim: '#c58ae8', glow: '#c58ae8', deco: 'vault' } : th, room.gx, room.gy, f, room.type !== RoomType.START);
+  for(let y=0;y<ROOM_HEIGHT;y++){
+    for(let x=0;x<ROOM_WIDTH;x++){
+      const t=room.layout[y][x];
+      if(t===TILE_DOOR){
+        ctx.fillStyle='#080b0d';
+        ctx.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+      }else{
+        drawRichTile(ctx,x,y,t===1,theme,room.gx,room.gy,f,room.type!==RoomType.START);
       }
     }
   }
-  drawInnerWallShadow(ctx);
-  drawRoomAtmosphere(ctx, special ? 'vault' : th.deco, f, special);
 
-  // brillos por tipo de sala
-  const cx = CANVAS_WIDTH / 2, cy = CANVAS_HEIGHT / 2;
-  if (special) {
-    const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 190);
-    g.addColorStop(0, 'rgba(180,80,220,0.14)');
-    g.addColorStop(0.6, 'rgba(120,40,80,0.10)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    ctx.fillStyle = 'rgba(96,20,42,0.5)';
-    ctx.fillRect(cx - 62, cy - 52, 124, 104);
-    ctx.fillStyle = 'rgba(150,40,70,0.5)';
-    ctx.fillRect(cx - 56, cy - 46, 112, 92);
-    ctx.fillStyle = 'rgba(244,208,63,0.22)';
-    ctx.fillRect(cx - 52, cy - 42, 104, 2);
-    ctx.fillRect(cx - 52, cy + 40, 104, 2);
-    for (let i = 0; i < 12; i++) {
-      const t = (f * 0.012 + i * 0.083) % 1;
-      const px = cx + Math.sin(i * 2.3 + f * 0.01) * 70;
-      const py = CANVAS_HEIGHT - 40 - t * 200;
-      ctx.globalAlpha = (1 - t) * 0.6;
-      ctx.fillStyle = i % 3 === 0 ? '#f4d03f' : '#c58ae8';
-      ctx.fillRect(px, py, 2, 2);
+  drawInnerWallShadow(ctx);
+  drawRoomAtmosphere(ctx,theme.deco,f,itemRoom);
+
+  const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2;
+  ctx.save();
+
+  if(itemRoom){
+    // Sala privada de inversión/valores: piedra oscura, alfombra borgoña y latón.
+    ctx.fillStyle='rgba(38,18,23,.38)';
+    ctx.fillRect(cx-72,cy-58,144,116);
+    ctx.strokeStyle='rgba(198,168,102,.42)';ctx.lineWidth=1;
+    ctx.strokeRect(cx-72.5,cy-58.5,145,117);
+    ctx.strokeStyle='rgba(226,200,139,.17)';
+    ctx.strokeRect(cx-65.5,cy-51.5,131,103);
+    ctx.fillStyle='rgba(119,40,48,.20)';
+    ctx.fillRect(cx-60,cy-46,120,92);
+
+    // Medallón central muy discreto.
+    ctx.globalAlpha=.18;ctx.strokeStyle='#c6a866';
+    ctx.beginPath();ctx.ellipse(cx,cy,34,18,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(cx,cy,25,12,0,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
+
+    for(let i=0;i<8;i++){
+      const t=(f*.010+i*.125)%1;
+      const px=cx+Math.sin(i*2.1+f*.008)*56;
+      const py=CANVAS_HEIGHT-48-t*170;
+      ctx.globalAlpha=(1-t)*.28;
+      ctx.fillStyle=i%3===0?'#e6c56f':'#d8c7a4';
+      ctx.fillRect(px,py,1+(i%3===0?1:0),1);
     }
-    ctx.globalAlpha = 1;
-  } else if (room.type === RoomType.GUN_VAN) {
-    ctx.fillStyle='rgba(3,5,8,.38)';ctx.fillRect(TILE_SIZE,TILE_SIZE,CANVAS_WIDTH-TILE_SIZE*2,CANVAS_HEIGHT-TILE_SIZE*2);
-    ctx.fillStyle='rgba(231,154,69,.12)';for(let x=90;x<CANVAS_WIDTH-70;x+=70)ctx.fillRect(x,286,34,3);
-  } else if (room.type === RoomType.SHOP) {
-    ctx.fillStyle = 'rgba(120,72,30,0.28)';
-    ctx.fillRect(TILE_SIZE + 20, TILE_SIZE + 40, CANVAS_WIDTH - TILE_SIZE * 2 - 40, CANVAS_HEIGHT - TILE_SIZE * 2 - 60);
-  } else if (room.type === RoomType.BOSS) {
-    ctx.fillStyle = 'rgba(200,40,40,0.05)';
-    ctx.fillRect(TILE_SIZE, TILE_SIZE, CANVAS_WIDTH - TILE_SIZE * 2, CANVAS_HEIGHT - TILE_SIZE * 2);
-    if (content.stairs) {
-      ctx.fillStyle = `rgba(244,208,63,${0.05 + Math.sin(f * 0.04) * 0.03})`;
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.globalAlpha=1;
+  }else if(room.type===RoomType.SHOP){
+    // Oficina privada / corredor de compra: alfombra verde botella con borde de latón.
+    const x=TILE_SIZE+34,y=TILE_SIZE+50,w=CANVAS_WIDTH-TILE_SIZE*2-68,h=CANVAS_HEIGHT-TILE_SIZE*2-76;
+    ctx.fillStyle='rgba(17,43,35,.28)';ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='rgba(184,149,91,.32)';ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+    ctx.strokeStyle='rgba(213,190,139,.12)';ctx.strokeRect(x+6.5,y+6.5,w-13,h-13);
+  }else if(room.type===RoomType.GUN_VAN){
+    // El furgón sigue siendo clandestino, pero está estacionado sobre suelo bancario real.
+    ctx.fillStyle='rgba(4,7,9,.24)';ctx.fillRect(TILE_SIZE,TILE_SIZE,CANVAS_WIDTH-TILE_SIZE*2,CANVAS_HEIGHT-TILE_SIZE*2);
+    ctx.globalAlpha=.15;ctx.fillStyle='#bd835c';
+    for(let x=90;x<CANVAS_WIDTH-70;x+=70)ctx.fillRect(x,286,34,2);
+    ctx.globalAlpha=1;
+  }else if(room.type===RoomType.BOSS||room.type===RoomType.SUBBOSS){
+    const accent=room.type===RoomType.BOSS?'#b64f48':'#9f7657';
+    ctx.globalAlpha=.08;ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.strokeRect(45,45,CANVAS_WIDTH-90,CANVAS_HEIGHT-90);
+    ctx.globalAlpha=.035;ctx.fillStyle=accent;
+    ctx.fillRect(TILE_SIZE,TILE_SIZE,CANVAS_WIDTH-TILE_SIZE*2,CANVAS_HEIGHT-TILE_SIZE*2);
+    ctx.globalAlpha=1;
+    if(content.stairs){
+      ctx.fillStyle='rgba(230,197,111,'+(0.045+Math.sin(f*.04)*.025)+')';
+      ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
     }
-  } else if (room.type === RoomType.TREASURE || room.type === RoomType.SECRET) {
-    const g = ctx.createRadialGradient(cx, cy, 8, cx, cy, 150);
-    g.addColorStop(0, 'rgba(244,208,63,0.14)');
-    g.addColorStop(1, 'rgba(244,208,63,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }else if(room.type===RoomType.TREASURE||room.type===RoomType.SECRET){
+    const g=ctx.createRadialGradient(cx,cy,8,cx,cy,160);
+    g.addColorStop(0,'rgba(230,197,111,.12)');
+    g.addColorStop(.55,'rgba(184,149,91,.045)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.globalAlpha=.20;ctx.strokeStyle='#c6a866';
+    ctx.strokeRect(cx-70.5,cy-48.5,141,97);
+    ctx.globalAlpha=.08;ctx.strokeRect(cx-61.5,cy-40.5,123,81);
+    ctx.globalAlpha=1;
+  }else if(room.type===RoomType.CHOICE){
+    ctx.globalAlpha=.13;ctx.strokeStyle='#a88c62';
+    ctx.beginPath();ctx.ellipse(cx,cy,92,52,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(cx,cy,74,39,0,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
+  }else if(room.type===RoomType.CHALLENGE){
+    // Pista de seguridad integrada en la piedra, sin convertir el suelo en arena genérica.
+    ctx.globalAlpha=.11;ctx.strokeStyle='#8faeb7';ctx.setLineDash([10,7]);
+    ctx.strokeRect(56.5,54.5,CANVAS_WIDTH-113,CANVAS_HEIGHT-109);
+    ctx.setLineDash([]);ctx.globalAlpha=1;
   }
+
+  ctx.restore();
 }
 
 function drawStairs(ctx: CanvasRenderingContext2D, st: NonNullable<RoomContent['stairs']>, f: number) {
