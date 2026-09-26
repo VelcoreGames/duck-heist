@@ -32,7 +32,7 @@ import { completeTutorial, updateTutorial } from './tutorial';
 import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
-import { obstacleHitbox, specialSolidRects, rectsOverlap, pointInRect } from './worldProps';
+import { obstacleHitbox, specialSolidRects, rectsOverlap, pointInRect, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 import type {
   GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind, BossPartState,
@@ -2286,7 +2286,8 @@ export function updateEngine(engine: GameEngine) {
   // --- Pedestales ---
   if (content.pedestal && !content.pedestal.taken) {
     const ped = content.pedestal;
-    if (dist(ped.x + 12, ped.y, player.x + 7, player.y + 8) < 28 && bound(engine,'interact')) {
+    const use=pedestalInteractPoint(ped);
+    if (dist(use.x,use.y,player.x + 7,player.y + 8) < PEDESTAL_INTERACT_RADIUS && bound(engine,'interact')) {
       let ok = true;
       if (ped.isWeapon) ok = tryGiveWeapon(engine, ped.itemId, 'pedestal', -1, ped.x, ped.y - 20);
       else if (ACTIVE_ITEMS[ped.itemId] && player.activeItem && player.activeItem !== ped.itemId) ok = offerActiveSwap(engine, ped.itemId, 'pedestal', -1, ped.x, ped.y);
@@ -2304,7 +2305,8 @@ export function updateEngine(engine: GameEngine) {
   if(content.choices && !content.choiceTaken && !engine.swap) {
     for(let i=0;i<content.choices.length;i++) {
       const ped=content.choices[i];
-      if(!ped.taken && dist(ped.x+12,ped.y,player.x+7,player.y+8)<28 && bound(engine,'interact')) {
+      const use=pedestalInteractPoint(ped);
+      if(!ped.taken && dist(use.x,use.y,player.x+7,player.y+8)<PEDESTAL_INTERACT_RADIUS && bound(engine,'interact')) {
         let ok=true;
         if(ped.isFood) {healPlayer(engine,foodHeal(ped.itemId));playHeal();}
         else if(ped.isWeapon) ok=tryGiveWeapon(engine,ped.itemId,'choice',i,ped.x,ped.y);
