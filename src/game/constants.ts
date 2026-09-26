@@ -180,12 +180,18 @@ export const TILE_DOOR = 2;
 // 10+ are obstacles
 export const OBSTACLE_BASE = 10;
 export const OBSTACLES = [
-  'desk',      // 10 mostrador
-  'barrier',   // 11 barrera de seguridad
-  'shelf',     // 12 estantería
-  'moneybag',  // 13 saco de dinero
-  'crate',     // 14 caja de pan
-  'column',    // 15 columna
-  'safe',      // 16 caja fuerte
-  'rubble',    // 17 escombros
+  'desk',             // 10 mostrador bancario
+  'barrier',          // 11 barrera de seguridad
+  'shelf',            // 12 estantería / archivo
+  'moneybag',         // 13 bolsa sellada de efectivo
+  'crate',            // 14 caja blindada de traslado
+  'column',           // 15 columna de piedra/acero
+  'safe',             // 16 caja fuerte ejecutiva
+  'rubble',           // 17 panel de seguridad dañado
+  'deposit_lockers',  // 18 casilleros de depósito
+  'briefcase',        // 19 maletín de valores
+  'cash_tray',        // 20 bandeja de efectivo
+  'value_cart',       // 21 carrito de valores
+  'archive_cabinet',  // 22 archivador de custodia
+  'armored_case',     // 23 contenedor blindado
 ];
