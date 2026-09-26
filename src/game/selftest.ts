@@ -43,11 +43,12 @@ export function runSelfChecks():CheckReport {
       const r:MapRoom={gx:x,gy:y,type,visited,cleared:visited,generated:false,doors:[],distance:Math.abs(x)+Math.abs(y),layout:[]};
       r.layout=generateRoomLayout(r);e.map.rooms.set(`${x},${y}`,r);return r;
     };
-    add(0,0,RoomType.START,true);add(-1,0,RoomType.ITEM);add(1,0,RoomType.COMBAT);
-    add(2,0,RoomType.SHOP);add(1,-1,RoomType.MINIBOSS);add(2,-1,RoomType.COMBAT);add(3,-1,RoomType.BOSS);add(0,1,RoomType.SECRET);
+    add(0,0,RoomType.START,true);add(1,0,RoomType.COMBAT);add(0,1,RoomType.COMBAT);
+    add(2,0,RoomType.SHOP);add(1,-1,RoomType.SECRET);add(0,2,RoomType.ITEM);
+    add(1,1,RoomType.COMBAT);add(2,1,RoomType.SUBBOSS);add(3,1,RoomType.BOSS);
     const link=(a:string,d:Dir)=>{const r=e.map.rooms.get(a)!,v=DIR_VECTORS[d],n=e.map.rooms.get(`${r.gx+v.x},${r.gy+v.y}`)!;r.doors.push(d);n.doors.push(OPPOSITE[d]);};
-    link('0,0','W');link('0,0','E');link('0,0','S');link('1,0','E');link('1,0','N');link('1,-1','E');link('2,-1','E');
-    e.map.startKey='0,0';e.map.itemRoomKey='-1,0';e.map.bossKey='3,-1';e.currentKey='0,0';
+    link('0,0','E');link('0,0','S');link('1,0','E');link('1,0','N');link('0,1','S');link('0,1','E');link('1,1','E');link('2,1','E');
+    e.map.startKey='0,0';e.map.itemRoomKey='0,2';e.map.bossKey='3,1';e.currentKey='0,0';
     return e;
   };
   try {
@@ -227,12 +228,12 @@ export function runSelfChecks():CheckReport {
       handleDash(e);handleActiveItem(e);cycleWeapon(e,1);assert(snapshot()===before,'una acción funcionó con mapa abierto');
     });
     check('Solo salas visitadas y conexiones descubiertas',()=>{
-      const e=mapFixture(),v=visibleRoomKeys(e);assert(v.size===3&&v.has('-1,0')&&v.has('1,0'),'primera frontera incorrecta');
-      assert(!v.has('2,0')&&!v.has(e.map.bossKey)&&!v.has('0,1'),'filtró información distante');
+      const e=mapFixture(),v=visibleRoomKeys(e);assert(v.size===3&&v.has('1,0')&&v.has('0,1'),'primera frontera incorrecta');
+      assert(!v.has('2,0')&&!v.has(e.map.bossKey)&&!v.has('1,-1'),'filtró información distante');
     });
     check('Los secretos requieren descubrimiento explícito',()=>{
-      const e=mapFixture();e.player.items=['vault_map'];assert(!visibleRoomKeys(e).has('0,1'),'plano reveló secreto');
-      e.map.rooms.get('0,1')!.revealed=true;assert(visibleRoomKeys(e).has('0,1'),'secreto descubierto oculto');
+      const e=mapFixture();e.player.items=['vault_map'];assert(!visibleRoomKeys(e).has('1,-1'),'plano reveló secreto');
+      e.map.rooms.get('1,-1')!.revealed=true;assert(visibleRoomKeys(e).has('1,-1'),'secreto descubierto oculto');
     });
     check('Ruta mínima usa solo salas conocidas',()=>{
       const e=mapFixture();assert(knownPath(e,'2,0').length===0,'ruta hacia sala oculta');
@@ -240,8 +241,8 @@ export function runSelfChecks():CheckReport {
       e.map.rooms.get(e.map.bossKey)!.revealed=true;assert(knownPath(e,e.map.bossKey).length===0,'ruta atravesó información desconocida');
     });
     check('Seleccionar sala no transporta al pato',()=>{
-      const e=mapFixture();openFloorMap(e);const n=mapNodeLayout(e).find(n=>n.id==='-1,0')!,x=e.player.x;
-      mapHit(e,n.x,n.y);assert(e.currentKey==='0,0'&&e.player.x===x&&e.mapView.selected==='-1,0','se transportó');
+      const e=mapFixture();openFloorMap(e);const n=mapNodeLayout(e).find(n=>n.id==='1,0')!,x=e.player.x;
+      mapHit(e,n.x,n.y);assert(e.currentKey==='0,0'&&e.player.x===x&&e.mapView.selected==='1,0','se transportó');
     });
     check('Plano, soplón y mapa manchado revelan información limitada',()=>{
       const e=mapFixture();e.player.items=['bank_blueprint'];applyMapItemEffects(e);assert(visibleRoomKeys(e).has('2,0'),'plano sin efecto');
