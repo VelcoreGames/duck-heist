@@ -59,6 +59,16 @@ const START_FORBIDDEN_TYPES = new Set<RoomType>([
   RoomType.CHOICE,
 ]);
 
+/** Salas laterales: una sola puerta y regreso por el mismo sitio. */
+const LEAF_ONLY_TYPES = new Set<RoomType>([
+  RoomType.TREASURE,
+  RoomType.SHOP,
+  RoomType.GUN_VAN,
+  RoomType.CHALLENGE,
+  RoomType.SECRET,
+  RoomType.CHOICE,
+]);
+
 /**
  * Genera un mapa válido:
  *  - Sala inicial en (0,0)
@@ -153,69 +163,84 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   // Re-derivar puertas tras posibles borrados para que ninguna apunte a la nada
   pruneDanglingDoors(rooms);
 
-  // 6) Asignar tipos especiales
-  const normals = [...rooms.values()]
-    .filter(r => r.type === RoomType.COMBAT)
-    .sort((a, b) => b.distance - a.distance);
-
-  // Jefe: la sala más lejana (preferimos un callejón sin salida) y NUNCA pegada al inicio
-  const deadEnds = normals.filter(r => r.doors.length === 1 && r.distance >= 3);
-  let bossRoom = deadEnds[0] ?? normals.find(r => r.distance >= 3);
-  // Red de seguridad: si el crecimiento falló, creamos una sala de jefe al este
-  if (!bossRoom) {
-    const deepest=normals[0] ?? start;
-    const direction=DIRS.find(d=>!rooms.has(key(deepest.gx+DIR_VECTORS[d].x,deepest.gy+DIR_VECTORS[d].y)))!;
-    const v=DIR_VECTORS[direction];
-    let parent=deepest;
-    for(let i=0;i<3;i++) {
-      const b=makeRoom(parent.gx+v.x,parent.gy+v.y,RoomType.COMBAT);
-      parent.doors.push(direction);b.doors.push(OPPOSITE[direction]);b.distance=parent.distance+1;parent=b;
-    }
-    bossRoom=parent;
-  }
-  bossRoom.type = RoomType.BOSS;
-
+  // 6) Asignar tipos especiales y reservar topología.
   const remaining = () => [...rooms.values()].filter(r => r.type === RoomType.COMBAT);
-  // Distancia 1 significa conexión directa con START. Los tipos restringidos
-  // sólo se asignan a distancia 2 o superior para que nunca sean visibles al entrar.
   const awayFromStart = () => remaining().filter(r => r.distance >= 2);
 
-  // Subjefe: segundo gran pico de dificultad, siempre lejos de START.
-  assignFarthest(awayFromStart(), RoomType.SUBBOSS);
+  const shuffledLocal=<T,>(values:T[])=>{
+    const out=[...values];
+    for(let i=out.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}
+    return out;
+  };
+  const leafSlots=(parent:MapRoom)=>shuffledLocal(DIRS).filter(d=>{
+    const v=DIR_VECTORS[d],nx=parent.gx+v.x,ny=parent.gy+v.y;
+    if(rooms.has(key(nx,ny)))return false;
+    const touching=DIRS.filter(nd=>{
+      const nv=DIR_VECTORS[nd];
+      return rooms.has(key(nx+nv.x,ny+nv.y));
+    }).length;
+    return touching===1;
+  });
+  const attachLeaf=(parent:MapRoom,type:RoomType)=>{
+    const dir=leafSlots(parent)[0];
+    if(!dir)return null;
+    const v=DIR_VECTORS[dir],leaf=makeRoom(parent.gx+v.x,parent.gy+v.y,type);
+    parent.doors.push(dir);leaf.doors.push(OPPOSITE[dir]);leaf.distance=parent.distance+1;
+    return leaf;
+  };
+  const claimLeaf=(type:RoomType)=>{
+    const existing=shuffledLocal(awayFromStart().filter(r=>r.doors.length===1));
+    const target=existing[0];
+    if(target){target.type=type;return target;}
+    const parents=shuffledLocal(remaining().filter(r=>r.distance>=1&&leafSlots(r).length>0))
+      .sort((a,b)=>b.distance-a.distance);
+    for(const parent of parents){const leaf=attachLeaf(parent,type);if(leaf)return leaf;}
+    return null;
+  };
+
+  // Final obligatorio del piso: ... -> SUBBOSS -> BOSS.
+  // SUBBOSS conserva una sola entrada desde la ruta y una única salida hacia BOSS.
+  let subbossRoom=shuffledLocal(awayFromStart().filter(r=>r.doors.length===1&&leafSlots(r).length>0))
+    .sort((a,b)=>b.distance-a.distance)[0];
+  if(!subbossRoom){
+    const parent=shuffledLocal(remaining().filter(r=>r.distance>=1&&leafSlots(r).length>0))
+      .sort((a,b)=>b.distance-a.distance)[0];
+    subbossRoom=parent ? attachLeaf(parent,RoomType.SUBBOSS) ?? undefined : undefined;
+  }
+  if(subbossRoom){
+    subbossRoom.type=RoomType.SUBBOSS;
+    const bossRoom=attachLeaf(subbossRoom,RoomType.BOSS);
+    if(!bossRoom) throw new Error('No se pudo crear la cadena SUBBOSS -> BOSS');
+  }
+
+  // Salas laterales garantizadas: siempre callejones sin salida.
+  claimLeaf(RoomType.SHOP);
+  claimLeaf(RoomType.TREASURE);
+  claimLeaf(RoomType.CHALLENGE);
+
   // Minijefe: encuentro de presión intermedia. Sí puede quedar cerca del inicio.
   assignMiddle(remaining(), RoomType.MINIBOSS);
-  // Tienda: nunca conectada directamente con START.
-  assignMiddle(awayFromStart(), RoomType.SHOP);
-  // Camioneta del mercado negro: opcional y nunca conectada con START.
-  if (awayFromStart().length > 7 && random() < 0.42) assignDeadEndOrRandom(awayFromStart(), RoomType.GUN_VAN, random);
-  // Tesoro: preferentemente callejón sin salida y siempre lejos de START.
-  assignDeadEndOrRandom(awayFromStart(), RoomType.TREASURE,random);
-  // Sala de Objetos: exactamente una base, distribuida dentro del piso sin
-  // posición fija ni conexión especial con la entrada.
+
+  // Sala de Objetos: una por piso, con 12% de probabilidad de una segunda.
   assignRandom(remaining(), RoomType.ITEM,random);
-  // Sólo 12% de los pisos reciben una segunda Sala de Objetos.
   if (remaining().length && random() < 0.12) assignRandom(remaining(), RoomType.ITEM,random);
-  // Desafío: nunca conectado directamente con START.
-  assignRandom(awayFromStart(), RoomType.CHALLENGE,random);
-  // Bóveda secreta opcional: además de ser terminal, nunca junto a START.
-  if (random() < 0.4) assignDeadEndOrRandom(awayFromStart().filter(r=>r.doors.length===1), RoomType.SECRET,random);
+
+  // Especiales opcionales, también terminales.
+  if (remaining().length > 7 && random() < 0.42) claimLeaf(RoomType.GUN_VAN);
+  if (random() < 0.4) claimLeaf(RoomType.SECRET);
   if(remaining().length>6 && random()<0.38) assignDeadEndOrRandom(remaining(),RoomType.EVENT,random);
-  if(awayFromStart().length>7 && random()<.5) assignDeadEndOrRandom(awayFromStart(),RoomType.CHOICE,random);
+  if(remaining().length>7 && random()<.5) claimLeaf(RoomType.CHOICE);
 
-  // Asegurar un mínimo de salas de combate
+  // Asegurar un mínimo de salas de combate.
   if (remaining().length < 5) {
-    // convertir alguna especial sobrante de vuelta a combate no es necesario:
-    // el generador ya crea 11-16 salas, pero validamos por seguridad
+    // El mapa sigue siendo válido; esta condición sólo documenta la reserva deseada.
   }
 
-  // 7) Garantía dura: EXACTAMENTE un jefe por piso
-  const bosses = [...rooms.values()].filter(r => r.type === RoomType.BOSS);
-  for (let i = 1; i < bosses.length; i++) bosses[i].type = RoomType.COMBAT;
-  if (bosses.length === 0) {
-    const fb = [...rooms.values()].sort((a, b) => b.distance - a.distance)
-      .find(r => r.type === RoomType.COMBAT && r.distance >= 2);
-    if (fb) fb.type = RoomType.BOSS;
-  }
+  // 7) Garantías duras de cierre de piso.
+  const bosses=[...rooms.values()].filter(r=>r.type===RoomType.BOSS);
+  const subbosses=[...rooms.values()].filter(r=>r.type===RoomType.SUBBOSS);
+  for(let i=1;i<bosses.length;i++)bosses[i].type=RoomType.COMBAT;
+  for(let i=1;i<subbosses.length;i++)subbosses[i].type=RoomType.COMBAT;
 
   // 8) Layouts (obstáculos) por sala
   for (const room of rooms.values()) {
@@ -463,8 +488,35 @@ export function validateMap(map:GameMap):string[] {
     const neighbour=map.rooms.get(key(start.gx+v.x,start.gy+v.y));
     if(neighbour&&START_FORBIDDEN_TYPES.has(neighbour.type)) issues.push(`start adjacency ${neighbour.type}`);
   }
+  for(const room of map.rooms.values()){
+    if(LEAF_ONLY_TYPES.has(room.type)){
+      if(room.doors.length!==1) issues.push(`leaf room ${room.type}`);
+      const d=room.doors[0];
+      if(d){
+        const v=DIR_VECTORS[d],neighbour=map.rooms.get(key(room.gx+v.x,room.gy+v.y));
+        if(neighbour&&LEAF_ONLY_TYPES.has(neighbour.type)) issues.push(`leaf adjacency ${room.type} ${neighbour.type}`);
+      }
+    }
+  }
   if([...map.rooms.values()].filter(r=>r.type===RoomType.BOSS).length!==1) issues.push('boss count');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.SUBBOSS).length!==1) issues.push('subboss count');
+  const boss=[...map.rooms.values()].find(r=>r.type===RoomType.BOSS);
+  const subboss=[...map.rooms.values()].find(r=>r.type===RoomType.SUBBOSS);
+  if(boss){
+    if(boss.doors.length!==1) issues.push('boss must be terminal');
+    const d=boss.doors[0],v=d?DIR_VECTORS[d]:null;
+    const neighbour=v?map.rooms.get(key(boss.gx+v.x,boss.gy+v.y)):undefined;
+    if(neighbour?.type!==RoomType.SUBBOSS) issues.push('boss not behind subboss');
+  }
+  if(subboss){
+    if(subboss.doors.length!==2) issues.push('subboss chain degree');
+    let bossLinks=0,otherLinks=0;
+    for(const d of subboss.doors){
+      const v=DIR_VECTORS[d],neighbour=map.rooms.get(key(subboss.gx+v.x,subboss.gy+v.y));
+      if(neighbour?.type===RoomType.BOSS)bossLinks++;else otherLinks++;
+    }
+    if(bossLinks!==1||otherLinks!==1) issues.push('subboss chain links');
+  }
   if([...map.rooms.values()].filter(r=>r.type===RoomType.MINIBOSS).length!==1) issues.push('miniboss count');
   if((map.rooms.get(map.bossKey)?.distance ?? 0)<2) issues.push('boss depth');
   if(bfs(map.rooms,map.startKey).size!==map.rooms.size) issues.push('disconnected map');
