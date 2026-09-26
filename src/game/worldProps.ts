@@ -46,10 +46,10 @@ export function specialSolidRects(roomType:RoomType,content:RoomContent):WorldRe
     x:content.chest.x+1,y:content.chest.y+10,w:18,h:8,kind:'chest',
   });
   if(content.pedestal) out.push({
-    x:content.pedestal.x-2,y:content.pedestal.y+19,w:28,h:11,kind:'pedestal',
+    x:content.pedestal.x-2,y:content.pedestal.y+27,w:28,h:9,kind:'pedestal',
   });
   for(const ped of content.choices ?? []) if(!ped.taken) out.push({
-    x:ped.x-2,y:ped.y+19,w:28,h:11,kind:'choice',
+    x:ped.x-2,y:ped.y+27,w:28,h:9,kind:'choice',
   });
   if(content.event) out.push({
     x:content.event.x-6,y:content.event.y+27,w:28,h:12,kind:'event',
