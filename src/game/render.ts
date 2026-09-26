@@ -66,6 +66,17 @@ const smoothStep=(a:number,b:number,v:number)=>{
   const t=clamp((v-a)/(b-a),0,1);
   return t*t*(3-2*t);
 };
+
+function drawGroundLootBase(
+  ctx:CanvasRenderingContext2D,x:number,y:number,color:string,frame:number,strength=.18,radius=14,
+){
+  ctx.save();
+  ctx.globalAlpha=.24;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(x,y+9,radius*.72,3.2,0,0,Math.PI*2);ctx.fill();
+  const pulse=.5+.5*Math.sin(frame*.075+x*.03+y*.02);
+  ctx.globalAlpha=strength*(.72+.28*pulse);ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y+6,radius,5.5,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=strength*.82;ctx.strokeStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+6,radius+2+pulse*2,6.5+pulse,0,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
 const menuFrame = (engine:GameEngine) => engine.settings.reduceMotion ? 0 : engine.frame;
 
 
@@ -140,19 +151,27 @@ function drawCafeScene(ctx:CanvasRenderingContext2D,f:number) {
 
 function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'|'cafe'|'shop') {
   ctx.save();
-  ctx.globalAlpha=.26;ctx.fillStyle='#02080b';ctx.beginPath();ctx.ellipse(x,y+16,21,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  const body=kind==='van'?'#11171a':kind==='cafe'?'#604331':'#1e342d';
-  const edge=kind==='van'?'#d58e42':kind==='cafe'?'#e1bb83':'#6fbd91';
-  ctx.fillStyle=body;ctx.fillRect(x-20,y+8,40,11);
-  ctx.fillStyle='#0b1114';ctx.fillRect(x-17,y+17,34,3);
-  ctx.fillStyle=edge;ctx.fillRect(x-16,y+9,32,2);
-  ctx.globalAlpha=.35;ctx.fillRect(x-2,y+7,4,2);ctx.globalAlpha=1;
-  if(kind==='van'){ctx.fillStyle='#5e6b70';ctx.fillRect(x-18,y+12,4,4);ctx.fillRect(x+14,y+12,4,4);}
-  else if(kind==='cafe'){ctx.fillStyle='#d9c198';ctx.fillRect(x-15,y+12,30,1);}
-  else {ctx.fillStyle='#87d2a8';ctx.fillRect(x-15,y+13,3,3);ctx.fillRect(x+12,y+13,3,3);}
+  const pulse=.5+.5*Math.sin((x+y)*.02);
+  ctx.globalAlpha=.30;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(x,y+18,22,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  const body=kind==='van'?'#101619':kind==='cafe'?'#5a3c2d':'#1d332b';
+  const mid=kind==='van'?'#273136':kind==='cafe'?'#865b41':'#355b4c';
+  const edge=kind==='van'?'#d38b3f':kind==='cafe'?'#dfb77d':'#70c194';
+  ctx.fillStyle=body;ctx.fillRect(x-20,y+8,40,12);
+  ctx.fillStyle=mid;ctx.fillRect(x-18,y+10,36,7);
+  ctx.fillStyle='#090e11';ctx.fillRect(x-17,y+17,34,3);
+  ctx.fillStyle=edge;ctx.fillRect(x-17,y+8,34,2);
+  ctx.globalAlpha=.42;ctx.fillStyle='#f3efe3';ctx.fillRect(x-13,y+9,12,1);ctx.globalAlpha=1;
+  ctx.fillStyle='#1b2326';ctx.fillRect(x-17,y+20,7,2);ctx.fillRect(x+10,y+20,7,2);
+  if(kind==='van'){
+    ctx.fillStyle='#66757a';ctx.fillRect(x-17,y+12,4,4);ctx.fillRect(x+13,y+12,4,4);
+    ctx.fillStyle='#d38b3f';ctx.globalAlpha=.35+.15*pulse;ctx.fillRect(x-2,y+12,4,2);ctx.globalAlpha=1;
+  }else if(kind==='cafe'){
+    ctx.fillStyle='#d9c198';ctx.fillRect(x-15,y+12,30,1);ctx.fillStyle='#3f291f';ctx.fillRect(x-4,y+14,8,3);
+  }else{
+    ctx.fillStyle='#87d2a8';ctx.fillRect(x-15,y+13,3,3);ctx.fillRect(x+12,y+13,3,3);ctx.fillStyle='#cdebd9';ctx.fillRect(x-2,y+12,4,1);
+  }
   ctx.restore();
 }
-
 function drawVaultWings(ctx:CanvasRenderingContext2D,frame:number){
   if(UI_OFFSET_X<=0)return;
   ctx.save();
