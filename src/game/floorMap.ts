@@ -9,6 +9,7 @@ import { playUiMove, playUiBack } from './audio';
 import type { GameEngine } from './types';
 import { seededRandom } from './random';
 import { completeTutorial } from './tutorial';
+import { specialRoomKeyCost, specialRoomLocked } from './keyAccess';
 
 export const ROOM_STYLE:Record<RoomType,{label:string;color:string;symbol:string}> = {
   [RoomType.START]:{label:'ENTRADA',color:'#63accc',symbol:'start'},
@@ -150,8 +151,10 @@ export function applyMapItemEffects(e:GameEngine,newFloor=false) {
 
 export function roomStatus(e:GameEngine,id:string):string {
   const r=e.map.rooms.get(id),c=e.contents.get(id);
-  if(!r) return '';
-  if(!r.visited) return 'Descubierta · Sin visitar';
+  if(!r)return '';
+  const access=specialRoomKeyCost(r);
+  if(access>0&&!r.keyUnlocked)return `Cerrada · Requiere ${access} ${access===1?'llave':'llaves'}`;
+  if(!r.visited)return 'Descubierta · Sin visitar';
   if(r.type===RoomType.BOSS||r.type===RoomType.SUBBOSS||r.type===RoomType.MINIBOSS) return r.cleared?(c?.stairs?'Derrotado · Escaleras':'Derrotado'):'Pendiente';
   if(c?.stairs) return 'Escaleras disponibles';
   if(c?.shopItems) return c.shopItems.every(i=>i.sold)?'Agotada':c.shopItems.some(i=>i.sold)?'Visitada · Compra realizada':'Visitada · Abierta';
@@ -217,6 +220,14 @@ export function renderFloorMap(e:GameEngine) {
     if(current){c.shadowColor='#a8dcd3';c.shadowBlur=3+Math.sin(f*.06)*2;}
     c.strokeRect(n.x-n.w/2,n.y-n.h/2,n.w,n.h);c.shadowBlur=0;
     drawRoomSymbol(c,n.room,n.x,n.y,Math.min(12,n.h*.62),!!e.contents.get(n.id)?.stairs);
+    if(specialRoomLocked(n.room)){
+      const cost=specialRoomKeyCost(n.room),lx=n.x+n.w/2-5,ly=n.y-n.h/2+3;
+      c.fillStyle='#11181b';c.fillRect(lx-3,ly-2,8,8);
+      c.strokeStyle='#d0b568';c.lineWidth=1;c.strokeRect(lx-2.5,ly-1.5,7,7);
+      c.fillStyle='#e6c56f';c.fillRect(lx,ly+1,2,3);
+      c.beginPath();c.arc(lx+1,ly,1.5,0,Math.PI*2);c.fill();
+      if(cost===2){c.fillStyle='#f0d78d';c.fillRect(lx+4,ly+4,2,2);}
+    }
     if(current){c.fillStyle='#eff5df';c.fillRect(n.x-2,n.y-n.h/2-4,4,2);}
   }
 
@@ -228,15 +239,16 @@ export function renderFloorMap(e:GameEngine) {
   const discovered=nodes.length,cleared=nodes.filter(n=>n.room.visited&&n.room.cleared).length;
   text(c,`Salas descubiertas: ${discovered} / ?`,336,125,7,'#a8c3c8','left');
   text(c,`Salas despejadas: ${cleared}`,336,138,7,'#a8c3c8','left');
+  text(c,`Llaves bancarias: ${e.player.bankKeys}`,336,151,7,'#e6c56f','left',true);
   const boss=nodes.find(n=>n.room.type===RoomType.BOSS),mini=nodes.find(n=>n.room.type===RoomType.MINIBOSS);
-  text(c,`Jefe: ${!boss?'No encontrado':boss.room.cleared?'Derrotado':'Descubierto'}`,336,153,7,'#c69796','left');
-  text(c,`Minijefe: ${mini?.room.cleared?'Derrotado':'Pendiente'}`,336,166,7,'#c6a58c','left');
-  c.fillStyle='#426474';c.fillRect(335,177,114,1);
+  text(c,`Jefe: ${!boss?'No encontrado':boss.room.cleared?'Derrotado':'Descubierto'}`,336,164,7,'#c69796','left');
+  text(c,`Minijefe: ${mini?.room.cleared?'Derrotado':'Pendiente'}`,336,177,7,'#c6a58c','left');
+  c.fillStyle='#426474';c.fillRect(335,188,114,1);
   const room=e.map.rooms.get(selected)!;
-  wrappedText(c,ROOM_STYLE[room.type].label,336,193,111,9,12,2,ROOM_STYLE[room.type].color,true);
-  wrappedText(c,roomStatus(e,selected),336,224,110,7.5,11,2,'#acc4c2');
-  text(c,path.length>1?`Ruta conocida: ${path.length-1} salas`:selected===e.currentKey?'Tu sala actual':'Sin ruta conocida',336,255,6.8,'#d5c58d','left');
-  text(c,'Solo orientación. Sin transporte.',336,271,6,'#6f98a7','left');
+  wrappedText(c,ROOM_STYLE[room.type].label,336,203,111,9,12,2,ROOM_STYLE[room.type].color,true);
+  wrappedText(c,roomStatus(e,selected),336,233,110,7.3,10.5,2,specialRoomLocked(room)?'#e6c56f':'#acc4c2');
+  text(c,path.length>1?`Ruta conocida: ${path.length-1} salas`:selected===e.currentKey?'Tu sala actual':'Sin ruta conocida',336,260,6.6,'#d5c58d','left');
+  text(c,'Solo orientación. Sin transporte.',336,273,5.8,'#6f98a7','left');
   if(getBuild(e.player).gps) {
     [['shop','Tienda'],['boss','Jefe'],['stairs','Escaleras']].forEach(([type,label],i)=>{
       c.fillStyle=e.mapView.gpsTarget===type?'#675c3e':'#1f3f4a';c.fillRect(331+i*41,277,39,17);
