@@ -47,6 +47,18 @@ export interface GameMap {
   floorIndex: number;
 }
 
+/** Salas que jamás pueden ser vecinas directas de START. */
+const START_FORBIDDEN_TYPES = new Set<RoomType>([
+  RoomType.TREASURE,
+  RoomType.SHOP,
+  RoomType.GUN_VAN,
+  RoomType.CHALLENGE,
+  RoomType.SUBBOSS,
+  RoomType.BOSS,
+  RoomType.SECRET,
+  RoomType.CHOICE,
+]);
+
 /**
  * Genera un mapa válido:
  *  - Sala inicial en (0,0)
@@ -164,28 +176,31 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   bossRoom.type = RoomType.BOSS;
 
   const remaining = () => [...rooms.values()].filter(r => r.type === RoomType.COMBAT);
+  // Distancia 1 significa conexión directa con START. Los tipos restringidos
+  // sólo se asignan a distancia 2 o superior para que nunca sean visibles al entrar.
+  const awayFromStart = () => remaining().filter(r => r.distance >= 2);
 
-  // Subjefe: segundo gran pico de dificultad, en una rama lejana.
-  assignFarthest(remaining(), RoomType.SUBBOSS);
-  // Minijefe: encuentro de presión intermedia, separado del subjefe.
+  // Subjefe: segundo gran pico de dificultad, siempre lejos de START.
+  assignFarthest(awayFromStart(), RoomType.SUBBOSS);
+  // Minijefe: encuentro de presión intermedia. Sí puede quedar cerca del inicio.
   assignMiddle(remaining(), RoomType.MINIBOSS);
-  // Tienda: distancia media
-  assignMiddle(remaining(), RoomType.SHOP);
-  // Camioneta del mercado negro: aparece solo en mapas suficientemente grandes.
-  if (remaining().length > 7 && random() < 0.42) assignDeadEndOrRandom(remaining(), RoomType.GUN_VAN, random);
-  // Tesoro: preferentemente callejón sin salida
-  assignDeadEndOrRandom(remaining(), RoomType.TREASURE,random);
+  // Tienda: nunca conectada directamente con START.
+  assignMiddle(awayFromStart(), RoomType.SHOP);
+  // Camioneta del mercado negro: opcional y nunca conectada con START.
+  if (awayFromStart().length > 7 && random() < 0.42) assignDeadEndOrRandom(awayFromStart(), RoomType.GUN_VAN, random);
+  // Tesoro: preferentemente callejón sin salida y siempre lejos de START.
+  assignDeadEndOrRandom(awayFromStart(), RoomType.TREASURE,random);
   // Sala de Objetos: exactamente una base, distribuida dentro del piso sin
   // posición fija ni conexión especial con la entrada.
   assignRandom(remaining(), RoomType.ITEM,random);
   // Sólo 12% de los pisos reciben una segunda Sala de Objetos.
   if (remaining().length && random() < 0.12) assignRandom(remaining(), RoomType.ITEM,random);
-  // Desafío
-  assignRandom(remaining(), RoomType.CHALLENGE,random);
-  // Bóveda secreta opcional
-  if (random() < 0.4) assignDeadEndOrRandom(remaining().filter(r=>r.doors.length===1), RoomType.SECRET,random);
+  // Desafío: nunca conectado directamente con START.
+  assignRandom(awayFromStart(), RoomType.CHALLENGE,random);
+  // Bóveda secreta opcional: además de ser terminal, nunca junto a START.
+  if (random() < 0.4) assignDeadEndOrRandom(awayFromStart().filter(r=>r.doors.length===1), RoomType.SECRET,random);
   if(remaining().length>6 && random()<0.38) assignDeadEndOrRandom(remaining(),RoomType.EVENT,random);
-  if(remaining().length>7 && random()<.5) assignDeadEndOrRandom(remaining(),RoomType.CHOICE,random);
+  if(awayFromStart().length>7 && random()<.5) assignDeadEndOrRandom(awayFromStart(),RoomType.CHOICE,random);
 
   // Asegurar un mínimo de salas de combate
   if (remaining().length < 5) {
@@ -198,7 +213,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   for (let i = 1; i < bosses.length; i++) bosses[i].type = RoomType.COMBAT;
   if (bosses.length === 0) {
     const fb = [...rooms.values()].sort((a, b) => b.distance - a.distance)
-      .find(r => r.type === RoomType.COMBAT);
+      .find(r => r.type === RoomType.COMBAT && r.distance >= 2);
     if (fb) fb.type = RoomType.BOSS;
   }
 
@@ -442,6 +457,12 @@ export function validateMap(map:GameMap):string[] {
   const itemCount=[...map.rooms.values()].filter(r=>r.type===RoomType.ITEM).length;
   if(itemCount<1||itemCount>2) issues.push('item room count');
   if(map.rooms.get(map.itemRoomKey)?.type!==RoomType.ITEM) issues.push('item room key');
+  const start=map.rooms.get(map.startKey);
+  if(start) for(const d of start.doors) {
+    const v=DIR_VECTORS[d];
+    const neighbour=map.rooms.get(key(start.gx+v.x,start.gy+v.y));
+    if(neighbour&&START_FORBIDDEN_TYPES.has(neighbour.type)) issues.push(`start adjacency ${neighbour.type}`);
+  }
   if([...map.rooms.values()].filter(r=>r.type===RoomType.BOSS).length!==1) issues.push('boss count');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.SUBBOSS).length!==1) issues.push('subboss count');
   if([...map.rooms.values()].filter(r=>r.type===RoomType.MINIBOSS).length!==1) issues.push('miniboss count');
