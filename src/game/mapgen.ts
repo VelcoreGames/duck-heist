@@ -47,15 +47,18 @@ export interface GameMap {
   floorIndex: number;
 }
 
-/** Salas que jamás pueden ser vecinas directas de START. */
+/** START sólo puede conectar directamente con salas COMBAT. */
 const START_FORBIDDEN_TYPES = new Set<RoomType>([
+  RoomType.ITEM,
   RoomType.TREASURE,
   RoomType.SHOP,
   RoomType.GUN_VAN,
   RoomType.CHALLENGE,
+  RoomType.MINIBOSS,
   RoomType.SUBBOSS,
   RoomType.BOSS,
   RoomType.SECRET,
+  RoomType.EVENT,
   RoomType.CHOICE,
 ]);
 
@@ -72,6 +75,8 @@ const LEAF_ONLY_TYPES = new Set<RoomType>([
 /**
  * Genera un mapa válido:
  *  - Sala inicial en (0,0)
+ *  - La celda oeste de START (-1,0) queda siempre vacía: nunca existe una sala allí
+ *  - START sólo conecta directamente con salas COMBAT
  *  - Crecimiento aleatorio con ramificaciones y callejones sin salida
  *  - Una Sala de Objetos distribuida dentro del mapa; 12% de probabilidad de una segunda
  *  - Todas las salas alcanzables (por construcción: cada sala nace de una existente)
@@ -120,6 +125,8 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
 
     if (Math.abs(nx) > maxRadius || Math.abs(ny) > maxRadius) continue;
     if (rooms.has(key(nx, ny))) continue;
+    // Reserva permanente: nunca existe una sala inmediatamente al oeste de START.
+    if (nx===-1 && ny===0) continue;
 
     // Limitar el número de vecinos para crear pasillos y ramas en vez de un bloque macizo
     const neighbourCount = DIRS.filter(d => {
@@ -145,7 +152,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   const startKey = key(0, 0);
   const start = rooms.get(startKey)!;
   if(![...rooms.values()].some(r=>r.doors.length>=3)) {
-    const branch=DIRS.find(d=>!rooms.has(key(DIR_VECTORS[d].x,DIR_VECTORS[d].y)));
+    const branch=DIRS.find(d=>d!=='W'&&!rooms.has(key(DIR_VECTORS[d].x,DIR_VECTORS[d].y)));
     if(branch) {
       const v=DIR_VECTORS[branch],r=makeRoom(v.x,v.y,RoomType.COMBAT);
       start.doors.push(branch);r.doors.push(OPPOSITE[branch]);
@@ -174,6 +181,7 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   };
   const leafSlots=(parent:MapRoom)=>shuffledLocal(DIRS).filter(d=>{
     const v=DIR_VECTORS[d],nx=parent.gx+v.x,ny=parent.gy+v.y;
+    if(nx===-1&&ny===0)return false;
     if(rooms.has(key(nx,ny)))return false;
     const touching=DIRS.filter(nd=>{
       const nv=DIR_VECTORS[nd];
@@ -218,17 +226,18 @@ export function generateMap(floorIndex: number,seed?:string): GameMap {
   claimLeaf(RoomType.TREASURE);
   claimLeaf(RoomType.CHALLENGE);
 
-  // Minijefe: encuentro de presión intermedia. Sí puede quedar cerca del inicio.
-  assignMiddle(remaining(), RoomType.MINIBOSS);
+  // Minijefe: puede estar relativamente cerca, pero nunca conectado a START.
+  assignMiddle(awayFromStart(), RoomType.MINIBOSS);
 
-  // Sala de Objetos: una por piso, con 12% de probabilidad de una segunda.
-  assignRandom(remaining(), RoomType.ITEM,random);
-  if (remaining().length && random() < 0.12) assignRandom(remaining(), RoomType.ITEM,random);
+  // Sala de Objetos: una por piso, nunca conectada a START,
+  // con 12% de probabilidad de una segunda.
+  assignRandom(awayFromStart(), RoomType.ITEM,random);
+  if (awayFromStart().length && random() < 0.12) assignRandom(awayFromStart(), RoomType.ITEM,random);
 
   // Especiales opcionales, también terminales.
   if (remaining().length > 7 && random() < 0.42) claimLeaf(RoomType.GUN_VAN);
   if (random() < 0.4) claimLeaf(RoomType.SECRET);
-  if(remaining().length>6 && random()<0.38) assignDeadEndOrRandom(remaining(),RoomType.EVENT,random);
+  if(awayFromStart().length>6 && random()<0.38) assignDeadEndOrRandom(awayFromStart(),RoomType.EVENT,random);
   if(remaining().length>7 && random()<.5) claimLeaf(RoomType.CHOICE);
 
   // Asegurar un mínimo de salas de combate.
@@ -478,10 +487,15 @@ export function validateMap(map:GameMap):string[] {
   if(itemCount<1||itemCount>2) issues.push('item room count');
   if(map.rooms.get(map.itemRoomKey)?.type!==RoomType.ITEM) issues.push('item room key');
   const start=map.rooms.get(map.startKey);
-  if(start) for(const d of start.doors) {
-    const v=DIR_VECTORS[d];
-    const neighbour=map.rooms.get(key(start.gx+v.x,start.gy+v.y));
-    if(neighbour&&START_FORBIDDEN_TYPES.has(neighbour.type)) issues.push(`start adjacency ${neighbour.type}`);
+  if(map.rooms.has(key(-1,0))) issues.push('west of start must be empty');
+  if(start) {
+    if(start.doors.includes('W')) issues.push('start west door');
+    for(const d of start.doors) {
+      const v=DIR_VECTORS[d];
+      const neighbour=map.rooms.get(key(start.gx+v.x,start.gy+v.y));
+      if(neighbour&&START_FORBIDDEN_TYPES.has(neighbour.type)) issues.push(`start adjacency ${neighbour.type}`);
+      if(neighbour&&neighbour.type!==RoomType.COMBAT) issues.push(`start must connect combat ${neighbour.type}`);
+    }
   }
   for(const room of map.rooms.values()){
     if(LEAF_ONLY_TYPES.has(room.type)){
