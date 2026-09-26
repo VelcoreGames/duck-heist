@@ -1857,7 +1857,16 @@ export function updateEngine(engine: GameEngine) {
   if(content.alarmTimer!==undefined && content.alarmTimer>0) {
     content.alarmTimer--;
     if(content.alarmTimer%360===0 && content.enemies.length<8) {
-      const spot=freeTiles(room.layout,2)[0];if(spot) content.enemies.push(makeEnemy('policia_pato',floorScale(engine.map.floorIndex,room.distance),spot.x,spot.y,false));
+      const spots=freeTiles(room.layout,2)
+        .filter(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,player.x,player.y)>96);
+      const sc=floorScale(engine.map.floorIndex,room.distance);
+      const available=Math.max(0,8-content.enemies.length);
+      const spawnCount=Math.min(3,available,spots.length);
+      for(let i=0;i<spawnCount;i++) {
+        const index=Math.floor(random()*spots.length);
+        const [spot]=spots.splice(index,1);
+        if(spot) content.enemies.push(makeEnemy('policia_pato',sc,spot.x,spot.y,false));
+      }
     }
   }
   for(const key of ['trayTimer','honeyTimer','healFlash','quackWave','comboTimer','chocolateTimer','dashHasteTimer','perfectBuff'] as const) if(player[key]>0) player[key]--;
