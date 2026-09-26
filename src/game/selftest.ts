@@ -14,13 +14,14 @@ import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
-import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin } from './sprites';
+import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin, drawBankKey } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
 import { obstacleHitbox, obstacleOccludes, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { bankKeyDropChance, specialRoomKeyCost, tryUnlockSpecialRoom } from './keyAccess';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
 export function runSelfChecks():CheckReport {
@@ -98,6 +99,7 @@ export function runSelfChecks():CheckReport {
       drawPedestal(a,160,180,180,false,'#e6c56f');
       drawShopPigeon(a,220,180,180);
       drawCoin(a,260,180,180,false);drawCoin(a,280,180,180,true);
+      drawBankKey(a,300,174,180,16);
       for(const type of ['pistol_round','buckshot_player','enemy_bullet','pistol','buckshot','drone_shot','coin_proj','toast','dough_ball'])drawProjectile(a,320,180,type,180);
       for(const type of ['hit','spark','smoke','crumb','coin','feather'])drawParticle(a,360,180,type,.7,'#e6c56f');
     });
@@ -159,6 +161,44 @@ export function runSelfChecks():CheckReport {
       const below={x:232,y:194};
       assert(Math.hypot(below.x-use.x,below.y-use.y)<PEDESTAL_INTERACT_RADIUS,'no se puede recoger desde abajo fuera de colisión');
       assert(!(below.x>=hit.x&&below.x<hit.x+hit.w&&below.y>=hit.y&&below.y<hit.y+hit.h),'punto de interacción quedó dentro de colisión');
+    });
+
+
+    check('Llaves bancarias: costos, consumo único y café',()=>{
+      const itemDoor={type:RoomType.ITEM,template:undefined,keyUnlocked:false};
+      const secretDoor={type:RoomType.SECRET,template:undefined,keyUnlocked:false};
+      const cafeDoor={type:RoomType.EVENT,template:'cafe',keyUnlocked:false};
+      const eventDoor={type:RoomType.EVENT,template:'event',keyUnlocked:false};
+      assert(specialRoomKeyCost(itemDoor)===1,'ITEM no cuesta 1 llave');
+      assert(specialRoomKeyCost(secretDoor)===2,'SECRET no cuesta 2 llaves');
+      assert(specialRoomKeyCost(cafeDoor)===1,'CAFÉ no cuesta 1 llave');
+      assert(specialRoomKeyCost(eventDoor)===0,'EVENT normal quedó bloqueado');
+      const wallet={bankKeys:1};
+      const opened=tryUnlockSpecialRoom(itemDoor,wallet);
+      assert(opened.ok&&opened.cost===1&&wallet.bankKeys===0&&itemDoor.keyUnlocked,'no abrió/consumió correctamente');
+      const second=tryUnlockSpecialRoom(itemDoor,wallet);
+      assert(second.ok&&second.cost===0&&wallet.bankKeys===0,'cobró dos veces la misma puerta');
+      const denied=tryUnlockSpecialRoom(secretDoor,wallet);
+      assert(!denied.ok&&denied.cost===2&&wallet.bankKeys===0&&!secretDoor.keyUnlocked,'SECRET abrió sin llaves');
+    });
+    check('Economía de llaves protege mala suerte y frena acumulación',()=>{
+      const combat={type:RoomType.COMBAT,modifier:undefined};
+      const alarm={type:RoomType.COMBAT,modifier:'alarm' as const};
+      const mini={type:RoomType.MINIBOSS,modifier:undefined};
+      assert(bankKeyDropChance(combat,0,0)>=.12,'probabilidad base demasiado baja');
+      assert(bankKeyDropChance(alarm,0,0)>bankKeyDropChance(combat,0,0),'modificador no mejora drop');
+      assert(bankKeyDropChance(combat,0,4)===1,'pity no garantiza llave');
+      assert(bankKeyDropChance(combat,3,0)<bankKeyDropChance(combat,0,0),'no reduce inflación con 3 llaves');
+      assert(bankKeyDropChance(mini,2,0)===1,'minijefe no garantiza llave con inventario bajo');
+      assert(bankKeyDropChance(mini,3,0)<1,'minijefe sigue inflando inventario alto');
+    });
+    check('Llave del suelo se recoge aunque la vida esté llena',()=>{
+      const e=setup(),content=e.contents.get(e.currentKey)!;
+      e.player.hp=e.player.maxHp;e.player.bankKeys=0;
+      content.pickups.push({x:e.player.x+7,y:e.player.y+8,type:'bank_key',value:1,lifetime:99999});
+      tick(e,2);
+      assert(e.player.bankKeys===1,'llave no recogida');
+      assert(!content.pickups.some(p=>p.type==='bank_key'),'llave permaneció en suelo');
     });
 
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
