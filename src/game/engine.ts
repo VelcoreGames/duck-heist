@@ -1856,13 +1856,12 @@ export function updateEngine(engine: GameEngine) {
   }
   if(content.alarmTimer!==undefined && content.alarmTimer>0) {
     content.alarmTimer--;
-    if(content.alarmTimer%360===0 && content.enemies.length<8) {
-      const spots=freeTiles(room.layout,2)
-        .filter(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,player.x,player.y)>96);
+    if(content.alarmTimer%360===0) {
+      const allSpots=freeTiles(room.layout,2);
+      let spots=allSpots.filter(s=>dist(s.x*TILE_SIZE,s.y*TILE_SIZE,player.x,player.y)>96);
+      if(spots.length<3) spots=[...allSpots];
       const sc=floorScale(engine.map.floorIndex,room.distance);
-      const available=Math.max(0,8-content.enemies.length);
-      const spawnCount=Math.min(3,available,spots.length);
-      for(let i=0;i<spawnCount;i++) {
+      for(let i=0;i<3&&spots.length;i++) {
         const index=Math.floor(random()*spots.length);
         const [spot]=spots.splice(index,1);
         if(spot) content.enemies.push(makeEnemy('policia_pato',sc,spot.x,spot.y,false));
