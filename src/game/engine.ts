@@ -34,6 +34,7 @@ import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
 import { obstacleHitbox, specialSolidRects, rectsOverlap, pointInRect, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { notifyCloudSave } from '../cloud/cloudSaveEvents';
+import { bankKeyDropChance, bankKeyPityAfterAttempt, specialRoomKeyCost, specialRoomLocked, tryUnlockSpecialRoom } from './keyAccess';
 import type {
   GameEngine, Enemy, RoomContent, Projectile, DuckDir, EventKind, Pedestal, DifficultyMode, EndlessState, EndlessRewardOption, EndlessHazardKind, BossPartState,
 } from './types';
@@ -65,6 +66,26 @@ function scaledCurrency(value:number,multiplier:number) {
 }
 
 let nextEnemyId = 0;
+
+function maybeDropBankKey(engine:GameEngine,room:MapRoom,content:RoomContent) {
+  if(engine.gameMode==='endless')return;
+  const eligible=room.type===RoomType.COMBAT||room.type===RoomType.CHALLENGE||
+    room.type===RoomType.MINIBOSS||room.type===RoomType.SUBBOSS;
+  if(!eligible)return;
+
+  const chance=bankKeyDropChance(room,engine.player.bankKeys,engine.player.keyPity);
+  const dropped=random()<chance;
+  const pityEligible=room.type===RoomType.COMBAT||room.type===RoomType.CHALLENGE;
+  engine.player.keyPity=bankKeyPityAfterAttempt(engine.player.keyPity,dropped,pityEligible);
+  if(!dropped)return;
+
+  const offset=room.type===RoomType.MINIBOSS||room.type===RoomType.SUBBOSS?34:22;
+  content.pickups.push({
+    x:CANVAS_WIDTH/2+offset,y:CANVAS_HEIGHT/2+18,
+    type:'bank_key',value:1,lifetime:99999,collectDelay:18,
+  });
+  engine.player.keyDropsFloor++;
+}
 
 function emptyEndlessState():EndlessState {
   return {
@@ -419,7 +440,7 @@ function buildRoomContent(engine: GameEngine, room: MapRoom): RoomContent {
       break;
     }
     case RoomType.EVENT: {
-      if (random() < .38) {
+      if (room.template==='cafe') {
         content.cafe = true;
         const foods = ['hp','croissant','sandwich','baguette','torta'];
         const selected = [...foods].sort(() => random() - .5).slice(0, 3);
@@ -472,6 +493,13 @@ function getContent(engine: GameEngine, k = engine.currentKey): RoomContent {
     room.generated = true;
     if (c.enemies.length === 0) room.cleared = true;
   }
+  // Sincroniza las cerraduras desde la perspectiva de esta sala para que
+  // colisión, animación y transición compartan la misma fuente de verdad.
+  c.keyDoorLocks={};
+  for(const d of room.doors){
+    const v=DIR_VECTORS[d],target=engine.map.rooms.get(key(room.gx+v.x,room.gy+v.y));
+    c.keyDoorLocks[d]=!!target&&specialRoomLocked(target);
+  }
   collisionContent.set(room,c);
   return c;
 }
@@ -503,7 +531,13 @@ function pointBlocked(room: MapRoom, px:number, py:number, flying=false):boolean
   if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return true;
   const t=room.layout[ty][tx];
   if(t===TILE_WALL)return true;
-  if(t===TILE_DOOR)return !room.cleared;
+  if(t===TILE_DOOR){
+    if(!room.cleared)return true;
+    const content=collisionContent.get(room);
+    const direction=room.doors.find(d=>DOOR_TILE[d].x===tx&&DOOR_TILE[d].y===ty);
+    if(direction&&content?.keyDoorLocks?.[direction])return true;
+    return false;
+  }
   if(!flying&&t>=OBSTACLE_BASE){
     return pointInRect(px,py,obstacleHitbox(t-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE));
   }
@@ -521,7 +555,13 @@ function boxBlocked(room: MapRoom, x: number, y: number, w: number, h: number, f
   for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
     if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return true;
     const t=room.layout[ty][tx];
-    if(t===TILE_WALL||(t===TILE_DOOR&&!room.cleared))return true;
+    if(t===TILE_WALL)return true;
+    if(t===TILE_DOOR){
+      if(!room.cleared)return true;
+      const content=collisionContent.get(room);
+      const direction=room.doors.find(d=>DOOR_TILE[d].x===tx&&DOOR_TILE[d].y===ty);
+      if(direction&&content?.keyDoorLocks?.[direction])return true;
+    }
     if(!flying&&t>=OBSTACLE_BASE&&rectsOverlap(bx,by,bw,bh,obstacleHitbox(t-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)))return true;
   }
   if(!flying){
@@ -656,6 +696,7 @@ function createPlayer(meta: Record<string, number>) {
     hurtTimer: 0, iFrames: 0, flash: 0,
     dashTimer: 0, dashCooldown: 0, dashDir: { x: 0, y: 0 },
     crumbs: (meta.crumbs ?? 0) * 15, goldenCrumbs: 0,
+    bankKeys:0,keyPity:0,keyDropsFloor:0,keyFlash:0,
     items: [] as string[], activeItem: 'emergency_quack' as string | null,
     activeItemCooldown: 0, activeItemMaxCooldown: 180,
     damageMultiplier: 1 + (meta.damage ?? 0) * 0.1, shotCounter: 0,
@@ -1533,8 +1574,9 @@ function loadNextFloor(engine: GameEngine) {
   applyFloorPassives(engine);
   engine.run.floorReached = idx + 1;
   // vida restaurada parcialmente entre pisos
-  engine.player.hp = Math.min(engine.player.maxHp, engine.player.hp + DIFFICULTIES[engine.difficulty].floorHeal);
-  enterRoom(engine, engine.map.startKey, null);
+  engine.player.hp=Math.min(engine.player.maxHp,engine.player.hp+DIFFICULTIES[engine.difficulty].floorHeal);
+  engine.player.keyPity=0;engine.player.keyDropsFloor=0;engine.player.keyFlash=0;
+  enterRoom(engine,engine.map.startKey,null);
   engine.floorIntroTimer = 110;
   engine.state = GameState.FLOOR_INTRO;
   engine.onStateChange?.(engine.state);
@@ -1928,7 +1970,8 @@ export function updateEngine(engine: GameEngine) {
     engine.restartHold = Math.max(0, engine.restartHold - 3);
   }
 
-  if (player.switchAnim > 0) player.switchAnim--;
+  if(player.switchAnim>0)player.switchAnim--;
+  if(player.keyFlash>0)player.keyFlash--;
 
   // el foco del láser se relaja cuando dejas de mantarlo sobre un objetivo
   if (player.focusTime > 0 && engine.frame % 6 === 0) {
@@ -2194,11 +2237,13 @@ export function updateEngine(engine: GameEngine) {
     const p = content.pickups[i];
     if((p.collectDelay ?? 0)>0) {p.collectDelay!--;continue;}
     if (p.lifetime < 99999 && !room.cleared) p.lifetime--;
-    const isCoin = p.type === 'crumb' || p.type === 'golden_crumb';
+    const isCoin=p.type==='crumb'||p.type==='golden_crumb';
+    const isKey=p.type==='bank_key';
+    const isCurrency=isCoin||isKey;
     const sweep=!!p.forceMagnet;
     let d2 = dist(p.x, p.y, player.x + 7, player.y + 8);
     // Al cerrar una ronda, todo el botín visible viaja hasta el pato antes de resolverse.
-    if ((isCoin||sweep) && (sweep||d2<magnet || autoMagnet || instantMagnet)) {
+    if ((isCurrency||sweep) && (sweep||d2<magnet || autoMagnet || instantMagnet)) {
       if(!sweep&&build.king && !room.cleared && d2<65) {
         const a=engine.frame*.06+i*1.7;
         p.x=lerp(p.x,player.x+7+Math.cos(a)*32,.15);p.y=lerp(p.y,player.y+8+Math.sin(a)*32,.15);
@@ -2211,10 +2256,10 @@ export function updateEngine(engine: GameEngine) {
       p.vy=lerp(p.vy ?? 0,Math.sin(a)*Math.min(maxSpeed,d2*(sweep?.22:.15)+(sweep?3:2)),accel);
       p.x+=p.vx;p.y+=p.vy;
       d2=dist(p.x,p.y,player.x+7,player.y+8);
-      if((autoMagnet||sweep) && engine.frame%4===i%4) spawn(engine,p.x,p.y,'spark',1,isCoin?'#e8c99b':'#ffb6c4');
+      if((autoMagnet||sweep)&&engine.frame%4===i%4)spawn(engine,p.x,p.y,'spark',1,isKey?'#e6c56f':isCoin?'#e8c99b':'#ffb6c4');
     }
     if (d2 < 14) {
-      if(!isCoin && player.hp>=player.maxHp) {
+      if(!isCurrency&&player.hp>=player.maxHp) {
         if(p.sweepCollect){spawn(engine,p.x,p.y,'spark',4,'#ffb6c4');content.pickups.splice(i,1);}
         continue;
       }
@@ -2225,6 +2270,12 @@ export function updateEngine(engine: GameEngine) {
         engine.run.goldenEarned += p.value;
         engine.totalGoldenCrumbs += p.value;
         saveProgress(engine);   // las monedas doradas se guardan al instante
+      } else if(p.type==='bank_key'){
+        player.bankKeys+=Math.max(1,p.value);
+        player.keyFlash=28;
+        engine.toast=player.bankKeys===1?'LLAVE BANCARIA · 1':'LLAVES BANCARIAS · '+player.bankKeys;
+        engine.toastTimer=65;
+        spawn(engine,p.x,p.y,'spark',9,'#e6c56f');
       } else {
         healPlayer(engine, foodHeal(p.type));
         if(!engine.discovered.items.includes(p.type)) showPickupCard(engine,p.type,false);
@@ -2237,13 +2288,13 @@ export function updateEngine(engine: GameEngine) {
         engine.toastTimer = 60;
         spawn(engine, p.x, p.y, 'spark', 6, '#ff8f9f');
       }
-      if (isCoin) spawn(engine, p.x, p.y, 'spark', 4, '#f4d03f');
-      if(isCoin) playCoin(); else playHeal();
-      if(!isCoin && !p.sweepCollect && random()<build.keepFood) {p.collectDelay=75;spawn(engine,p.x,p.y,'spark',2,'#afd9ae');}
+      if(isCurrency)spawn(engine,p.x,p.y,'spark',4,isKey?'#e6c56f':'#f4d03f');
+      if(isKey)playPickup();else if(isCoin)playCoin();else playHeal();
+      if(!isCurrency&&!p.sweepCollect&&random()<build.keepFood) {p.collectDelay=75;spawn(engine,p.x,p.y,'spark',2,'#afd9ae');}
       else content.pickups.splice(i, 1);
       continue;
     }
-    if (p.lifetime <= 0 && isCoin) content.pickups.splice(i, 1);
+    if(p.lifetime<=0&&isCurrency)content.pickups.splice(i,1);
   }
 
   // --- Objetos en el suelo ---
@@ -2412,6 +2463,7 @@ export function updateEngine(engine: GameEngine) {
       if(build.foodEvery&&engine.stats.roomsCleared%build.foodEvery===0)content.pickups.push({x:CANVAS_WIDTH/2,y:192,type:rollFood(),value:1,lifetime:99999});
     }
     applyMapItemEffects(engine,false);
+    if(firstClear)maybeDropBankKey(engine,room,content);
     spawn(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'spark', 16, '#39d353');
     if (room.type === RoomType.COMBAT && random() < .07+getBuild(player).rewardChance*.5+engine.alert*.0003+(room.modifier==='alarm'?.03:0)) {
       content.items.push({ x: CANVAS_WIDTH / 2 - 8, y: CANVAS_HEIGHT / 2 - 8, itemId: rollItem(engine), isWeapon: false, isActive: false });
@@ -2429,7 +2481,10 @@ export function updateEngine(engine: GameEngine) {
   }
 
   for (const d of room.doors) {
-    content.doorAnim[d] = lerp(content.doorAnim[d] ?? 0, room.cleared ? 1 : 0, 0.12);
+    const v=DIR_VECTORS[d],target=engine.map.rooms.get(key(room.gx+v.x,room.gy+v.y));
+    const accessOpen=!target||!specialRoomLocked(target);
+    if(content.keyDoorLocks)content.keyDoorLocks[d]=!accessOpen;
+    content.doorAnim[d]=lerp(content.doorAnim[d]??0,room.cleared&&accessOpen?1:0,.12);
   }
   if (content.lockFlash > 0) content.lockFlash--;
 
@@ -2458,22 +2513,42 @@ export function updateEngine(engine: GameEngine) {
   for(const ped of [content.pedestal,...(content.choices ?? [])]) if(ped && ped.rise!==undefined) ped.rise=Math.min(1,ped.rise+.045);
   registerRoomDiscoveries(engine,content);
 
-  // --- Puertas ---
-  if (room.cleared && !engine.transition.active) {
-    for (const d of room.doors) {
-      const t = DOOR_TILE[d];
-      const cx = player.x + 7, cy = player.y + 8;
-      const inDoor =
-        (d === 'N' && cy < TILE_SIZE * 0.75 && Math.abs(cx - (t.x * TILE_SIZE + 16)) < 12) ||
-        (d === 'S' && cy > CANVAS_HEIGHT - TILE_SIZE * 0.75 && Math.abs(cx - (t.x * TILE_SIZE + 16)) < 12) ||
-        (d === 'W' && cx < TILE_SIZE * 0.75 && Math.abs(cy - (t.y * TILE_SIZE + 16)) < 12) ||
-        (d === 'E' && cx > CANVAS_WIDTH - TILE_SIZE * 0.75 && Math.abs(cy - (t.y * TILE_SIZE + 16)) < 12);
-      if (inDoor) {
-        const v = DIR_VECTORS[d];
-        const targetKey = key(room.gx + v.x, room.gy + v.y);
-        if (engine.map.rooms.has(targetKey) && room.layout[t.y][t.x]===TILE_DOOR) {
-          engine.transition = { active: true, timer: 0, total: 22, dir: d, targetKey };
+  // --- Puertas / cerraduras bancarias ---
+  if(room.cleared&&!engine.transition.active){
+    for(const d of room.doors){
+      const t=DOOR_TILE[d],cx=player.x+7,cy=player.y+8;
+      const v=DIR_VECTORS[d],targetKey=key(room.gx+v.x,room.gy+v.y);
+      const target=engine.map.rooms.get(targetKey);
+      if(!target)continue;
+
+      const doorX=t.x*TILE_SIZE+16,doorY=t.y*TILE_SIZE+16;
+      const nearDoor=dist(cx,cy,doorX,doorY)<50;
+      if(target.type===RoomType.SECRET&&!target.revealed)continue;
+
+      if(specialRoomLocked(target)){
+        if(nearDoor&&bound(engine,'interact')){
+          clearBound(engine,'interact');
+          const result=tryUnlockSpecialRoom(target,player);
+          player.interactFlash=10;player.keyFlash=18;content.lockFlash=32;
+          if(result.ok){
+            if(content.keyDoorLocks)content.keyDoorLocks[d]=false;
+            engine.toast=result.cost===2?'CERRADURA MAESTRA ABIERTA · -2 LLAVES':'PUERTA ABIERTA · -1 LLAVE';
+            engine.toastTimer=85;playDoorUnlock();spawn(engine,doorX,doorY,'spark',8,'#e6c56f');
+          }else{
+            engine.toast=`REQUIERE ${result.cost} ${result.cost===1?'LLAVE BANCARIA':'LLAVES BANCARIAS'}`;
+            engine.toastTimer=70;playDeny();playDoorLock();
+          }
         }
+        continue;
+      }
+
+      const inDoor=
+        (d==='N'&&cy<TILE_SIZE*.75&&Math.abs(cx-doorX)<12)||
+        (d==='S'&&cy>CANVAS_HEIGHT-TILE_SIZE*.75&&Math.abs(cx-doorX)<12)||
+        (d==='W'&&cx<TILE_SIZE*.75&&Math.abs(cy-doorY)<12)||
+        (d==='E'&&cx>CANVAS_WIDTH-TILE_SIZE*.75&&Math.abs(cy-doorY)<12);
+      if(inDoor&&room.layout[t.y][t.x]===TILE_DOOR){
+        engine.transition={active:true,timer:0,total:22,dir:d,targetKey};
         break;
       }
     }
