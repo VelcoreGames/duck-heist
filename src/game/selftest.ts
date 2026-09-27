@@ -157,17 +157,24 @@ export function runSelfChecks():CheckReport {
       tick(e);
       assert(Math.abs(e.player.facingAngle)<.08,'movimiento contrario anuló la dirección del cursor');
     });
-    check('Pato jugador renderiza locomoción, combate, dash, interacción y muerte',()=>{
-      for(const skin of ['robber','chef','executive','ninja','pirate','gold','king']){
+    check('Las 11 skins renderizan locomoción, combate, dash, apuntado y muerte en cuatro direcciones',()=>{
+      assert(SKINS.length===11,'roster cosmético inesperado');
+      for(const skin of SKINS){
         for(const dir of ['up','down','left','right'] as const){
-          drawDuckSkin(ctx,80,80,120,skin,dir,false,false,false,false,false,true);
-          drawDuckSkin(ctx,80,80,126,skin,dir,true,false,false,false,false);
-          drawDuckSkin(ctx,80,80,132,skin,dir,true,false,false,true,false);
-          drawDuckSkin(ctx,80,80,138,skin,dir,true,false,true,false,false);
-          drawDuckSkin(ctx,80,80,144,skin,dir,false,true,false,false,false);
-          drawDuckSkin(ctx,80,80,150,skin,dir,false,false,false,false,true);
+          drawDuckSkin(ctx,80,80,120,skin.id,dir,false,false,false,false,false,true);
+          drawDuckSkin(ctx,80,80,126,skin.id,dir,true,false,false,false,false,false);
+          drawDuckSkin(ctx,80,80,132,skin.id,dir,true,false,false,true,false,true);
+          drawDuckSkin(ctx,80,80,138,skin.id,dir,true,false,true,false,false,true);
+          drawDuckSkin(ctx,80,80,144,skin.id,dir,false,true,false,false,false,false);
+          drawDuckSkin(ctx,80,80,150,skin.id,dir,false,false,false,false,true,false);
         }
       }
+    });
+    check('Cada skin conserva una identidad visual propia y datos de arte completos',()=>{
+      assert(new Set(SKINS.map(s=>s.overlay)).size===SKINS.length,'dos skins comparten overlay principal');
+      assert(new Set(SKINS.map(s=>[s.palette.body,s.accent,s.trim,s.metal].join(':'))).size===SKINS.length,'dos skins comparten firma cromática');
+      assert(SKINS.every(s=>!!s.accent&&!!s.trim&&!!s.metal),'skin sin colores de identidad');
+      assert(SKINS.every(s=>s.description.length>=45),'skin sin descripción visual suficiente');
     });
     check('Props, puertas y proyectiles rediseñados renderizan sin excepción',()=>{
       const art=document.createElement('canvas');art.width=480;art.height=352;
@@ -373,7 +380,7 @@ export function runSelfChecks():CheckReport {
 
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
     check('All content has a pickup category',()=>assert(report.manifest.entries.every(i=>!!i.pickup&&!!i.category),'missing pickup metadata'));
-    check('Exactly eleven cosmetic skins',()=>assert(SKINS.length===11 && SKINS.every(s=>!('hp' in s)&&!('damage' in s)),'invalid cosmetics'));
+    check('Exactly eleven cosmetic skins',()=>assert(SKINS.length===11 && SKINS.every(s=>!('hp' in s)&&!('damage' in s)&&s.overlay!=='none'),'invalid cosmetics'));
     for(let i=0;i<12;i++) for(let floor=0;floor<6;floor++) check(`Map ${i}/${floor}`,()=>assert(validateMap(generateMap(floor,`AUDIT-${i}`)).length===0,'invalid doors, reachability or boss'));
     check('Seeded layouts are reproducible',()=>assert(JSON.stringify([...generateMap(2,'BREAD-TEST').rooms])===JSON.stringify([...generateMap(2,'BREAD-TEST').rooms]),'layout changed'));
     check('Different seeds change maps',()=>assert(JSON.stringify([...generateMap(0,'A').rooms])!==JSON.stringify([...generateMap(0,'B').rooms]),'identical maps'));
