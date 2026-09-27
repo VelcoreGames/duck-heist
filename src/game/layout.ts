@@ -58,12 +58,13 @@ export function useWideMainMenu():boolean {
   return w>=1120&&h>=620;
 }
 
-export const MAIN_MENU={x:276,y:93,w:180,h:25,gap:3,count:8};
+export const MAIN_MENU={x:270,y:104,w:188,h:34,gap:7,count:8};
 export function mainMenuRect(i:number,_wide=false):Rect {
-  // Composición deliberadamente compacta: columna vertical estilo menú kawaii.
-  // Se mantiene dentro del lienzo histórico 480x352 para que clic, teclado y
-  // fullscreen compartan exactamente las mismas coordenadas.
-  return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
+  // Tres modos principales grandes. Las cinco utilidades pasan a una grilla
+  // compacta inferior para que el menú respire y el arte siga siendo protagonista.
+  if(i<3)return {x:MAIN_MENU.x,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap),w:MAIN_MENU.w,h:MAIN_MENU.h};
+  const j=i-3,col=j%2,row=Math.floor(j/2);
+  return {x:270+col*96,y:234+row*29,w:91,h:24};
 }
 export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i,wide)))return i;return -1;}
 
