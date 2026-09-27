@@ -2444,21 +2444,21 @@ export function drawDoor(
 /** Obstáculos sólidos del banco */
 export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number, integrity = 1) {
   const bx=Math.floor(x),by=Math.floor(y),T=TILE_SIZE;
-  const family=Math.floor(kind/6),variant=((kind%6)+6)%6;
-  const accents=['#90a3a7','#5f8fb5','#b45e58','#c6a04c','#787f7b','#9da8ad'];
-  const darks=['#263036','#23303a','#38282a','#342f25','#2c302e','#252c31'];
-  const mids=['#58666b','#4f6878','#6d5050','#756848','#59615f','#68757a'];
-  // Highlights contenidos y apagados: evitamos blancos puros que en pixel-art
-  // se leen como líneas rotas o bordes de selección sobre el escenario.
-  const lights=['#7f8d91','#7693a3','#9f7774','#a98f5c','#78807c','#8fa0a4'];
-  const details=['#69777b','#668293','#8b6867','#8e7b54','#696f6c','#7b898d'];
-  const accent=accents[variant],dark=darks[variant],mid=mids[variant],light=lights[variant],detail=details[variant];
-  const worn=variant===4,reinforced=variant===5;
+  const tier=Math.max(0,Math.min(5,Math.floor(kind/20))),family=((kind%20)+20)%20;
+  // Cada piso tiene un lenguaje material propio: operativo, seguridad, custodia,
+  // ejecutivo, bóveda y soberano. No son simples recolores del mismo set.
+  const accents=['#73898e','#6a94ad','#b48b50','#b88654','#6fa8a2','#d3ad4f'];
+  const darks=['#242d31','#202c34','#302b27','#30262a','#1e292b','#171b1f'];
+  const mids=['#4c5a5e','#4b6571','#6d6252','#6b5155','#506766','#5e5a4d'];
+  const lights=['#758589','#7693a3','#9f8b6a','#9f7d72','#7e9995','#a89669'];
+  const details=['#626f73','#627d8b','#88785d','#876a62','#667d7a','#8d7d59'];
+  const accent=accents[tier],dark=darks[tier],mid=mids[tier],light=lights[tier],detail=details[tier];
+  const basic=tier===0,premium=tier>=3,reinforced=tier>=4,elite=tier===5;
   const pulse=.5+.5*Math.sin(frame*.055+kind*.37);
 
   ctx.save();
   ctx.globalAlpha=.28;ctx.fillStyle='#020609';ctx.beginPath();
-  ctx.ellipse(bx+16,by+29,variant===1?13:12,3.5,0,0,Math.PI*2);ctx.fill();
+  ctx.ellipse(bx+16,by+29,tier===1?13:12,3.5,0,0,Math.PI*2);ctx.fill();
   ctx.globalAlpha=1;
 
   const bolt=(px0:number,py0:number)=>px(ctx,bx+px0,by+py0,light,1);
@@ -2468,7 +2468,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
   switch(family){
     case 0: { // terminal de caja
       rect(ctx,bx+3,by+11,26,17,dark);rect(ctx,bx+5,by+12,22,14,mid);
-      rect(ctx,bx+7,by+13,11,7,'#16252c');rect(ctx,bx+8,by+14,9,4,variant===2?'#55262b':'#29444d');
+      rect(ctx,bx+7,by+13,11,7,'#16252c');rect(ctx,bx+8,by+14,9,4,tier===2?'#55262b':'#29444d');
       rect(ctx,bx+20,by+14,5,2,accent);rect(ctx,bx+20,by+18,5,5,'#20292d');
       rect(ctx,bx+6,by+9,20,2,detail);rect(ctx,bx+8,by+10,16,1,light);feet();break;
     }
@@ -2505,7 +2505,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 7: { // unidad de alarma
       rect(ctx,bx+7,by+17,18,11,dark);rect(ctx,bx+9,by+18,14,8,mid);
-      rect(ctx,bx+11,by+19,4,4,variant===2?'#ef625c':accent);rect(ctx,bx+17,by+19,4,4,'#172126');
+      rect(ctx,bx+11,by+19,4,4,tier===2?'#ef625c':accent);rect(ctx,bx+17,by+19,4,4,'#172126');
       ctx.strokeStyle=light;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx+10,by+17);ctx.lineTo(bx+7,by+12);ctx.lineTo(bx+10,by+9);ctx.stroke();
       break;
     }
@@ -2554,14 +2554,14 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 16: { // jardinera interior
       rect(ctx,bx+9,by+21,14,8,dark);rect(ctx,bx+11,by+22,10,6,mid);
-      ctx.fillStyle=variant===2?'#596346':'#4f7653';
+      ctx.fillStyle=tier===2?'#596346':'#4f7653';
       for(const [ox,oy] of [[0,0],[-5,3],[5,3],[-3,-4],[3,-5]]){ctx.beginPath();ctx.ellipse(bx+16+ox,by+17+oy,4,7,.3,0,Math.PI*2);ctx.fill();}
       break;
     }
     case 17: { // dispensador de agua
       rect(ctx,bx+9,by+12,14,17,dark);rect(ctx,bx+11,by+13,10,14,mid);
       ctx.fillStyle='#89b9c7';ctx.globalAlpha=.75;ctx.beginPath();ctx.ellipse(bx+16,by+8,7,8,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      px(ctx,bx+14,by+17,'#6ea6b8',2);px(ctx,bx+18,by+17,variant===2?'#c95f58':accent,2);break;
+      px(ctx,bx+14,by+17,'#6ea6b8',2);px(ctx,bx+18,by+17,tier===2?'#c95f58':accent,2);break;
     }
     case 18: { // consola de vigilancia
       rect(ctx,bx+3,by+12,26,16,dark);rect(ctx,bx+5,by+14,22,12,mid);
@@ -2570,7 +2570,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 19: { // torre de servidor
       rect(ctx,bx+7,by+3,18,26,dark);rect(ctx,bx+9,by+5,14,22,mid);
-      for(let yy=7;yy<=22;yy+=4){rect(ctx,bx+11,by+yy,10,2,'#19252b');px(ctx,bx+12,by+yy,variant===2?'#e05e58':accent,1);px(ctx,bx+19,by+yy,detail,1);}
+      for(let yy=7;yy<=22;yy+=4){rect(ctx,bx+11,by+yy,10,2,'#19252b');px(ctx,bx+12,by+yy,tier===2?'#e05e58':accent,1);px(ctx,bx+19,by+yy,detail,1);}
       feet();break;
     }
     default: {
@@ -2578,15 +2578,37 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
   }
 
+  if(premium){
+    // Los pisos altos muestran inversión real: placa, latón y remaches discretos.
+    ctx.globalAlpha=tier===3?.48:.62;ctx.fillStyle=accent;
+    ctx.fillRect(bx+22,by+7,5,2);px(ctx,bx+24,by+10,accent,1);
+    ctx.globalAlpha=1;
+  }
   if(reinforced){
-    ctx.globalAlpha=.7;ctx.strokeStyle=accent;ctx.lineWidth=1;
+    ctx.globalAlpha=.48;ctx.strokeStyle=accent;ctx.lineWidth=1;
     ctx.strokeRect(bx+3.5,by+6.5,25,22);ctx.globalAlpha=1;
   }
-  if(worn){
+  if(elite){
+    // Piso 6: detalle de custodia soberana sin volver a usar bordes blancos.
+    ctx.globalAlpha=.72;ctx.fillStyle='#b99542';
+    px(ctx,bx+5,by+8,'#b99542',1);px(ctx,bx+26,by+8,'#b99542',1);
+    px(ctx,bx+5,by+25,'#b99542',1);px(ctx,bx+26,by+25,'#b99542',1);
+    ctx.globalAlpha=1;
+  }
+  if(basic){
     ctx.globalAlpha=.42;ctx.strokeStyle='#1a2023';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(bx+8,by+10);ctx.lineTo(bx+13,by+16);ctx.lineTo(bx+10,by+22);ctx.stroke();
     px(ctx,bx+24,by+24,'#20282b',2);ctx.globalAlpha=1;
   }
+
+  // Firma visual única por ID: pequeñas diferencias de placa/serial evitan
+  // que los 120 props se sientan como seis skins del mismo objeto.
+  const sig=(kind*17+family*5)%13;
+  ctx.globalAlpha=.58;ctx.fillStyle=accent;
+  if(sig%3===0)px(ctx,bx+6+(sig%8),by+8+(sig%5),accent,1);
+  if(sig%3===1){rect(ctx,bx+20,by+11+(sig%6),3,1,accent);px(ctx,bx+24,by+11+(sig%6),detail,1);}
+  if(sig%3===2){px(ctx,bx+8,by+24,detail,1);px(ctx,bx+10+(sig%7),by+24,accent,1);}
+  ctx.globalAlpha=1;
 
   // Daño persistente del escenario: tres etapas visibles.
   const damage=Math.max(0,Math.min(1,1-integrity));
