@@ -193,6 +193,20 @@ export function runSelfChecks():CheckReport {
       assert(broke,'objeto no se destruyó al agotar resistencia');
       assert(room.layout[ty][tx]<OBSTACLE_BASE,'tile destruido sigue siendo sólido');
     });
+    check('Disparos enemigos dañan la cobertura destructible',()=>{
+      const e=setup(),room=e.map.rooms.get(e.currentKey)!,content=e.contents.get(e.currentKey)!;
+      const tx=7,ty=5,kind=1,max=obstacleMaxHp(kind);
+      room.layout[ty][tx]=OBSTACLE_BASE+kind;
+      content.obstacleHp={};
+      const hit=obstacleHitbox(kind,tx*32,ty*32);
+      e.projectiles.push({
+        x:hit.x-2,y:hit.y+hit.h/2,vx:3,vy:0,type:'enemy_bullet',damage:1,friendly:false,
+        lifetime:20,maxLifetime:20,bounces:0,piercing:false,boomerang:false,boomerangPhase:0,
+        hitEnemies:new Set(),burning:false,explode:0,focusTarget:-1,focusTime:0,
+      });
+      tick(e);
+      assert(obstacleHpAt(content,kind,tx,ty)<max,'proyectil enemigo no dañó el prop');
+    });
     check('Estados visuales de daño de los 14 props renderizan sin excepción',()=>{
       for(let kind=0;kind<OBSTACLES.length;kind++){
         drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,1);

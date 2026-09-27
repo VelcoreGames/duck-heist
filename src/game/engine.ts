@@ -574,6 +574,36 @@ function projectileObstacleDamage(engine:GameEngine,p:Projectile){
   return Math.max(1,damage);
 }
 
+function hostileProjectileObstacleDamage(p:Projectile){
+  // El daño del enemigo contra cobertura es deliberadamente menor que el del
+  // jugador: permite que un tiroteo transforme la sala sin borrar todos los
+  // props durante los primeros segundos.
+  if(p.type==='buckshot')return Math.max(2,p.damage*3.6);
+  if(p.type==='drone_shot'||p.type==='briefcase')return Math.max(3,p.damage*3.2);
+  if(p.type==='coin_proj'||p.type==='toast'||p.type==='dough_ball')return Math.max(2,p.damage*2.8);
+  return Math.max(2,p.damage*2.5);
+}
+
+function damageObstacleAtBox(
+  engine:GameEngine,room:MapRoom,content:RoomContent,
+  x:number,y:number,w:number,h:number,amount:number,
+){
+  const bx=x+2,by=y+2,bw=Math.max(1,w-4),bh=Math.max(1,h-4);
+  const minTx=Math.max(0,Math.floor(bx/TILE_SIZE));
+  const maxTx=Math.min(ROOM_WIDTH-1,Math.floor((bx+bw-1)/TILE_SIZE));
+  const minTy=Math.max(0,Math.floor(by/TILE_SIZE));
+  const maxTy=Math.min(ROOM_HEIGHT-1,Math.floor((by+bh-1)/TILE_SIZE));
+  let hit=false;
+  for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
+    const tile=room.layout[ty][tx];
+    if(tile<OBSTACLE_BASE)continue;
+    if(!rectsOverlap(bx,by,bw,bh,obstacleHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)))continue;
+    damageObstacleTile(engine,room,content,tx,ty,amount);
+    hit=true;
+  }
+  return hit;
+}
+
 function pointBlocked(room: MapRoom, px:number, py:number, flying=false):boolean {
   const tx=Math.floor(px/TILE_SIZE),ty=Math.floor(py/TILE_SIZE);
   if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return true;
@@ -3103,19 +3133,25 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     );
     const solid = outside || pointBlocked(room,p.x,p.y,false);
     if (solid) {
-      if(p.friendly&&obstacleHit){
+      if(obstacleHit){
         if(p.explode>0){
+          // Explosivos de ambos bandos ya dañan todos los props dentro del radio.
           explode(engine,p,content);
           engine.projectiles.splice(i,1);
           continue;
         }
-        const destroyed=damageObstacleTile(engine,room,content,tx,ty,projectileObstacleDamage(engine,p));
+        const envDamage=p.friendly?projectileObstacleDamage(engine,p):hostileProjectileObstacleDamage(p);
+        const destroyed=damageObstacleTile(engine,room,content,tx,ty,envDamage);
         if(destroyed){
           spawnWeaponImpact(engine,p,p.x,p.y,true);
-          // Un disparo que termina de romper la cobertura no rebota sobre un
-          // objeto que ya dejó de existir. Los penetrantes siguen su trayectoria.
-          if((p.penetration??0)>0){p.penetration!--;continue;}
-          if(p.piercing)continue;
+          if(p.friendly){
+            // Los disparos penetrantes del jugador pueden continuar cuando la
+            // cobertura acaba de desaparecer.
+            if((p.penetration??0)>0){p.penetration!--;continue;}
+            if(p.piercing)continue;
+          }
+          // El disparo enemigo se consume rompiendo la cobertura. Esto evita
+          // que una misma bala destruya un prop y además golpee al jugador.
           engine.projectiles.splice(i,1);
           continue;
         }
@@ -3401,7 +3437,13 @@ function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: Roo
     case 'k9': {
       if(e.recover>0){e.recover--;e.telegraph=0;}
       else if((e.windup ?? 0)>0){e.windup!--;e.telegraph=1-e.windup!/48;if(e.windup===0)e.chargeTimer=24;}
-      else if(e.chargeTimer>0){e.chargeTimer--;moveEnemy(e,room,Math.cos(e.moveAngle)*4.7,Math.sin(e.moveAngle)*4.7);if(e.chargeTimer===0)e.recover=75;}
+      else if(e.chargeTimer>0){
+        e.chargeTimer--;
+        const dx=Math.cos(e.moveAngle)*4.7,dy=Math.sin(e.moveAngle)*4.7;
+        damageObstacleAtBox(engine,room,content,e.x+dx,e.y+dy,e.size,e.size,e.elite?5:4);
+        moveEnemy(e,room,dx,dy);
+        if(e.chargeTimer===0)e.recover=75;
+      }
       else {moveEnemy(e,room,Math.cos(ang)*sp*.7,Math.sin(ang)*sp*.7);if(e.moveTimer<=0){e.moveAngle=ang;e.windup=48;e.moveTimer=170;playDanger('charge');}}
       break;
     }
@@ -3433,7 +3475,9 @@ function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: Roo
       else if ((e.windup ?? 0) > 0) { e.windup!--; e.telegraph = 1 - e.windup! / 20; if (e.windup === 0) { e.chargeTimer = 12; playDanger('charge'); } }
       else if (e.chargeTimer > 0) {
         e.chargeTimer--;
-        moveEnemy(e, room, Math.cos(e.moveAngle) * 3.8, Math.sin(e.moveAngle) * 3.8);
+        const dx=Math.cos(e.moveAngle)*3.8,dy=Math.sin(e.moveAngle)*3.8;
+        damageObstacleAtBox(engine,room,content,e.x+dx,e.y+dy,e.size,e.size,e.elite?4:3);
+        moveEnemy(e,room,dx,dy);
         if (e.chargeTimer === 0) e.recover = e.elite ? 18 : 36;
       } else {
         if (d > 28) moveEnemy(e, room, Math.cos(flank) * sp, Math.sin(flank) * sp);
@@ -3527,7 +3571,9 @@ function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: Roo
         } else {
           e.telegraph = e.chargeTimer > 20 ? 1 : e.chargeTimer / 20;
           // el escudo permanece FIJADO en shieldAngle durante la embestida
-          moveEnemy(e, room, Math.cos(e.moveAngle) * sp * 4.4, Math.sin(e.moveAngle) * sp * 4.4);
+          const dx=Math.cos(e.moveAngle)*sp*4.4,dy=Math.sin(e.moveAngle)*sp*4.4;
+          damageObstacleAtBox(engine,room,content,e.x+dx,e.y+dy,e.size,e.size,e.elite?7:5);
+          moveEnemy(e,room,dx,dy);
         }
       } else {
         // sigue al jugador, pero el escudo gira lentamente (nunca rastrea perfecto)
@@ -3589,7 +3635,9 @@ function updateEnemyAI(engine: GameEngine, e: Enemy, room: MapRoom, content: Roo
       break;
     }
     case 'roller': {
-      moveEnemy(e, room, Math.cos(e.moveAngle) * sp * 1.6, Math.sin(e.moveAngle) * sp * 1.6);
+      const dx=Math.cos(e.moveAngle)*sp*1.6,dy=Math.sin(e.moveAngle)*sp*1.6;
+      damageObstacleAtBox(engine,room,content,e.x+dx,e.y+dy,e.size,e.size,e.elite?3:2);
+      moveEnemy(e,room,dx,dy);
       if (e.x <= TILE_SIZE * 0.7 || e.x >= CANVAS_WIDTH - TILE_SIZE * 0.7 - e.size) e.moveAngle = Math.PI - e.moveAngle;
       if (e.y <= TILE_SIZE * 0.7 || e.y >= CANVAS_HEIGHT - TILE_SIZE * 0.7 - e.size) e.moveAngle = -e.moveAngle;
       break;
