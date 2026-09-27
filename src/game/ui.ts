@@ -235,42 +235,41 @@ export function drawMenuHeader(
   ctx.save();
   const x=22,y=15,w=UI_BASE_WIDTH-44,h=46;
 
+  // Cabecera sólida y limpia: una sola placa con jerarquía izquierda/derecha.
+  ctx.fillStyle='rgba(0,0,0,.46)';
+  ctx.fillRect(x+2,y+2,w,h);
   ctx.fillStyle='rgba(4,12,16,.98)';
   ctx.fillRect(x,y,w,h);
-  ctx.fillStyle='rgba(12,28,34,.96)';
-  ctx.fillRect(x+5,y+5,w-10,h-10);
+  ctx.fillStyle='rgba(12,28,34,.90)';
+  ctx.fillRect(x+4,y+4,w-8,h-8);
 
   ctx.strokeStyle='rgba(126,166,169,.28)';
   ctx.lineWidth=1;
   ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-  ctx.strokeStyle='rgba(126,166,169,.12)';
-  ctx.strokeRect(x+6.5,y+6.5,w-13,h-13);
 
-  // Barra de identificación rectangular, más pesada y deliberadamente cuadrada.
   ctx.fillStyle=accent;
-  ctx.fillRect(x,y,6,h);
-  ctx.fillRect(x+6,y,88,2);
-  ctx.fillRect(x+6,y+h-2,44,2);
+  ctx.fillRect(x,y,4,h);
+  ctx.fillRect(x+4,y,66,2);
+  ctx.globalAlpha=.45;
+  ctx.fillRect(x+4,y+h-2,34,2);
+  ctx.globalAlpha=1;
 
-  ctx.fillStyle='rgba(255,255,255,.035)';
-  ctx.fillRect(x+14,y+8,14,14);
-  ctx.strokeStyle=accent;
-  ctx.strokeRect(x+15.5,y+9.5,11,11);
-  ctx.fillStyle=accent;
-  ctx.fillRect(x+18,y+12,6,2);
+  // Se elimina el antiguo cuadro decorativo: el texto respira mejor.
+  text(ctx,eyebrow,x+16,y+14,5.0,accent,'left',true,false);
+  const titleSize=title.length>22?11.7:title.length>17?13.0:14.7;
+  ctx.save();
+  ctx.beginPath();ctx.rect(x+12,y+18,258,24);ctx.clip();
+  titleText(ctx,title,x+16,y+36,titleSize,MENU_THEME.paper,'left',false);
+  ctx.restore();
 
-  text(ctx,eyebrow,x+36,y+15,5.1,accent,'left',true,false);
-  titleText(ctx,title,x+16,y+36,15.2,MENU_THEME.paper,'left',false);
+  const maxSub=subtitle.length>49?subtitle.slice(0,48)+'…':subtitle;
+  text(ctx,'DH // VAULT OPS',x+w-14,y+14,4.0,'#587176','right',true,false);
+  text(ctx,maxSub,x+w-14,y+35,4.9,MENU_THEME.muted,'right',false,false);
 
-  const maxSub=subtitle.length>48?subtitle.slice(0,47)+'…':subtitle;
-  text(ctx,maxSub,x+w-16,y+34,5.2,MENU_THEME.muted,'right',false,false);
-  text(ctx,'DH // VAULT OPS',x+w-16,y+14,4.1,'#587176','right',true,false);
-
-  // Indicador de sistema en bloques, no puntos ni formas blandas.
-  const pulse=.45+.25*Math.sin(frame*.08);
+  const pulse=.38+.22*Math.sin(frame*.08);
   ctx.globalAlpha=pulse;
   ctx.fillStyle=accent;
-  for(let i=0;i<3;i++)ctx.fillRect(x+w-49+i*9,y+20,6,3);
+  ctx.fillRect(x+w-50,y+19,36,2);
   ctx.globalAlpha=1;
   ctx.restore();
 }
@@ -282,9 +281,10 @@ export function drawMenuCard(
 ) {
   ctx.save();
 
-  // Tarjeta rectangular limpia: sin pestañas, cantoneras ni piezas sobresalientes.
-  ctx.fillStyle='rgba(0,0,0,.54)';
-  ctx.fillRect(x+3,y+3,w,h);
+  // Placa cuadrada con menos ruido: un marco principal y detalle interior
+  // sólo cuando el tamaño realmente lo permite.
+  ctx.fillStyle='rgba(0,0,0,.50)';
+  ctx.fillRect(x+2,y+2,w,h);
 
   ctx.fillStyle='rgba(5,14,18,.84)';
   ctx.fillRect(x,y,w,h);
@@ -295,23 +295,23 @@ export function drawMenuCard(
   ctx.lineWidth=selected?2:1;
   ctx.strokeRect(x+.5,y+.5,w-1,h-1);
 
-  // Marco interior discreto y siempre contenido.
-  if(w>20&&h>20){
-    ctx.strokeStyle=selected?'rgba(255,255,255,.14)':'rgba(117,164,168,.09)';
+  const showInner=(selected&&w>=88&&h>=30)||(w>=180&&h>=50);
+  if(showInner){
+    ctx.strokeStyle=selected?'rgba(255,255,255,.13)':'rgba(117,164,168,.08)';
     ctx.lineWidth=1;
     ctx.strokeRect(x+4.5,y+4.5,w-9,h-9);
   }
 
-  // Acento lateral compacto. No invade ni rompe la silueta.
   ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?1:.58;
+  ctx.globalAlpha=selected?1:.52;
   ctx.fillRect(x+1,y+1,selected?4:3,h-2);
   ctx.globalAlpha=1;
 
-  // Línea técnica interna opcional en tarjetas grandes.
-  if(h>=34&&w>=40){
-    ctx.fillStyle='rgba(255,255,255,.026)';
-    ctx.fillRect(x+10,y+h-7,w-20,1);
+  if(selected&&w>=70){
+    ctx.fillStyle=accent;
+    ctx.globalAlpha=.42;
+    ctx.fillRect(x+7,y+h-3,Math.min(58,w-14),1);
+    ctx.globalAlpha=1;
   }
 
   ctx.restore();
@@ -371,8 +371,9 @@ export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.go
 /** Etiqueta de sección tipo sello. */
 export function drawSectionLabel(ctx:Ctx,label:string,x:number,y:number,accent=MENU_THEME.gold) {
   ctx.save();
-  text(ctx,label,x,y,5.3,accent,'left',true,false);
-  ctx.fillStyle=accent;ctx.globalAlpha=.45;ctx.fillRect(x,y+4,70,1);
+  ctx.fillStyle=accent;ctx.globalAlpha=.72;ctx.fillRect(x,y-7,3,10);ctx.globalAlpha=1;
+  text(ctx,label,x+8,y,5.3,accent,'left',true,false);
+  ctx.fillStyle=accent;ctx.globalAlpha=.24;ctx.fillRect(x+8,y+4,64,1);
   ctx.restore();
 }
 
