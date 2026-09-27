@@ -16,7 +16,7 @@ import {
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, ENEMIES, META_UPGRADES,
-  RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS,
+  RARITY_COLORS, RARITY_NAMES, TOTAL_FLOORS, SKINS, getSkin,
 } from './data';
 import { T, FLOOR_NAMES_ES } from './i18n';
 import {
@@ -871,16 +871,18 @@ export function renderWorld(engine: GameEngine) {
       p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true);
     ctx.restore();
 
-    // Ala de apoyo: con armas largas/pesadas la silueta comunica que el pato
-    // realmente la sostiene, en vez de mostrar un icono flotando delante.
+    // Ala/mano de apoyo respeta la skin equipada. Antes siempre volvía al
+    // amarillo clásico y rompía la ilusión en skins oscuras, rosas o doradas.
     if(heavyStance||longGun||interact>0){
+      const equippedVisual=getSkin(engine.equippedSkin);
+      const hand=equippedVisual.palette.body,handShade=equippedVisual.palette.shade;
       ctx.save();ctx.translate(drawX+7,drawY+9);ctx.rotate(p.facingAngle);
       ctx.globalAlpha=interact>0?.86:(p.shootFlash>0?.9:.72);
-      ctx.fillStyle='#d6b83f';
+      ctx.fillStyle=hand;
       ctx.fillRect(1,-2,interact>0?6:4,3);
-      ctx.fillStyle='#aa8e2c';ctx.fillRect(3,0,interact>0?5:4,2);
-      if(heavyStance&&!interact){ctx.fillStyle='#ece15b';ctx.fillRect(-1,1,3,2);}
-      if(interact>0){ctx.fillStyle='#f0dc55';ctx.fillRect(7,-1,2,2);}
+      ctx.fillStyle=handShade;ctx.fillRect(3,0,interact>0?5:4,2);
+      if(heavyStance&&!interact){ctx.fillStyle=equippedVisual.palette.dark;ctx.fillRect(-1,1,3,2);}
+      if(interact>0){ctx.fillStyle=equippedVisual.accent;ctx.fillRect(7,-1,2,2);}
       ctx.restore();
     }
 
@@ -3023,7 +3025,12 @@ function renderWardrobeUI(engine: GameEngine) {
   ctx.save();
   ctx.translate(pvx + pw / 2, pvy + 77+Math.round(Math.sin(engine.frame*.04)));
   ctx.scale(4,4);
-  drawDuckSkin(ctx,-8,-8,engine.frame,skin.id,engine.frame%900>750?'left':'down',false,false,false);
+  // La vitrina rota por las cuatro direcciones para enseñar capa, mochila,
+  // perfiles y accesorios; así ninguna skin se juzga sólo por el frontal.
+  const previewDirs=['down','right','up','left'] as const;
+  const previewDir=previewDirs[Math.floor((engine.frame%960)/240)];
+  const previewMoving=(engine.frame%240)>165;
+  drawDuckSkin(ctx,-8,-8,engine.frame,skin.id,previewDir,previewMoving,false,false,false,false,true);
   ctx.restore();
 
   // Nombre y descripción cómica
