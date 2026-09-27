@@ -286,9 +286,10 @@ export interface EndlessState {
 
 export interface Settings {
   master: number; music: number; sfx: number;
+  muted: boolean;           // silencia todo sin perder los niveles configurados
   shake: number;            // 0..2
   damageNumbers: boolean;
-  uiScale: number;          // 1..3
+  uiScale: number;          // fijo en 2; se conserva internamente para compatibilidad
   fullscreen: boolean;
   brightness: number;       // 0.6..1.4
   reduceMotion: boolean;    // reduce decorative menu motion

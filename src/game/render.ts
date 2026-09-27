@@ -2841,7 +2841,7 @@ function renderSettingsUI(engine: GameEngine) {
       text(ctx,label,box.x+box.w-39,box.y+17,5.4,on?'#dbeef1':'#8da0a3','center',true,false);
     }else{
       const action=settingsActionRect(i);
-      const label=row.key==='controls'?'ABRIR':row.key==='accessPreset'?'APLICAR':v>.5?'ACTIVO':'APAGADO';
+      const label=row.key==='controls'?'ABRIR':row.key==='accessPreset'?'APLICAR':row.key==='muted'?(v>.5?'MUTEADO':'CON SONIDO'):v>.5?'ACTIVO':'APAGADO';
       drawMouseButton(ctx,label,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),groupColor,false,false);
     }
   });

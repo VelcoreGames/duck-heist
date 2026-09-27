@@ -641,7 +641,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     rec.bestEndlessScore=Math.max(rec.bestEndlessScore,legacy.score||0);
   }
 
-  setVolumes(settings.master, settings.music, settings.sfx);
+  setVolumes(settings.muted?0:settings.master, settings.music, settings.sfx);
 
   return {
     canvas, ctx, ui, uiScale: 1,
@@ -4768,7 +4768,7 @@ function saveProgress(engine: GameEngine) {
 }
 
 export function saveSettings(engine: GameEngine) {
-  setVolumes(engine.settings.master, engine.settings.music, engine.settings.sfx);
+  setVolumes(engine.settings.muted?0:engine.settings.master, engine.settings.music, engine.settings.sfx);
   saveProgress(engine);
 }
 
@@ -4780,9 +4780,9 @@ export const SETTING_ROWS = [
   { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const, group:'FEEDBACK', description:'Muestra u oculta los números de daño sobre enemigos.' },
   { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO UI', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
   { key: 'highContrast', label: 'ALTO CONTRASTE', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Aumenta contraste de interfaz y lectura del HUD.' },
-  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento, elimina temblor y amplía la UI.' },
+  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento y elimina el temblor de cámara.' },
   { key: 'controls', label: 'CONFIGURAR CONTROLES', kind: 'action' as const, group:'CONTROLES', description:'Remapea movimiento, disparo y acciones del teclado.' },
-  { key: 'uiScale', label: T.settingUiScale, kind: 'scale' as const, group:'VIDEO', description:'Aumenta o reduce el tamaño visual de la interfaz.' },
+  { key: 'muted', label: 'SILENCIAR TODO', kind: 'bool' as const, group:'AUDIO', description:'Apaga o reactiva música y efectos de una sola vez sin cambiar tus niveles de volumen.' },
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
   { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const, group:'VIDEO', description:'Ajusta el brillo del canvas del juego.' },
 ];
@@ -4799,7 +4799,7 @@ export function adjustSetting(engine: GameEngine, i: number, dir: number) {
   if (!row) return;
   if (row.key === 'accessPreset') {
     engine.settings.reduceMotion=true;engine.settings.highContrast=true;engine.settings.shake=0;engine.settings.damageNumbers=true;
-    engine.settings.uiScale=3;engine.settings.brightness=1.1;playUiSelect();saveSettings(engine);return;
+    engine.settings.brightness=1.1;playUiSelect();saveSettings(engine);return;
   }
   if (row.key === 'controls') return;
   const s = engine.settings as unknown as Record<string, number | boolean>;
