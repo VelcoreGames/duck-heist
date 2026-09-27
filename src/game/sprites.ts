@@ -2022,36 +2022,26 @@ function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:numb
     ctx.restore();return;
   }
 
-  // Los iconos clásicos ya tienen cuerpo dibujado a mano; no volvemos a
-  // cubrirlos con la misma máscara de familia que los encuentros generados.
-  if(!iconic&&v.family==='command'){
-    rect(ctx,bx+2,by+10,4,3,v.accent);rect(ctx,bx+28,by+10,4,3,v.accent);
-    rect(ctx,bx+5,by-5,5,2,v.secondary);rect(ctx,bx+22,by-5,5,2,v.secondary);
-    if(frame%30<15){px(ctx,bx+7,by-7,v.accent,2);px(ctx,bx+24,by-7,v.secondary,2);}
-  } else if(!iconic&&v.family==='finance'){
-    rect(ctx,bx+2,by+18,6,7,'#4d3727');rect(ctx,bx+26,by+18,6,7,'#4d3727');
-    px(ctx,bx+5,by+20,v.secondary,2);px(ctx,bx+29,by+20,v.secondary,2);
-    if(frame%26<5){px(ctx,bx+1,by+5,v.secondary,2);px(ctx,bx+31,by+8,v.secondary,2);}
-  } else if(!iconic&&v.family==='bakery'){
-    rect(ctx,bx-2,by+18,4,8,'#9a6842');rect(ctx,bx+32,by+18,4,8,'#9a6842');
-    ctx.globalAlpha=.4+.2*pulse;rect(ctx,bx+8,by-7,16,3,v.secondary);ctx.globalAlpha=1;
-  } else if(!iconic&&v.family==='tech'){
-    rect(ctx,bx-4,by+11,5,4,v.accent);rect(ctx,bx+33,by+11,5,4,v.accent);
-    ctx.globalAlpha=.45+.35*pulse;px(ctx,bx+4,by+4,v.secondary,2);px(ctx,bx+28,by+4,v.secondary,2);ctx.globalAlpha=1;
-  } else if(!iconic&&v.family==='riot'){
-    rect(ctx,bx+29,by+10,8,22,'#667887');rect(ctx,bx+31,by+12,4,18,v.accent);
-    rect(ctx,bx-3,by+12,4,17,'#343d46');
-  } else if(!iconic&&v.family==='war'){
-    rect(ctx,bx+1,by+12,5,4,'#4c5967');rect(ctx,bx+28,by+12,5,4,'#4c5967');
-    px(ctx,bx+11,by+20,'#d8b24a',2);px(ctx,bx+15,by+20,'#c65a4b',2);px(ctx,bx+19,by+20,'#8aaad1',2);
-  } else if(!iconic&&v.family==='wealth'){
-    // Corona y lluvia de monedas.
-    rect(ctx,bx+7,by-17,22,3,'#3b3020');rect(ctx,bx+9,by-20,4,4,v.accent);rect(ctx,bx+16,by-22,4,6,v.accent);rect(ctx,bx+23,by-20,4,4,v.accent);
-    if(frame%18<4){px(ctx,bx-2,by+6,v.accent,2);px(ctx,bx+38,by+14,v.accent,2);}
-  } else if(!iconic&&v.family==='vault'){
-    rect(ctx,bx-4,by+13,5,14,'#3d365f');rect(ctx,bx+33,by+13,5,14,'#3d365f');
-    ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.secondary;ctx.beginPath();ctx.arc(bx+18,by+17,13+phase*3,0,Math.PI*2);ctx.stroke();
-    px(ctx,bx+17,by+16,v.accent,3);ctx.globalAlpha=1;
+  // Insignia de facción contenida. La silueta principal ya comunica el rol;
+  // aquí sólo reforzamos identidad sin apilar otra capa de geometría.
+  if(v.family==='command'){
+    rect(ctx,bx+14,by+18,8,5,'#1a2731');px(ctx,bx+17,by+19,v.secondary,3);
+    if(frame%28<8){px(ctx,bx+4,by+4,'#5ca7ff',2);px(ctx,bx+30,by+4,'#ff5b58',2);}
+  }else if(v.family==='finance'){
+    rect(ctx,bx+14,by+19,8,4,'#20312e');px(ctx,bx+16,by+20,v.accent,2);px(ctx,bx+20,by+20,v.secondary,2);
+  }else if(v.family==='bakery'){
+    ctx.globalAlpha=.35+.25*pulse;rect(ctx,bx+13,by+24,10,3,phase>=1?'#e85f37':v.secondary);ctx.globalAlpha=1;
+  }else if(v.family==='tech'){
+    ctx.globalAlpha=.45+.35*pulse;px(ctx,bx+8,by+8,v.accent,2);px(ctx,bx+27,by+8,v.secondary,2);ctx.globalAlpha=1;
+  }else if(v.family==='riot'){
+    rect(ctx,bx+29,by+17,5,9,v.accent);rect(ctx,bx+30,by+19,3,5,'#24313a');
+  }else if(v.family==='war'){
+    px(ctx,bx+13,by+22,'#d8b24a',2);px(ctx,bx+17,by+22,'#c65a4b',2);px(ctx,bx+21,by+22,'#8299b0',2);
+  }else if(v.family==='wealth'){
+    rect(ctx,bx+13,by+20,10,3,'#2c2a24');rect(ctx,bx+15,by+20,6,2,v.accent);
+    if(frame%20<3)px(ctx,bx+31,by+5,v.secondary,2);
+  }else if(v.family==='vault'){
+    ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.secondary;ctx.beginPath();ctx.arc(bx+18,by+18,7+phase*2,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
   }
 
   // Accesorio único por individuo.
