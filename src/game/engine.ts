@@ -4773,18 +4773,21 @@ export function saveSettings(engine: GameEngine) {
 }
 
 export const SETTING_ROWS = [
+  // Columna izquierda: audio primero, después feedback de juego.
+  { key: 'muted', label: 'SILENCIAR TODO', kind: 'bool' as const, group:'AUDIO', description:'Apaga o reactiva música y efectos de una sola vez sin cambiar tus niveles de volumen.' },
   { key: 'master', label: T.settingMaster, kind: 'vol' as const, group:'AUDIO', description:'Volumen general del juego.' },
   { key: 'music', label: T.settingMusic, kind: 'vol' as const, group:'AUDIO', description:'Volumen de música y ambiente.' },
   { key: 'sfx', label: T.settingSfx, kind: 'vol' as const, group:'AUDIO', description:'Disparos, impactos, UI y efectos.' },
   { key: 'shake', label: T.settingShake, kind: 'shake' as const, group:'FEEDBACK', description:'Intensidad del movimiento de cámara al golpear o recibir daño.' },
   { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const, group:'FEEDBACK', description:'Muestra u oculta los números de daño sobre enemigos.' },
-  { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO UI', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
-  { key: 'highContrast', label: 'ALTO CONTRASTE', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Aumenta contraste de interfaz y lectura del HUD.' },
-  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento y elimina el temblor de cámara.' },
-  { key: 'controls', label: 'CONFIGURAR CONTROLES', kind: 'action' as const, group:'CONTROLES', description:'Remapea movimiento, disparo y acciones del teclado.' },
-  { key: 'muted', label: 'SILENCIAR TODO', kind: 'bool' as const, group:'AUDIO', description:'Apaga o reactiva música y efectos de una sola vez sin cambiar tus niveles de volumen.' },
+
+  // Columna derecha: pantalla, accesibilidad y remapeo.
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
   { key: 'brightness', label: 'BRILLO', kind: 'brightness' as const, group:'VIDEO', description:'Ajusta el brillo del canvas del juego.' },
+  { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
+  { key: 'highContrast', label: 'ALTO CONTRASTE', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Aumenta contraste de interfaz y lectura del HUD.' },
+  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento y elimina el temblor de cámara.' },
+  { key: 'controls', label: 'CONTROLES', kind: 'action' as const, group:'CONTROLES', description:'Remapea movimiento, disparo y acciones del teclado.' },
 ];
 
 export function settingValue(engine: GameEngine, i: number) {
@@ -4805,9 +4808,6 @@ export function adjustSetting(engine: GameEngine, i: number, dir: number) {
   const s = engine.settings as unknown as Record<string, number | boolean>;
   if (row.kind === 'bool') {
     s[row.key] = !s[row.key];
-  } else if (row.kind === 'scale') {
-    s[row.key] = clamp((s[row.key] as number) + dir, 1, 3);
-    if (dir === 0) s[row.key] = 2;
   } else if (row.kind === 'shake') {
     s[row.key] = clamp((s[row.key] as number) + dir * 0.5, 0, 2);
   } else if(row.kind==='brightness') {

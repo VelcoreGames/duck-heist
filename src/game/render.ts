@@ -2721,6 +2721,13 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   text(ctx,'ELIGE UNA OPERACIÓN',first.x,70,wide?5.0:4.7,'#8aa09d','left',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
+    const groupLabel=i===3?'PROGRESIÓN':i===6?'ARCHIVO / SISTEMA':'';
+    if(groupLabel){
+      const groupBox=mainMenuRect(i,wide);
+      ctx.fillStyle='rgba(138,160,157,.16)';
+      ctx.fillRect(groupBox.x,groupBox.y-6,groupBox.w,1);
+      text(ctx,groupLabel,groupBox.x+groupBox.w,groupBox.y-2,3.65,'#657c7e','right',true,false);
+    }
     const on=i===engine.menuIndex,box=mainMenuRect(i,wide),hover=inside(engine.mouseX,engine.mouseY,box);
     const heistCheckpoint=i===0&&engine.heistCheckpointFloor>0;
     const endlessCheckpoint=i===1&&engine.endlessCheckpointRound>0;
@@ -2825,15 +2832,26 @@ function renderHowToPlayUI(engine: GameEngine) {
 function renderSettingsUI(engine: GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine);
   drawMenuBackdrop(ctx,mf,.93,'#8fb7c8');
-  drawMenuHeader(ctx,'AJUSTES','Controles grandes y directos. Los cambios se guardan al instante.',mf,'#8fb7c8','SISTEMA DEL ATRACO');
+  drawMenuHeader(ctx,'AJUSTES','Audio, pantalla, accesibilidad y controles en bloques claros.',mf,'#8fb7c8','SISTEMA DEL ATRACO');
+
+  text(ctx,'AUDIO / FEEDBACK',34,75,4.2,'#7f9597','left',true,false);
+  text(ctx,'VIDEO / ACCESIBILIDAD',244,75,4.2,'#7f9597','left',true,false);
 
   SETTING_ROWS.forEach((row,i)=>{
     const box=settingsRect(i),on=i===engine.settingsIndex;
     const groupColor=row.group==='AUDIO'?'#d4b96e':row.group==='FEEDBACK'?'#d98069':row.group==='ACCESIBILIDAD'?'#b992d8':row.group==='VIDEO'?'#8fb7c8':row.group==='CONTROLES'?'#79b9d2':'#78c99a';
     drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,groupColor,on?'rgba(25,40,47,.98)':'rgba(10,24,30,.9)');
-    text(ctx,row.label,box.x+10,box.y+16,5.1,on?'#eef6f2':'#a9b7b6','left',on,false);
+
     const v=settingValue(engine,i);
-    if(row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness'){
+    const isStepper=row.kind==='vol'||row.kind==='shake'||row.kind==='brightness';
+    const labelRight=isStepper?box.x+box.w-84:box.x+box.w-94;
+    const fontSize=row.label.length>18?4.25:row.label.length>14?4.65:5.05;
+    ctx.save();
+    ctx.beginPath();ctx.rect(box.x+7,box.y+3,Math.max(58,labelRight-box.x-12),box.h-6);ctx.clip();
+    text(ctx,row.label,box.x+10,box.y+16,fontSize,on?'#eef6f2':'#a9b7b6','left',on,false);
+    ctx.restore();
+
+    if(isStepper){
       const minus=settingsMinusRect(i),plus=settingsPlusRect(i);
       drawMouseButton(ctx,'−',minus.x,minus.y,minus.w,minus.h,inside(engine.mouseX,engine.mouseY,minus),groupColor);
       drawMouseButton(ctx,'+',plus.x,plus.y,plus.w,plus.h,inside(engine.mouseX,engine.mouseY,plus),groupColor);
@@ -2842,7 +2860,8 @@ function renderSettingsUI(engine: GameEngine) {
     }else{
       const action=settingsActionRect(i);
       const label=row.key==='controls'?'ABRIR':row.key==='accessPreset'?'APLICAR':row.key==='muted'?(v>.5?'MUTEADO':'CON SONIDO'):v>.5?'ACTIVO':'APAGADO';
-      drawMouseButton(ctx,label,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),groupColor,false,false);
+      const actionColor=row.key==='muted'?(v>.5?'#d85d58':'#78c99a'):groupColor;
+      drawMouseButton(ctx,label,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),actionColor,false,false);
     }
   });
 
@@ -2851,7 +2870,6 @@ function renderSettingsUI(engine: GameEngine) {
   wrappedText(ctx,selected.group+' · '+selected.description,138,303,300,4.35,5.2,2,'#9fb1b0');
   drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#8fb7c8');
 }
-
 function renderWardrobeUI(engine: GameEngine) {
   const ctx = engine.ui!;
   drawMenuBackdrop(ctx,menuFrame(engine),.93,'#79b9d2');
@@ -3207,17 +3225,27 @@ function renderFloorClearUI(engine: GameEngine) {
 function renderPausedUI(engine: GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine);
   drawMenuBackdrop(ctx,mf,.86,'#e6c56f');
-  drawMenuHeader(ctx,'ATRACO EN PAUSA','Todo lo necesario está a un clic.',mf,'#e6c56f','ESTADO DE LA OPERACIÓN');
+  drawMenuHeader(ctx,'ATRACO EN PAUSA','Primero continúa; después consulta, configura o abandona.',mf,'#e6c56f','ESTADO DE LA OPERACIÓN');
+
   const items=[
-    T.resume,engine.gameMode==='endless'?'RENDIMIENTO':'MAPA',engine.gameMode==='endless'?'BUILD ACTUAL':'INFO DE RUN',T.restartRun,
-    T.menuHowTo,T.menuSettings,T.backToMenu,
+    T.resume,
+    engine.gameMode==='endless'?'RENDIMIENTO':'MAPA',
+    engine.gameMode==='endless'?'BUILD ACTUAL':'INFO DE RUN',
+    T.menuSettings,
+    T.menuHowTo,
+    T.restartRun,
+    T.backToMenu,
   ];
+
   items.forEach((label,i)=>{
-    const box=pauseRect(i),on=i===engine.pauseIndex,dangerous=i===3||i===6,accent=dangerous?'#d85d58':'#e6c56f';
+    const box=pauseRect(i),on=i===engine.pauseIndex,dangerous=i>=5,accent=dangerous?'#d85d58':'#e6c56f';
     drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,accent,on?(dangerous?'rgba(48,25,27,.97)':'rgba(36,34,25,.97)'):'rgba(9,22,28,.94)');
-    text(ctx,label,box.x+14,box.y+22,7,on?(dangerous?'#ffd5d1':'#fff0bc'):'#c7d3ce','left',true,false);
-    text(ctx,dangerous?'REQUIERE CONFIRMACIÓN':'CLIC PARA ABRIR',box.x+box.w-12,box.y+22,4.1,on?accent:'#61757a','right',false,false);
+    const primary=i===0;
+    text(ctx,label,box.x+14,box.y+21,primary?7.6:6.8,on?(dangerous?'#ffd5d1':'#fff0bc'):'#c7d3ce','left',true,false);
+    const helper=primary?'VOLVER AL ATRACO':dangerous?'REQUIERE CONFIRMACIÓN':'ABRIR';
+    text(ctx,helper,box.x+box.w-12,box.y+21,4.05,on?accent:'#61757a','right',false,false);
   });
+
   drawMenuCard(ctx,44,251,388,55,false,'#52666d','rgba(7,17,23,.95)');
   drawSectionLabel(ctx,'RESUMEN RÁPIDO',58,266,'#8fa8a7');
   text(ctx,'DIFICULTAD',62,284,4.5,'#61777c','left',false,false);text(ctx,difficultyLabel(engine),62,298,6.3,'#e6c56f','left',true,false);
@@ -3225,7 +3253,6 @@ function renderPausedUI(engine: GameEngine) {
   text(ctx,'OBJETOS',310,284,4.5,'#61777c','left',false,false);text(ctx,String(engine.player.items.length),310,298,6.3,'#d8c57d','left',true,false);
   text(ctx,engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,428,298,4.3,'#75898d','right',true,false);
 }
-
 function renderRunInfoUI(engine:GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine),p=engine.player,r=engine.run,s2=engine.stats;
   drawMenuBackdrop(ctx,mf,.95,'#79b9d2');
@@ -3369,7 +3396,7 @@ function renderEndActions(engine:GameEngine,accent:string){
   const ctx=engine.ui!;
   ['OTRO INTENTO','MENÚ PRINCIPAL'].forEach((label,i)=>{
     const box=endActionRect(i);
-    drawMouseButton(ctx,label,box.x,box.y,box.w,box.h,inside(engine.mouseX,engine.mouseY,box),accent);
+    drawMouseButton(ctx,label,box.x,box.y,box.w,box.h,inside(engine.mouseX,engine.mouseY,box),i===0?accent:'#6f8588');
   });
 }
 
