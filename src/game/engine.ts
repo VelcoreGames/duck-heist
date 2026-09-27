@@ -4808,9 +4808,6 @@ export function adjustSetting(engine: GameEngine, i: number, dir: number) {
   const s = engine.settings as unknown as Record<string, number | boolean>;
   if (row.kind === 'bool') {
     s[row.key] = !s[row.key];
-  } else if (row.kind === 'scale') {
-    s[row.key] = clamp((s[row.key] as number) + dir, 1, 3);
-    if (dir === 0) s[row.key] = 2;
   } else if (row.kind === 'shake') {
     s[row.key] = clamp((s[row.key] as number) + dir * 0.5, 0, 2);
   } else if(row.kind==='brightness') {
