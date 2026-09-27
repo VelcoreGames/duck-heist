@@ -2843,7 +2843,7 @@ function renderSettingsUI(engine: GameEngine) {
     drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,groupColor,on?'rgba(25,40,47,.98)':'rgba(10,24,30,.9)');
 
     const v=settingValue(engine,i);
-    const isStepper=row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness';
+    const isStepper=row.kind==='vol'||row.kind==='shake'||row.kind==='brightness';
     const labelRight=isStepper?box.x+box.w-84:box.x+box.w-94;
     const fontSize=row.label.length>18?4.25:row.label.length>14?4.65:5.05;
     ctx.save();
