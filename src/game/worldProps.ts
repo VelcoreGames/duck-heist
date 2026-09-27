@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, UI_BASE_WIDTH, RoomType } from './constants';
+import { CANVAS_WIDTH, UI_BASE_WIDTH, RoomType, OBSTACLES, OBSTACLE_VARIANTS_PER_FAMILY } from './constants';
 import type { RoomContent } from './types';
 
 export type WorldPropKind =
@@ -27,31 +27,57 @@ export interface ObstacleDurability {
   debris:string;
 }
 
+interface ObstacleFamilyPhysics {
+  hp:number;
+  material:ObstacleMaterial;
+  debris:string;
+  hitbox:{x:number;y:number;w:number;h:number};
+  occludes:boolean;
+}
+
 /**
- * Resistencia base de los 14 props procedurales. La diferencia entre objetos
- * es intencional: una bandeja o bolsa cae rápido; cajas fuertes, columnas y
- * contenedores blindados necesitan fuego sostenido o armamento pesado.
+ * Física base para las 20 familias nuevas. Cada familia tiene seis variantes;
+ * el modificador de variante altera resistencia sin convertir ninguna en una
+ * esponja de balas.
  */
-export const OBSTACLE_DURABILITY:ReadonlyArray<ObstacleDurability>=[
-  // Balance pensado alrededor de la pistola inicial de 7 de daño:
-  // frágiles 1–2 impactos, medios 3–5 y estructuras fuertes 7–9.
-  {hp:18, material:'wood',       debris:'#8a694f'}, // desk
-  {hp:12, material:'light',      debris:'#c99e36'}, // barrier
-  {hp:24, material:'metal',      debris:'#738084'}, // shelf
-  {hp:9,  material:'light',      debris:'#4d6268'}, // moneybag
-  {hp:32, material:'reinforced', debris:'#69777b'}, // crate
-  {hp:52, material:'structural', debris:'#aab4b3'}, // column
-  {hp:60, material:'structural', debris:'#7e8b90'}, // safe
-  {hp:11, material:'light',      debris:'#68777c'}, // rubble
-  {hp:38, material:'reinforced', debris:'#78817e'}, // deposit lockers
-  {hp:10, material:'light',      debris:'#4d5a5e'}, // briefcase
-  {hp:7,  material:'light',      debris:'#718c68'}, // cash tray
-  {hp:27, material:'metal',      debris:'#677579'}, // value cart
-  {hp:35, material:'reinforced', debris:'#727d81'}, // archive cabinet
-  {hp:48, material:'structural', debris:'#68757a'}, // armored case
+export const OBSTACLE_FAMILY_PHYSICS:ReadonlyArray<ObstacleFamilyPhysics>=[
+  {hp:18,material:'metal',      debris:'#5f7076',hitbox:{x:3,y:15,w:26,h:14},occludes:true }, // teller terminal
+  {hp:10,material:'light',      debris:'#b48d3e',hitbox:{x:4,y:19,w:24,h:10},occludes:false}, // queue divider
+  {hp:22,material:'metal',      debris:'#6f7d80',hitbox:{x:4,y:14,w:24,h:15},occludes:true }, // document carousel
+  {hp:9, material:'light',      debris:'#53686d',hitbox:{x:6,y:19,w:20,h:10},occludes:false}, // sealed tote
+  {hp:30,material:'reinforced', debris:'#69767a',hitbox:{x:3,y:15,w:26,h:14},occludes:true }, // dispatch crate
+  {hp:50,material:'structural', debris:'#a1abad',hitbox:{x:7,y:6,w:18,h:25},occludes:true }, // reinforced support
+  {hp:26,material:'reinforced', debris:'#64747b',hitbox:{x:5,y:14,w:22,h:15},occludes:true }, // keypad station
+  {hp:12,material:'light',      debris:'#56676e',hitbox:{x:6,y:19,w:20,h:10},occludes:false}, // alarm unit
+  {hp:34,material:'reinforced', debris:'#77817f',hitbox:{x:3,y:12,w:26,h:17},occludes:true }, // deposit drawers
+  {hp:11,material:'light',      debris:'#4d5b60',hitbox:{x:5,y:20,w:22,h:9}, occludes:false}, // courier hardcase
+  {hp:14,material:'metal',      debris:'#657277',hitbox:{x:5,y:18,w:22,h:11},occludes:false}, // currency counter
+  {hp:25,material:'metal',      debris:'#657479',hitbox:{x:4,y:16,w:24,h:13},occludes:true }, // rolling cart
+  {hp:32,material:'reinforced', debris:'#717c80',hitbox:{x:3,y:12,w:26,h:17},occludes:true }, // evidence locker
+  {hp:46,material:'structural', debris:'#8a9697',hitbox:{x:3,y:13,w:26,h:16},occludes:true }, // bullion cage
+  {hp:17,material:'metal',      debris:'#728085',hitbox:{x:4,y:17,w:24,h:12},occludes:true }, // printer station
+  {hp:8, material:'light',      debris:'#5c666a',hitbox:{x:7,y:21,w:18,h:8}, occludes:false}, // office chair
+  {hp:10,material:'light',      debris:'#617057',hitbox:{x:7,y:20,w:18,h:9}, occludes:false}, // planter
+  {hp:13,material:'light',      debris:'#7d969d',hitbox:{x:7,y:18,w:18,h:11},occludes:true }, // water cooler
+  {hp:27,material:'metal',      debris:'#566d76',hitbox:{x:3,y:14,w:26,h:15},occludes:true }, // surveillance console
+  {hp:38,material:'reinforced', debris:'#59666d',hitbox:{x:5,y:9,w:22,h:20}, occludes:true }, // server tower
 ];
 
-export const obstacleMaxHp=(kind:number)=>OBSTACLE_DURABILITY[kind]?.hp??36;
+const variantHpDelta=[0,1,2,3,-2,6] as const;
+export const obstacleFamilyIndex=(kind:number)=>Math.max(0,Math.min(OBSTACLE_FAMILY_PHYSICS.length-1,Math.floor(kind/OBSTACLE_VARIANTS_PER_FAMILY)));
+export const obstacleVariantIndex=(kind:number)=>((kind%OBSTACLE_VARIANTS_PER_FAMILY)+OBSTACLE_VARIANTS_PER_FAMILY)%OBSTACLE_VARIANTS_PER_FAMILY;
+
+export const OBSTACLE_DURABILITY:ReadonlyArray<ObstacleDurability>=OBSTACLES.map((_,kind)=>{
+  const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
+  const variant=obstacleVariantIndex(kind);
+  return {
+    hp:Math.max(6,Math.min(63,family.hp+variantHpDelta[variant])),
+    material:variant===5&&family.material==='light'?'metal':family.material,
+    debris:family.debris,
+  };
+});
+
+export const obstacleMaxHp=(kind:number)=>OBSTACLE_DURABILITY[kind]?.hp??18;
 export const obstacleMaterial=(kind:number)=>OBSTACLE_DURABILITY[kind]?.material??'metal';
 export const obstacleDebrisColor=(kind:number)=>OBSTACLE_DURABILITY[kind]?.debris??'#7a8588';
 
@@ -73,28 +99,22 @@ export function pedestalInteractPoint(ped:{x:number;y:number}) {
  * pasar "detrás" sin atravesar físicamente el objeto.
  */
 export function obstacleHitbox(kind:number,x:number,y:number):ObstacleRect {
-  switch(kind){
-    case 0:return {x:x+2,y:y+14,w:28,h:14}; // mostrador
-    case 1:return {x:x+3,y:y+16,w:26,h:12}; // barrera
-    case 2:return {x:x+3,y:y+12,w:26,h:16}; // estantería
-    case 3:return {x:x+6,y:y+18,w:20,h:11}; // bolsa de efectivo
-    case 4:return {x:x+3,y:y+14,w:26,h:14}; // caja blindada
-    case 5:return {x:x+6,y:y+5,w:20,h:26};  // columna
-    case 6:return {x:x+3,y:y+12,w:26,h:17}; // caja fuerte
-    case 7:return {x:x+5,y:y+18,w:22,h:10}; // panel/escombro
-    case 8:return {x:x+3,y:y+11,w:26,h:18}; // lockers
-    case 9:return {x:x+5,y:y+20,w:22,h:9};  // maletín
-    case 10:return {x:x+4,y:y+21,w:24,h:8}; // bandeja efectivo
-    case 11:return {x:x+3,y:y+15,w:26,h:14}; // carrito valores
-    case 12:return {x:x+3,y:y+11,w:26,h:18}; // archivador
-    case 13:return {x:x+3,y:y+16,w:26,h:13}; // contenedor blindado
-    default:return {x:x+5,y:y+18,w:22,h:10};
-  }
+  const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
+  const variant=obstacleVariantIndex(kind);
+  const h=family?.hitbox ?? {x:5,y:18,w:22,h:10};
+  // Algunas variantes cambian ligeramente la huella, pero siempre permanecen
+  // dentro del tile y conservan espacio visual para pasar detrás del prop.
+  const widen=variant===5?1:variant===4?-1:0;
+  return {
+    x:x+h.x-widen,
+    y:y+h.y,
+    w:Math.max(12,Math.min(30,h.w+widen*2)),
+    h:h.h,
+  };
 }
 
 export function obstacleOccludes(kind:number){
-  return kind===0||kind===2||kind===4||kind===5||kind===6||
-    kind===8||kind===11||kind===12||kind===13;
+  return OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)]?.occludes ?? false;
 }
 
 /** Rectángulos sólidos de props especiales dibujados fuera del tilemap. */
