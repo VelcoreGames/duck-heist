@@ -177,21 +177,42 @@ export const DOOR_TILE: Record<Dir, { x: number; y: number }> = {
 export const TILE_FLOOR = 0;
 export const TILE_WALL = 1;
 export const TILE_DOOR = 2;
-// 10+ are obstacles
+// 10+ are destructible environment props.
 export const OBSTACLE_BASE = 10;
-export const OBSTACLES = [
-  'desk',             // 10 mostrador bancario
-  'barrier',          // 11 barrera de seguridad
-  'shelf',            // 12 estantería / archivo
-  'moneybag',         // 13 bolsa sellada de efectivo
-  'crate',            // 14 caja blindada de traslado
-  'column',           // 15 columna de piedra/acero
-  'safe',             // 16 caja fuerte ejecutiva
-  'rubble',           // 17 panel de seguridad dañado
-  'deposit_lockers',  // 18 casilleros de depósito
-  'briefcase',        // 19 maletín de valores
-  'cash_tray',        // 20 bandeja de efectivo
-  'value_cart',       // 21 carrito de valores
-  'archive_cabinet',  // 22 archivador de custodia
-  'armored_case',     // 23 contenedor blindado
-];
+
+/**
+ * Catálogo v0.8.0 rehecho desde cero: 20 familias × 6 variantes = 120 props.
+ * Los nombres anteriores fueron retirados para que el generador no dependa
+ * del antiguo set de 14 objetos.
+ */
+export const OBSTACLE_VARIANTS = [
+  'standard','blue','red','gold','worn','reinforced',
+] as const;
+export const OBSTACLE_VARIANTS_PER_FAMILY = OBSTACLE_VARIANTS.length;
+
+export const OBSTACLE_FAMILIES = [
+  'teller_terminal',
+  'queue_divider',
+  'document_carousel',
+  'sealed_document_tote',
+  'dispatch_crate',
+  'reinforced_support',
+  'vault_keypad_station',
+  'alarm_junction_unit',
+  'deposit_drawer_stack',
+  'courier_hardcase',
+  'currency_counter',
+  'rolling_file_cart',
+  'evidence_locker',
+  'bullion_cage',
+  'printer_station',
+  'office_chair',
+  'indoor_planter',
+  'water_cooler',
+  'surveillance_console',
+  'server_tower',
+] as const;
+
+export const OBSTACLES = OBSTACLE_FAMILIES.flatMap(family =>
+  OBSTACLE_VARIANTS.map(variant => `${family}_${variant}`)
+);
