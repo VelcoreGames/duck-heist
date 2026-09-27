@@ -12,7 +12,7 @@ import {
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
   drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
   drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
-  drawDuckSkin, drawBankKey,
+  drawDuckSkin, drawBankKey, drawCrumbCluster,
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, ENEMIES, META_UPGRADES,
@@ -600,12 +600,13 @@ export function renderWorld(engine: GameEngine) {
     }else{
       if(engine.gameMode==='endless'){
         const golden=p.type==='golden_crumb',previousAlpha=ctx.globalAlpha;
-        ctx.globalAlpha=previousAlpha*(golden?.24:.10);ctx.strokeStyle=golden?'#f4d03f':'#d4a574';ctx.lineWidth=1;
-        ctx.beginPath();ctx.ellipse(p.x,p.y+4,golden?8:6,golden?4:3,0,0,Math.PI*2);ctx.stroke();
+        ctx.globalAlpha=previousAlpha*(golden?.24:.10);ctx.strokeStyle=golden?'#f4d03f':'#d79045';ctx.lineWidth=1;
+        ctx.beginPath();ctx.ellipse(p.x,p.y+4,golden?8:7,golden?4:3,0,0,Math.PI*2);ctx.stroke();
         if(golden){ctx.globalAlpha=previousAlpha*(.12+.06*Math.sin(f*.12));ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.stroke();}
         ctx.globalAlpha=previousAlpha;
       }
-      drawCoin(ctx,p.x,p.y,f,p.type==='golden_crumb');
+      if(p.type==='golden_crumb')drawCoin(ctx,p.x,p.y,f,true,true);
+      else drawCrumbCluster(ctx,p.x-8,p.y-11,f,16,true);
     }
     ctx.restore();
   }
@@ -2341,6 +2342,56 @@ function hudPlate(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:numb
   ctx.restore();
 }
 
+function drawResourceHud(
+  ctx:CanvasRenderingContext2D,x:number,y:number,w:number,
+  rows:Array<{kind:'crumb'|'coin'|'key';label:string;value:string;accent:string;flash?:boolean}>,
+  frame:number,
+){
+  const rowH=17,h=rows.length*rowH+6;
+  ctx.save();
+
+  // Sombra + vidrio oscuro.
+  ctx.fillStyle='rgba(0,0,0,.38)';ctx.fillRect(x+3,y+4,w,h);
+  ctx.fillStyle='rgba(5,14,18,.88)';ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='rgba(230,197,111,.48)';ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.strokeStyle='rgba(255,239,181,.14)';ctx.strokeRect(x+3.5,y+3.5,w-7,h-7);
+
+  // Marco dorado fino + esquinas reforzadas.
+  ctx.fillStyle='#c8a64f';ctx.fillRect(x,y,w,1);ctx.fillRect(x,y+h-1,w,1);
+  for(const [cx,cy,sx,sy] of [
+    [x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1],
+  ] as const){
+    ctx.fillRect(cx+(sx<0?-8:0),cy+(sy<0?-3:0),8,3);
+    ctx.fillRect(cx+(sx<0?-3:0),cy+(sy<0?-8:0),3,8);
+  }
+
+  rows.forEach((row,i)=>{
+    const top=y+3+i*rowH,mid=top+rowH/2;
+    if(i>0){ctx.fillStyle='rgba(126,154,155,.16)';ctx.fillRect(x+5,top,w-10,1);}
+
+    // Área de icono + separador.
+    ctx.fillStyle='rgba(255,255,255,.018)';ctx.fillRect(x+4,top+2,24,rowH-3);
+    ctx.fillStyle='rgba(230,197,111,.55)';ctx.fillRect(x+27,top+4,1,rowH-7);
+
+    if(row.kind==='crumb')drawCrumbCluster(ctx,x+8,top+2,frame,12,false);
+    else if(row.kind==='coin'){
+      ctx.save();ctx.translate(x+14,mid);ctx.scale(.78,.78);drawCoin(ctx,0,0,frame,true,false);ctx.restore();
+    }else drawBankKey(ctx,x+7,top+1,frame,14,false);
+
+    text(ctx,row.label,x+32,top+10.5,4.25,row.kind==='coin'?'#cbb678':'#a8aaa2','left',row.kind==='coin',false);
+
+    // Cápsula numérica independiente.
+    const boxW=31,boxX=x+w-boxW-5,boxY=top+3;
+    ctx.fillStyle=row.kind==='coin'?'rgba(85,64,14,.36)':'rgba(1,8,11,.68)';
+    ctx.fillRect(boxX,boxY,boxW,rowH-5);
+    ctx.strokeStyle=row.flash?'#f5d77f':row.kind==='coin'?'rgba(230,197,111,.64)':'rgba(180,157,92,.24)';
+    ctx.strokeRect(boxX+.5,boxY+.5,boxW-1,rowH-6);
+    text(ctx,row.value,boxX+boxW-4,top+11.5,row.kind==='coin'?6.5:6.1,row.flash?'#fff2b8':row.kind==='coin'?'#f4d03f':'#efe4c6','right',true,false);
+  });
+
+  ctx.restore();
+}
+
 function hudMeter(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,value:number,accent:string){
   ctx.fillStyle='rgba(255,255,255,.075)';ctx.fillRect(x,y,w,3);
   ctx.fillStyle=accent;ctx.fillRect(x,y,Math.round(w*clamp(value,0,1)),3);
@@ -2385,20 +2436,14 @@ function drawHUD(engine: GameEngine) {
     drawMinimap(engine);
   }
 
-  // Economía y acceso: las llaves son recurso de la run, no metamoneda.
-  const economyW=80,economyX=safeRight-economyW,economyH=engine.gameMode==='endless'?28:40;
-  hudPlate(ctx,economyX,4,economyW,economyH,p.keyFlash>0?'#e6c56f':'#b99a50',p.keyFlash>0?.76:.58);
-  drawItemIcon(ctx,economyX+5,6,'crumb',11);
-  text(ctx,engine.gameMode==='endless'?'MIGAS':'MIGAJAS',economyX+19,12,4.4,'#829995','left',false,false);
-  text(ctx,String(p.crumbs),economyX+73,13,6.3,'#e7d6ac','right',true,false);
-  drawItemIcon(ctx,economyX+5,18,'golden_crumb',10);
-  text(ctx,engine.gameMode==='endless'?'DORADAS':'MONEDAS',economyX+19,25,4.2,'#9e925f','left',false,false);
-  text(ctx,String(engine.totalGoldenCrumbs),economyX+73,26,6.3,'#f4d03f','right',true,false);
-  if(engine.gameMode!=='endless'){
-    drawBankKey(ctx,economyX+5,29,engine.frame,10,false);
-    text(ctx,'LLAVES',economyX+19,37,4.2,p.keyFlash>0?'#e6c56f':'#a89261','left',true,false);
-    text(ctx,String(p.bankKeys),economyX+73,38,6.3,p.keyFlash>0?'#fff1b6':'#e6c56f','right',true,false);
-  }
+  // Recursos: panel compacto inspirado en caja de seguridad bancaria.
+  const economyW=112,economyX=safeRight-economyW;
+  const resourceRows:Array<{kind:'crumb'|'coin'|'key';label:string;value:string;accent:string;flash?:boolean}>=[
+    {kind:'crumb',label:engine.gameMode==='endless'?'MIGAS':'MIGAJAS',value:String(Math.floor(p.crumbs)),accent:'#d79a4c'},
+    {kind:'coin',label:engine.gameMode==='endless'?'DORADAS':'MONEDAS',value:String(engine.totalGoldenCrumbs),accent:'#e6c56f'},
+  ];
+  if(engine.gameMode!=='endless')resourceRows.push({kind:'key',label:'LLAVES',value:String(p.bankKeys),accent:'#d2ad52',flash:p.keyFlash>0});
+  drawResourceHud(ctx,economyX,4,economyW,resourceRows,engine.frame);
 
   const menuBox=hudMenuRect();
   drawMouseButton(ctx,'MENÚ',menuBox.x,menuBox.y,menuBox.w,menuBox.h,inside(engine.mouseX,engine.mouseY,menuBox),'#8fb7c8');
