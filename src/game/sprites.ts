@@ -2442,7 +2442,7 @@ export function drawDoor(
 }
 
 /** Obstáculos sólidos del banco */
-export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number) {
+export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number, integrity = 1) {
   const bx=Math.floor(x),by=Math.floor(y),T=TILE_SIZE,pulse=.5+.5*Math.sin(frame*.055+kind);
   const shadowY=[28,28,29,29,28,31,29,28,29,29,29,29,29,29][kind]??28;
   const shadowW=[14,14,14,11,14,12,14,12,14,12,13,14,14,14][kind]??13;
@@ -2609,6 +2609,38 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       rect(ctx,bx+6,by+18,20,10,'#3d474b');rect(ctx,bx+9,by+16,14,4,'#687477');
       break;
     }
+  }
+
+  // Daño persistente del escenario. Las grietas aparecen por etapas para que
+  // el jugador pueda leer visualmente cuánto falta para romper el objeto.
+  const damage=Math.max(0,Math.min(1,1-integrity));
+  if(damage>.18){
+    ctx.save();
+    ctx.globalAlpha=.32+damage*.48;
+    ctx.strokeStyle=damage>.66?'#1b1412':'#263034';
+    ctx.lineWidth=damage>.66?1.5:1;
+    const crackCount=damage>.72?4:damage>.42?3:2;
+    for(let i=0;i<crackCount;i++){
+      const sx=bx+7+((kind*11+i*7)%17),sy=by+7+((kind*5+i*9)%12);
+      ctx.beginPath();
+      ctx.moveTo(sx,sy);
+      ctx.lineTo(sx+(i%2?5:-4),sy+5);
+      ctx.lineTo(sx+(i%2?2:-1),sy+10);
+      if(damage>.58)ctx.lineTo(sx+(i%2?7:-6),sy+13);
+      ctx.stroke();
+    }
+    if(damage>.48){
+      ctx.fillStyle='#111719';ctx.globalAlpha=.16+damage*.24;
+      ctx.fillRect(bx+4,by+8,T-8,T-12);
+    }
+    if(damage>.75){
+      ctx.globalAlpha=.8;
+      ctx.fillStyle='#111719';
+      px(ctx,bx+8,by+11,'#111719',2);
+      px(ctx,bx+22,by+19,'#111719',2);
+      px(ctx,bx+14,by+25,'#111719',1);
+    }
+    ctx.restore();
   }
 
   ctx.globalAlpha=.10;ctx.fillStyle='#dce6df';ctx.fillRect(bx+5,by+5,T-10,1);ctx.globalAlpha=1;
