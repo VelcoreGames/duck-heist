@@ -2718,15 +2718,15 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   ctx.restore();
 
   const first=mainMenuRect(0,wide);
-  text(ctx,'ELIGE UNA OPERACIÓN',first.x,70,wide?5.0:4.7,'#8aa09d','left',true,false);
+  drawSectionLabel(ctx,'OPERACIONES',first.x,70,meta.accent);
 
   MENU_ITEMS.forEach((item,i)=>{
-    const groupLabel=i===3?'PROGRESIÓN':i===6?'ARCHIVO / SISTEMA':'';
+    const groupLabel=i===3?'PROGRESIÓN':i===5?'ARCHIVO':i===7?'SISTEMA':'';
     if(groupLabel){
       const groupBox=mainMenuRect(i,wide);
-      ctx.fillStyle='rgba(138,160,157,.16)';
-      ctx.fillRect(groupBox.x,groupBox.y-6,groupBox.w,1);
-      text(ctx,groupLabel,groupBox.x+groupBox.w,groupBox.y-2,3.65,'#657c7e','right',true,false);
+      ctx.fillStyle='rgba(138,160,157,.13)';
+      ctx.fillRect(groupBox.x,groupBox.y-7,groupBox.w,1);
+      text(ctx,groupLabel,groupBox.x+groupBox.w,groupBox.y-3,3.55,'#657c7e','right',true,false);
     }
     const on=i===engine.menuIndex,box=mainMenuRect(i,wide),hover=inside(engine.mouseX,engine.mouseY,box);
     const heistCheckpoint=i===0&&engine.heistCheckpointFloor>0;
