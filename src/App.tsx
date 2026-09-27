@@ -204,9 +204,9 @@ export default function App() {
           else openFloorMap(engine);
           break;
         case 2: engine.runInfoTab=0;playUiSelect();goTo(GameState.RUN_INFO); break;
-        case 3: openConfirm('restart'); break;
+        case 3: playUiSelect(); engine.settingsIndex = 0; subReturn = GameState.PAUSED; goTo(GameState.SETTINGS); break;
         case 4: playUiSelect(); subReturn = GameState.PAUSED; goTo(GameState.HOW_TO_PLAY); break;
-        case 5: playUiSelect(); engine.settingsIndex = 0; subReturn = GameState.PAUSED; goTo(GameState.SETTINGS); break;
+        case 5: openConfirm('restart'); break;
         case 6: openConfirm('quit'); break;
       }
     };
