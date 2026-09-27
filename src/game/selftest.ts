@@ -3,7 +3,7 @@ import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENE
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
-import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,GameState } from './engine';
+import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,GameState,SETTING_ROWS } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,type Dir } from './constants';
@@ -16,7 +16,7 @@ import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
 import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin, drawBankKey, drawCrumbCluster } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
-import { coverVisibleCanvasRect } from './layout';
+import { coverVisibleCanvasRect,mainMenuRect,mainMenuHit,pauseRect,settingsRect,settingsMinusRect,settingsPlusRect,settingsActionRect,endActionRect,BACK_BUTTON,PRIMARY_BUTTON,inside } from './layout';
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
@@ -74,6 +74,39 @@ export function runSelfChecks():CheckReport {
         assert(UI_BASE_WIDTH*scale<=safe.w+.001,'ancho legacy recortado');
         assert(CANVAS_HEIGHT*scale<=safe.h+.001,'alto legacy recortado');
       }
+    });
+    check('Menús principales tienen hitboxes ordenados, visibles y sin solaparse',()=>{
+      const within=(r:{x:number;y:number;w:number;h:number})=>r.x>=0&&r.y>=0&&r.w>0&&r.h>0&&r.x+r.w<=UI_BASE_WIDTH&&r.y+r.h<=CANVAS_HEIGHT;
+      const overlap=(a:{x:number;y:number;w:number;h:number},b:{x:number;y:number;w:number;h:number})=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+      const menu=Array.from({length:8},(_,i)=>mainMenuRect(i,false));
+      assert(menu.every(within),'opción de menú fuera del canvas');
+      for(let i=0;i<menu.length;i++){
+        assert(mainMenuHit(menu[i].x+menu[i].w/2,menu[i].y+menu[i].h/2,false)===i,'hitbox principal no coincide con su tarjeta');
+        for(let j=i+1;j<menu.length;j++)assert(!overlap(menu[i],menu[j]),'opciones principales solapadas');
+      }
+      const pause=Array.from({length:7},(_,i)=>pauseRect(i));
+      assert(pause.every(within),'opción de pausa fuera del canvas');
+      assert(pause[0].w>pause[1].w,'reanudar no ocupa la fila principal');
+      for(let i=0;i<pause.length;i++)for(let j=i+1;j<pause.length;j++)assert(!overlap(pause[i],pause[j]),'opciones de pausa solapadas');
+      assert(within(BACK_BUTTON)&&within(PRIMARY_BUTTON),'acciones inferiores fuera del canvas');
+    });
+    check('Ajustes mantienen controles dentro de cada fila y grupos completos',()=>{
+      assert(SETTING_ROWS.length===12,'cantidad de ajustes inesperada');
+      assert(SETTING_ROWS.slice(0,4).every(r=>r.group==='AUDIO'),'audio dejó de estar agrupado');
+      assert(SETTING_ROWS[6].group==='VIDEO'&&SETTING_ROWS[7].group==='VIDEO','video dejó de estar agrupado');
+      assert(SETTING_ROWS[11].key==='controls','controles ya no cierra la columna de sistema');
+      for(let i=0;i<SETTING_ROWS.length;i++){
+        const row=settingsRect(i);
+        assert(row.x>=0&&row.y>=0&&row.x+row.w<=UI_BASE_WIDTH&&row.y+row.h<=CANVAS_HEIGHT,'fila de ajustes fuera del canvas');
+        if(['vol','shake','scale','brightness'].includes(SETTING_ROWS[i].kind)){
+          for(const control of [settingsMinusRect(i),settingsPlusRect(i)])assert(inside(control.x+1,control.y+1,row)&&inside(control.x+control.w-1,control.y+control.h-1,row),'stepper fuera de su fila');
+        }else{
+          const action=settingsActionRect(i);
+          assert(inside(action.x+1,action.y+1,row)&&inside(action.x+action.w-1,action.y+action.h-1,row),'acción fuera de su fila');
+        }
+      }
+      const a=endActionRect(0),b=endActionRect(1);
+      assert(a.y===b.y&&a.x+a.w<b.x,'acciones finales no quedaron en una fila limpia');
     });
     check('Pato jugador renderiza locomoción, combate, dash, interacción y muerte',()=>{
       for(const skin of ['robber','chef','executive','ninja','pirate','gold','king']){
