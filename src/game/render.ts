@@ -2395,7 +2395,7 @@ function drawHUD(engine: GameEngine) {
   text(ctx,engine.gameMode==='endless'?'DORADAS':'MONEDAS',economyX+19,25,4.2,'#9e925f','left',false,false);
   text(ctx,String(engine.totalGoldenCrumbs),economyX+73,26,6.3,'#f4d03f','right',true,false);
   if(engine.gameMode!=='endless'){
-    drawBankKey(ctx,economyX+5,29,engine.frame,10);
+    drawBankKey(ctx,economyX+5,29,engine.frame,10,false);
     text(ctx,'LLAVES',economyX+19,37,4.2,p.keyFlash>0?'#e6c56f':'#a89261','left',true,false);
     text(ctx,String(p.bankKeys),economyX+73,38,6.3,p.keyFlash>0?'#fff1b6':'#e6c56f','right',true,false);
   }
