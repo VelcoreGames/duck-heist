@@ -2592,25 +2592,26 @@ function drawDifficultyLock(ctx:CanvasRenderingContext2D,x:number,y:number,color
 }
 
 function renderDifficultyUI(engine:GameEngine) {
-  const ctx=engine.ui!,accent=engine.pendingMode==='endless'?'#d86b58':'#e6c56f';
-  drawMenuBackdrop(ctx,menuFrame(engine),.9,accent);
+  const ctx=engine.ui!,accent=engine.pendingMode==='endless'?'#ff829d':'#ffc95f';
+  drawMenuBackdrop(ctx,menuFrame(engine),.90,accent);
   drawMenuHeader(
     ctx,
     engine.pendingMode==='endless'?'DIFICULTAD · SIN FIN':'NIVEL DE SEGURIDAD',
-    'Elige una opción y después inicia la partida.',
-    engine.frame,accent,'PLANIFICACIÓN DEL ATRACO',
+    'Elige cómo de intenso quieres el atraco.',
+    engine.frame,accent,'ELIGE TU RETO',
   );
   DIFFICULTY_MODES.forEach((mode,i)=>{
     const def=DIFFICULTIES[mode],box=difficultyRect(i),selected=engine.difficultyIndex===i,hover=inside(engine.mouseX,engine.mouseY,box),locked=mode==='mad'&&!engine.madUnlocked;
-    const color=locked?'#8f6671':mode==='easy'?'#78c99a':mode==='normal'?'#e6c56f':mode==='hard'?'#e89a58':'#e55f59';
-    drawMenuCard(ctx,box.x,box.y,box.w,box.h,selected||hover,color,selected?'rgba(31,31,25,.97)':hover?'rgba(23,31,31,.97)':'rgba(10,22,28,.94)');
-    if(locked) drawDifficultyLock(ctx,box.x+14,box.y+13,color);
-    titleText(ctx,def.label,box.x+(locked?32:14),box.y+24,9,color,'left',false);
-    for(let n=0;n<i+1;n++) drawDifficultySkull(ctx,box.x+14+n*12,box.y+34,color);
-    wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,box.x+14,box.y+53,box.w-28,5.1,6.2,2,locked?'#8a6870':'#9cafaf');
-    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?'CLIC PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected||hover?color:'#60747b','right',true,false);
+    const color=locked?'#b7adbf':mode==='easy'?'#75ddb8':mode==='normal'?'#ffc95f':mode==='hard'?'#ffae79':'#ff7295';
+    const fill=selected?'rgba(255,252,246,.99)':hover?'rgba(255,248,252,.98)':'rgba(255,255,255,.92)';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,selected||hover,color,fill);
+    if(locked)drawDifficultyLock(ctx,box.x+14,box.y+13,color);
+    titleText(ctx,def.label,box.x+(locked?32:14),box.y+24,9,locked?'#8d8798':'#4d446a','left',false);
+    for(let n=0;n<i+1;n++)drawDifficultySkull(ctx,box.x+14+n*12,box.y+34,color);
+    wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,box.x+14,box.y+53,box.w-28,5.1,6.2,2,locked?'#9690a1':'#777796');
+    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?'CLIC PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a49baa':selected||hover?color:'#9a9bb0','right',true,false);
   });
-  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),accent);
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#8ec5ff');
   const locked=engine.difficulty==='mad'&&!engine.madUnlocked;
   drawMouseButton(ctx,engine.pendingMode==='endless'?'INICIAR SIN FIN':'INICIAR ATRACO',DIFFICULTY_START.x,DIFFICULTY_START.y,DIFFICULTY_START.w,DIFFICULTY_START.h,inside(engine.mouseX,engine.mouseY,DIFFICULTY_START),accent,false,locked);
 }
@@ -2704,8 +2705,8 @@ function renderMenuUI(engine:GameEngine,_wide=false) {
 }
 function renderHowToPlayUI(engine: GameEngine) {
   const ctx=engine.ui!;
-  drawMenuBackdrop(ctx,menuFrame(engine),.92,'#d7b56c');
-  drawMenuHeader(ctx,'MANUAL DEL LADRÓN','Controles del atraco y reglas que sí importan.',menuFrame(engine),'#d7b56c','PROTOCOLO DE CAMPO');
+  drawMenuBackdrop(ctx,menuFrame(engine),.91,'#ffae79');
+  drawMenuHeader(ctx,'CÓMO JUGAR','Lo esencial del atraco, sin manual aburrido.',menuFrame(engine),'#ffae79','GUÍA DEL PATITO');
 
   const rows:[string,string][]=[
     [keyLabel(engine.bindings.moveUp)+' '+keyLabel(engine.bindings.moveLeft)+' '+keyLabel(engine.bindings.moveDown)+' '+keyLabel(engine.bindings.moveRight),'Moverse'],
@@ -2714,40 +2715,48 @@ function renderHowToPlayUI(engine: GameEngine) {
     [keyLabel(engine.bindings.active),'Objeto activo'],['RUEDA / '+keyLabel(engine.bindings.weapon1)+' / '+keyLabel(engine.bindings.weapon2),'Cambiar arma'],
     [keyLabel(engine.bindings.map),'Mapa'],[keyLabel(engine.bindings.pause),'Pausa'],
   ];
-  drawMenuCard(ctx,28,72,226,238,false,'#d7b56c','rgba(8,20,26,.95)');
-  drawSectionLabel(ctx,'CONTROLES DE JUEGO',44,92,'#d7b56c');
-  rows.forEach(([k,v],i)=>{const y=107+i*22;drawKeyChip(ctx,k,43,y,92,true);text(ctx,v,143,y+10,6.3,'#c8d5cf','left',i<4,false);});
+  drawMenuCard(ctx,28,72,226,238,false,'#70cfee','rgba(250,253,255,.95)');
+  drawSectionLabel(ctx,'CONTROLES',44,92,'#70cfee');
+  rows.forEach(([k,v],i)=>{
+    const y=107+i*22;drawKeyChip(ctx,k,43,y,92,true);
+    text(ctx,v,143,y+10,6.2,'#545774','left',i<4,false);
+  });
 
-  drawMenuCard(ctx,266,72,186,238,false,'#78c99a','rgba(8,20,26,.95)');
-  drawSectionLabel(ctx,'PLAN DEL ATRACO',282,92,'#78c99a');
+  drawMenuCard(ctx,266,72,186,238,false,'#75ddb8','rgba(255,252,246,.95)');
+  drawSectionLabel(ctx,'PLAN DEL ATRACO',282,92,'#75ddb8');
   const tips=[
     ['LIMPIA LA SALA','Derrota enemigos para abrir puertas.'],
-    ['ARMA LA BUILD','Combina dos armas, objetos y sinergias.'],
-    ['CUIDA LA VIDA','El pan cura. No todas las peleas lo sueltan.'],
+    ['ARMA LA BUILD','Combina armas, objetos y sinergias.'],
+    ['CUIDA LA VIDA','El pan cura; úsalo con cabeza.'],
     ['ROBA Y BAJA','Jefe, botín y siguiente piso.'],
-    ['LEE EL MAPA','Pausa el combate; no teletransporta.'],
+    ['LEE EL MAPA','Te orienta, no te teletransporta.'],
   ];
-  tips.forEach(([t,d],i)=>{const y=108+i*37;text(ctx,'•',282,y+9,7,'#78c99a','left',true,false);text(ctx,t,296,y+9,6.3,'#e2e8dd','left',true,false);wrappedText(ctx,d,296,y+20,142,5.4,6.5,2,'#82989a');});
-  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#d7b56c');
+  tips.forEach(([t,d],i)=>{
+    const y=108+i*37;
+    text(ctx,i%2?'♥':'✦',282,y+9,6.5,i%2?'#ff8fbd':'#ffc95f','left',true,false);
+    text(ctx,t,296,y+9,6.1,'#4b4a68','left',true,false);
+    wrappedText(ctx,d,296,y+20,142,5.3,6.4,2,'#777a98');
+  });
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#ffae79');
 }
 
 function renderSettingsUI(engine: GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine);
-  drawMenuBackdrop(ctx,mf,.93,'#8fb7c8');
-  drawMenuHeader(ctx,'AJUSTES','Controles grandes y directos. Los cambios se guardan al instante.',mf,'#8fb7c8','SISTEMA DEL ATRACO');
+  drawMenuBackdrop(ctx,mf,.92,'#8ec5ff');
+  drawMenuHeader(ctx,'AJUSTES','Todo se guarda al instante.',mf,'#8ec5ff','HAZLO A TU GUSTO');
 
   SETTING_ROWS.forEach((row,i)=>{
     const box=settingsRect(i),on=i===engine.settingsIndex;
-    const groupColor=row.group==='AUDIO'?'#d4b96e':row.group==='FEEDBACK'?'#d98069':row.group==='ACCESIBILIDAD'?'#b992d8':row.group==='VIDEO'?'#8fb7c8':row.group==='CONTROLES'?'#79b9d2':'#78c99a';
-    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,groupColor,on?'rgba(25,40,47,.98)':'rgba(10,24,30,.9)');
-    text(ctx,row.label,box.x+10,box.y+16,5.1,on?'#eef6f2':'#a9b7b6','left',on,false);
+    const groupColor=row.group==='AUDIO'?'#ffc95f':row.group==='FEEDBACK'?'#ff9b91':row.group==='ACCESIBILIDAD'?'#b99cff':row.group==='VIDEO'?'#70cfee':row.group==='CONTROLES'?'#8ec5ff':'#75ddb8';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,groupColor,on?'rgba(255,252,247,.99)':'rgba(255,255,255,.92)');
+    text(ctx,row.label,box.x+10,box.y+16,5.1,on?'#403b63':'#666987','left',on,false);
     const v=settingValue(engine,i);
     if(row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness'){
       const minus=settingsMinusRect(i),plus=settingsPlusRect(i);
       drawMouseButton(ctx,'−',minus.x,minus.y,minus.w,minus.h,inside(engine.mouseX,engine.mouseY,minus),groupColor);
       drawMouseButton(ctx,'+',plus.x,plus.y,plus.w,plus.h,inside(engine.mouseX,engine.mouseY,plus),groupColor);
       const label=row.kind==='vol'?Math.round(v*100)+'%':String(v);
-      text(ctx,label,box.x+box.w-39,box.y+17,5.4,on?'#dbeef1':'#8da0a3','center',true,false);
+      text(ctx,label,box.x+box.w-39,box.y+17,5.4,on?'#403b63':'#777b98','center',true,false);
     }else{
       const action=settingsActionRect(i);
       const label=row.key==='controls'?'ABRIR':row.key==='accessPreset'?'APLICAR':v>.5?'ACTIVO':'APAGADO';
@@ -2756,9 +2765,9 @@ function renderSettingsUI(engine: GameEngine) {
   });
 
   const selected=SETTING_ROWS[engine.settingsIndex]??SETTING_ROWS[0];
-  drawMenuCard(ctx,126,292,326,23,false,'#526b72','rgba(7,18,24,.96)');
-  wrappedText(ctx,selected.group+' · '+selected.description,138,303,300,4.35,5.2,2,'#9fb1b0');
-  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#8fb7c8');
+  drawMenuCard(ctx,126,292,326,23,false,'#b99cff','rgba(252,249,255,.96)');
+  wrappedText(ctx,selected.group+' · '+selected.description,138,303,300,4.35,5.2,2,'#666987');
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#8ec5ff');
 }
 
 function renderWardrobeUI(engine: GameEngine) {
@@ -2894,22 +2903,25 @@ function renderWardrobeUI(engine: GameEngine) {
 
 function renderUpgradesUI(engine: GameEngine) {
   const ctx=engine.ui!;
-  drawMenuBackdrop(ctx,menuFrame(engine),.93,'#78c99a');
-  drawMenuHeader(ctx,'MEJORAS PERMANENTES','Selecciona una mejora y compra desde su botón.',menuFrame(engine),'#78c99a','TALLER CLANDESTINO');
-  drawItemIcon(ctx,352,29,'golden_crumb',14);text(ctx,String(engine.totalGoldenCrumbs)+' MONEDAS',372,41,6.2,'#e4cf88','left',true,false);
+  drawMenuBackdrop(ctx,menuFrame(engine),.92,'#75ddb8');
+  drawMenuHeader(ctx,'MEJORAS','Haz crecer a tu pato entre atracos.',menuFrame(engine),'#75ddb8','TALLER DE TRUCOS');
+  drawItemIcon(ctx,352,29,'golden_crumb',14);text(ctx,String(engine.totalGoldenCrumbs)+' MONEDAS',372,41,6.2,'#8c6a59','left',true,false);
 
   META_UPGRADES.forEach((up,i)=>{
     const box=upgradeRect(i),lvl=engine.metaLevels[up.id]??0,maxed=lvl>=up.maxLevel,cost=up.cost*(lvl+1),sel=i===engine.upgradeIndex;
-    const affordable=engine.totalGoldenCrumbs>=cost,accent=maxed?'#78c99a':sel?'#e6c56f':'#5d7277';
-    drawMenuCard(ctx,box.x,box.y,box.w,box.h,sel,accent,sel?'rgba(32,36,28,.97)':'rgba(9,22,28,.94)');
-    titleText(ctx,up.name,box.x+14,box.y+20,8.5,maxed?'#8ed3a6':sel?'#f3dfaa':'#d0dad4','left',false);
-    wrappedText(ctx,up.description,box.x+14,box.y+35,230,5.2,6.2,2,'#81969a');
-    for(let l=0;l<up.maxLevel;l++){ctx.fillStyle=l<lvl?'#78c99a':'#263b42';ctx.fillRect(box.x+248+l*13,box.y+12,9,6);}
+    const affordable=engine.totalGoldenCrumbs>=cost,accent=maxed?'#75ddb8':sel?'#ffc95f':'#aeb5ca';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,sel,accent,sel?'rgba(255,252,244,.99)':'rgba(255,255,255,.92)');
+    titleText(ctx,up.name,box.x+14,box.y+20,8.5,maxed?'#4f9f7f':sel?'#695032':'#4f5270','left',false);
+    wrappedText(ctx,up.description,box.x+14,box.y+35,230,5.2,6.2,2,'#747794');
+    for(let l=0;l<up.maxLevel;l++){
+      ctx.fillStyle=l<lvl?'#75ddb8':'#dddcec';
+      ctx.fillRect(box.x+248+l*13,box.y+12,9,6);
+    }
     const action=upgradeActionRect(i);
-    drawMouseButton(ctx,maxed?'AL MÁXIMO':'MEJORAR · '+cost,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),maxed?'#78c99a':'#e6c56f',false,maxed||!affordable);
+    drawMouseButton(ctx,maxed?'AL MÁXIMO':'MEJORAR · '+cost,action.x,action.y,action.w,action.h,inside(engine.mouseX,engine.mouseY,action),maxed?'#75ddb8':'#ffc95f',false,maxed||!affordable);
   });
-  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#78c99a');
-  text(ctx,'Las mejoras se aplican a Atraco y Sin Fin. El Desafío Diario usa reglas estandarizadas.',136,332,4.4,'#72888a','left',false,false);
+  drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#75ddb8');
+  text(ctx,'Las mejoras funcionan en Atraco y Sin Fin · El Diario mantiene reglas iguales para todos.',136,332,4.4,'#797b99','left',false,false);
 }
 
 function renderFloorIntroUI(engine: GameEngine) {
@@ -3115,24 +3127,25 @@ function renderFloorClearUI(engine: GameEngine) {
 
 function renderPausedUI(engine: GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine);
-  drawMenuBackdrop(ctx,mf,.86,'#e6c56f');
-  drawMenuHeader(ctx,'ATRACO EN PAUSA','Todo lo necesario está a un clic.',mf,'#e6c56f','ESTADO DE LA OPERACIÓN');
+  drawMenuBackdrop(ctx,mf,.88,'#ffc95f');
+  drawMenuHeader(ctx,'ATRACO EN PAUSA','Tu pato puede esperar un momento.',mf,'#ffc95f','PAUSA');
   const items=[
     T.resume,engine.gameMode==='endless'?'RENDIMIENTO':'MAPA',engine.gameMode==='endless'?'BUILD ACTUAL':'INFO DE RUN',T.restartRun,
     T.menuHowTo,T.menuSettings,T.backToMenu,
   ];
+  const palette=['#75ddb8','#70cfee','#b99cff','#ff8f9c','#ffae79','#8ec5ff','#ff829d'];
   items.forEach((label,i)=>{
-    const box=pauseRect(i),on=i===engine.pauseIndex,dangerous=i===3||i===6,accent=dangerous?'#d85d58':'#e6c56f';
-    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,accent,on?(dangerous?'rgba(48,25,27,.97)':'rgba(36,34,25,.97)'):'rgba(9,22,28,.94)');
-    text(ctx,label,box.x+14,box.y+22,7,on?(dangerous?'#ffd5d1':'#fff0bc'):'#c7d3ce','left',true,false);
-    text(ctx,dangerous?'REQUIERE CONFIRMACIÓN':'CLIC PARA ABRIR',box.x+box.w-12,box.y+22,4.1,on?accent:'#61757a','right',false,false);
+    const box=pauseRect(i),on=i===engine.pauseIndex,dangerous=i===3||i===6,accent=palette[i]??'#ffc95f';
+    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on,accent,on?'rgba(255,251,247,.99)':'rgba(255,255,255,.93)');
+    text(ctx,label,box.x+14,box.y+22,7,dangerous?'#8c4e65':'#474866','left',true,false);
+    text(ctx,dangerous?'CONFIRMACIÓN':'ABRIR',box.x+box.w-12,box.y+22,4.1,on?accent:'#999bb0','right',false,false);
   });
-  drawMenuCard(ctx,44,251,388,55,false,'#52666d','rgba(7,17,23,.95)');
-  drawSectionLabel(ctx,'RESUMEN RÁPIDO',58,266,'#8fa8a7');
-  text(ctx,'DIFICULTAD',62,284,4.5,'#61777c','left',false,false);text(ctx,difficultyLabel(engine),62,298,6.3,'#e6c56f','left',true,false);
-  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',188,284,4.5,'#61777c','left',false,false);text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',188,298,6.3,'#d8e1db','left',true,false);
-  text(ctx,'OBJETOS',310,284,4.5,'#61777c','left',false,false);text(ctx,String(engine.player.items.length),310,298,6.3,'#d8c57d','left',true,false);
-  text(ctx,engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,428,298,4.3,'#75898d','right',true,false);
+  drawMenuCard(ctx,44,251,388,55,false,'#b99cff','rgba(252,249,255,.95)');
+  drawSectionLabel(ctx,'RESUMEN RÁPIDO',58,266,'#b99cff');
+  text(ctx,'DIFICULTAD',62,284,4.5,'#8a8ba3','left',false,false);text(ctx,difficultyLabel(engine),62,298,6.3,'#8a6a3d','left',true,false);
+  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',188,284,4.5,'#8a8ba3','left',false,false);text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',188,298,6.3,'#4f5270','left',true,false);
+  text(ctx,'OBJETOS',310,284,4.5,'#8a8ba3','left',false,false);text(ctx,String(engine.player.items.length),310,298,6.3,'#725a82','left',true,false);
+  text(ctx,engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,428,298,4.3,'#7d7f9a','right',true,false);
 }
 
 function renderRunInfoUI(engine:GameEngine) {
