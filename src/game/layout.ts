@@ -86,10 +86,6 @@ export const BACK_BUTTON:Rect={x:28,y:318,w:92,h:22};
 export const PRIMARY_BUTTON:Rect={x:326,y:318,w:126,h:22};
 export const CONTROLS_RESET:Rect={x:326,y:318,w:126,h:22};
 export const MAP_CLOSE:Rect={x:356,y:318,w:96,h:22};
-export function hudMenuRect():Rect {
-  const safe=visibleCanvasRect(6);
-  return {x:safe.x+safe.w-126,y:6,w:40,h:17};
-}
 export const SWAP_CANCEL:Rect={x:176,y:309,w:128,h:24};
 
 export const SETTINGS={x:34,y:82,w:202,h:26,gapX:8,gapY:6,cols:2,rows:6};
