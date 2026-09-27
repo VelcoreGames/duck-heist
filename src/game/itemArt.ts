@@ -200,8 +200,26 @@ export const ITEM_ART: Record<string, IconPainter> = {
   croissant: p => { p.poly([[3, 4], [7, 9], [12, 6], [17, 9], [21, 4], [21, 13], [17, 19], [7, 19], [3, 13]], C.bread); p.line(8, 10, 8, 17, C.cream); p.line(13, 9, 14, 17, C.cream); },
   torta: p => { p.rect(3, 9, 18, 12, C.bread); p.rect(3, 12, 18, 3, C.white); p.rect(3, 7, 18, 4, '#ec9bb4'); p.rect(6, 9, 3, 4, '#ec9bb4'); p.line(11, 2, 11, 7, C.gold, 2); p.dot(12, 1, C.red); },
   pan_dorado: p => { bread(p, 3, 6, 18, 15); p.rect(6, 10, 12, 7, C.gold); spark(p, 5, 3); spark(p, 21, 4); p.rect(10, 13, 4, 2, C.light); },
-  crumb: p => { for(const [x,y] of [[4,12],[10,7],[16,14],[9,18],[18,5]]) { p.rect(x,y,4,3,C.bread); p.rect(x,y,2,1,C.cream); } },
-  golden_crumb: p => { p.oval(12, 12, 9, 9, C.orange); p.oval(12, 11, 8, 8, C.gold); p.oval(12, 11, 5, 5, C.orange); p.rect(10, 6, 3, 10, C.gold); p.rect(9, 7, 7, 2, C.gold); spark(p, 4, 4); },
+  crumb: p => {
+    // Fragmentos con volumen y brillo, coherentes con el HUD premium.
+    for(const [x,y,w,h] of [[4,13,4,3],[10,7,5,4],[16,14,4,4],[8,18,4,3],[18,5,3,3]] as const){
+      p.rect(x+1,y+1,w,h,'#a96528');
+      p.rect(x,y,w,h,'#e99a3d');
+      p.rect(x,y,Math.max(1,w-2),1,'#ffd58a');
+    }
+    p.rect(2,7,1,1,'#ffe7a7');p.rect(20,10,1,1,'#ffe7a7');p.rect(13,3,1,2,'#fff0bd');
+  },
+  golden_crumb: p => {
+    // Moneda con aro, bisel y banda central más legible.
+    p.oval(12,12,10,10,'#8c5614');
+    p.oval(12,11,9,9,'#f09c22');
+    p.oval(12,11,7,7,'#ffd24f');
+    p.oval(12,11,5,5,'#f4a62b');
+    p.rect(10,5,3,12,'#ffe78a');
+    p.rect(11,6,1,10,'#fff4b8');
+    p.rect(5,10,14,2,'#d77c19');
+    spark(p,4,4);spark(p,20,7);
+  },
 };
 
 const mystery: IconPainter = p => {
