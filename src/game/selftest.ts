@@ -12,7 +12,7 @@ import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
 import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
-import { DEFAULT_BINDINGS, normalizeBindings, remapBinding } from './controls';
+import { DEFAULT_BINDINGS, normalizeBindings, remapBinding, keyLabel } from './controls';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
 import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin, drawBankKey, drawCrumbCluster } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
@@ -62,6 +62,14 @@ export function runSelfChecks():CheckReport {
       assert(e.state===GameState.MAP,'estado no cambió a MAP');
       assert(toggleFloorMap(e),'M no cerró el mapa');
       assert(e.state===before,'el mapa no volvió al estado anterior');
+    });
+    check('Remapeo actualiza la fuente viva usada por el manual',()=>{
+      const bindings={...DEFAULT_BINDINGS};
+      remapBinding(bindings,'moveUp','q');
+      assert(bindings.moveUp==='q','remapeo no actualizó binding vivo');
+      assert(keyLabel(bindings.moveUp)==='Q','etiqueta no refleja tecla remapeada');
+      remapBinding(bindings,'shootUp','x');
+      assert(bindings.shootUp==='x'&&keyLabel(bindings.shootUp)==='X','disparo remapeado no se refleja');
     });
     check('Intro de atraco tiene duración y skip válidos',()=>{
       assert(HEIST_INTRO_FRAMES>=120&&HEIST_INTRO_FRAMES<=180,'duración fuera de rango');

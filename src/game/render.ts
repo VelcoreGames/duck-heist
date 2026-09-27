@@ -2820,12 +2820,24 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   const taglineY=wide?Math.min(336,safe.y+safe.h-18):329;
   text(ctx,T.tagline,center,taglineY,wide?7.65:7.5,'#dbc486','center',true,false);
 }
-function drawHowToKey(ctx:CanvasRenderingContext2D,label:string,x:number,y:number,w=22,h=15,accent='#d7b56c'){
+function howToBindingLabel(raw:string,compact=false){
+  const k=(raw??'').toLowerCase();
+  const short:Record<string,string>={
+    ' ':'ESP',space:'ESP',arrowup:'↑',arrowdown:'↓',arrowleft:'←',arrowright:'→',
+    shift:compact?'SHF':'SHIFT',control:compact?'CTL':'CTRL',alt:'ALT',
+    escape:'ESC',enter:compact?'ENT':'ENTER',tab:'TAB',backspace:compact?'RET':'RETRO',
+  };
+  const mapped=short[k]??keyLabel(k);
+  if(!compact)return mapped.length>8?mapped.slice(0,7):mapped;
+  return mapped.length>3?mapped.slice(0,3):mapped;
+}
+
+function drawHowToKey(ctx:CanvasRenderingContext2D,label:string,x:number,y:number,w=26,h=16,accent='#d7b56c'){
   ctx.save();
   ctx.fillStyle='rgba(9,25,31,.98)';ctx.fillRect(x,y,w,h);
   ctx.strokeStyle=accent;ctx.globalAlpha=.78;ctx.strokeRect(x+.5,y+.5,w-1,h-1);ctx.globalAlpha=1;
   ctx.fillStyle='rgba(255,255,255,.055)';ctx.fillRect(x+2,y+2,w-4,1);
-  const size=label.length>6?3.55:label.length>4?4.15:5.25;
+  const size=label.length>6?3.7:label.length>4?4.35:5.35;
   text(ctx,label,x+w/2,y+h/2+2,size,'#f2dea1','center',true,false);
   ctx.restore();
 }
@@ -2834,12 +2846,12 @@ function drawHowToMouse(ctx:CanvasRenderingContext2D,x:number,y:number,mode:'lef
   ctx.save();
   ctx.strokeStyle=accent;ctx.lineWidth=1;
   ctx.fillStyle='rgba(9,25,31,.98)';
-  ctx.beginPath();ctx.roundRect(x+.5,y+.5,18,24,8);ctx.fill();ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x+9,y+1);ctx.lineTo(x+9,y+9);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x+1,y+9);ctx.lineTo(x+18,y+9);ctx.stroke();
-  if(mode==='left'){ctx.fillStyle=accent;ctx.globalAlpha=.88;ctx.fillRect(x+2,y+2,6,6);}
-  if(mode==='right'){ctx.fillStyle=accent;ctx.globalAlpha=.88;ctx.fillRect(x+10,y+2,6,6);}
-  if(mode==='wheel'){ctx.fillStyle=accent;ctx.globalAlpha=.92;ctx.fillRect(x+8,y+3,2,5);}
+  ctx.beginPath();ctx.roundRect(x+.5,y+.5,17,22,7);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+8.5,y+1);ctx.lineTo(x+8.5,y+8);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+1,y+8);ctx.lineTo(x+17,y+8);ctx.stroke();
+  if(mode==='left'){ctx.fillStyle=accent;ctx.globalAlpha=.88;ctx.fillRect(x+2,y+2,5,5);}
+  if(mode==='right'){ctx.fillStyle=accent;ctx.globalAlpha=.88;ctx.fillRect(x+10,y+2,5,5);}
+  if(mode==='wheel'){ctx.fillStyle=accent;ctx.globalAlpha=.92;ctx.fillRect(x+7.5,y+2,2,5);}
   ctx.globalAlpha=1;ctx.restore();
 }
 
@@ -2847,7 +2859,7 @@ function drawHowToDpad(
   ctx:CanvasRenderingContext2D,x:number,y:number,
   up:string,left:string,down:string,right:string,accent='#d7b56c'
 ){
-  const w=14,h=12,g=1;
+  const w=15,h=10,g=1;
   drawHowToKey(ctx,up,x+w+g,y,w,h,accent);
   drawHowToKey(ctx,left,x,y+h+g,w,h,accent);
   drawHowToKey(ctx,down,x+w+g,y+h+g,w,h,accent);
@@ -2859,13 +2871,16 @@ function renderHowToPlayUI(engine: GameEngine) {
   drawMenuBackdrop(ctx,menuFrame(engine),.92,'#d7b56c');
   drawMenuHeader(ctx,'MANUAL DEL LADRÓN','Controles del atraco y reglas que sí importan.',menuFrame(engine),'#d7b56c','PROTOCOLO DE CAMPO');
 
-  // Controles en tarjetas visuales: evita concatenar nombres largos de teclas
-  // dentro de un único chip y mantiene legibilidad incluso si el usuario remapea.
-  const panelX=28,panelY=72,panelW=236,panelH=238;
-  drawMenuCard(ctx,panelX,panelY,panelW,panelH,false,'#d7b56c','rgba(8,20,26,.95)');
+  // El manual consume engine.bindings en cada render. Cualquier cambio hecho en
+  // Configuración → Controles aparece aquí sin duplicar ni almacenar etiquetas.
+  const bind=(id:keyof GameEngine['bindings'],compact=false)=>howToBindingLabel(engine.bindings[id],compact);
+
+  // CONTROLES: ahora ocupan todo el ancho disponible para que mouse, D-pad y
+  // teclas remapeadas nunca tengan que compartir una tarjeta demasiado estrecha.
+  drawMenuCard(ctx,28,72,424,160,false,'#d7b56c','rgba(8,20,26,.95)');
   drawSectionLabel(ctx,'CONTROLES DE JUEGO',44,92,'#d7b56c');
 
-  const cellW=104,cellH=40,gapX=8,gapY=6,startX=38,startY=104;
+  const cellW=198,cellH=27,gapX=8,gapY=6,startX=38,startY=104;
   const cell=(i:number)=>{
     const col=i%2,row=Math.floor(i/2);
     return{x:startX+col*(cellW+gapX),y:startY+row*(cellH+gapY),w:cellW,h:cellH};
@@ -2874,64 +2889,64 @@ function renderHowToPlayUI(engine: GameEngine) {
     const r=cell(i);
     drawMenuCard(ctx,r.x,r.y,r.w,r.h,false,accent,'rgba(7,18,23,.86)');
     draw(r.x,r.y);
-    text(ctx,label,r.x+r.w/2,r.y+r.h-5,4.8,'#c8d5cf','center',true,false);
+    text(ctx,label,r.x+101,r.y+17,5.35,'#d7e0dc','left',true,false);
   };
 
   drawCell(0,'MOVERSE',(x,y)=>{
-    drawHowToDpad(ctx,x+29,y+4,
-      keyLabel(engine.bindings.moveUp),keyLabel(engine.bindings.moveLeft),
-      keyLabel(engine.bindings.moveDown),keyLabel(engine.bindings.moveRight),'#79b9d2');
+    drawHowToDpad(ctx,x+22,y+3,bind('moveUp',true),bind('moveLeft',true),bind('moveDown',true),bind('moveRight',true),'#79b9d2');
   },'#79b9d2');
 
   drawCell(1,'DISPARAR',(x,y)=>{
-    drawHowToMouse(ctx,x+12,y+4,'left','#d86b58');
-    drawHowToDpad(ctx,x+45,y+4,
-      keyLabel(engine.bindings.shootUp),keyLabel(engine.bindings.shootLeft),
-      keyLabel(engine.bindings.shootDown),keyLabel(engine.bindings.shootRight),'#d86b58');
+    drawHowToMouse(ctx,x+12,y+3,'left','#d86b58');
+    drawHowToDpad(ctx,x+40,y+3,bind('shootUp',true),bind('shootLeft',true),bind('shootDown',true),bind('shootRight',true),'#d86b58');
   },'#d86b58');
 
   drawCell(2,'ESQUIVAR',(x,y)=>{
-    drawHowToMouse(ctx,x+18,y+4,'right','#e6c56f');
-    drawHowToKey(ctx,keyLabel(engine.bindings.dash),x+47,y+9,42,15,'#e6c56f');
+    drawHowToMouse(ctx,x+14,y+3,'right','#e6c56f');
+    drawHowToKey(ctx,bind('dash'),x+45,y+6,44,16,'#e6c56f');
   },'#e6c56f');
 
   drawCell(3,'INTERACTUAR',(x,y)=>{
-    drawHowToKey(ctx,keyLabel(engine.bindings.interact),x+35,y+8,34,17,'#78c99a');
+    drawHowToKey(ctx,bind('interact'),x+28,y+5,54,17,'#78c99a');
   },'#78c99a');
 
   drawCell(4,'OBJETO ACTIVO',(x,y)=>{
-    drawHowToKey(ctx,keyLabel(engine.bindings.active),x+21,y+8,62,17,'#b992d8');
+    drawHowToKey(ctx,bind('active'),x+20,y+5,70,17,'#b992d8');
   },'#b992d8');
 
   drawCell(5,'CAMBIAR ARMA',(x,y)=>{
-    drawHowToMouse(ctx,x+12,y+4,'wheel','#8fb7c8');
-    drawHowToKey(ctx,keyLabel(engine.bindings.weapon1),x+43,y+9,22,15,'#8fb7c8');
-    drawHowToKey(ctx,keyLabel(engine.bindings.weapon2),x+69,y+9,22,15,'#8fb7c8');
+    drawHowToMouse(ctx,x+12,y+3,'wheel','#8fb7c8');
+    drawHowToKey(ctx,bind('weapon1'),x+43,y+6,22,16,'#8fb7c8');
+    drawHowToKey(ctx,bind('weapon2'),x+69,y+6,22,16,'#8fb7c8');
   },'#8fb7c8');
 
   drawCell(6,'MAPA',(x,y)=>{
-    drawHowToKey(ctx,keyLabel(engine.bindings.map),x+35,y+8,34,17,'#79b9d2');
+    drawHowToKey(ctx,bind('map'),x+28,y+5,54,17,'#79b9d2');
   },'#79b9d2');
 
   drawCell(7,'PAUSA',(x,y)=>{
-    drawHowToKey(ctx,keyLabel(engine.bindings.pause),x+31,y+8,42,17,'#d7b56c');
+    drawHowToKey(ctx,bind('pause'),x+24,y+5,62,17,'#d7b56c');
   },'#d7b56c');
 
-  drawMenuCard(ctx,276,72,176,238,false,'#78c99a','rgba(8,20,26,.95)');
-  drawSectionLabel(ctx,'PLAN DEL ATRACO',292,92,'#78c99a');
+  // PLAN: secundario y compacto. Mantiene la información sin competir con los controles.
+  drawMenuCard(ctx,28,240,424,69,false,'#78c99a','rgba(8,20,26,.95)');
+  drawSectionLabel(ctx,'PLAN DEL ATRACO',44,259,'#78c99a');
   const tips=[
-    ['LIMPIA LA SALA','Derrota enemigos para abrir puertas.'],
-    ['ARMA LA BUILD','Combina dos armas, objetos y sinergias.'],
-    ['CUIDA LA VIDA','El pan cura. No todas las peleas lo sueltan.'],
-    ['ROBA Y BAJA','Jefe, botín y siguiente piso.'],
-    ['LEE EL MAPA','Pausa el combate; no teletransporta.'],
+    ['LIMPIA','Abre puertas'],
+    ['ARMA','Combina equipo'],
+    ['CUIDA','Usa el pan'],
+    ['ROBA','Jefe y piso'],
+    ['MAPA','Planea la ruta'],
   ];
+  const tipW=72,gap=8,tipStart=44;
   tips.forEach(([t,d],i)=>{
-    const y=108+i*37;
-    text(ctx,'•',292,y+9,7,'#78c99a','left',true,false);
-    text(ctx,t,306,y+9,5.9,'#e2e8dd','left',true,false);
-    wrappedText(ctx,d,306,y+20,132,5.1,6.2,2,'#82989a');
+    const x=tipStart+i*(tipW+gap);
+    if(i>0){ctx.fillStyle='rgba(120,201,154,.12)';ctx.fillRect(x-5,267,1,28);}
+    text(ctx,String(i+1).padStart(2,'0'),x,276,4.1,'#5e8974','left',true,false);
+    text(ctx,t,x,286,5.1,'#e2e8dd','left',true,false);
+    text(ctx,d,x,296,4.25,'#82989a','left',false,false);
   });
+
   drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),'#d7b56c');
 }
 
