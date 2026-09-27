@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,damageObstacleTile,obstacleHpAt,GameState,SETTING_ROWS } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,OBSTACLE_FAMILIES,OBSTACLE_VARIANTS,OBSTACLE_VARIANTS_PER_FAMILY,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -158,27 +158,42 @@ export function runSelfChecks():CheckReport {
         drawRoomAtmosphere(artCtx,deco,180,deco==='golden');
       }
     });
-    check('Hitboxes de todos los props bancarios coinciden con su tile',()=>{
-      assert(OBSTACLES.length>=14,'catálogo de props no ampliado');
+    check('Catálogo nuevo contiene 120 props y retiró los 14 anteriores',()=>{
+      assert(OBSTACLE_FAMILIES.length===20,'se esperaban 20 familias nuevas');
+      assert(OBSTACLE_VARIANTS.length===6&&OBSTACLE_VARIANTS_PER_FAMILY===6,'se esperaban 6 variantes por familia');
+      assert(OBSTACLES.length===120,'el catálogo destructible no llegó a 120 objetos');
+      assert(new Set(OBSTACLES).size===OBSTACLES.length,'hay nombres de props duplicados');
+      const legacy=['desk','barrier','shelf','moneybag','crate','column','safe','rubble','deposit_lockers','briefcase','cash_tray','value_cart','archive_cabinet','armored_case'];
+      for(const old of legacy)assert(!OBSTACLES.includes(old),`sobrevivió prop antiguo: ${old}`);
+    });
+    check('Hitboxes de los 120 props coinciden con su tile y variantes comparten familia',()=>{
       for(let kind=0;kind<OBSTACLES.length;kind++){
         const r=obstacleHitbox(kind,64,96);
         assert(r.w>0&&r.h>0,`hitbox vacío ${OBSTACLES[kind]}`);
         assert(r.x>=64&&r.y>=96&&r.x+r.w<=96&&r.y+r.h<=128,`hitbox fuera del tile ${OBSTACLES[kind]}`);
         assert(r.y>96,`sin margen visual ${OBSTACLES[kind]}`);
       }
-      const tall=[0,2,4,5,6,8,11,12,13];
-      const low=[1,3,7,9,10];
-      for(const kind of tall)assert(obstacleOccludes(kind),`prop alto sin oclusión ${OBSTACLES[kind]}`);
-      for(const kind of low)assert(!obstacleOccludes(kind),`prop bajo oculta al pato ${OBSTACLES[kind]}`);
+      for(let family=0;family<OBSTACLE_FAMILIES.length;family++){
+        const base=family*OBSTACLE_VARIANTS_PER_FAMILY;
+        const expected=obstacleOccludes(base);
+        for(let variant=1;variant<OBSTACLE_VARIANTS_PER_FAMILY;variant++){
+          assert(obstacleOccludes(base+variant)===expected,`variante cambió oclusión de ${OBSTACLE_FAMILIES[family]}`);
+        }
+      }
     });
-    check('Todos los props procedurales tienen resistencia destructible',()=>{
+    check('Los 120 props mantienen resistencia rápida y diferencias por familia',()=>{
       assert(OBSTACLE_DURABILITY.length===OBSTACLES.length,'faltan resistencias de objetos');
-      assert(OBSTACLE_DURABILITY.every(d=>d.hp>0),'objeto con resistencia inválida');
-      assert(obstacleMaxHp(10)<obstacleMaxHp(6),'bandeja debería romperse antes que caja fuerte');
-      assert(obstacleMaxHp(3)<obstacleMaxHp(5),'bolsa debería romperse antes que columna');
-      assert(obstacleMaxHp(13)>obstacleMaxHp(1),'contenedor blindado debería resistir más que barrera');
-      assert(obstacleMaxHp(10)<=7&&obstacleMaxHp(3)<=14&&obstacleMaxHp(9)<=14,'props frágiles tardan demasiado');
+      assert(OBSTACLE_DURABILITY.every(d=>d.hp>=6&&d.hp<=63),'objeto con resistencia fuera de rango');
+      const idx=(family:number,variant=0)=>family*OBSTACLE_VARIANTS_PER_FAMILY+variant;
+      assert(obstacleMaxHp(idx(15))<obstacleMaxHp(idx(19)),'silla debería romperse antes que servidor');
+      assert(obstacleMaxHp(idx(3))<obstacleMaxHp(idx(13)),'tote debería romperse antes que jaula de lingotes');
+      assert(obstacleMaxHp(idx(1))<obstacleMaxHp(idx(5)),'separador debería romperse antes que soporte reforzado');
+      assert(obstacleMaxHp(idx(10))<=14,'contadora de efectivo tarda demasiado');
       assert(Math.max(...OBSTACLE_DURABILITY.map(d=>d.hp))<=63,'ningún prop debe exigir más de 9 impactos de la pistola inicial');
+      for(let family=0;family<OBSTACLE_FAMILIES.length;family++){
+        const base=idx(family),reinforced=idx(family,5);
+        assert(obstacleMaxHp(reinforced)>=obstacleMaxHp(base),`variante reforzada más débil: ${OBSTACLE_FAMILIES[family]}`);
+      }
     });
     check('Daño de escenario persiste y al romper libera el tile',()=>{
       const e=setup(),room=e.map.rooms.get(e.currentKey)!,content=e.contents.get(e.currentKey)!;
@@ -207,7 +222,7 @@ export function runSelfChecks():CheckReport {
       tick(e);
       assert(obstacleHpAt(content,kind,tx,ty)<max,'proyectil enemigo no dañó el prop');
     });
-    check('Estados visuales de daño de los 14 props renderizan sin excepción',()=>{
+    check('Estados visuales de daño de los 120 props renderizan sin excepción',()=>{
       for(let kind=0;kind<OBSTACLES.length;kind++){
         drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,1);
         drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,.55);
