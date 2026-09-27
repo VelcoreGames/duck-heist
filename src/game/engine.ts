@@ -3104,17 +3104,21 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     const solid = outside || pointBlocked(room,p.x,p.y,false);
     if (solid) {
       if(p.friendly&&obstacleHit){
-        const destroyed=damageObstacleTile(engine,room,content,tx,ty,projectileObstacleDamage(engine,p));
         if(p.explode>0){
           explode(engine,p,content);
           engine.projectiles.splice(i,1);
           continue;
         }
-        // Los proyectiles penetrantes pueden atravesar sólo cuando terminaron
-        // de romper el objeto; un prop todavía vivo sigue siendo cobertura real.
-        if(destroyed&&(p.piercing||(p.penetration??0)>0)){
-          if((p.penetration??0)>0)p.penetration!--;
+        const destroyed=damageObstacleTile(engine,room,content,tx,ty,projectileObstacleDamage(engine,p));
+        if(destroyed){
           spawnWeaponImpact(engine,p,p.x,p.y,true);
+          // Un disparo que termina de romper la cobertura no rebota sobre un
+          // objeto que ya dejó de existir. Los penetrantes siguen su trayectoria.
+          if((p.penetration??0)>0)p.penetration!--;
+          if(p.piercing||(p.penetration??0)>=0){
+            if(p.piercing||(p.penetration??0)>0)continue;
+          }
+          engine.projectiles.splice(i,1);
           continue;
         }
       }
