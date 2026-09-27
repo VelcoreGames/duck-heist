@@ -89,7 +89,9 @@ export const CONFIRM_RECTS:[Rect,Rect]=[
 
 export const BACK_BUTTON:Rect={x:28,y:316,w:96,h:24};
 export const PRIMARY_BUTTON:Rect={x:322,y:316,w:130,h:24};
-export const CONTROLS_RESET:Rect={x:322,y:316,w:130,h:24};
+export const CONTROLS_RESET:Rect={x:298,y:316,w:154,h:24};
+export const CONTROL_RESET_CANCEL:Rect={x:102,y:232,w:128,h:30};
+export const CONTROL_RESET_ACCEPT:Rect={x:250,y:232,w:128,h:30};
 export const MAP_CLOSE:Rect={x:352,y:316,w:100,h:24};
 export const SWAP_CANCEL:Rect={x:176,y:309,w:128,h:24};
 
