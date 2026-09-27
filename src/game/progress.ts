@@ -3,7 +3,7 @@ import { CATALOG, type CollectionCategory } from './catalog';
 import type { GameEngine, Settings } from './types';
 import { normalizeBindings } from './controls';
 
-export const DEFAULT_SETTINGS:Settings = {master:.8,music:.35,sfx:.85,shake:.7,damageNumbers:true,uiScale:2,fullscreen:false,brightness:1,reduceMotion:false,highContrast:false};
+export const DEFAULT_SETTINGS:Settings = {master:.8,music:.35,sfx:.85,muted:false,shake:.7,damageNumbers:true,uiScale:2,fullscreen:false,brightness:1,reduceMotion:false,highContrast:false};
 export const emptyDiscoveries = ():Record<CollectionCategory,string[]> => ({items:[],weapons:['quack_blaster'],bosses:[],enemies:[],skins:['robber'],synergies:[]});
 const finite=(v:unknown,fallback:number,min=0,max=1e9)=>typeof v==='number' && Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 export function normalizeProgress(raw:Record<string,unknown>={}) {
@@ -15,12 +15,14 @@ export function normalizeProgress(raw:Record<string,unknown>={}) {
   const values=raw.settings && typeof raw.settings==='object'?raw.settings as Record<string,unknown>:{};
   for(const k of ['master','music','sfx'] as const) settings[k]=finite(values[k],settings[k],0,1);
   settings.shake=finite(typeof values.shake==='boolean'?(values.shake?1:0):values.shake,.7,0,2);
-  settings.uiScale=finite(values.uiScale,2,1,3);settings.brightness=finite(values.brightness,1,.6,1.4);
+  // La escala ya no es una preferencia de usuario: mantenemos un valor fijo
+  // para compatibilidad con partidas guardadas antiguas.
+  settings.uiScale=2;settings.brightness=finite(values.brightness,1,.6,1.4);
+  settings.muted=values.muted===true||values.sound===false;
   settings.damageNumbers=values.damageNumbers!==false;
   settings.reduceMotion=values.reduceMotion===true;
   settings.highContrast=values.highContrast===true;
   const bindings=normalizeBindings(raw.bindings);
-  if(values.sound===false) settings.master=0;
   const discovered=emptyDiscoveries(), d=raw.discovered as Record<string,unknown>|undefined;
   for(const category of Object.keys(discovered) as CollectionCategory[]) {
     const known=new Set(CATALOG.filter(c=>c.category===category).map(c=>c.id));
