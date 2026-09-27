@@ -510,7 +510,7 @@ const SUB_SEEDS:Seed[]=[
     "cajero_3000",
     "CAJERO DE COMBATE 3000",
     "finance",
-    "Monedas, láser y modo emergencia",
+    "Blindaje bancario · cañones de moneda · núcleo de emergencia",
     true
   ],
   [
@@ -795,9 +795,9 @@ const BOSS_SEEDS:Seed[]=[
   ],
   [
     "toaster_9000",
-    "LA TOSTADORA 9000",
+    "DRON DE ASALTO 9000",
     "tech",
-    "Calentamiento, sobrecarga y fusión",
+    "Artillería aérea · sensores térmicos · sobrecarga de combate",
     true
   ],
   [
@@ -818,7 +818,7 @@ const BOSS_SEEDS:Seed[]=[
     "director_seguridad",
     "NÚCLEO DIRECTOR DE SEGURIDAD",
     "tech",
-    "Protocolo, contención y bloqueo total",
+    "IA táctica · contención autónoma · bloqueo total",
     true
   ],
   [
