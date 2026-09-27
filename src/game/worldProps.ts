@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, UI_BASE_WIDTH, RoomType, OBSTACLES, OBSTACLE_VARIANTS_PER_FAMILY } from './constants';
+import { CANVAS_WIDTH, UI_BASE_WIDTH, RoomType, OBSTACLES, OBSTACLES_PER_FLOOR } from './constants';
 import type { RoomContent } from './types';
 
 export type WorldPropKind =
@@ -36,43 +36,52 @@ interface ObstacleFamilyPhysics {
 }
 
 /**
- * Física base para las 20 familias nuevas. Cada familia tiene seis variantes;
- * el modificador de variante altera resistencia sin convertir ninguna en una
- * esponja de balas.
+ * Las 20 siluetas físicas se reutilizan por piso, pero cada ID es un objeto
+ * distinto. El tier del piso controla inversión, resistencia y acabado.
  */
 export const OBSTACLE_FAMILY_PHYSICS:ReadonlyArray<ObstacleFamilyPhysics>=[
-  {hp:18,material:'metal',      debris:'#5f7076',hitbox:{x:3,y:15,w:26,h:14},occludes:true }, // teller terminal
-  {hp:10,material:'light',      debris:'#b48d3e',hitbox:{x:4,y:19,w:24,h:10},occludes:false}, // queue divider
-  {hp:22,material:'metal',      debris:'#6f7d80',hitbox:{x:4,y:14,w:24,h:15},occludes:true }, // document carousel
-  {hp:9, material:'light',      debris:'#53686d',hitbox:{x:6,y:19,w:20,h:10},occludes:false}, // sealed tote
-  {hp:30,material:'reinforced', debris:'#69767a',hitbox:{x:3,y:15,w:26,h:14},occludes:true }, // dispatch crate
-  {hp:50,material:'structural', debris:'#a1abad',hitbox:{x:7,y:6,w:18,h:25},occludes:true }, // reinforced support
-  {hp:26,material:'reinforced', debris:'#64747b',hitbox:{x:5,y:14,w:22,h:15},occludes:true }, // keypad station
+  {hp:18,material:'metal',      debris:'#5f7076',hitbox:{x:3,y:15,w:26,h:14},occludes:true }, // terminal / desk
+  {hp:10,material:'light',      debris:'#b48d3e',hitbox:{x:4,y:19,w:24,h:10},occludes:false}, // queue gate
+  {hp:22,material:'metal',      debris:'#6f7d80',hitbox:{x:4,y:14,w:24,h:15},occludes:true }, // carousel / display
+  {hp:9, material:'light',      debris:'#53686d',hitbox:{x:6,y:19,w:20,h:10},occludes:false}, // tote / coffer
+  {hp:30,material:'reinforced', debris:'#69767a',hitbox:{x:3,y:15,w:26,h:14},occludes:true }, // crate / chest
+  {hp:50,material:'structural', debris:'#a1abad',hitbox:{x:7,y:6,w:18,h:25},occludes:true }, // column / support
+  {hp:26,material:'reinforced', debris:'#64747b',hitbox:{x:5,y:14,w:22,h:15},occludes:true }, // access station
   {hp:12,material:'light',      debris:'#56676e',hitbox:{x:6,y:19,w:20,h:10},occludes:false}, // alarm unit
-  {hp:34,material:'reinforced', debris:'#77817f',hitbox:{x:3,y:12,w:26,h:17},occludes:true }, // deposit drawers
-  {hp:11,material:'light',      debris:'#4d5b60',hitbox:{x:5,y:20,w:22,h:9}, occludes:false}, // courier hardcase
-  {hp:14,material:'metal',      debris:'#657277',hitbox:{x:5,y:18,w:22,h:11},occludes:false}, // currency counter
-  {hp:25,material:'metal',      debris:'#657479',hitbox:{x:4,y:16,w:24,h:13},occludes:true }, // rolling cart
-  {hp:32,material:'reinforced', debris:'#717c80',hitbox:{x:3,y:12,w:26,h:17},occludes:true }, // evidence locker
-  {hp:46,material:'structural', debris:'#8a9697',hitbox:{x:3,y:13,w:26,h:16},occludes:true }, // bullion cage
-  {hp:17,material:'metal',      debris:'#728085',hitbox:{x:4,y:17,w:24,h:12},occludes:true }, // printer station
-  {hp:8, material:'light',      debris:'#5c666a',hitbox:{x:7,y:21,w:18,h:8}, occludes:false}, // office chair
+  {hp:34,material:'reinforced', debris:'#77817f',hitbox:{x:3,y:12,w:26,h:17},occludes:true }, // drawer stack
+  {hp:11,material:'light',      debris:'#4d5b60',hitbox:{x:5,y:20,w:22,h:9}, occludes:false}, // hard case
+  {hp:14,material:'metal',      debris:'#657277',hitbox:{x:5,y:18,w:22,h:11},occludes:false}, // counter / lab
+  {hp:25,material:'metal',      debris:'#657479',hitbox:{x:4,y:16,w:24,h:13},occludes:true }, // cart / trolley
+  {hp:32,material:'reinforced', debris:'#717c80',hitbox:{x:3,y:12,w:26,h:17},occludes:true }, // locker / safe
+  {hp:46,material:'structural', debris:'#8a9697',hitbox:{x:3,y:13,w:26,h:16},occludes:true }, // cage
+  {hp:17,material:'metal',      debris:'#728085',hitbox:{x:4,y:17,w:24,h:12},occludes:true }, // printer / press
+  {hp:8, material:'light',      debris:'#5c666a',hitbox:{x:7,y:21,w:18,h:8}, occludes:false}, // chair
   {hp:10,material:'light',      debris:'#617057',hitbox:{x:7,y:20,w:18,h:9}, occludes:false}, // planter
-  {hp:13,material:'light',      debris:'#7d969d',hitbox:{x:7,y:18,w:18,h:11},occludes:true }, // water cooler
+  {hp:13,material:'light',      debris:'#7d969d',hitbox:{x:7,y:18,w:18,h:11},occludes:true }, // water station
   {hp:27,material:'metal',      debris:'#566d76',hitbox:{x:3,y:14,w:26,h:15},occludes:true }, // surveillance console
-  {hp:38,material:'reinforced', debris:'#59666d',hitbox:{x:5,y:9,w:22,h:20}, occludes:true }, // server tower
+  {hp:38,material:'reinforced', debris:'#59666d',hitbox:{x:5,y:9,w:22,h:20}, occludes:true }, // server / data vault
 ];
 
-const variantHpDelta=[0,1,2,3,-2,6] as const;
-export const obstacleFamilyIndex=(kind:number)=>Math.max(0,Math.min(OBSTACLE_FAMILY_PHYSICS.length-1,Math.floor(kind/OBSTACLE_VARIANTS_PER_FAMILY)));
-export const obstacleVariantIndex=(kind:number)=>((kind%OBSTACLE_VARIANTS_PER_FAMILY)+OBSTACLE_VARIANTS_PER_FAMILY)%OBSTACLE_VARIANTS_PER_FAMILY;
+const floorHpBonus=[0,2,4,6,8,10] as const;
+const floorValueBase=[120,650,2400,9000,32000,120000] as const;
+const familyValueFactor=[
+  1.5,.55,1.1,.75,1.7,2.4,2.0,1.0,1.8,.9,
+  1.4,1.55,2.1,2.8,1.35,.8,1.0,1.25,2.25,2.65,
+] as const;
+
+export const obstacleFloorTier=(kind:number)=>Math.max(0,Math.min(5,Math.floor(kind/OBSTACLES_PER_FLOOR)));
+export const obstacleFamilyIndex=(kind:number)=>((kind%OBSTACLES_PER_FLOOR)+OBSTACLES_PER_FLOOR)%OBSTACLES_PER_FLOOR;
+export const obstacleValue=(kind:number)=>{
+  const tier=obstacleFloorTier(kind),family=obstacleFamilyIndex(kind);
+  return Math.round(floorValueBase[tier]*familyValueFactor[family]);
+};
 
 export const OBSTACLE_DURABILITY:ReadonlyArray<ObstacleDurability>=OBSTACLES.map((_,kind)=>{
   const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
-  const variant=obstacleVariantIndex(kind);
+  const tier=obstacleFloorTier(kind);
   return {
-    hp:Math.max(6,Math.min(63,family.hp+variantHpDelta[variant])),
-    material:variant===5&&family.material==='light'?'metal':family.material,
+    hp:Math.max(6,Math.min(63,family.hp+floorHpBonus[tier])),
+    material:tier>=4&&family.material==='light'?'metal':family.material,
     debris:family.debris,
   };
 });
@@ -80,6 +89,30 @@ export const OBSTACLE_DURABILITY:ReadonlyArray<ObstacleDurability>=OBSTACLES.map
 export const obstacleMaxHp=(kind:number)=>OBSTACLE_DURABILITY[kind]?.hp??18;
 export const obstacleMaterial=(kind:number)=>OBSTACLE_DURABILITY[kind]?.material??'metal';
 export const obstacleDebrisColor=(kind:number)=>OBSTACLE_DURABILITY[kind]?.debris??'#7a8588';
+
+/**
+ * Huella física: sólo la base visible bloquea movimiento. La zona superior
+ * queda libre para que el pato pueda pasar por detrás y ser ocluido.
+ */
+export function obstacleHitbox(kind:number,x:number,y:number):ObstacleRect {
+  const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
+  const h=family?.hitbox ?? {x:5,y:18,w:22,h:10};
+  return {x:x+h.x,y:y+h.y,w:h.w,h:h.h};
+}
+
+export function obstacleOccludes(kind:number){
+  return OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)]?.occludes ?? false;
+}
+
+/** Zona visual en la que un actor debe quedar detrás de la parte alta del prop. */
+export function obstacleCoverRect(kind:number,x:number,y:number):ObstacleRect {
+  const hit=obstacleHitbox(kind,x,y);
+  const top=y+3;
+  const bottom=Math.min(y+TILE_SIZE_SAFE,hit.y+5);
+  return {x:x+1,y:top,w:30,h:Math.max(7,bottom-top)};
+}
+
+const TILE_SIZE_SAFE=32;
 
 /** Pedestal: la colisión sólo ocupa la base metálica visible. */
 export const PEDESTAL_INTERACT_RADIUS=42;
