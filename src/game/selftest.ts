@@ -655,7 +655,20 @@ export function runSelfChecks():CheckReport {
       }
       assert(bossPartsFor('director_seguridad').filter(p=>p.kind==='turret').length===2,'Director sin dos torretas independientes');
       assert(bossPartsFor('ganso_antidisturbios').some(p=>p.kind==='shield'),'Antidisturbios sin escudo destructible');
-      assert(bossPartsFor('toaster_9000').filter(p=>p.kind==='reactor').length===2,'Tostadora sin resistencias independientes');
+      assert(bossPartsFor('toaster_9000').filter(p=>p.kind==='reactor').length===2,'Dron de asalto sin reactores independientes');
+      const finalParts=bossPartsFor('bread_banker');
+      assert(finalParts.length===5,'Jefe final sin cinco módulos destructibles');
+      assert(finalParts.filter(p=>p.kind==='turret').length===2,'Jefe final sin drones destruibles');
+      assert(finalParts.some(p=>p.id==='vault_core'&&p.exposedPhase===1),'núcleo final sin exposición por fase');
+    });
+    check('Jefe final renderiza sus módulos intactos y destruidos en las tres fases',()=>{
+      const def=BOSSES.bread_banker;
+      const alive=bossPartsFor('bread_banker');
+      const broken=alive.map(p=>({...p,hp:0,destroyed:true}));
+      for(let phase=0;phase<3;phase++){
+        drawBoss(ctx,80,80,'bread_banker',260+phase*7,def.hp,def.hp,false,phase,.65,alive,phase,0,20);
+        drawBoss(ctx,80,80,'bread_banker',280+phase*7,def.hp,def.hp,false,phase,.65,broken,phase,0,20);
+      }
     });
     check('Estados destruidos de bosses icónicos siguen siendo renderizables',()=>{
       const ids=['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','head_baker','el_auditor','ganso_antidisturbios','cajero_3000'];

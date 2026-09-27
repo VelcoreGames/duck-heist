@@ -1895,7 +1895,233 @@ function drawBossFactionCore(
   ctx.restore();
 }
 
-function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
+
+function iconicPartAlive(parts:BossPartState[]|undefined,id:string){
+  const p=parts?.find(x=>x.id===id);
+  return p?!p.destroyed:true;
+}
+function iconicPartRatio(parts:BossPartState[]|undefined,id:string){
+  const p=parts?.find(x=>x.id===id);
+  return p?Math.max(0,Math.min(1,p.hp/Math.max(1,p.maxHp))):1;
+}
+function drawBrokenModule(ctx:Ctx,x:number,y:number,frame:number,hot='#ff7048'){
+  const pulse=.45+.35*Math.sin(frame*.19+x*.07);
+  ctx.save();
+  ctx.globalAlpha=.62;
+  rect(ctx,x-4,y-3,8,6,'#242b2e');px(ctx,x-2,y-1,'#111719',3);
+  ctx.globalAlpha=.35+.35*pulse;px(ctx,x+2,y-5,hot,2);px(ctx,x-5,y+2,'#d8e1df',1);
+  ctx.strokeStyle='#555f61';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(x-2,y+2);ctx.lineTo(x-6,y+8);ctx.moveTo(x+1,y+2);ctx.lineTo(x+5,y+7);ctx.stroke();
+  ctx.restore();
+}
+function drawBossPartWear(ctx:Ctx,parts:BossPartState[]|undefined,frame:number){
+  if(!parts?.length)return;
+  ctx.save();
+  for(const p of parts){
+    const r=p.maxHp>0?p.hp/p.maxHp:0;
+    if(p.destroyed){
+      drawBrokenModule(ctx,p.offsetX,p.offsetY,frame,p.kind==='oven'||p.kind==='reactor'||p.kind==='core'?'#ff6b43':'#d5e0e4');
+      continue;
+    }
+    if(r<.68){
+      ctx.strokeStyle=r<.32?'#171b1d':'#343c3f';ctx.lineWidth=1;ctx.globalAlpha=r<.32?.9:.58;
+      ctx.beginPath();ctx.moveTo(p.offsetX-3,p.offsetY-4);ctx.lineTo(p.offsetX+1,p.offsetY);ctx.lineTo(p.offsetX-2,p.offsetY+4);ctx.stroke();
+      if(r<.35){ctx.globalAlpha=.55;px(ctx,p.offsetX+3,p.offsetY-3,'#ff8154',2);}
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * Diseños artesanales para los encuentros emblemáticos.
+ * Devuelve true cuando el cuerpo completo ya fue dibujado y no debe usarse
+ * la plantilla de facción genérica.
+ */
+function drawIconicBossBodyV3(
+  ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,tier:number,parts?:BossPartState[]
+){
+  const pulse=.5+.5*Math.sin(frame*.12);
+  const alive=(id:string)=>iconicPartAlive(parts,id);
+  const ratio=(id:string)=>iconicPartRatio(parts,id);
+  ctx.save();
+
+  switch(bossType){
+    case 'tax_collector': { // recaudador alto, abrigo y sello fiscal
+      rect(ctx,-12,-7,24,28,'#eee8dc');rect(ctx,-11,-1,22,22,'#26322f');
+      rect(ctx,-3,-1,6,21,'#8f2634');rect(ctx,-9,3,6,15,'#3d4b46');rect(ctx,3,3,6,15,'#3d4b46');
+      rect(ctx,-8,-19,16,12,'#efe8db');enemyEye(ctx,-5,-15,true);rect(ctx,7,-13,9,4,'#e68931');
+      rect(ctx,-11,-24,22,5,'#1e2728');rect(ctx,-6,-27,12,4,'#384540');
+      ctx.save();ctx.translate(18,5);ctx.rotate(-.18);rect(ctx,-2,-18,4,28,'#6f2530');rect(ctx,-6,-22,12,7,'#a83d49');ctx.restore();
+      rect(ctx,-22,3,11,14,'#46382f');rect(ctx,-20,1,7,4,'#7a5c39');px(ctx,-18,7,v.secondary,3);
+      if(phase){rect(ctx,-13,18,26,3,'#6d2029');}
+      break;
+    }
+    case 'sargento_migajas': { // suboficial militar compacto con escopeta
+      rect(ctx,-17,-7,34,25,'#e4e6dc');rect(ctx,-15,-1,30,19,'#4c5948');
+      rect(ctx,-11,2,22,14,'#5f6b55');for(let x=-9;x<=5;x+=7)rect(ctx,x,6,5,8,'#7d623e');
+      rect(ctx,-9,-18,18,11,'#efe8da');enemyEye(ctx,-6,-14,true);rect(ctx,7,-12,9,4,'#e58731');
+      ctx.fillStyle='#394538';ctx.beginPath();ctx.arc(0,-19,11,Math.PI,Math.PI*2);ctx.fill();rect(ctx,-10,-19,20,4,'#303a31');
+      ctx.save();ctx.translate(17,7);ctx.rotate(-.18);rect(ctx,-2,-4,32,5,'#30383b');rect(ctx,18,-6,11,9,'#69767a');ctx.restore();
+      px(ctx,-19,-9,v.secondary,3);rect(ctx,-22,-6,4,13,'#2a332b');
+      break;
+    }
+    case 'dron_centinela': { // dron centinela quadrotor
+      const rot=frame*.14;
+      ctx.fillStyle='#27363e';ctx.beginPath();ctx.moveTo(-20,-10);ctx.lineTo(20,-10);ctx.lineTo(27,1);ctx.lineTo(16,15);ctx.lineTo(-16,15);ctx.lineTo(-27,1);ctx.closePath();ctx.fill();
+      rect(ctx,-13,-5,26,15,'#3e545d');rect(ctx,-7,-2,14,8,'#12262d');
+      ctx.globalAlpha=.55+.4*pulse;rect(ctx,-4,0,8,4,phase>=1?'#ff5d59':v.accent);ctx.globalAlpha=1;
+      for(const x of [-31,31]){
+        rect(ctx,x<0?x:x-10,-4,10,4,'#586b73');
+        ctx.save();ctx.translate(x,-3);ctx.rotate(rot*(x<0?-1:1));rect(ctx,-8,-1,16,2,'#98a8ac');rect(ctx,-1,-8,2,16,'#98a8ac');ctx.restore();
+      }
+      rect(ctx,-18,10,6,11,'#20292e');rect(ctx,12,10,6,11,'#20292e');
+      if(phase>=1){rect(ctx,-5,-15,10,6,'#1d282d');px(ctx,-2,-18,v.secondary,4);}
+      break;
+    }
+    case 'panadero_loco': { // panadero explosivo con mochila de masa
+      metalEdge(ctx,-22,-4,10,24,'#574338','#946c48','#2c221d');
+      rect(ctx,-17,-8,34,27,'#f1eadf');rect(ctx,-15,-1,30,20,'#8b5d3d');rect(ctx,-10,2,20,15,'#d8c3a2');
+      rect(ctx,-10,-18,20,11,'#f0e4d2');enemyEye(ctx,-7,-14,true);rect(ctx,8,-12,9,4,'#e68131');
+      rect(ctx,-13,-24,26,6,'#f3f0e8');rect(ctx,-9,-30,18,8,'#fbf8f1');
+      ctx.save();ctx.translate(20,4);ctx.rotate(-.42);rect(ctx,-2,-17,4,29,'#745137');ctx.fillStyle='#c58a51';ctx.beginPath();ctx.arc(0,-19,7,0,Math.PI*2);ctx.fill();ctx.restore();
+      for(const x of [-8,0,8]){ctx.globalAlpha=.35+.3*pulse;px(ctx,x,13,phase?'#ff7540':'#b57b4d',3);}ctx.globalAlpha=1;
+      break;
+    }
+    case 'head_baker': { // jefe panadero industrial, horno central
+      metalEdge(ctx,-22,-6,44,30,'#574437','#94704a','#2b211c');
+      rect(ctx,-17,-4,34,25,'#efe6d8');rect(ctx,-13,1,26,18,'#94613f');
+      rect(ctx,-9,-19,18,12,'#f1e4d2');enemyEye(ctx,-6,-15,true);rect(ctx,7,-13,9,4,'#e48130');
+      rect(ctx,-14,-25,28,6,'#f4f1e9');rect(ctx,-10,-32,20,9,'#fcfaf3');
+      if(alive('oven_core')){
+        const r=ratio('oven_core');rect(ctx,-9,5,18,12,'#362a22');
+        ctx.globalAlpha=.45+.4*pulse;rect(ctx,-6,8,12,6,r<.35?'#ff4f38':'#ff7d42');ctx.globalAlpha=1;
+      }else drawBrokenModule(ctx,0,10,frame,'#ff673f');
+      if(alive('paddle')){ctx.save();ctx.translate(25,4);ctx.rotate(-.52);rect(ctx,-2,-21,5,37,'#8f6038');rect(ctx,-8,-26,17,8,'#c8874e');ctx.restore();}
+      else drawBrokenModule(ctx,24,3,frame);
+      if(phase>=1){rect(ctx,-20,17,8,5,'#6f4632');rect(ctx,12,17,8,5,'#6f4632');}
+      break;
+    }
+    case 'el_auditor': { // auditor alto, sello y maletín
+      rect(ctx,-11,-9,22,30,'#eee8dc');rect(ctx,-10,-2,20,23,'#20272b');rect(ctx,-3,-2,6,22,'#8f2634');
+      rect(ctx,-8,-20,16,11,'#f0e9dc');enemyEye(ctx,-5,-16,true);rect(ctx,7,-14,9,4,'#e68631');
+      ctx.strokeStyle='#2b3336';ctx.lineWidth=2;ctx.strokeRect(-7,-18,5,4);ctx.strokeRect(2,-18,5,4);rect(ctx,-2,-16,4,1,'#2b3336');
+      if(alive('briefcase')){rect(ctx,-24,3,12,15,'#47372d');rect(ctx,-21,0,6,4,'#7a5c39');px(ctx,-20,8,v.secondary,3);}
+      else drawBrokenModule(ctx,-17,9,frame);
+      if(alive('execution_seal')){ctx.save();ctx.translate(17,1);ctx.rotate(-.15);rect(ctx,-2,-15,4,27,'#722631');rect(ctx,-7,-19,14,8,'#a93c49');ctx.restore();}
+      else drawBrokenModule(ctx,15,-2,frame,'#cf4450');
+      if(phase>=1){ctx.globalAlpha=.35+.25*pulse;ctx.strokeStyle='#a93440';ctx.beginPath();ctx.ellipse(0,1,16+phase*5,27+phase*4,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      break;
+    }
+    case 'ganso_antidisturbios': { // tanque riot
+      rect(ctx,-20,-8,40,28,'#dde1df');rect(ctx,-18,-2,36,22,'#3b4752');rect(ctx,-13,2,26,15,'#4b5963');
+      rect(ctx,-10,-19,20,12,'#e5e8e5');rect(ctx,-13,-24,26,7,'#29343d');rect(ctx,-9,-21,18,5,'#11191e');
+      px(ctx,-7,-20,v.accent,3);px(ctx,4,-20,v.accent,3);
+      if(alive('riot_shield')){
+        metalEdge(ctx,14,-12,22,38,'#52616d','#8b9ba4','#242d34');rect(ctx,18,-7,14,28,'#303c45');rect(ctx,21,0,8,13,v.secondary);
+      }else drawBrokenModule(ctx,25,6,frame);
+      ctx.save();ctx.translate(-21,5);ctx.rotate(.11);rect(ctx,-2,-17,4,32,'#20292f');rect(ctx,-5,-20,10,6,'#68757b');ctx.restore();
+      if(phase>=1&&alive('riot_shield')){for(let y=-8;y<20;y+=9){ctx.fillStyle='#9ba7ad';ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(40,y+3);ctx.lineTo(35,y+6);ctx.closePath();ctx.fill();}}
+      break;
+    }
+    case 'cajero_3000': { // mech ATM estacionario
+      metalEdge(ctx,-27,-14,54,40,'#293237','#75848a','#151b1e');rect(ctx,-21,-9,42,30,'#3b4a50');
+      rect(ctx,-13,-6,26,13,'#16272d');ctx.globalAlpha=.55+.4*pulse;rect(ctx,-9,-3,18,6,phase>=1?'#ff6257':v.accent);ctx.globalAlpha=1;
+      rect(ctx,-10,10,20,8,'#20292d');rect(ctx,-6,12,12,3,v.secondary);
+      if(alive('coin_cannon_l')){metalEdge(ctx,-42,-8,12,28,'#303b40','#7d8d91','#1b2225');rect(ctx,-48,0,12,6,'#20282c');}
+      else drawBrokenModule(ctx,-42,-4,frame);
+      if(alive('coin_cannon_r')){metalEdge(ctx,30,-8,12,28,'#303b40','#7d8d91','#1b2225');rect(ctx,36,0,12,6,'#20282c');}
+      else drawBrokenModule(ctx,42,-4,frame);
+      if(phase>=1){
+        if(alive('emergency_core')){ctx.strokeStyle='#59d7a7';ctx.lineWidth=2;ctx.globalAlpha=.45+.35*pulse;ctx.beginPath();ctx.arc(0,1,13+phase*4,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+        else drawBrokenModule(ctx,0,-3,frame,'#ff6b43');
+      }
+      break;
+    }
+    case 'captain_honk': { // capitán policial moderno
+      rect(ctx,-17,-8,34,27,'#e2e6e4');rect(ctx,-16,-2,32,21,'#22394f');rect(ctx,-11,1,22,16,'#2b4b69');
+      rect(ctx,-10,-19,20,12,'#eee9de');enemyEye(ctx,-7,-15,true);rect(ctx,8,-13,10,4,'#ee8b35');
+      rect(ctx,-13,-24,26,6,'#182835');rect(ctx,-8,-28,16,5,'#2d4d67');px(ctx,-2,-26,v.secondary,4);
+      rect(ctx,-4,5,8,7,'#17242d');px(ctx,-2,6,v.secondary,4);
+      px(ctx,-18,-8,'#5da6ff',3);px(ctx,16,-8,'#ff5d58',3);
+      if(alive('command_radio')){rect(ctx,-23,-5,5,15,'#26343b');px(ctx,-22,-9,v.accent,3);}else drawBrokenModule(ctx,-21,8,frame);
+      if(alive('sidearm')){ctx.save();ctx.translate(19,8);ctx.rotate(-.12);rect(ctx,-2,-3,22,5,'#30383c');rect(ctx,12,-5,8,3,'#8d9a9d');ctx.restore();}
+      else drawBrokenModule(ctx,23,9,frame);
+      break;
+    }
+    case 'comisario_pico_duro': { // comisario francotirador
+      rect(ctx,-12,-10,24,32,'#e6e8e2');rect(ctx,-11,-2,22,24,'#1f3346');rect(ctx,-8,1,16,18,'#2c455d');
+      rect(ctx,-8,-21,16,12,'#eee9dd');enemyEye(ctx,-5,-17,true);rect(ctx,7,-15,9,4,'#e88932');
+      rect(ctx,-11,-26,22,6,'#172532');rect(ctx,-5,-30,10,5,'#314f68');
+      if(alive('execution_rifle')){ctx.save();ctx.translate(15,3);ctx.rotate(-.54);rect(ctx,-2,-28,5,47,'#333d41');rect(ctx,-4,-31,9,6,'#8e999d');rect(ctx,0,-16,12,4,'#252d31');ctx.restore();}
+      else drawBrokenModule(ctx,17,2,frame);
+      if(alive('command_pack')){rect(ctx,-19,1,7,20,'#27343a');px(ctx,-17,-4,v.secondary,3);}else drawBrokenModule(ctx,-15,8,frame);
+      if(phase>=2){ctx.strokeStyle='#d95b50';ctx.beginPath();ctx.moveTo(10,-16);ctx.lineTo(19,18);ctx.stroke();}
+      break;
+    }
+    case 'toaster_9000': { // dron de asalto pesado
+      ctx.fillStyle='#26343a';ctx.beginPath();ctx.moveTo(-28,-12);ctx.lineTo(28,-12);ctx.lineTo(38,-1);ctx.lineTo(28,20);ctx.lineTo(-28,20);ctx.lineTo(-38,-1);ctx.closePath();ctx.fill();
+      rect(ctx,-20,-8,40,24,'#3b5058');rect(ctx,-12,-4,24,13,'#14252b');
+      ctx.globalAlpha=.55+.4*pulse;rect(ctx,-6,-1,12,7,phase>=2?'#ff4f52':v.accent);ctx.globalAlpha=1;
+      if(alive('heater_l')){metalEdge(ctx,-39,-15,18,18,'#4b3d35','#a56b43','#241d19');ctx.globalAlpha=.35+.3*pulse;rect(ctx,-35,-11,10,10,'#ff7442');ctx.globalAlpha=1;}
+      else drawBrokenModule(ctx,-31,-14,frame,'#ff6b43');
+      if(alive('heater_r')){metalEdge(ctx,21,-15,18,18,'#4b3d35','#a56b43','#241d19');ctx.globalAlpha=.35+.3*pulse;rect(ctx,25,-11,10,10,'#ff7442');ctx.globalAlpha=1;}
+      else drawBrokenModule(ctx,31,-14,frame,'#ff6b43');
+      for(const x of [-34,34]){ctx.strokeStyle='#87989e';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,15,8,0,Math.PI*2);ctx.stroke();ctx.save();ctx.translate(x,15);ctx.rotate(frame*.13*(x<0?-1:1));rect(ctx,-9,-1,18,2,'#9aa9ad');rect(ctx,-1,-9,2,18,'#9aa9ad');ctx.restore();}
+      rect(ctx,-18,16,7,12,'#20292e');rect(ctx,11,16,7,12,'#20292e');
+      if(phase>=1&&!alive('thermal_core'))drawBrokenModule(ctx,0,5,frame,'#ff633f');
+      break;
+    }
+    case 'general_ganso': { // general con exoesqueleto militar
+      rect(ctx,-18,-9,36,29,'#e4e6dc');rect(ctx,-17,-2,34,22,'#465443');rect(ctx,-12,1,24,17,'#596650');
+      metalEdge(ctx,-23,-1,7,20,'#343f35','#687565','#202720');metalEdge(ctx,16,-1,7,20,'#343f35','#687565','#202720');
+      rect(ctx,-10,-20,20,12,'#eee9db');enemyEye(ctx,-7,-16,true);rect(ctx,8,-14,10,4,'#e58731');
+      ctx.fillStyle='#394438';ctx.beginPath();ctx.arc(0,-21,12,Math.PI,Math.PI*2);ctx.fill();rect(ctx,-12,-21,24,4,'#303a31');rect(ctx,-4,-27,8,7,'#202821');
+      if(alive('command_radio')){rect(ctx,-23,-8,5,17,'#283229');px(ctx,-22,-11,v.accent,3);}else drawBrokenModule(ctx,-19,5,frame);
+      if(alive('battle_rifle')){ctx.save();ctx.translate(20,7);ctx.rotate(-.22);rect(ctx,-2,-4,38,6,'#30383b');rect(ctx,23,-7,13,11,'#667378');rect(ctx,8,-7,9,4,v.secondary);ctx.restore();}
+      else drawBrokenModule(ctx,22,8,frame);
+      if(phase>=2){rect(ctx,-10,11,20,5,'#242e27');for(let x=-8;x<=4;x+=4)px(ctx,x,12,'#d65d50',2);}
+      break;
+    }
+    case 'don_levadura': { // mutación de masa con horno vivo
+      ctx.globalAlpha=.9;ctx.fillStyle='#8b593a';ctx.beginPath();ctx.ellipse(0,5,23+phase*3,20+phase*2,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#d2aa78';ctx.beginPath();ctx.ellipse(0,1,16+phase*2,14+phase*2,0,0,Math.PI*2);ctx.fill();
+      rect(ctx,-8,-18,16,12,'#f0e2ce');enemyEye(ctx,-6,-14,true);rect(ctx,6,-12,9,4,'#e17b2e');
+      rect(ctx,-12,-24,24,6,'#efece4');rect(ctx,-7,-29,14,7,'#faf8f1');
+      const arms=phase>=2?6:4;
+      for(let i=0;i<arms;i++){
+        const a=i/arms*Math.PI*2+frame*.01;
+        const id=Math.cos(a)<0?'dough_arm_l':'dough_arm_r';
+        if(!alive(id))continue;
+        ctx.strokeStyle=i%2?'#d8a36c':'#b97849';ctx.lineWidth=4;
+        ctx.beginPath();ctx.moveTo(Math.cos(a)*12,6+Math.sin(a)*10);ctx.quadraticCurveTo(Math.cos(a+.4)*29,6+Math.sin(a+.4)*18,Math.cos(a)*(34+phase*4),6+Math.sin(a)*(24+phase*3));ctx.stroke();
+      }
+      if(alive('oven_core')){ctx.globalAlpha=.45+.4*pulse;rect(ctx,-7,7,14,9,phase>=2?'#fff09a':'#ff793b');ctx.globalAlpha=1;}
+      else drawBrokenModule(ctx,0,8,frame,'#ff6b43');
+      break;
+    }
+    case 'director_seguridad': { // núcleo IA de seguridad de gran escala
+      ctx.globalAlpha=.68;ctx.strokeStyle='#4d6470';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,2,35,22,frame*.008,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      metalEdge(ctx,-22,-15,44,37,'#28343a','#52656d','#151c20');rect(ctx,-15,-8,30,23,'#34474f');rect(ctx,-10,-4,20,14,'#14262d');
+      if(alive('security_core')){ctx.globalAlpha=.55+.4*pulse;rect(ctx,-6,0,12,7,phase>=2?'#ff5e59':v.accent);px(ctx,-2,2,'#eaffff',4);ctx.globalAlpha=1;}
+      else drawBrokenModule(ctx,0,7,frame,'#ff6542');
+      if(alive('camera_array')){for(const x of [-7,7]){rect(ctx,x-3,-24,6,10,'#26343a');px(ctx,x-1,-22,v.secondary,3);}}
+      else drawBrokenModule(ctx,0,-23,frame);
+      if(alive('turret_l')){metalEdge(ctx,-56,-8,15,28,'#303b40','#7e8d92','#1b2225');rect(ctx,-61,-1,10,5,'#222a2e');}
+      else drawBrokenModule(ctx,-54,-3,frame);
+      if(alive('turret_r')){metalEdge(ctx,41,-8,15,28,'#303b40','#7e8d92','#1b2225');rect(ctx,51,-1,10,5,'#222a2e');}
+      else drawBrokenModule(ctx,54,-3,frame);
+      if(phase>=2){for(let i=0;i<4;i++){const a=i*Math.PI/2+frame*.01;px(ctx,Math.cos(a)*31-2,2+Math.sin(a)*20-2,phase>=2?'#ff5e59':v.secondary,4);}}
+      break;
+    }
+    default: ctx.restore(); return false;
+  }
+
+  drawBossPartWear(ctx,parts,frame);
+  ctx.restore();
+  return true;
+}
+
+function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual,parts?:BossPartState[]){
   const pulse=.5+.5*Math.sin(frame*.12);
   ctx.save();
   // halo de bóveda/IA
@@ -1908,27 +2134,38 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
   metalEdge(ctx,-23,-10,46,34,'#272c31','#a98235','#14191c');
   rect(ctx,-18,-5,36,24,'#343b40');rect(ctx,-13,-1,26,17,'#1f2529');
   rect(ctx,-4,-2,8,18,v.accent);
-  // puerta/núcleo de bóveda en pecho
+  // puerta/núcleo de bóveda en pecho: se expone en fase 2 y puede romperse.
   ctx.fillStyle='#13191d';ctx.beginPath();ctx.arc(0,7,10,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle=v.accent;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,7,8,0,Math.PI*2);ctx.stroke();
-  for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(Math.cos(a)*7,7+Math.sin(a)*7);ctx.stroke();}
+  if(iconicPartAlive(parts,'vault_core')){
+    ctx.strokeStyle=v.accent;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,7,8,0,Math.PI*2);ctx.stroke();
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(Math.cos(a)*7,7+Math.sin(a)*7);ctx.stroke();}
+  }else{
+    drawBrokenModule(ctx,0,7,frame,'#ff5a45');
+  }
 
   // cabeza de presidente del banco, ya sin corona/capa
   rect(ctx,-10,-21,20,12,'#eee8dc');rect(ctx,-7,-19,14,5,'#d6d0c5');
   enemyEye(ctx,-6,-17,true);enemyEye(ctx,4,-17,true);rect(ctx,8,-15,10,4,'#e88832');
   rect(ctx,-12,-26,24,5,'#22272b');rect(ctx,-8,-30,16,5,'#3b3c38');rect(ctx,-5,-29,10,2,v.accent);
 
-  // brazos mecánicos: maletín-cañón + terminal de mando
-  metalEdge(ctx,-34,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
-  rect(ctx,-37,7,16,9,'#30271f');rect(ctx,-34,5,10,3,'#7c5d31');px(ctx,-31,10,v.secondary,3);
-  metalEdge(ctx,23,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
-  rect(ctx,25,-2,7,9,'#13272d');px(ctx,27,0,phase>=2?'#ff5050':'#5ad2c4',3);
+  // brazos mecánicos: maletín-cañón + terminal de mando, ambos destruibles.
+  if(iconicPartAlive(parts,'executive_cannon')){
+    metalEdge(ctx,-34,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
+    rect(ctx,-37,7,16,9,'#30271f');rect(ctx,-34,5,10,3,'#7c5d31');px(ctx,-31,10,v.secondary,3);
+  }else drawBrokenModule(ctx,-32,4,frame);
+  if(iconicPartAlive(parts,'command_terminal')){
+    metalEdge(ctx,23,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
+    rect(ctx,25,-2,7,9,'#13272d');px(ctx,27,0,phase>=2?'#ff5050':'#5ad2c4',3);
+  }else drawBrokenModule(ctx,29,2,frame);
 
-  // drones de escolta
-  for(const side of [-1,1]){
+  // drones de escolta destruibles
+  for(const side of [-1,1] as const){
+    const id=side<0?'escort_drone_l':'escort_drone_r';
     const x=side*(34+phase*3),y=-18+Math.sin(frame*.08+side)*3;
-    rect(ctx,x-5,y-3,10,7,'#28343a');px(ctx,x-2,y-1,side<0?v.secondary:v.accent,4);
-    rect(ctx,x-10,y-1,5,2,'#64767e');rect(ctx,x+5,y-1,5,2,'#64767e');
+    if(iconicPartAlive(parts,id)){
+      rect(ctx,x-5,y-3,10,7,'#28343a');px(ctx,x-2,y-1,side<0?v.secondary:v.accent,4);
+      rect(ctx,x-10,y-1,5,2,'#64767e');rect(ctx,x+5,y-1,5,2,'#64767e');
+    }else drawBrokenModule(ctx,x,y,frame);
   }
 
   if(phase>=1){
@@ -1939,8 +2176,9 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
   if(phase>=2){
     ctx.strokeStyle='#ff4d54';ctx.lineWidth=2;
     for(let i=0;i<10;i++){const a=i*Math.PI/5+frame*.01;ctx.beginPath();ctx.moveTo(Math.cos(a)*36,3+Math.sin(a)*26);ctx.lineTo(Math.cos(a)*45,3+Math.sin(a)*33);ctx.stroke();}
-    ctx.globalAlpha=.55+.35*pulse;px(ctx,-3,4,'#ff4d54',6);ctx.globalAlpha=1;
+    if(iconicPartAlive(parts,'vault_core')){ctx.globalAlpha=.55+.35*pulse;px(ctx,-3,4,'#ff4d54',6);ctx.globalAlpha=1;}
   }
+  drawBossPartWear(ctx,parts,frame);
   ctx.restore();
 }
 
@@ -1960,7 +2198,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
   ctx.beginPath();ctx.ellipse(0,18,16+tier*4,4+tier,0,0,Math.PI*2);ctx.fill();
 
   if(def.finalBoss){
-    drawFinalBankBossV2(ctx,frame,phase,v);
+    drawFinalBankBossV2(ctx,frame,phase,v,parts);
   }else{
     // Para tech/vault el rig estructural forma parte del propio chasis.
     // En aves/personajes sólo aparece en subjefes/jefes y funciona como mochila,
@@ -1974,17 +2212,20 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
 
     ctx.save();
     if(def.legacy)applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
-    drawBossFactionCore(ctx,def,frame,phase,v,tier,key);
-    drawBossRoleHardware(ctx,def,frame,phase,v);
+    const handcrafted=def.legacy&&drawIconicBossBodyV3(ctx,bossType,frame,phase,v,tier,parts);
+    if(!handcrafted){
+      drawBossFactionCore(ctx,def,frame,phase,v,tier,key);
+      drawBossRoleHardware(ctx,def,frame,phase,v);
+    }
     if(def.legacy)drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
     ctx.restore();
 
     // Identidad frontal más contenida: insignias y crest sólo en diseños donde
     // no compiten con el casco, gorro, escudo o núcleo de IA.
-    if(def.family==='command'||def.family==='finance'||def.family==='wealth'){
+    if(!def.legacy&&(def.family==='command'||def.family==='finance'||def.family==='wealth')){
       ctx.globalAlpha=.7;drawBossFrontIdentity(ctx,key,tier,v);ctx.globalAlpha=1;
     }
-    if(def.family==='tech'||def.family==='vault'){
+    if(!def.legacy&&(def.family==='tech'||def.family==='vault')){
       ctx.globalAlpha=.65;drawBossCrest(ctx,key,v);ctx.globalAlpha=1;
     }
     drawBossPhaseTransformation(ctx,def,frame,phase,v);

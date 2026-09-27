@@ -251,6 +251,13 @@ const ICONIC_BOSS_PARTS:Record<string,BossPartBlueprint[]>={
     {id:'camera_array',kind:'camera',offsetX:0,offsetY:-23,w:30,h:14,maxHp:52},
     {id:'security_core',kind:'core',offsetX:0,offsetY:7,w:34,h:24,maxHp:86,exposedPhase:2},
   ],
+  bread_banker:[
+    {id:'executive_cannon',kind:'cannon',offsetX:-32,offsetY:4,w:18,h:27,maxHp:72},
+    {id:'command_terminal',kind:'camera',offsetX:29,offsetY:2,w:16,h:22,maxHp:66},
+    {id:'escort_drone_l',kind:'turret',offsetX:-36,offsetY:-18,w:18,h:13,maxHp:48},
+    {id:'escort_drone_r',kind:'turret',offsetX:36,offsetY:-18,w:18,h:13,maxHp:48},
+    {id:'vault_core',kind:'core',offsetX:0,offsetY:7,w:28,h:28,maxHp:110,exposedPhase:1},
+  ],
 };
 
 export function bossPartsFor(bossType:string):BossPartState[] {
