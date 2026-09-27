@@ -98,7 +98,7 @@ export function runSelfChecks():CheckReport {
       for(let i=0;i<SETTING_ROWS.length;i++){
         const row=settingsRect(i);
         assert(row.x>=0&&row.y>=0&&row.x+row.w<=UI_BASE_WIDTH&&row.y+row.h<=CANVAS_HEIGHT,'fila de ajustes fuera del canvas');
-        if(['vol','shake','scale','brightness'].includes(SETTING_ROWS[i].kind)){
+        if(['vol','shake','brightness'].includes(SETTING_ROWS[i].kind)){
           for(const control of [settingsMinusRect(i),settingsPlusRect(i)])assert(inside(control.x+1,control.y+1,row)&&inside(control.x+control.w-1,control.y+control.h-1,row),'stepper fuera de su fila');
         }else{
           const action=settingsActionRect(i);
