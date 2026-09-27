@@ -714,7 +714,7 @@ export default function App() {
           let hit=-1;for(let i=0;i<SETTING_ROWS.length;i++)if(inside(x,y,settingsRect(i))){hit=i;break;}
           if(hit<0)break;
           engine.settingsIndex=hit;const row=SETTING_ROWS[hit];
-          if(row.kind==='vol'||row.kind==='shake'||row.kind==='scale'||row.kind==='brightness'){
+          if(row.kind==='vol'||row.kind==='shake'||row.kind==='brightness'){
             if(inside(x,y,settingsMinusRect(hit)))adjustSetting(engine,hit,-1);
             else if(inside(x,y,settingsPlusRect(hit)))adjustSetting(engine,hit,1);
           }else if(inside(x,y,settingsActionRect(hit))){
