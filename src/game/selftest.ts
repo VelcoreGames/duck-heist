@@ -13,6 +13,7 @@ import { eligiblePassives,diverseRewards } from './loot';
 import { deadzone } from './gamepad';
 import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding, keyLabel } from './controls';
+import { beginControlCapture, requestControlReset, cancelControlReset, resetControls } from './controlsUI';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
 import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin, drawBankKey, drawCrumbCluster } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
@@ -70,6 +71,24 @@ export function runSelfChecks():CheckReport {
       assert(keyLabel(bindings.moveUp)==='Q','etiqueta no refleja tecla remapeada');
       remapBinding(bindings,'shootUp','x');
       assert(bindings.shootUp==='x'&&keyLabel(bindings.shootUp)==='X','disparo remapeado no se refleja');
+    });
+    check('Popup de remapeo y confirmación de reset preservan estado correctamente',()=>{
+      const e=setup();
+      e.state=GameState.CONTROLS;
+      e.bindings={...DEFAULT_BINDINGS,moveUp:'q',dash:'x'};
+      beginControlCapture(e,0);
+      assert(e.controlCapture&&!e.controlResetConfirm,'popup de remapeo no se abrió');
+      assert(e.controlIndex===0,'popup abrió la acción incorrecta');
+      e.controlCapture=false;
+      requestControlReset(e);
+      assert(e.controlResetConfirm&&!e.controlCapture,'confirmación de reset no se abrió');
+      assert(e.bindings.moveUp==='q'&&e.bindings.dash==='x','pedir confirmación modificó controles antes de aceptar');
+      cancelControlReset(e);
+      assert(!e.controlResetConfirm&&e.bindings.moveUp==='q','cancelar reset alteró controles');
+      requestControlReset(e);
+      resetControls(e);
+      assert(!e.controlResetConfirm&&!e.controlCapture,'reset dejó popup activo');
+      assert(JSON.stringify(e.bindings)===JSON.stringify(DEFAULT_BINDINGS),'reset no restauró exactamente los controles base');
     });
     check('Intro de atraco tiene duración y skip válidos',()=>{
       assert(HEIST_INTRO_FRAMES>=120&&HEIST_INTRO_FRAMES<=180,'duración fuera de rango');

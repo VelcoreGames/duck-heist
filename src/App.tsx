@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, CONTROL_RESET_CANCEL, CONTROL_RESET_ACCEPT, MAP_CLOSE, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -24,7 +24,7 @@ import { getBuild } from './game/itemRules';
 import { COLLECTION_TABS } from './game/catalog';
 import { collectionMove, collectionTab, collectionClick, collectionViewEntries, cycleCollectionFilter, cycleCollectionSort } from './game/collectionUI';
 import { CONTROL_ROWS, remapBinding, keyLabel } from './game/controls';
-import { controlsHit, resetControls } from './game/controlsUI';
+import { controlsHit, beginControlCapture, requestControlReset, cancelControlReset, resetControls } from './game/controlsUI';
 import { careerClick, careerTab } from './game/careerUI';
 import { SKINS } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
@@ -280,6 +280,14 @@ export default function App() {
         return;
       }
 
+      if(engine.state===GameState.CONTROLS && engine.controlResetConfirm){
+        if(k==='escape'||k==='n'){cancelControlReset(engine);playUiBack();force(n=>n+1);return;}
+        if(k==='enter'||k===' '||k==='y'){
+          resetControls(engine);saveSettings(engine);playUiSelect();force(n=>n+1);return;
+        }
+        return;
+      }
+
       if(engine.state===GameState.CONTROLS && engine.controlCapture){
         if(k==='escape'){engine.controlCapture=false;playUiBack();force(n=>n+1);return;}
         if(k==='f'){playUiBack();return;}
@@ -432,7 +440,7 @@ export default function App() {
           else if (yes) {
             const row = SETTING_ROWS[engine.settingsIndex];
             if (row.key === 'fullscreen') toggleFullscreen(engine, applySize);
-            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;playUiSelect();goTo(GameState.CONTROLS);}
+            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;engine.controlResetConfirm=false;playUiSelect();goTo(GameState.CONTROLS);}
             else if (row.kind === 'bool') adjustSetting(engine, engine.settingsIndex, 1);
             else adjustSetting(engine, engine.settingsIndex, 1);
           } else if (k === 'escape') { playUiBack(); goTo(subReturn); }
@@ -440,12 +448,12 @@ export default function App() {
         }
         case GameState.CONTROLS:
           if(k==='escape'){playUiBack();goTo(GameState.SETTINGS);}
-          else if(k==='r'){resetControls(engine);saveSettings(engine);playUiSelect();}
+          else if(k==='r'){requestControlReset(engine);playUiSelect();force(n=>n+1);}
           else if(up){engine.controlIndex=(engine.controlIndex-1+CONTROL_ROWS.length)%CONTROL_ROWS.length;playUiMove();}
           else if(down){engine.controlIndex=(engine.controlIndex+1)%CONTROL_ROWS.length;playUiMove();}
           else if(left){engine.controlIndex=Math.max(0,engine.controlIndex-8);playUiMove();}
           else if(right){engine.controlIndex=Math.min(CONTROL_ROWS.length-1,engine.controlIndex+8);playUiMove();}
-          else if(yes){engine.controlCapture=true;playUiSelect();}
+          else if(yes){beginControlCapture(engine,engine.controlIndex);playUiSelect();force(n=>n+1);}
           break;
         case GameState.UPGRADES:
           if (up) menuMove(engine, -1, 4, 'upgrade');
@@ -689,9 +697,15 @@ export default function App() {
           if(inside(x,y,{...BACK_BUTTON,w:136})){playUiBack();goTo(GameState.COLLECTION);}else careerClick(engine,x,y);
           break;
         case GameState.CONTROLS:
-          if(inside(x,y,BACK_BUTTON)){engine.controlCapture=false;playUiBack();goTo(GameState.SETTINGS);}
-          else if(inside(x,y,CONTROLS_RESET)){resetControls(engine);saveSettings(engine);playUiSelect();force(n=>n+1);}
-          else controlsHit(engine,x,y);
+          if(engine.controlResetConfirm){
+            if(inside(x,y,CONTROL_RESET_CANCEL)){cancelControlReset(engine);playUiBack();force(n=>n+1);}
+            else if(inside(x,y,CONTROL_RESET_ACCEPT)){resetControls(engine);saveSettings(engine);playUiSelect();force(n=>n+1);}
+            break;
+          }
+          if(engine.controlCapture)break;
+          if(inside(x,y,BACK_BUTTON)){engine.controlCapture=false;engine.controlResetConfirm=false;playUiBack();goTo(GameState.SETTINGS);}
+          else if(inside(x,y,CONTROLS_RESET)){requestControlReset(engine);playUiSelect();force(n=>n+1);}
+          else if(controlsHit(engine,x,y)){playUiSelect();force(n=>n+1);}
           break;
         case GameState.PAUSED:
           for(let i=0;i<PAUSE_MENU.count;i++)if(inside(x,y,pauseRect(i))){engine.pauseIndex=i;activatePause();break;}
@@ -721,7 +735,7 @@ export default function App() {
             else if(inside(x,y,settingsPlusRect(hit)))adjustSetting(engine,hit,1);
           }else if(inside(x,y,settingsActionRect(hit))){
             if(row.key==='fullscreen')toggleFullscreen(engine,applySize);
-            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;playUiSelect();goTo(GameState.CONTROLS);}
+            else if(row.key==='controls'){engine.controlIndex=0;engine.controlCapture=false;engine.controlResetConfirm=false;playUiSelect();goTo(GameState.CONTROLS);}
             else adjustSetting(engine,hit,1);
           }
           break;
@@ -947,7 +961,7 @@ function hintFor(engine: GameEngine): string {
     case GameState.RUN_INFO:return 'Haz clic en BUILD o RENDIMIENTO · ESC volver a pausa';
     case GameState.COLLECTION:return 'Haz clic en categorías, filtros o fichas · ESC volver';
     case GameState.CAREER:return 'Haz clic en una pestaña · ESC volver a Colección';
-    case GameState.CONTROLS:return engine.controlCapture?'Pulsa una tecla · ESC cancela la captura':'Haz clic en una acción para remapearla · ESC volver';
+    case GameState.CONTROLS:return engine.controlResetConfirm?'Confirma RESTABLECER o CANCELAR · ESC cancela':engine.controlCapture?'Pulsa la nueva tecla · ESC cancela':'Selecciona una acción para remapear · RESTABLECER CONTROLES recupera los valores base';
     case GameState.SETTINGS:return 'Ajusta con el ratón · ESC volver';
     case GameState.WARDROBE:return 'Elige un aspecto · ESC volver';
     case GameState.UPGRADES:return 'Elige una mejora · ESC volver';
