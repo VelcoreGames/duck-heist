@@ -4315,7 +4315,9 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   boss.attackTimer--;
   const maxAttack=tier==='boss'?2+phase:tier==='sub'?2+phase:2+(phase>0?1:0);
   if(boss.attackTimer>0 && boss.attackTimer<30) {
-    if(def.legacy&&boss.bossPreparedAttack===undefined) boss.bossPreparedAttack=rngInt(0,maxAttack);
+    if(boss.bossPreparedAttack===undefined){
+      boss.bossPreparedAttack=def.legacy?rngInt(0,maxAttack):(boss.bossAttackIndex??0);
+    }
     boss.telegraph=1-boss.attackTimer/30;
     boss.moveAngle=ang;
   }
@@ -4328,6 +4330,9 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
 
     if(def.pattern&&!def.legacy) {
       bossPatternAttack(engine,boss,room,content,ang,phase,tier,def);
+      const visualRecovery=tier==='boss'?14:tier==='sub'?11:8;
+      boss.bossAttackRecovery=visualRecovery;
+      boss.bossAttackRecoveryMax=visualRecovery;
       const min=tier==='boss'?30:tier==='sub'?36:32;
       const phaseAccel=tier==='boss'?.14:tier==='sub'?.12:.09;
       boss.attackTimer=Math.max(min,boss.attackCooldown*def.pattern.tempo*(1-phase*phaseAccel));
