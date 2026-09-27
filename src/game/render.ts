@@ -32,7 +32,7 @@ import {
   pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect,
-  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, hudMenuRect, endActionRect, inside,
+  ENDLESS_REWARD as ENDLESS_REWARD_LAYOUT, ENDLESS_SECONDARY, SWAP_CANCEL, endActionRect, inside,
 } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
@@ -2444,9 +2444,6 @@ function drawHUD(engine: GameEngine) {
   ];
   if(engine.gameMode!=='endless')resourceRows.push({kind:'key',label:'LLAVES',value:String(p.bankKeys),accent:'#d2ad52',flash:p.keyFlash>0});
   drawResourceHud(ctx,economyX,4,economyW,resourceRows,engine.frame);
-
-  const menuBox=hudMenuRect();
-  drawMouseButton(ctx,'MENÚ',menuBox.x,menuBox.y,menuBox.w,menuBox.h,inside(engine.mouseX,engine.mouseY,menuBox),'#8fb7c8');
 
   drawBossBar(engine);
 
