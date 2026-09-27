@@ -179,40 +179,56 @@ export const TILE_WALL = 1;
 export const TILE_DOOR = 2;
 // 10+ are destructible environment props.
 export const OBSTACLE_BASE = 10;
+export const OBSTACLES_PER_FLOOR = 20;
 
 /**
- * Catálogo v0.8.0 rehecho desde cero: 20 familias × 6 variantes = 120 props.
- * Los nombres anteriores fueron retirados para que el generador no dependa
- * del antiguo set de 14 objetos.
+ * 120 props únicos: 20 por piso. Cada piso eleva el nivel de inversión del
+ * banco, desde mobiliario operativo barato hasta tecnología y custodia de lujo.
  */
-export const OBSTACLE_VARIANTS = [
-  'standard','blue','red','gold','worn','reinforced',
+export const FLOOR_PROP_NAMES = [
+  [
+    'reception_terminal','nylon_queue_post','brochure_carousel','document_tote',
+    'supply_case','plaster_support','basic_access_pad','alarm_junction',
+    'filing_drawers','courier_case','bill_counter','records_cart',
+    'evidence_cabinet','coin_cage','office_printer','visitor_chair',
+    'ceramic_planter','water_dispenser','cctv_monitor','network_tower',
+  ],
+  [
+    'teller_workstation','chrome_queue_post','form_rotary','sealed_cash_tote',
+    'transfer_crate','steel_support','security_keypad','alarm_controller',
+    'deposit_drawers','cash_hardcase','currency_sorter','secure_file_cart',
+    'security_locker','silver_storage_cage','laser_multifunction','ergonomic_chair',
+    'stone_planter','filtered_water_station','surveillance_console','rack_server',
+  ],
+  [
+    'dual_teller_console','brass_queue_gate','legal_file_carousel','tamperproof_tote',
+    'armored_dispatch_box','reinforced_column','biometric_keypad','alarm_matrix',
+    'bond_drawer_bank','executive_courier_case','note_authenticator','motorized_archive_cart',
+    'evidence_safe_locker','precious_metal_cage','production_printer','executive_task_chair',
+    'granite_planter','chilled_water_bar','camera_control_desk','encrypted_server',
+  ],
+  [
+    'private_banker_desk','velvet_queue_gate','contract_display','leather_document_case',
+    'executive_transfer_chest','marble_brass_column','biometric_terminal','security_command_box',
+    'deed_drawer_wall','diplomatic_hardcase','forensic_currency_lab','powered_vault_cart',
+    'deed_archive_vault','platinum_cage','secure_document_press','leather_executive_chair',
+    'sculpted_planter','glass_water_column','security_wall_console','blade_server',
+  ],
+  [
+    'vault_operator_console','illuminated_security_gate','bearer_bond_display','sealed_bullion_satchel',
+    'armored_value_crate','titanium_support','retina_access_station','redundant_alarm_core',
+    'vault_deposit_stack','bullion_transit_case','highspeed_currency_lab','armored_value_trolley',
+    'classified_record_safe','palladium_cage','encrypted_print_station','security_command_chair',
+    'designer_stone_planter','premium_hydration_station','tactical_surveillance_rig','hardened_server_rack',
+  ],
+  [
+    'master_vault_console','gold_security_gate','rare_bond_reliquary','royal_document_coffer',
+    'sovereign_bullion_crate','gilded_titanium_pillar','quantum_biometric_terminal','vault_alarm_nexus',
+    'crown_deposit_array','diplomatic_bullion_case','sovereign_currency_scanner','autonomous_bullion_cart',
+    'royal_archive_safe','gold_bar_display_cage','secure_intaglio_press','master_director_chair',
+    'jade_gold_planter','crystal_water_station','panoramic_security_command','sovereign_data_vault',
+  ],
 ] as const;
-export const OBSTACLE_VARIANTS_PER_FAMILY = OBSTACLE_VARIANTS.length;
 
-export const OBSTACLE_FAMILIES = [
-  'teller_terminal',
-  'queue_divider',
-  'document_carousel',
-  'sealed_document_tote',
-  'dispatch_crate',
-  'reinforced_support',
-  'vault_keypad_station',
-  'alarm_junction_unit',
-  'deposit_drawer_stack',
-  'courier_hardcase',
-  'currency_counter',
-  'rolling_file_cart',
-  'evidence_locker',
-  'bullion_cage',
-  'printer_station',
-  'office_chair',
-  'indoor_planter',
-  'water_cooler',
-  'surveillance_console',
-  'server_tower',
-] as const;
+export const OBSTACLES = FLOOR_PROP_NAMES.flat();
 
-export const OBSTACLES = OBSTACLE_FAMILIES.flatMap(family =>
-  OBSTACLE_VARIANTS.map(variant => `${family}_${variant}`)
-);

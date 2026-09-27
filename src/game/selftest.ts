@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,damageObstacleTile,obstacleHpAt,GameState,SETTING_ROWS } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,OBSTACLE_FAMILIES,OBSTACLE_VARIANTS,OBSTACLE_VARIANTS_PER_FAMILY,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,FLOOR_PROP_NAMES,OBSTACLES_PER_FLOOR,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -20,7 +20,7 @@ import { coverVisibleCanvasRect,mainMenuRect,mainMenuHit,pauseRect,settingsRect,
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
-import { obstacleHitbox, obstacleOccludes, obstacleMaxHp, OBSTACLE_DURABILITY, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { obstacleHitbox, obstacleCoverRect, obstacleOccludes, obstacleMaxHp, obstacleValue, obstacleFloorTier, OBSTACLE_DURABILITY, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { bankKeyDropChance, specialRoomKeyCost, tryUnlockSpecialRoom } from './keyAccess';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
@@ -158,41 +158,67 @@ export function runSelfChecks():CheckReport {
         drawRoomAtmosphere(artCtx,deco,180,deco==='golden');
       }
     });
-    check('Catálogo nuevo contiene 120 props y retiró los 14 anteriores',()=>{
-      assert(OBSTACLE_FAMILIES.length===20,'se esperaban 20 familias nuevas');
-      assert(OBSTACLE_VARIANTS.length===6&&OBSTACLE_VARIANTS_PER_FAMILY===6,'se esperaban 6 variantes por familia');
+    check('Catálogo contiene 120 props únicos distribuidos en seis pisos',()=>{
+      assert(FLOOR_PROP_NAMES.length===6,'se esperaban seis pisos de props');
+      assert(FLOOR_PROP_NAMES.every(row=>row.length===OBSTACLES_PER_FLOOR),'cada piso debe tener 20 objetos');
       assert(OBSTACLES.length===120,'el catálogo destructible no llegó a 120 objetos');
       assert(new Set(OBSTACLES).size===OBSTACLES.length,'hay nombres de props duplicados');
       const legacy=['desk','barrier','shelf','moneybag','crate','column','safe','rubble','deposit_lockers','briefcase','cash_tray','value_cart','archive_cabinet','armored_case'];
       for(const old of legacy)assert(!OBSTACLES.includes(old),`sobrevivió prop antiguo: ${old}`);
+      for(let floor=0;floor<6;floor++)for(let slot=0;slot<OBSTACLES_PER_FLOOR;slot++){
+        const kind=floor*OBSTACLES_PER_FLOOR+slot;
+        assert(obstacleFloorTier(kind)===floor,`tier incorrecto en ${OBSTACLES[kind]}`);
+      }
     });
-    check('Hitboxes de los 120 props coinciden con su tile y variantes comparten familia',()=>{
+    check('Objetos de pisos altos siempre son más caros que su equivalente inferior',()=>{
+      for(let slot=0;slot<OBSTACLES_PER_FLOOR;slot++){
+        let previous=0;
+        for(let floor=0;floor<6;floor++){
+          const kind=floor*OBSTACLES_PER_FLOOR+slot,value=obstacleValue(kind);
+          assert(value>previous,`valor no crece por piso en ${OBSTACLES[kind]}`);
+          previous=value;
+        }
+      }
+      assert(obstacleValue(5*OBSTACLES_PER_FLOOR+13)>obstacleValue(13),'jaula soberana no supera al piso inicial');
+    });
+    check('Hitboxes de los 120 props quedan dentro del tile y la cobertura permite ocultarse detrás',()=>{
+      let coverCount=0;
       for(let kind=0;kind<OBSTACLES.length;kind++){
         const r=obstacleHitbox(kind,64,96);
         assert(r.w>0&&r.h>0,`hitbox vacío ${OBSTACLES[kind]}`);
         assert(r.x>=64&&r.y>=96&&r.x+r.w<=96&&r.y+r.h<=128,`hitbox fuera del tile ${OBSTACLES[kind]}`);
-        assert(r.y>96,`sin margen visual ${OBSTACLES[kind]}`);
-      }
-      for(let family=0;family<OBSTACLE_FAMILIES.length;family++){
-        const base=family*OBSTACLE_VARIANTS_PER_FAMILY;
-        const expected=obstacleOccludes(base);
-        for(let variant=1;variant<OBSTACLE_VARIANTS_PER_FAMILY;variant++){
-          assert(obstacleOccludes(base+variant)===expected,`variante cambió oclusión de ${OBSTACLE_FAMILIES[family]}`);
+        assert(r.y>100,`base sin espacio para pasar detrás ${OBSTACLES[kind]}`);
+        if(obstacleOccludes(kind)){
+          coverCount++;
+          const cover=obstacleCoverRect(kind,64,96);
+          assert(cover.x>=64&&cover.y>=96&&cover.x+cover.w<=96&&cover.y+cover.h<=128,`zona de ocultamiento fuera del tile ${OBSTACLES[kind]}`);
+          assert(cover.y<r.y&&cover.y+cover.h>=r.y,`zona de ocultamiento no alcanza la base ${OBSTACLES[kind]}`);
         }
       }
+      assert(coverCount>=72,'hay muy pocos props altos que funcionen como cobertura visual');
     });
-    check('Los 120 props mantienen resistencia rápida y diferencias por familia',()=>{
+    check('Los 120 props mantienen destrucción rápida pero los pisos altos resisten un poco más',()=>{
       assert(OBSTACLE_DURABILITY.length===OBSTACLES.length,'faltan resistencias de objetos');
       assert(OBSTACLE_DURABILITY.every(d=>d.hp>=6&&d.hp<=63),'objeto con resistencia fuera de rango');
-      const idx=(family:number,variant=0)=>family*OBSTACLE_VARIANTS_PER_FAMILY+variant;
-      assert(obstacleMaxHp(idx(15))<obstacleMaxHp(idx(19)),'silla debería romperse antes que servidor');
-      assert(obstacleMaxHp(idx(3))<obstacleMaxHp(idx(13)),'tote debería romperse antes que jaula de lingotes');
-      assert(obstacleMaxHp(idx(1))<obstacleMaxHp(idx(5)),'separador debería romperse antes que soporte reforzado');
-      assert(obstacleMaxHp(idx(10))<=14,'contadora de efectivo tarda demasiado');
       assert(Math.max(...OBSTACLE_DURABILITY.map(d=>d.hp))<=63,'ningún prop debe exigir más de 9 impactos de la pistola inicial');
-      for(let family=0;family<OBSTACLE_FAMILIES.length;family++){
-        const base=idx(family),reinforced=idx(family,5);
-        assert(obstacleMaxHp(reinforced)>=obstacleMaxHp(base),`variante reforzada más débil: ${OBSTACLE_FAMILIES[family]}`);
+      for(let slot=0;slot<OBSTACLES_PER_FLOOR;slot++){
+        const low=obstacleMaxHp(slot),high=obstacleMaxHp(5*OBSTACLES_PER_FLOOR+slot);
+        assert(high>=low,`el prop premium quedó más débil: ${OBSTACLES[5*OBSTACLES_PER_FLOOR+slot]}`);
+      }
+      assert(obstacleMaxHp(15)<obstacleMaxHp(19),'silla debería romperse antes que servidor');
+      assert(obstacleMaxHp(3)<obstacleMaxHp(13),'tote debería romperse antes que jaula de valores');
+    });
+    check('Generador sólo coloca props del piso correspondiente',()=>{
+      for(let floor=0;floor<6;floor++){
+        const room:MapRoom={gx:0,gy:0,type:RoomType.COMBAT,doors:['N','S'],visited:false,cleared:false,generated:false,layout:[],distance:2,floorIndex:floor};
+        for(const template of ROOM_TEMPLATES){
+          const layout=generateRoomLayout(room,()=>.37,template);
+          for(const row of layout)for(const tile of row){
+            if(tile<OBSTACLE_BASE)continue;
+            const kind=tile-OBSTACLE_BASE;
+            assert(obstacleFloorTier(kind)===floor,`template ${template} mezcló props de otro piso`);
+          }
+        }
       }
     });
     check('Daño de escenario persiste y al romper libera el tile',()=>{

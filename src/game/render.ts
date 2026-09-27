@@ -53,7 +53,7 @@ import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChal
 import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { obstacleHitbox, obstacleMaxHp, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
+import { obstacleHitbox, obstacleCoverRect, obstacleMaxHp, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -1248,6 +1248,14 @@ function actorBehindRect(engine:GameEngine,content:RoomContent,r:WorldRect|{x:nu
   return actors.some(a=>!a.flying&&a.x>=r.x-8&&a.x<=r.x+r.w+8&&a.y>=r.y-18&&a.y<=r.y+4);
 }
 
+function actorInsideCover(engine:GameEngine,content:RoomContent,r:{x:number;y:number;w:number;h:number}){
+  const actors=[
+    {x:engine.player.x+7,y:engine.player.y+15,flying:false},
+    ...content.enemies.map(e=>({x:e.x+e.size/2,y:e.y+e.size,flying:e.flying})),
+  ];
+  return actors.some(a=>!a.flying&&a.x>=r.x&&a.x<=r.x+r.w&&a.y>=r.y&&a.y<=r.y+r.h);
+}
+
 function drawForegroundProps(
   ctx:CanvasRenderingContext2D,
   engine:GameEngine,
@@ -1263,8 +1271,8 @@ function drawForegroundProps(
     if(tile<OBSTACLE_BASE)continue;
     const kind=tile-OBSTACLE_BASE,x=tx*TILE_SIZE,y=ty*TILE_SIZE;
     if(!obstacleOccludes(kind))continue;
-    const hit=obstacleHitbox(kind,x,y);
-    if(!actorBehindRect(engine,content,hit))continue;
+    const hit=obstacleHitbox(kind,x,y),cover=obstacleCoverRect(kind,x,y);
+    if(!actorInsideCover(engine,content,cover))continue;
     const bandBottom=Math.min(y+TILE_SIZE,Math.max(y+12,hit.y+5));
     ctx.save();
     ctx.beginPath();ctx.rect(x-2,y-3,TILE_SIZE+4,bandBottom-y+3);ctx.clip();
