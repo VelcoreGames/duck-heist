@@ -2231,14 +2231,13 @@ function drawBossFamilySignatureV3(
     case 'vault':
       ctx.globalAlpha=.58;ctx.strokeStyle='#4e496f';ctx.lineWidth=2;
       ctx.beginPath();ctx.ellipse(0,0,24+tier*3,15+tier*2,frame*.012,0,Math.PI*2);ctx.stroke();
-      ctx.globalAlpha=1;px(ctx,-25-tir(tier),-1,v.accent,3);px(ctx,23+tir(tier),-1,v.secondary,3);
+      ctx.globalAlpha=1;px(ctx,-25-tier*2,-1,v.accent,3);px(ctx,23+tier*2,-1,v.secondary,3);
       if(band>=3){rect(ctx,-7,-30,14,5,'#302d4b');px(ctx,-2,-33,v.secondary,4);}
       break;
   }
   ctx.restore();
 }
 
-function tir(tier:number){return tier*2;}
 
 function drawBossTierPresenceV3(ctx:Ctx,tier:number,frame:number,phase:number,v:BossVisual,key:number){
   if(tier<=0)return;
