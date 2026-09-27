@@ -689,6 +689,20 @@ export function runSelfChecks():CheckReport {
         }
       }
     });
+    check('Subjefes y jefes icónicos tienen coreografía propia por fase',()=>{
+      const ids=['captain_honk','comisario_pico_duro','toaster_9000','general_ganso','don_levadura','director_seguridad','head_baker','el_auditor','ganso_antidisturbios','cajero_3000'];
+      for(const id of ids){
+        const def=BOSSES[id]??SUBBOSSES[id];
+        assert(!!def,'encuentro icónico ausente: '+id);
+        assert(def.phaseAttackPlan?.length===def.phases,'plan de fases incompleto: '+id);
+        def.phaseAttackPlan!.forEach((plan,phase)=>{
+          const maxAttack=2+phase;
+          assert(plan.length>=3,'fase sin rotación suficiente: '+id+' p'+phase);
+          assert(plan.every(atk=>Number.isInteger(atk)&&atk>=0&&atk<=maxAttack),'ataque fuera de rango: '+id+' p'+phase);
+          if(phase>0)assert(plan[0]===maxAttack,'la fase no abre con su ataque nuevo: '+id+' p'+phase);
+        });
+      }
+    });
     check('Buckshot conserva identidad real de escopeta',()=>{
       const w=WEAPONS.breadcrumb_shotgun;
       assert(w.projectileType==='buckshot_player','escopeta de jugador sin proyectil buckshot');
