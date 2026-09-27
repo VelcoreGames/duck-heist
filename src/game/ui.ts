@@ -82,32 +82,37 @@ export function pixelText(ctx: Ctx, str: string, x: number, y: number, color = '
 /** Panel con marco pixel-art de doble borde */
 export function drawPanel(
   ctx: Ctx, x: number, y: number, w: number, h: number,
-  fill = 'rgba(10,13,24,0.94)', border = '#f4d03f', accent = '#39414f',
+  fill = 'rgba(10,13,24,0.96)', border = '#f4d03f', accent = '#39414f',
 ) {
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.fillRect(x + 3, y + 3, w, h);
+
+  // Panel industrial completamente ortogonal: sombra desplazada, marco exterior,
+  // segundo marco interior y cantoneras rectas. Sin redondeos ni siluetas suaves.
+  ctx.fillStyle = 'rgba(0,0,0,0.58)';
+  ctx.fillRect(x + 4, y + 4, w, h);
   ctx.fillStyle = fill;
   ctx.fillRect(x, y, w, h);
-  // sutil degradado interior
-  const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, 'rgba(255,255,255,0.045)');
-  g.addColorStop(1, 'rgba(0,0,0,0.12)');
-  ctx.fillStyle = g;
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = accent;
-  ctx.fillRect(x, y, w, 2);
-  ctx.fillRect(x, y + h - 2, w, 2);
-  ctx.fillRect(x, y, 2, h);
-  ctx.fillRect(x + w - 2, y, 2, h);
+
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 4.5, y + 4.5, w - 9, h - 9);
+
   ctx.fillStyle = border;
-  ctx.fillRect(x + 2, y + 2, w - 4, 1);
-  ctx.fillRect(x + 2, y + h - 3, w - 4, 1);
-  ctx.fillRect(x + 2, y + 2, 1, h - 4);
-  ctx.fillRect(x + w - 3, y + 2, 1, h - 4);
-  for (const [cx, cy] of [[x, y], [x + w - 4, y], [x, y + h - 4], [x + w - 4, y + h - 4]]) {
-    ctx.fillRect(cx, cy, 4, 4);
-  }
+  ctx.fillRect(x, y, 5, h);
+  ctx.fillRect(x + 5, y, Math.min(56, Math.max(18, w * .22)), 2);
+
+  // Cantoneras cuadradas tipo placa de seguridad.
+  const s = 7;
+  ctx.fillRect(x, y, s, 2); ctx.fillRect(x, y, 2, s);
+  ctx.fillRect(x + w - s, y, s, 2); ctx.fillRect(x + w - 2, y, 2, s);
+  ctx.fillRect(x, y + h - 2, s, 2); ctx.fillRect(x, y + h - s, 2, s);
+  ctx.fillRect(x + w - s, y + h - 2, s, 2); ctx.fillRect(x + w - 2, y + h - s, 2, s);
+
+  ctx.fillStyle = 'rgba(255,255,255,.035)';
+  ctx.fillRect(x + 8, y + 8, w - 16, 1);
   ctx.restore();
 }
 
@@ -128,34 +133,30 @@ export function drawButtons(
     const y = top + i * (height + gap);
     const on = i === selected;
     const x = cx - width / 2;
-    const pulse = on ? Math.sin(frame * 0.14) * 1.1 : 0;
+    const col = b.disabled ? '#526167' : (b.color ?? '#d8c57d');
 
-    ctx.fillStyle = 'rgba(0,0,0,.45)';
-    ctx.fillRect(x + 2, y + 2, width, height);
-    const g = ctx.createLinearGradient(x, y, x, y + height);
-    if (on) { g.addColorStop(0, '#d9bc70'); g.addColorStop(.5, '#b8943e'); g.addColorStop(1, '#8c6b28'); }
-    else { g.addColorStop(0, '#24343c'); g.addColorStop(1, '#15242c'); }
-    ctx.fillStyle = g;
-    ctx.fillRect(x + pulse, y, width, height);
-    ctx.strokeStyle = on ? '#fff0b0' : '#3b5355';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + .5 + pulse, y + .5, width - 1, height - 1);
-    ctx.fillStyle = on ? 'rgba(255,255,220,.18)' : 'rgba(255,255,255,.05)';
-    ctx.fillRect(x + 3 + pulse, y + 2, width - 6, 1);
-    if (on) {
-      ctx.fillStyle = 'rgba(255,255,220,.12)';
-      ctx.fillRect(x + 4 + (frame * .7) % (width - 20) + pulse, y + 3, 16, height - 6);
-    }
+    ctx.fillStyle = 'rgba(0,0,0,.52)';
+    ctx.fillRect(x + 3, y + 3, width, height);
+    ctx.fillStyle = on ? '#24342f' : '#101d23';
+    ctx.fillRect(x, y, width, height);
 
-    const col = b.disabled ? '#5c6472' : on ? '#17262a' : (b.color ?? '#c3cbd9');
-    titleText(ctx, b.label, cx + (on ? pulse : 0), y + height / 2 + (height * 0.28), on ? 11 : 10, col, 'center', true);
+    ctx.strokeStyle = on ? col : '#3a5057';
+    ctx.lineWidth = on ? 2 : 1;
+    ctx.strokeRect(x + .5, y + .5, width - 1, height - 1);
+
+    ctx.fillStyle = on ? col : '#52666d';
+    ctx.fillRect(x, y, on ? 5 : 3, height);
+    ctx.fillRect(x + 5, y, on ? Math.max(24, width * .28) : 18, 2);
+
+    const textCol = b.disabled ? '#5c6472' : on ? '#fff1bf' : '#c3cbd9';
+    titleText(ctx, b.label, cx, y + height / 2 + height * .28, on ? 11 : 10, textCol, 'center', true);
 
     if (on) {
-      text(ctx, '\u25B8', x - 12 + pulse, y + height / 2 + 4, 11, '#f4d03f', 'center');
-      text(ctx, '\u25C2', x + width + 12 + pulse, y + height / 2 + 4, 11, '#f4d03f', 'center');
+      // Cursor rígido y estable: evita el rebote del sistema anterior.
+      text(ctx, '›', x + width - 11, y + height / 2 + 4, 10, col, 'center', true);
     }
     if (b.hint) {
-      text(ctx, b.hint, x + width - 6, y + height / 2 + 4, 9, on ? '#f4d03f' : '#7c8494', 'right');
+      text(ctx, b.hint, x + width - 19, y + height / 2 + 4, 8, on ? col : '#7c8494', 'right');
     }
   }
 }
@@ -196,40 +197,35 @@ export const MENU_THEME = {
 /** Fondo común para pantallas de menú: oscurece el mundo sin borrar su contexto. */
 export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle=`rgba(3,8,12,${opacity})`;
+  ctx.fillStyle=`rgba(3,8,12,${Math.min(.98,opacity+.04)})`;
   ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
 
-  // Luz ambiental suave: aprovecha mejor el tamaño físico actual sin competir
-  // con el contenido de cada menú.
-  const ambient=ctx.createRadialGradient(UI_BASE_WIDTH*.72,38,8,UI_BASE_WIDTH*.72,38,230);
-  ambient.addColorStop(0,'rgba(115,199,200,.055)');
-  ambient.addColorStop(.52,'rgba(230,197,111,.018)');
-  ambient.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=ambient;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  // Retícula ortogonal de centro de operaciones. Se mantiene tenue para no
+  // competir con el texto, pero reemplaza el ambiente blando por estructura.
+  ctx.globalAlpha=.045;
+  ctx.fillStyle=accent;
+  for(let x=20;x<UI_BASE_WIDTH-18;x+=40)ctx.fillRect(x,18,1,CANVAS_HEIGHT-36);
+  for(let y=18;y<CANVAS_HEIGHT-18;y+=32)ctx.fillRect(18,y,UI_BASE_WIDTH-36,1);
 
-  // Retícula/scan muy tenue para que las pantallas grandes no se vean vacías.
-  ctx.globalAlpha=.055;ctx.fillStyle=accent;
-  for(let x=20;x<UI_BASE_WIDTH-18;x+=46)ctx.fillRect(x,18,1,CANVAS_HEIGHT-36);
-  ctx.globalAlpha=.035;
-  for(let y=62;y<CANVAS_HEIGHT-24;y+=36)ctx.fillRect(18,y,UI_BASE_WIDTH-36,1);
+  // Marco de pantalla: doble línea recta, sin viñetas redondeadas.
+  ctx.globalAlpha=1;
+  ctx.strokeStyle='rgba(116,154,159,.22)';
+  ctx.lineWidth=1;
+  ctx.strokeRect(14.5,10.5,UI_BASE_WIDTH-29,CANVAS_HEIGHT-21);
+  ctx.strokeStyle='rgba(116,154,159,.10)';
+  ctx.strokeRect(18.5,14.5,UI_BASE_WIDTH-37,CANVAS_HEIGHT-29);
 
-  const sweep=(frame*.55)%(UI_BASE_WIDTH+120)-60;
-  const g=ctx.createLinearGradient(sweep-70,0,sweep+70,0);
-  g.addColorStop(0,'rgba(255,255,255,0)');
-  g.addColorStop(.5,'rgba(255,255,255,.03)');
-  g.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.globalAlpha=1;ctx.fillStyle=g;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  ctx.fillStyle=accent;
+  ctx.globalAlpha=.55;
+  ctx.fillRect(14,10,72,2);
+  ctx.fillRect(UI_BASE_WIDTH-86,10,72,2);
+  ctx.fillRect(14,CANVAS_HEIGHT-12,72,2);
+  ctx.fillRect(UI_BASE_WIDTH-86,CANVAS_HEIGHT-12,72,2);
 
-  ctx.globalAlpha=.16;ctx.fillStyle=accent;
-  ctx.fillRect(18,18,2,CANVAS_HEIGHT-36);
-  ctx.fillRect(UI_BASE_WIDTH-20,18,2,CANVAS_HEIGHT-36);
-  ctx.fillRect(18,CANVAS_HEIGHT-19,UI_BASE_WIDTH-36,1);
-
-  // Viñeta inferior para anclar botones y pies de menú.
-  const bottom=ctx.createLinearGradient(0,CANVAS_HEIGHT-92,0,CANVAS_HEIGHT);
-  bottom.addColorStop(0,'rgba(2,6,10,0)');
-  bottom.addColorStop(1,'rgba(2,6,10,.48)');
-  ctx.globalAlpha=1;ctx.fillStyle=bottom;ctx.fillRect(0,CANVAS_HEIGHT-92,UI_BASE_WIDTH,92);
+  // Barrido técnico muy discreto, limitado a una línea vertical.
+  const sweep=18+((frame*.55)%(UI_BASE_WIDTH-36));
+  ctx.globalAlpha=.045;
+  ctx.fillRect(sweep,14,1,CANVAS_HEIGHT-28);
   ctx.restore();
 }
 
@@ -241,79 +237,90 @@ export function drawMenuHeader(
   ctx.save();
   const x=22,y=15,w=UI_BASE_WIDTH-44,h=46;
 
-  ctx.fillStyle='rgba(3,11,15,.94)';ctx.fillRect(x,y,w,h);
-  ctx.fillStyle='rgba(255,255,255,.025)';ctx.fillRect(x+5,y+5,w-10,h-10);
-  ctx.strokeStyle='rgba(126,166,169,.20)';ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.fillStyle='rgba(4,12,16,.98)';
+  ctx.fillRect(x,y,w,h);
+  ctx.fillStyle='rgba(12,28,34,.96)';
+  ctx.fillRect(x+5,y+5,w-10,h-10);
 
-  // Banda de seguridad: color de contexto + doble guía de bóveda.
-  ctx.fillStyle=accent;ctx.fillRect(x,y,5,h);
-  ctx.globalAlpha=.34;ctx.fillRect(x+5,y,w-5,1);ctx.fillRect(x+5,y+h-2,w-5,1);ctx.globalAlpha=1;
-  ctx.fillStyle=MENU_THEME.steel2;ctx.fillRect(x+12,y+8,1,h-16);
+  ctx.strokeStyle='rgba(126,166,169,.28)';
+  ctx.lineWidth=1;
+  ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.strokeStyle='rgba(126,166,169,.12)';
+  ctx.strokeRect(x+6.5,y+6.5,w-13,h-13);
 
-  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(x+18,y+8,9,9);
-  ctx.strokeStyle=accent;ctx.globalAlpha=.72;ctx.strokeRect(x+19.5,y+9.5,6,6);ctx.globalAlpha=1;
+  // Barra de identificación rectangular, más pesada y deliberadamente cuadrada.
+  ctx.fillStyle=accent;
+  ctx.fillRect(x,y,6,h);
+  ctx.fillRect(x+6,y,88,2);
+  ctx.fillRect(x+6,y+h-2,44,2);
 
-  text(ctx,eyebrow,x+34,y+15,5.1,accent,'left',true,false);
-  titleText(ctx,title,x+18,y+36,15.2,MENU_THEME.paper,'left',false);
+  ctx.fillStyle='rgba(255,255,255,.035)';
+  ctx.fillRect(x+14,y+8,14,14);
+  ctx.strokeStyle=accent;
+  ctx.strokeRect(x+15.5,y+9.5,11,11);
+  ctx.fillStyle=accent;
+  ctx.fillRect(x+18,y+12,6,2);
 
-  // Subtítulo como estado/contexto técnico, alineado y más legible.
+  text(ctx,eyebrow,x+36,y+15,5.1,accent,'left',true,false);
+  titleText(ctx,title,x+16,y+36,15.2,MENU_THEME.paper,'left',false);
+
   const maxSub=subtitle.length>48?subtitle.slice(0,47)+'…':subtitle;
   text(ctx,maxSub,x+w-16,y+34,5.2,MENU_THEME.muted,'right',false,false);
-
-  const pulse=.28+.26*Math.sin(frame*.08);
-  ctx.globalAlpha=pulse;ctx.fillStyle=accent;
-  for(let i=0;i<3;i++)ctx.fillRect(x+w-39+i*8,y+10,5,2);
-  ctx.globalAlpha=1;
-
-  // Código visual fijo de Duck Heist.
   text(ctx,'DH // VAULT OPS',x+w-16,y+14,4.1,'#587176','right',true,false);
+
+  // Indicador de sistema en bloques, no puntos ni formas blandas.
+  const pulse=.45+.25*Math.sin(frame*.08);
+  ctx.globalAlpha=pulse;
+  ctx.fillStyle=accent;
+  for(let i=0;i<3;i++)ctx.fillRect(x+w-49+i*9,y+20,6,3);
+  ctx.globalAlpha=1;
   ctx.restore();
 }
 
 /** Tarjeta de menú coherente con bordes recortados y jerarquía fuerte. */
 export function drawMenuCard(
   ctx:Ctx,x:number,y:number,w:number,h:number,
-  selected=false,accent=MENU_THEME.gold,fill='rgba(10,24,30,.94)',
+  selected=false,accent=MENU_THEME.gold,fill='rgba(10,24,30,.96)',
 ) {
   ctx.save();
 
-  // Sombra dura de píxel + halo sólo en selección. Evita blur continuo en gameplay;
-  // estas tarjetas sólo viven en interfaces/menús.
-  ctx.fillStyle='rgba(0,0,0,.48)';
-  ctx.fillRect(x+4,y+5,w,h);
-  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=10;}
+  // Sombra de placa dura, sin halo difuso.
+  ctx.fillStyle='rgba(0,0,0,.56)';
+  ctx.fillRect(x+4,y+4,w,h);
 
+  // Base sólida: aunque un llamador use transparencia, el panel conserva peso.
+  ctx.fillStyle='rgba(5,14,18,.82)';
+  ctx.fillRect(x,y,w,h);
   ctx.fillStyle=fill;
   ctx.fillRect(x,y,w,h);
 
-  const top=ctx.createLinearGradient(x,y,x,y+h);
-  top.addColorStop(0,selected?'rgba(255,255,255,.075)':'rgba(255,255,255,.032)');
-  top.addColorStop(.42,'rgba(255,255,255,0)');
-  top.addColorStop(1,'rgba(0,0,0,.24)');
-  ctx.fillStyle=top;ctx.fillRect(x+3,y+2,w-6,h-4);
-
-  // Lomo de expediente / placa de bóveda.
-  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?.95:.55;ctx.fillRect(x,y,4,h);ctx.globalAlpha=1;
-
+  // Marco exterior e interior completamente rectangulares.
   ctx.strokeStyle=selected?accent:MENU_THEME.line;
-  ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-  ctx.globalAlpha=selected?.52:.20;ctx.fillStyle=accent;ctx.fillRect(x+4,y,w-8,1);ctx.globalAlpha=1;
+  ctx.lineWidth=selected?2:1;
+  ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.strokeStyle=selected?'rgba(255,255,255,.16)':'rgba(117,164,168,.10)';
+  ctx.lineWidth=1;
+  ctx.strokeRect(x+5.5,y+5.5,w-11,h-11);
 
-  // Esquinas técnicas recortadas y remaches: firma común de toda la UI.
-  ctx.fillStyle=MENU_THEME.ink;
-  ctx.fillRect(x+w-8,y,8,3);ctx.fillRect(x+w-3,y,3,8);
-  ctx.fillRect(x,y+h-3,8,3);ctx.fillRect(x,y+h-8,3,8);
+  // Lomo y barra superior convierten cada tarjeta en un módulo físico.
   ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?.76:.42;
-  for(const [rx,ry] of [[x+8,y+7],[x+w-10,y+h-9]] as const){
-    ctx.fillRect(rx,ry,2,2);
-  }
+  ctx.globalAlpha=selected?1:.62;
+  ctx.fillRect(x,y,selected?6:4,h);
+  ctx.fillRect(x+(selected?6:4),y,selected?Math.min(74,w*.36):Math.min(40,w*.24),2);
   ctx.globalAlpha=1;
 
-  // Línea de lectura horizontal: hace que tarjetas grandes parezcan paneles construidos.
+  // Cantoneras ortogonales.
+  const k=7;
+  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
+  ctx.globalAlpha=selected?.72:.34;
+  ctx.fillRect(x+w-k,y,k,2);ctx.fillRect(x+w-2,y,2,k);
+  ctx.fillRect(x+w-k,y+h-2,k,2);ctx.fillRect(x+w-2,y+h-k,2,k);
+  ctx.fillRect(x,y+h-2,k,2);ctx.fillRect(x,y+h-k,2,k);
+  ctx.globalAlpha=1;
+
   if(h>=34){
-    ctx.fillStyle='rgba(255,255,255,.025)';ctx.fillRect(x+10,y+h-8,w-20,1);
+    ctx.fillStyle='rgba(255,255,255,.028)';
+    ctx.fillRect(x+12,y+h-8,w-24,1);
   }
   ctx.restore();
 }
@@ -337,18 +344,19 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
   const col=disabled?'#526167':danger?MENU_THEME.red:accent;
   drawMenuCard(
     ctx,x,y,w,h,hover&&!disabled,col,
-    disabled?'rgba(10,17,21,.86)':hover
-      ?(danger?'rgba(58,26,30,.98)':'rgba(28,38,34,.98)')
-      :'rgba(7,19,25,.96)'
+    disabled?'rgba(10,17,21,.96)':hover
+      ?(danger?'rgba(58,26,30,.99)':'rgba(27,38,34,.99)')
+      :'rgba(7,19,25,.98)'
   );
   ctx.save();
   if(!disabled){
-    // Ranura de acción: comunica clic/selección sin convertir cada botón en un bloque dorado.
-    ctx.fillStyle=col;ctx.globalAlpha=hover?.18:.055;
-    ctx.fillRect(x+5,y+4,w-10,h-8);ctx.globalAlpha=1;
+    ctx.fillStyle=col;
+    ctx.globalAlpha=hover?.18:.04;
+    ctx.fillRect(x+6,y+5,w-12,h-10);
+    ctx.globalAlpha=1;
     if(hover){
-      ctx.fillStyle=col;ctx.fillRect(x+7,y+h-4,Math.max(12,w*.26),1);
-      text(ctx,'›',x+w-10,y+h/2+3,7,col,'center',true,false);
+      ctx.fillRect(x+6,y+h-4,w-12,2);
+      text(ctx,'›',x+w-11,y+h/2+3,7.5,col,'center',true,false);
     }
   }
   text(ctx,label,x+w/2-(hover?3:0),y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
@@ -358,10 +366,16 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
 /** Pie consistente de controles. */
 export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,CANVAS_HEIGHT-28,UI_BASE_WIDTH-44,18);
-  ctx.fillStyle=accent;ctx.fillRect(22,CANVAS_HEIGHT-28,3,18);
-  text(ctx,left,32,CANVAS_HEIGHT-16,5.7,'#91a7a5','left',true,false);
-  if(right) text(ctx,right,UI_BASE_WIDTH-32,CANVAS_HEIGHT-16,5.7,accent,'right',true,false);
+  const x=22,y=CANVAS_HEIGHT-29,w=UI_BASE_WIDTH-44,h=19;
+  ctx.fillStyle='rgba(4,12,16,.96)';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='rgba(116,154,159,.20)';
+  ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.fillStyle=accent;
+  ctx.fillRect(x,y,4,h);
+  ctx.fillRect(x+4,y,50,2);
+  text(ctx,left,x+12,y+13,5.7,'#91a7a5','left',true,false);
+  if(right) text(ctx,right,x+w-10,y+13,5.7,accent,'right',true,false);
   ctx.restore();
 }
 
