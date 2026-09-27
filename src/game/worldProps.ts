@@ -125,31 +125,6 @@ export function pedestalInteractPoint(ped:{x:number;y:number}) {
   return {x:ped.x+12,y:ped.y+18};
 }
 
-/**
- * Huella física de cada obstáculo procedural.
- * La zona sólida coincide con la base visible, no con el tile completo.
- * Esto deja unos píxeles de solape visual por arriba para que un actor pueda
- * pasar "detrás" sin atravesar físicamente el objeto.
- */
-export function obstacleHitbox(kind:number,x:number,y:number):ObstacleRect {
-  const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
-  const variant=obstacleVariantIndex(kind);
-  const h=family?.hitbox ?? {x:5,y:18,w:22,h:10};
-  // Algunas variantes cambian ligeramente la huella, pero siempre permanecen
-  // dentro del tile y conservan espacio visual para pasar detrás del prop.
-  const widen=variant===5?1:variant===4?-1:0;
-  return {
-    x:x+h.x-widen,
-    y:y+h.y,
-    w:Math.max(12,Math.min(30,h.w+widen*2)),
-    h:h.h,
-  };
-}
-
-export function obstacleOccludes(kind:number){
-  return OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)]?.occludes ?? false;
-}
-
 /** Rectángulos sólidos de props especiales dibujados fuera del tilemap. */
 export function specialSolidRects(roomType:RoomType,content:RoomContent):WorldRect[] {
   const out:WorldRect[]=[];
