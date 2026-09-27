@@ -2182,6 +2182,127 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual,part
   ctx.restore();
 }
 
+
+function drawBossFamilySignatureV3(
+  ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual,tier:number,key:number
+){
+  const pulse=.5+.5*Math.sin(frame*.11+key*.23);
+  const band=def.floorBand??0;
+  ctx.save();
+  switch(def.family){
+    case 'command':
+      rect(ctx,-12,-27,24,4,'#172632');rect(ctx,-6,-30,12,4,'#294c68');
+      px(ctx,-9,-29,'#5da8ff',3);px(ctx,7,-29,'#ff5d58',3);
+      rect(ctx,-4,12,8,5,'#18262d');px(ctx,-2,13,v.secondary,4);
+      break;
+    case 'riot':
+      rect(ctx,-13,-27,26,5,'#29343d');rect(ctx,-9,-24,18,4,'#11191e');
+      for(const x of [-14,11])rect(ctx,x,10,4,11,'#596873');
+      if(tier>=1){rect(ctx,14,-6,5,25,'#75848c');rect(ctx,15,-3,3,18,v.accent);}
+      break;
+    case 'war':
+      ctx.fillStyle='#3a4539';ctx.beginPath();ctx.arc(0,-23,11,Math.PI,Math.PI*2);ctx.fill();
+      rect(ctx,-11,-23,22,4,'#303a31');rect(ctx,-4,-29,8,7,'#202821');
+      for(let x=-9;x<=5;x+=7)rect(ctx,x,10,5,7,x%14?v.secondary:'#765c38');
+      if(band>=3){rect(ctx,-18,0,4,15,'#2e3830');rect(ctx,14,0,4,15,'#2e3830');}
+      break;
+    case 'finance':
+      rect(ctx,-3,-5,6,24,v.secondary);
+      ctx.strokeStyle='#2a3438';ctx.lineWidth=2;ctx.strokeRect(-8,-22,6,5);ctx.strokeRect(2,-22,6,5);rect(ctx,-2,-20,4,1,'#2a3438');
+      rect(ctx,-23,4,10,12,'#49382d');rect(ctx,-21,2,6,3,'#7a5c39');
+      if(tier===2){ctx.globalAlpha=.45+.25*pulse;ctx.strokeStyle=v.accent;ctx.beginPath();ctx.arc(20,-2,7,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      break;
+    case 'wealth':
+      metalEdge(ctx,-23,-2,6,19,'#735f2c',v.accent,'#302817');
+      metalEdge(ctx,17,-2,6,19,'#735f2c',v.accent,'#302817');
+      rect(ctx,-11,-27,22,4,'#2a2924');rect(ctx,-6,-31,12,5,'#444038');
+      if(tier>=1){ctx.globalAlpha=.4+.3*pulse;ctx.strokeStyle=v.accent;ctx.beginPath();ctx.arc(22,2,7+tier,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      break;
+    case 'bakery':
+      rect(ctx,-13,-28,26,6,'#f0eee7');rect(ctx,-9,-34,18,8,'#faf7ef');rect(ctx,-4,-37,8,4,'#fffdf8');
+      rect(ctx,-10,10,20,7,'#d6c09e');rect(ctx,-8,12,16,3,'#7a5037');
+      for(const x of [-15,15]){ctx.globalAlpha=.3+.25*pulse;px(ctx,x,15,phase?'#ff7040':'#bd8050',3);}ctx.globalAlpha=1;
+      break;
+    case 'tech':
+      rect(ctx,-5,-29,10,7,'#20292e');px(ctx,-2,-32,phase>=2?'#ff5654':v.secondary,4);
+      for(const side of [-1,1]){const x=side*(22+tier*3);rect(ctx,x-(side<0?5:0),-6,5,15,'#35454c');px(ctx,x-(side<0?4:-1),-10,v.accent,3);}
+      if(band>=3){rect(ctx,-10,15,20,4,'#202a2f');px(ctx,-7,16,v.secondary,3);px(ctx,4,16,v.accent,3);}
+      break;
+    case 'vault':
+      ctx.globalAlpha=.58;ctx.strokeStyle='#4e496f';ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(0,0,24+tier*3,15+tier*2,frame*.012,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=1;px(ctx,-25-tir(tier),-1,v.accent,3);px(ctx,23+tir(tier),-1,v.secondary,3);
+      if(band>=3){rect(ctx,-7,-30,14,5,'#302d4b');px(ctx,-2,-33,v.secondary,4);}
+      break;
+  }
+  ctx.restore();
+}
+
+function tir(tier:number){return tier*2;}
+
+function drawBossTierPresenceV3(ctx:Ctx,tier:number,frame:number,phase:number,v:BossVisual,key:number){
+  if(tier<=0)return;
+  const pulse=.5+.5*Math.sin(frame*.09+key);
+  ctx.save();
+  if(tier===1){
+    for(const side of [-1,1]){const x=side*27;rect(ctx,x-(side<0?3:0),12,3,9,'#4d5c63');px(ctx,x-(side<0?2:-1),10,v.accent,2);}
+  }else{
+    metalEdge(ctx,-29,17,58,6,'#242d32','#68777d','#141a1e');
+    for(const side of [-1,1]){
+      const x=side*29;rect(ctx,x-(side<0?4:0),-13,4,31,'#37444a');
+      ctx.globalAlpha=.4+.3*pulse;px(ctx,x-(side<0?3:-1),-17,phase>=2?'#ff5551':v.secondary,3);ctx.globalAlpha=1;
+    }
+  }
+  ctx.restore();
+}
+
+function drawBossFamilyPhaseV3(ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual,tier:number){
+  if(phase<=0)return;
+  const pulse=.5+.5*Math.sin(frame*.15+(def.visualIndex??0));
+  ctx.save();
+  switch(def.family){
+    case 'command':
+      rect(ctx,-14,-31,28,3,phase>=2?'#5f2528':'#263c4d');
+      if(phase>=2){px(ctx,-10,-34,'#5da8ff',3);px(ctx,8,-34,'#ff5d58',3);}
+      break;
+    case 'riot':
+      if(phase>=1){for(const y of [-5,4,13]){rect(ctx,18,y,7,3,'#94a1a7');}}
+      if(phase>=2){rect(ctx,-18,15,36,5,'#2c3439');rect(ctx,-12,16,24,2,'#ff6658');}
+      break;
+    case 'war':
+      if(phase>=1){rect(ctx,-18,-4,5,20,'#2d3730');rect(ctx,13,-4,5,20,'#2d3730');}
+      if(phase>=2){for(let x=-10;x<=6;x+=4)px(ctx,x,17,x%8?v.secondary:'#d85f50',2);}
+      break;
+    case 'finance':
+      for(let i=0;i<phase+1;i++){
+        const side=i%2?-1:1,x=side*(20+i*4),y=-8+i*9;
+        ctx.globalAlpha=.35+.25*pulse;rect(ctx,x-5,y-3,10,6,'#183029');px(ctx,x-2,y-1,v.accent,4);
+      }
+      ctx.globalAlpha=1;break;
+    case 'wealth':
+      ctx.strokeStyle=v.accent;ctx.lineWidth=2;ctx.globalAlpha=.4+.25*pulse;
+      ctx.beginPath();ctx.arc(0,1,25+phase*5,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      if(phase>=2){for(const x of [-26,23]){rect(ctx,x,-12,3,29,'#80692f');px(ctx,x,-15,v.secondary,3);}}
+      break;
+    case 'bakery':
+      for(const x of [-18,14]){rect(ctx,x,14,6,6,'#6d4732');ctx.globalAlpha=.35+.3*pulse;px(ctx,x+1,10,phase>=2?'#ff5d3f':'#e08b4b',4);}
+      ctx.globalAlpha=1;
+      if(phase>=2){rect(ctx,-11,17,22,4,'#3b2d26');rect(ctx,-7,18,14,2,'#ff7040');}
+      break;
+    case 'tech':
+      for(const side of [-1,1]){const x=side*(29+phase*3);rect(ctx,x-(side<0?8:0),-3,8,3,'#596a72');px(ctx,x-(side<0?6:-2),-5,phase>=2?'#ff5654':v.accent,3);}
+      if(phase>=2){rect(ctx,-8,17,16,4,'#1b252a');px(ctx,-3,18,'#ff5654',6);}
+      break;
+    case 'vault':
+      ctx.strokeStyle=phase>=2?'#ff5654':v.secondary;ctx.lineWidth=2;ctx.globalAlpha=.5+.2*pulse;
+      for(let i=0;i<2+phase;i++){const a=frame*.025+i*Math.PI/(1+phase);ctx.beginPath();ctx.arc(0,1,27+i*4,a,a+1.05);ctx.stroke();}
+      ctx.globalAlpha=1;
+      if(phase>=2){for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5])px(ctx,Math.cos(a)*33-2,1+Math.sin(a)*24-2,'#ff5654',4);}
+      break;
+  }
+  ctx.restore();
+}
+
 function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean,parts?:BossPartState[],preparedAttack?:number,telegraph=0,recovery=0,recoveryMax=0){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
@@ -2214,8 +2335,11 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     if(def.legacy)applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
     const handcrafted=def.legacy&&drawIconicBossBodyV3(ctx,bossType,frame,phase,v,tier,parts);
     if(!handcrafted){
-      drawBossFactionCore(ctx,def,frame,phase,v,tier,key);
-      drawBossRoleHardware(ctx,def,frame,phase,v);
+      // v0.9: el rol define la silueta principal y la facción aporta identidad.
+      // Así artillería, sniper, bulwark, reactor, etc. dejan de compartir cuerpo.
+      drawRoleBossCore(ctx,def,frame,phase,v);
+      drawBossFamilySignatureV3(ctx,def,frame,phase,v,tier,key);
+      drawBossTierPresenceV3(ctx,tier,frame,phase,v,key);
     }
     if(def.legacy)drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
     ctx.restore();
@@ -2228,6 +2352,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
     if(!def.legacy&&(def.family==='tech'||def.family==='vault')){
       ctx.globalAlpha=.65;drawBossCrest(ctx,key,v);ctx.globalAlpha=1;
     }
+    if(!def.legacy)drawBossFamilyPhaseV3(ctx,def,frame,phase,v,tier);
     drawBossPhaseTransformation(ctx,def,frame,phase,v);
   }
 
