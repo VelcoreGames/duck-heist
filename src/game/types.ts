@@ -476,6 +476,7 @@ export interface GameEngine {
   bindings: KeyBindings;
   controlIndex:number;
   controlCapture:boolean;
+  controlResetConfirm:boolean;
   career: CareerStats;
   runHistory: RunHistoryEntry[];
   runRecorded:boolean;
