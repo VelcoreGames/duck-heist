@@ -740,7 +740,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     transition: { active: false, timer: 0, total: 22, dir: null, targetKey: null },
     restartHold: 0, bossDefeatTimer: 0, rewardDropTimer: 0,
     swap: null, swapSel: 0, swapGuard: 0, overlayLabels: [],
-    totalGoldenCrumbs: totalGolden, metaLevels, settings, bindings, controlIndex:0, controlCapture:false,
+    totalGoldenCrumbs: totalGolden, metaLevels, settings, bindings, controlIndex:0, controlCapture:false, controlResetConfirm:false,
     career:careerData.career,runHistory:careerData.history,runRecorded:false,contracts:careerData.contracts,
     dailyProfile,daily:{key:dailyProfile.current.key,seed:dailyProfile.current.seed,modifiers:dailyModifiers(dailyProfile.current.key),score:0},dailyResult:null,best,
     unlockedSkins, equippedSkin,
