@@ -18,7 +18,7 @@ import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, dr
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect } from './layout';
 import { drawVaultScene } from './titleScene';
-import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
+import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton, drawMenuScene, drawTitleLogo } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
 import { obstacleHitbox, obstacleOccludes, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { bankKeyDropChance, specialRoomKeyCost, tryUnlockSpecialRoom } from './keyAccess';
@@ -112,6 +112,15 @@ export function runSelfChecks():CheckReport {
         drawMenuCard(uiCtx,36,82,408,72,i===1,accent,'rgba(8,20,26,.96)');
         drawMouseButton(uiCtx,'ACCIÓN',168,178,144,30,i===2,accent,i===2,false);
       }
+    });
+    check('Menú kawaii y logo compacto renderizan sin excepción',()=>{
+      const menu=document.createElement('canvas');menu.width=480;menu.height=352;
+      const m=menu.getContext('2d')!;
+      drawMenuScene(m,180);
+      drawTitleLogo(m,366,48,180);
+      const pixels=m.getImageData(0,0,480,352).data;
+      let visible=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i]>0){visible++;if(visible>500)break;}
+      assert(visible>500,'escena de menú vacía');
     });
     check('Atmósferas de los seis sectores renderizan sin filtros costosos',()=>{
       const art=document.createElement('canvas');art.width=480;art.height=352;
