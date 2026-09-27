@@ -44,7 +44,7 @@ const DEFAULT_DUCK: DuckPaletteLike = {
 export function drawDuck(
   ctx: Ctx, x: number, y: number, frame: number,
   dir: DuckDir = 'down', moving = false, hurt = false, dashing = false,
-  shooting = false, dead = false, pal: DuckPaletteLike = DEFAULT_DUCK,
+  shooting = false, dead = false, pal: DuckPaletteLike = DEFAULT_DUCK, aiming = false,
 ) {
   const bx = Math.floor(x);
   const by = Math.floor(y);
@@ -78,7 +78,7 @@ export function drawDuck(
   const waddle=moving?Math.round(gait):idleBreath;
   const step=moving?gait:0;
   const blink=(frame%190)<7;
-  const idleLook=!moving&&!dashing&&!shooting&&frame%260>205&&frame%260<250;
+  const idleLook=!aiming&&!moving&&!dashing&&!shooting&&frame%260>205&&frame%260<250;
   const headNudge=idleLook?(frame%260<228?-1:1):0;
 
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
