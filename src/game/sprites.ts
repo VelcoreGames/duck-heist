@@ -2397,7 +2397,101 @@ function drawBossFamilyPhaseV3(ctx:Ctx,def:BossDef,frame:number,phase:number,v:B
   ctx.restore();
 }
 
-function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean,parts?:BossPartState[],preparedAttack?:number,telegraph=0,recovery=0,recoveryMax=0){
+
+function drawGeneratedBossAttackPoseV4(
+  ctx:Ctx,def:BossDef,phase:number,preparedAttack:number|undefined,telegraph:number,recovery:number,recoveryMax:number
+){
+  const seq=def.pattern?.sequence??[];
+  const step=preparedAttack??0;
+  const attack=seq.length?seq[(step+phase*(def.pattern?.phaseShift??0))%seq.length]:'fan';
+  const t=Math.max(0,Math.min(1,telegraph));
+  const r=recoveryMax>0?Math.max(0,Math.min(1,recovery/recoveryMax)):0;
+  if(t<=0&&r<=0)return;
+
+  const prep=t*t;
+  const recoil=r*r;
+  if(attack==='rush'){
+    ctx.translate(prep*4-recoil*2,prep*1.5);
+    ctx.rotate((prep*.09-recoil*.05)*(def.roleVariant%2?-1:1));
+    ctx.scale(1+prep*.08,1-prep*.05);
+  }else if(attack==='sniper'){
+    ctx.translate(-prep*2,0);
+    ctx.rotate((def.roleVariant%2?-1:1)*(-prep*.04+recoil*.025));
+    ctx.scale(1-prep*.025,1+prep*.05);
+  }else if(attack==='nova'||attack==='ring'||attack==='spiral'){
+    const s=1+prep*.07-recoil*.04;
+    ctx.scale(s,s);
+  }else if(attack==='summon'){
+    ctx.translate(0,-prep*3+recoil*1.5);
+    ctx.rotate(Math.sin((preparedAttack??0)+phase)*prep*.035);
+  }else if(attack==='crossfire'||attack==='fan'){
+    ctx.translate(-recoil*2,0);
+    ctx.rotate((def.roleVariant%2?-1:1)*(prep*.025-recoil*.045));
+  }else if(attack==='warp'){
+    ctx.scale(1-prep*.08,1+prep*.1);
+    ctx.translate(0,-prep*2);
+  }else if(attack==='cage'||attack==='mines'||attack==='lanes'){
+    ctx.translate(0,-prep*1.5);
+    ctx.scale(1+prep*.025,1+prep*.025);
+  }
+}
+
+function drawGeneratedBossAttackCueV4(
+  ctx:Ctx,def:BossDef,frame:number,phase:number,preparedAttack:number|undefined,telegraph:number
+){
+  if(telegraph<=.02||def.legacy)return;
+  const seq=def.pattern?.sequence??[];
+  if(!seq.length)return;
+  const step=preparedAttack??0;
+  const attack=seq[(step+phase*(def.pattern?.phaseShift??0))%seq.length];
+  const t=Math.max(0,Math.min(1,telegraph));
+  const pulse=.55+.45*Math.sin(frame*.25);
+  ctx.save();ctx.globalAlpha=.28+t*.45;
+  ctx.strokeStyle=phase>=2?'#ff5a55':def.secondary;ctx.lineWidth=1+t*1.5;
+  if(attack==='sniper'){
+    ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(10,-3);ctx.lineTo(52,-18);ctx.stroke();ctx.setLineDash([]);
+  }else if(attack==='rush'){
+    ctx.beginPath();ctx.moveTo(-18,20);ctx.lineTo(0,27+t*8);ctx.lineTo(18,20);ctx.stroke();
+  }else if(attack==='nova'||attack==='ring'||attack==='spiral'){
+    ctx.beginPath();ctx.arc(0,3,22+t*10,0,Math.PI*2);ctx.stroke();
+  }else if(attack==='summon'){
+    for(const x of [-24,24]){ctx.beginPath();ctx.arc(x,-5,5+t*4,0,Math.PI*2);ctx.stroke();}
+  }else if(attack==='warp'){
+    ctx.beginPath();ctx.ellipse(0,2,25+t*8,13+t*5,frame*.02,0,Math.PI*2);ctx.stroke();
+  }else if(attack==='crossfire'||attack==='fan'){
+    for(const a of [-.35,0,.35]){ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(31+Math.cos(a)*10,Math.sin(a)*16);ctx.stroke();}
+  }else{
+    ctx.beginPath();ctx.arc(0,4,20+t*7,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.globalAlpha=.18+.18*pulse*t;ctx.fillStyle=def.accent;ctx.beginPath();ctx.arc(0,2,8+t*4,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawBossHealthWearV4(ctx:Ctx,hpRatio:number,def:BossDef,frame:number,tier:number){
+  const d=1-Math.max(0,Math.min(1,hpRatio));
+  if(d<.22)return;
+  const severe=d>.66,critical=d>.82;
+  ctx.save();
+  ctx.strokeStyle=severe?'#171a1c':'#32393c';ctx.lineWidth=severe?1.5:1;ctx.globalAlpha=.45+d*.45;
+  const cracks=critical?5:severe?4:2;
+  for(let i=0;i<cracks;i++){
+    const sx=-11+((i*9+(def.visualIndex??0)*3)%23),sy=-6+((i*7+(def.roleVariant??0)*5)%22);
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+(i%2?4:-4),sy+4);ctx.lineTo(sx+(i%2?1:-1),sy+8);ctx.stroke();
+  }
+  if(severe){
+    ctx.globalAlpha=.22+d*.28;ctx.fillStyle=def.family==='bakery'?'#694b3b':'#151b1e';
+    ctx.beginPath();ctx.ellipse(-10,7,4+tier,3+tier*.5,0,0,Math.PI*2);ctx.fill();
+  }
+  if(critical){
+    const pulse=.45+.35*Math.sin(frame*.18);
+    ctx.globalAlpha=.45+.3*pulse;
+    px(ctx,11,-3,def.family==='tech'||def.family==='vault'?'#ff644f':'#d8e0df',2);
+    if(def.family==='tech'||def.family==='vault')px(ctx,-13,10,'#ff6a46',2);
+  }
+  ctx.restore();
+}
+
+function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean,hpRatio=1,parts?:BossPartState[],preparedAttack?:number,telegraph=0,recovery=0,recoveryMax=0){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
   const h=bossVisualHash(bossType),tier=floorBoss?2:subBoss?1:0,key=def.visualIndex??(h%48);
@@ -2427,13 +2521,16 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
 
     ctx.save();
     if(def.legacy)applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
+    else drawGeneratedBossAttackPoseV4(ctx,def,phase,preparedAttack,telegraph,recovery,recoveryMax);
     const handcrafted=def.legacy&&drawIconicBossBodyV3(ctx,bossType,frame,phase,v,tier,parts);
     if(!handcrafted){
       // v0.9: el rol define la silueta principal y la facción aporta identidad.
-      // Así artillería, sniper, bulwark, reactor, etc. dejan de compartir cuerpo.
+      // v0.9.2: además la pose responde al ataque preparado y su recuperación.
       drawRoleBossCore(ctx,def,frame,phase,v);
       drawBossFamilySignatureV3(ctx,def,frame,phase,v,tier,key);
       drawBossTierPresenceV3(ctx,tier,frame,phase,v,key);
+      drawBossHealthWearV4(ctx,hpRatio,def,frame,tier);
+      drawGeneratedBossAttackCueV4(ctx,def,frame,phase,preparedAttack,telegraph);
     }
     if(def.legacy)drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
     ctx.restore();
@@ -2603,7 +2700,7 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
   }
   
   if (visual) {
-    drawPremiumBossBody(ctx,bx,by,bossType,frame,phase,visual,floorBoss,subBoss,parts,preparedAttack,telegraph,recovery,recoveryMax);
+    drawPremiumBossBody(ctx,bx,by,bossType,frame,phase,visual,floorBoss,subBoss,maxHp>0?hp/maxHp:1,parts,preparedAttack,telegraph,recovery,recoveryMax);
   } else if (bossType === 'captain_honk') {
     // Large armored goose
     // Shadow
