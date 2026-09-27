@@ -92,7 +92,8 @@ export function renderCollection(e:GameEngine) {
   COLLECTION_TABS.forEach((tab,i)=>{
     const on=tab.id===e.collectionTab,x=tabX+i*(tabW+tabGap),hover=inside(e.mouseX,e.mouseY,{x,y:57,w:tabW,h:22});
     drawMenuCard(c,x,57,tabW,22,on||hover,'#9abf9f',on?'rgba(35,47,35,.98)':hover?'rgba(20,36,34,.98)':'rgba(10,24,30,.9)');
-    text(c,tab.name,x+tabW/2,72,5.7,on?'#eff0ce':hover?'#d8e4df':'#9fb1ae','center',true,false);
+    text(c,tab.name,x+tabW/2,71,5.45,on?'#eff0ce':hover?'#d8e4df':'#9fb1ae','center',true,false);
+    if(on){c.fillStyle='#9abf9f';c.fillRect(x+9,76,tabW-18,1);}
   });
   const filterLabel=e.collectionFilter==='all'?'TODOS':e.collectionFilter==='known'?'DESCUBIERTOS':'PENDIENTES';
   const sortLabel=e.collectionSort==='default'?'ORDEN BASE':e.collectionSort==='name'?'A–Z':'RAREZA';
@@ -100,7 +101,7 @@ export function renderCollection(e:GameEngine) {
   drawMouseButton(c,sortLabel,COLLECTION_SORT.x,COLLECTION_SORT.y,COLLECTION_SORT.w,COLLECTION_SORT.h,inside(e.mouseX,e.mouseY,COLLECTION_SORT),'#6c8f88');
   drawMouseButton(c,'CARRERA',COLLECTION_CAREER.x,COLLECTION_CAREER.y,COLLECTION_CAREER.w,COLLECTION_CAREER.h,inside(e.mouseX,e.mouseY,COLLECTION_CAREER),'#9abf9f');
   const unlocked=selected?known(e,selected):false;
-  drawMenuCard(c,30,89,156,217,true,'#9abf9f','rgba(8,20,26,.96)');
+  drawMenuCard(c,30,89,156,217,true,'#9abf9f','rgba(8,20,26,.94)');
   drawSectionLabel(c,'FICHA ACTIVA',42,108,'#9abf9f');
   if(selected) drawCatalogSprite(e,selected,72,101,72,!unlocked);
   else drawItemIcon(c,72,101,'mystery',72,'#6c8285',true);
