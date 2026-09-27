@@ -1224,120 +1224,176 @@ function drawBossCrest(ctx:Ctx,key:number,v:BossVisual){
   }
 }
 
+function drawBossDuckBase(ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual){
+  const q=def.roleVariant??0;
+  const bob=Math.round(Math.sin(frame*.09+q)*1);
+  const mechanical=def.family==='tech'||def.family==='vault';
+  const body=mechanical?(def.family==='vault'?'#3b3857':'#40545d'):
+    def.family==='bakery'?'#f0e7d7':
+    def.family==='war'?'#dde1d7':
+    def.family==='finance'||def.family==='wealth'?'#eee9dc':
+    '#e2e6e2';
+  const shade=mechanical?(def.family==='vault'?'#26253b':'#28383f'):
+    def.family==='bakery'?'#cda878':
+    def.family==='war'?'#9ca58f':
+    '#b8c0bd';
+  const beak=mechanical?(def.family==='vault'?'#c7a64e':'#d79b45'):'#ef922f';
+  const beakDark=mechanical?'#805f2b':'#c96c20';
+
+  ctx.save();ctx.translate(0,bob);
+
+  // Patas palmeadas: aun con armadura o partes mecánicas, la lectura inferior
+  // siempre debe ser ave y no humano/robot genérico.
+  rect(ctx,-10,17,7,3,beak);rect(ctx,-12,20,10,2,beakDark);
+  rect(ctx,3,17,7,3,beak);rect(ctx,2,20,10,2,beakDark);
+
+  // Cola corta y cuerpo ovalado/rechoncho.
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(-13,7,7,6,-.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(0,6,17,15,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(-8,6,7,10,-.35,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(9,6,7,10,.35,0,Math.PI*2);ctx.fill();
+
+  // Pecho/ala frontal, muy visible incluso bajo accesorios.
+  ctx.globalAlpha=.92;ctx.fillStyle=mechanical?'#536972':'#f3eee2';
+  ctx.beginPath();ctx.ellipse(1,8,8,10,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle=mechanical?v.accent:shade;
+  ctx.beginPath();ctx.ellipse(10,5,6,8,.35,0,Math.PI*2);ctx.fill();
+
+  // Cabeza grande de pato + pico dominante. Esta es la regla duck-first.
+  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(0,-13,12,10,0,0,Math.PI*2);ctx.fill();
+  if(mechanical){
+    ctx.strokeStyle=def.family==='vault'?v.secondary:'#748990';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(0,-13,11,9,0,0,Math.PI*2);ctx.stroke();
+  }
+  // Ojos orientados hacia el jugador.
+  const eye=phase>=2?'#ff514e':'#11171b';
+  px(ctx,-5,-16,mechanical?v.accent:eye,2);px(ctx,4,-16,mechanical?v.accent:eye,2);
+  if(mechanical){px(ctx,-4,-15,'#e7ffff',1);px(ctx,5,-15,'#e7ffff',1);}
+
+  // Pico ancho y central; nunca queda oculto por casco/equipo.
+  rect(ctx,-7,-10,14,5,beak);rect(ctx,-5,-5,10,2,beakDark);
+  px(ctx,-4,-8,'#8c4e1f',1);px(ctx,3,-8,'#8c4e1f',1);
+
+  // Cuello/pecho define continuidad cabeza-cuerpo.
+  rect(ctx,-7,-4,14,6,body);
+  ctx.restore();
+}
+
 function drawRoleBossCore(ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual){
   const pulse=.5+.5*Math.sin(frame*.11+def.roleVariant*.7);
   const q=def.roleVariant??0;
-  const armor=v.family==='bakery'?'#9a633f':v.family==='finance'||v.family==='wealth'?'#3d3631':v.family==='vault'?'#403958':'#35434c';
+  const armor=v.family==='bakery'?'#8a5d42':v.family==='finance'||v.family==='wealth'?'#33383a':v.family==='vault'?'#403958':'#35434c';
   const light=phase>=2?'#ff554f':phase?v.secondary:v.accent;
+
   ctx.save();
+  // Siempre primero el pato. El rol sólo agrega hardware alrededor.
+  drawBossDuckBase(ctx,def,frame,phase,v);
 
   switch(def.role){
     case 'artillery': {
-      const w=34+q*3,h=16+(q%2)*4;
-      metalEdge(ctx,-w,-8,w*2,h+14,armor,'#7f8d91','#1a2125');
-      rect(ctx,-w+5,-3,w*2-10,h,'#263138');
-      for(const x of [-w+10,w-10]){rect(ctx,x-4,-23-q,8,20+q,'#65737a');rect(ctx,x-2,-27-q,4,6,light);}
-      rect(ctx,-10,8,20,7,'#171f23');px(ctx,-3,10,v.secondary,6);
-      if(phase){ctx.globalAlpha=.3+.25*pulse;rect(ctx,-w+3,15,w*2-6,4,light);ctx.globalAlpha=1;}
+      const span=25+q*3;
+      metalEdge(ctx,-span-7,-3,10,22,armor,'#77858a','#1a2125');
+      metalEdge(ctx,span-3,-3,10,22,armor,'#77858a','#1a2125');
+      for(const x of [-span-9,span+1]){
+        rect(ctx,x,-17-q,8,17+q,'#5f6d72');rect(ctx,x+2,-22-q,4,7,light);
+      }
+      rect(ctx,-11,10,22,7,'#1b2428');px(ctx,-3,12,v.secondary,6);
       break;
     }
     case 'duelist': {
-      rect(ctx,-10,-15,20,35,'#e7e5dd');rect(ctx,-8,-8,16,25,armor);
-      rect(ctx,-7,-24,14,10,'#ece8de');enemyEye(ctx,-5,-21,true);rect(ctx,6,-19,8,3,'#ed8530');
-      ctx.save();ctx.translate(13,1);ctx.rotate(-.52+q*.07);rect(ctx,-2,-18,4,34,'#222a2f');rect(ctx,-4,-20,8,5,'#768187');ctx.restore();
-      rect(ctx,-15,5,5,15,'#2e3940');
-      if(phase){ctx.globalAlpha=.35;ctx.strokeStyle=light;ctx.beginPath();ctx.arc(0,1,22+phase*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+      // Ligero: arma larga lateral, cuerpo de pato casi completamente visible.
+      ctx.save();ctx.translate(17,3);ctx.rotate(-.56+q*.06);
+      rect(ctx,-2,-21,4,37,'#252d31');rect(ctx,-5,-25,10,7,'#758187');rect(ctx,-1,-29,2,6,light);
+      ctx.restore();
+      rect(ctx,-17,7,5,11,'#303b41');px(ctx,-16,4,v.accent,3);
       break;
     }
     case 'bulwark': {
-      const w=26+q*2;
-      metalEdge(ctx,-w,-13,w*2,36,armor,'#8e9ba1','#1c2429');
-      rect(ctx,-w+5,-8,w*2-10,26,'#2c373e');
-      metalEdge(ctx,8,-16,20+q*2,42,'#4c5a64','#a3afb5','#222b31');
-      rect(ctx,13,-9,10+q*2,27,'#313d45');
-      ctx.globalAlpha=.35+.25*pulse;rect(ctx,16,-3,5+q,15,light);ctx.globalAlpha=1;
+      // Escudo desplazado: jamás tapa pico/cabeza.
+      const sw=18+q*2;
+      metalEdge(ctx,13,-10,sw,35,'#4d5c65','#a0adb2','#222b31');
+      rect(ctx,17,-4,sw-8,24,'#313d45');
+      ctx.globalAlpha=.38+.22*pulse;rect(ctx,20,1,Math.max(4,sw-14),13,light);ctx.globalAlpha=1;
+      rect(ctx,-20,-1,7,18,armor);
       break;
     }
     case 'swarm': {
-      ctx.fillStyle='#303c43';ctx.beginPath();ctx.ellipse(0,1,18+q,15+(q%2)*2,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#52626a';ctx.beginPath();ctx.ellipse(0,-1,12+q,9,0,0,Math.PI*2);ctx.fill();
-      rect(ctx,-6,-4,12,8,'#13252c');enemyEye(ctx,-4,-2,true);enemyEye(ctx,2,-2,true);
-      for(let i=0;i<4;i++){const a=frame*.035+i*Math.PI/2+q*.19;const r=25+q*2;ctx.globalAlpha=.55;px(ctx,Math.cos(a)*r-2,Math.sin(a)*10-2,i%2?v.accent:v.secondary,4);}
-      ctx.globalAlpha=1;
+      // Pato comandante al centro, drones satélite alrededor.
+      for(let i=0;i<4+q;i++){
+        const a=frame*.035+i*Math.PI*2/(4+q);
+        const r=27+q*2,x=Math.cos(a)*r,y=-2+Math.sin(a)*15;
+        rect(ctx,x-4,y-3,8,6,'#2d3940');px(ctx,x-2,y-1,i%2?v.accent:v.secondary,4);
+        rect(ctx,x-8,y-1,4,2,'#607078');rect(ctx,x+4,y-1,4,2,'#607078');
+      }
       break;
     }
     case 'sniper': {
-      metalEdge(ctx,-11,-28,22,52,armor,'#7d8a90','#1a2125');
-      rect(ctx,-7,-22,14,42,'#273138');rect(ctx,-5,-17,10,9,'#14252c');px(ctx,-2,-14,'#ff554f',4);
-      ctx.save();ctx.translate(6,-9);ctx.rotate(-.08+q*.025);rect(ctx,0,-2,38+q*3,5,'#20282d');rect(ctx,27+q*2,-4,12,9,'#68757a');ctx.restore();
-      if(phase)rect(ctx,-14,15,28,5,light);
+      // Mochila estrecha + rifle largo; la cabeza de pato queda libre.
+      rect(ctx,-18,-3,6,21,armor);px(ctx,-17,-7,v.secondary,3);
+      ctx.save();ctx.translate(12,1);ctx.rotate(-.14+q*.02);
+      rect(ctx,0,-2,42+q*3,5,'#20282d');rect(ctx,29+q*2,-4,13,9,'#68757a');
+      rect(ctx,8,-5,9,4,'#313b40');px(ctx,11,-7,light,3);ctx.restore();
+      if(phase){ctx.strokeStyle='#e45450';ctx.globalAlpha=.32;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(23,-5);ctx.lineTo(60,-18);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}
       break;
     }
     case 'storm': {
-      ctx.fillStyle=armor;ctx.beginPath();ctx.moveTo(0,-24-q*2);ctx.lineTo(24+q*2,0);ctx.lineTo(0,22+q);ctx.lineTo(-24-q*2,0);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#1a252b';ctx.beginPath();ctx.arc(0,0,10+q,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.45+.35*pulse;ctx.fillStyle=light;ctx.beginPath();ctx.arc(0,0,5+phase*2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;for(let i=0;i<3;i++){const a=frame*(i%2?.04:-.035)+i*2.1;ctx.beginPath();ctx.arc(0,0,25+i*4,a,a+.8);ctx.stroke();}
+      // Bobinas alrededor de un pato visible, no rombo abstracto.
+      for(const side of [-1,1]){
+        const x=side*(22+q*2);metalEdge(ctx,x-4,-8,8,25,armor,'#74838a','#20282c');
+        ctx.globalAlpha=.42+.3*pulse;px(ctx,x-2,-12,light,4);ctx.globalAlpha=1;
+      }
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;
+      for(let i=0;i<3;i++){const a=frame*(i%2?.04:-.035)+i*2.1;ctx.beginPath();ctx.arc(0,2,23+i*4,a,a+.8);ctx.stroke();}
       break;
     }
     case 'warden': {
-      const w=28+q*2;
-      rect(ctx,-w,-15,10,39,'#2d373d');rect(ctx,w-10,-15,10,39,'#2d373d');
-      rect(ctx,-w+3,-12,4,33,v.secondary);rect(ctx,w-7,-12,4,33,v.accent);
-      metalEdge(ctx,-17,-12,34,31,armor,'#819097','#1b2327');
-      rect(ctx,-11,-6,22,18,'#1d282d');
-      for(let i=0;i<3;i++)rect(ctx,-8+i*8,-2,4,10,i%2?light:'#54646b');
+      const span=25+q*2;
+      rect(ctx,-span,-8,8,31,'#2d373d');rect(ctx,span-8,-8,8,31,'#2d373d');
+      rect(ctx,-span+2,-5,3,25,v.secondary);rect(ctx,span-5,-5,3,25,v.accent);
+      rect(ctx,-13,12,26,7,armor);
       break;
     }
     case 'charger': {
-      ctx.fillStyle=armor;ctx.beginPath();ctx.moveTo(-30-q*2,8);ctx.lineTo(-18,-12);ctx.lineTo(0,-18);ctx.lineTo(18,-12);ctx.lineTo(30+q*2,8);ctx.lineTo(13,21);ctx.lineTo(-13,21);ctx.closePath();ctx.fill();
-      rect(ctx,-12,-10,24,23,'#44535b');rect(ctx,-8,-18,16,10,'#e6e5dd');enemyEye(ctx,-5,-15,true);rect(ctx,7,-13,8,3,'#ed8730');
-      ctx.fillStyle='#69767c';ctx.beginPath();ctx.moveTo(-30,2);ctx.lineTo(-39-q*2,-5);ctx.lineTo(-34,9);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(30,2);ctx.lineTo(39+q*2,-5);ctx.lineTo(34,9);ctx.closePath();ctx.fill();
-      if(phase){rect(ctx,-18,15,36,5,light);}
+      // Hombreras/arietes laterales; pico del pato es el centro de la embestida.
+      ctx.fillStyle='#69767c';
+      ctx.beginPath();ctx.moveTo(-16,0);ctx.lineTo(-34-q*2,-7);ctx.lineTo(-29,8);ctx.lineTo(-15,11);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(16,0);ctx.lineTo(34+q*2,-7);ctx.lineTo(29,8);ctx.lineTo(15,11);ctx.closePath();ctx.fill();
+      rect(ctx,-18,10,36,7,armor);if(phase)rect(ctx,-14,12,28,3,light);
       break;
     }
     case 'vortex': {
-      ctx.strokeStyle='#5f6e75';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,1,19+q*2,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle=v.secondary;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,1,13+q,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='#172229';ctx.beginPath();ctx.arc(0,1,8,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.55+.3*pulse;ctx.fillStyle=light;ctx.beginPath();ctx.arc(0,1,4+phase,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      for(let i=0;i<4;i++){const a=frame*.04*(i%2?1:-1)+i*Math.PI/2;px(ctx,Math.cos(a)*(28+q*2)-2,1+Math.sin(a)*(18+q)-2,i%2?v.accent:v.secondary,4);}
+      // Aros orbitan al pato en vez de sustituirlo.
+      ctx.strokeStyle='#5f6e75';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,2,24+q*2,18+q,frame*.012,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,2,17+q,26+q*2,-frame*.014,0,Math.PI*2);ctx.stroke();
+      for(let i=0;i<4;i++){const a=frame*.04*(i%2?1:-1)+i*Math.PI/2;px(ctx,Math.cos(a)*(29+q*2)-2,2+Math.sin(a)*(19+q)-2,i%2?v.accent:v.secondary,4);}
       break;
     }
     case 'executioner': {
-      rect(ctx,-12,-17,24,40,'#e6e3db');rect(ctx,-10,-10,20,31,armor);
-      rect(ctx,-8,-27,16,11,'#ece9df');enemyEye(ctx,-6,-23,true);rect(ctx,7,-21,8,3,'#ec8430');
-      ctx.save();ctx.translate(17,0);ctx.rotate(.42-q*.04);rect(ctx,-3,-24,6,42,'#30383d');rect(ctx,-8,-29,16,10,'#737f83');rect(ctx,-4,-34,8,8,light);ctx.restore();
-      rect(ctx,-18,4,6,19,'#252e34');if(phase)px(ctx,-16,0,light,4);
+      // Hacha pesada al costado; anatomía de pato permanece intacta.
+      ctx.save();ctx.translate(19,1);ctx.rotate(.43-q*.04);
+      rect(ctx,-3,-25,6,44,'#30383d');rect(ctx,-9,-31,18,11,'#737f83');rect(ctx,-5,-36,10,8,light);ctx.restore();
+      rect(ctx,-19,7,6,14,'#252e34');if(phase)px(ctx,-17,3,light,4);
       break;
     }
     case 'reactor': {
-      ctx.fillStyle=armor;ctx.beginPath();ctx.arc(0,2,23+q*2,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#7b8a90';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,2,19+q,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='#172126';ctx.beginPath();ctx.arc(0,2,11,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.5+.35*pulse;ctx.fillStyle=light;ctx.beginPath();ctx.arc(0,2,6+phase*2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      for(const x of [-25,25]){rect(ctx,x-4,-10,8,25,'#29343a');rect(ctx,x-2,-17,4,10,v.secondary);}
+      // Reactor como mochila/anillo posterior, no cuerpo principal.
+      ctx.strokeStyle='#718087';ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,5,23+q*2,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=.34+.3*pulse;ctx.strokeStyle=light;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,5,18+q,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      for(const x of [-24,24]){rect(ctx,x-4,-5,8,22,'#29343a');rect(ctx,x-2,-12,4,9,v.secondary);}
       break;
     }
     case 'trickster': {
-      // Dos mitades separadas y una cabeza descentrada: silueta muy poco humanoide.
-      ctx.fillStyle=armor;ctx.beginPath();ctx.ellipse(-12-q,3,12,18,.18,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(12+q,3,12,18,-.18,0,Math.PI*2);ctx.fill();
-      rect(ctx,-6,-20,12,10,'#e8e5dc');enemyEye(ctx,-4,-17,true);rect(ctx,5,-15,8,3,'#ed8730');
-      ctx.globalAlpha=.4+.3*pulse;ctx.strokeStyle=light;ctx.lineWidth=2;ctx.beginPath();ctx.arc(-14,3,16,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(14,3,16,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-      if(phase){px(ctx,-18,-24,v.accent,4);px(ctx,14,-24,v.secondary,4);}
+      // El pato es real; las dos mitades son señuelos/hologramas, no el cuerpo.
+      for(const side of [-1,1]){
+        const x=side*(21+q);ctx.globalAlpha=.30+.18*pulse;ctx.strokeStyle=side<0?v.accent:v.secondary;ctx.lineWidth=2;
+        ctx.beginPath();ctx.ellipse(x,3,10,17,side*.18,0,Math.PI*2);ctx.stroke();
+        px(ctx,x-2,-15,side<0?v.accent:v.secondary,4);
+      }
+      ctx.globalAlpha=1;
+      if(phase){px(ctx,-24,-20,v.accent,4);px(ctx,20,-20,v.secondary,4);}
       break;
     }
   }
-
-  // Acentos de familia conservan el tema sin volver a igualar los cuerpos.
-  if(v.family==='bakery'){rect(ctx,-4,15,8,4,'#a56a42');px(ctx,-2,16,'#ff7a3c',4);}
-  else if(v.family==='finance'){rect(ctx,-3,13,6,8,'#8f2634');}
-  else if(v.family==='wealth'){px(ctx,-5,-25,v.accent,4);px(ctx,2,-28,v.secondary,4);}
-  else if(v.family==='tech'){ctx.globalAlpha=.45+.25*pulse;px(ctx,-18,-15,v.accent,3);px(ctx,16,-15,v.secondary,3);ctx.globalAlpha=1;}
-  else if(v.family==='vault'){ctx.strokeStyle=v.secondary;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,3,8,0,Math.PI*2);ctx.stroke();}
-  else if(v.family==='war'){for(let i=0;i<3;i++)px(ctx,-6+i*5,14,[v.secondary,'#c65a4b','#8aaad1'][i],3);}
-  else if(v.family==='command'){rect(ctx,-20,-2,4,7,v.secondary);rect(ctx,16,-2,4,7,v.secondary);}
-  else if(v.family==='riot'){rect(ctx,-23,11,6,12,'#4d5964');}
 
   ctx.restore();
 }
@@ -1937,6 +1993,37 @@ function drawBossPartWear(ctx:Ctx,parts:BossPartState[]|undefined,frame:number){
  * Devuelve true cuando el cuerpo completo ya fue dibujado y no debe usarse
  * la plantilla de facción genérica.
  */
+
+function drawIconicDuckReadability(ctx:Ctx,family:string,frame:number,phase:number,v:BossVisual){
+  const mechanical=family==='tech'||family==='vault';
+  const body=mechanical?(family==='vault'?'#4a4569':'#536b74'):
+    family==='bakery'?'#f3eadb':'#eee9dd';
+  const shade=mechanical?'#2d3940':family==='bakery'?'#cba878':'#b9c0bd';
+  const beak=mechanical?(family==='vault'?'#c4a34b':'#d79640'):'#ef8d2c';
+  const darkBeak=mechanical?'#745625':'#c7671d';
+  const bob=Math.round(Math.sin(frame*.08)*.5);
+
+  ctx.save();ctx.translate(0,bob);
+
+  // Cabeza frontal de pato superpuesta sobre el equipo del jefe.
+  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(0,-15,11,9,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(-6,-13,4,5,-.3,0,Math.PI*2);ctx.fill();
+  if(mechanical){
+    ctx.strokeStyle=v.secondary;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,-15,10,8,0,0,Math.PI*2);ctx.stroke();
+  }
+  const eye=phase>=2?'#ff514e':'#10161a';
+  px(ctx,-5,-17,mechanical?v.accent:eye,2);px(ctx,4,-17,mechanical?v.accent:eye,2);
+  if(mechanical){px(ctx,-4,-16,'#eaffff',1);px(ctx,5,-16,'#eaffff',1);}
+  rect(ctx,-7,-12,14,5,beak);rect(ctx,-5,-7,10,2,darkBeak);
+  px(ctx,-4,-10,'#8b4a1d',1);px(ctx,3,-10,'#8b4a1d',1);
+
+  // Ala y patas mantienen lectura aviar aunque el torso esté cubierto.
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(10,5,6,8,.35,0,Math.PI*2);ctx.fill();
+  rect(ctx,-10,18,7,3,beak);rect(ctx,-12,21,10,2,darkBeak);
+  rect(ctx,3,18,7,3,beak);rect(ctx,2,21,10,2,darkBeak);
+  ctx.restore();
+}
+
 function drawIconicBossBodyV3(
   ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,tier:number,parts?:BossPartState[]
 ){
@@ -2116,6 +2203,9 @@ function drawIconicBossBodyV3(
     default: ctx.restore(); return false;
   }
 
+  // Última capa: nunca permitir que armadura, horno, escudo o chasis borren
+  // la lectura de pato del encuentro emblemático.
+  drawIconicDuckReadability(ctx,v.family,frame,phase,v);
   drawBossPartWear(ctx,parts,frame);
   ctx.restore();
   return true;
@@ -2143,10 +2233,15 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual,part
     drawBrokenModule(ctx,0,7,frame,'#ff5a45');
   }
 
-  // cabeza de presidente del banco, ya sin corona/capa
-  rect(ctx,-10,-21,20,12,'#eee8dc');rect(ctx,-7,-19,14,5,'#d6d0c5');
-  enemyEye(ctx,-6,-17,true);enemyEye(ctx,4,-17,true);rect(ctx,8,-15,10,4,'#e88832');
-  rect(ctx,-12,-26,24,5,'#22272b');rect(ctx,-8,-30,16,5,'#3b3c38');rect(ctx,-5,-29,10,2,v.accent);
+  // Presidente-pato: la cabeza y el pico siguen siendo legibles aun dentro
+  // del exotraje. El equipo ejecutivo se monta alrededor, nunca encima del rostro.
+  ctx.fillStyle='#eee8dc';ctx.beginPath();ctx.ellipse(0,-17,12,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#d6d0c5';ctx.beginPath();ctx.ellipse(-6,-15,4,6,-.3,0,Math.PI*2);ctx.fill();
+  px(ctx,-5,-19,'#15191b',2);px(ctx,4,-19,'#15191b',2);
+  rect(ctx,-7,-14,14,5,'#e88832');rect(ctx,-5,-9,10,2,'#bb681f');
+  rect(ctx,-12,-27,24,5,'#22272b');rect(ctx,-8,-31,16,5,'#3b3c38');rect(ctx,-5,-30,10,2,v.accent);
+  rect(ctx,-10,18,7,3,'#e88832');rect(ctx,-12,21,10,2,'#bb681f');
+  rect(ctx,3,18,7,3,'#e88832');rect(ctx,2,21,10,2,'#bb681f');
 
   // brazos mecánicos: maletín-cañón + terminal de mando, ambos destruibles.
   if(iconicPartAlive(parts,'executive_cannon')){
