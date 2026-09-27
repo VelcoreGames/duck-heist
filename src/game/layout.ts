@@ -59,14 +59,15 @@ export function useWideMainMenu():boolean {
 }
 
 export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
+const mainMenuGroupOffset=(i:number)=>i>=6?12:i>=3?6:0;
 export function mainMenuRect(i:number,wide=false):Rect {
-  if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
+  if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)+mainMenuGroupOffset(i)};
   const safe=visibleCanvasRect(10);
   const x0=Math.max(Math.round(safe.x+18),UI_OFFSET_X+4);
   const available=Math.max(360,safe.x+safe.w-x0-8);
   const width=Math.min(190,Math.max(174,Math.round(available*.33)));
   const height=27,gap=3,top=Math.max(78,safe.y+74);
-  return {x:x0,y:top+i*(height+gap),w:width,h:height};
+  return {x:x0,y:top+i*(height+gap)+mainMenuGroupOffset(i),w:width,h:height};
 }
 export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i,wide)))return i;return -1;}
 
@@ -74,8 +75,12 @@ export const DIFFICULTY_GRID={x:46,y:82,w:186,h:78,gapX:14,gapY:12,cols:2,count:
 export const difficultyRect=(i:number):Rect=>({x:DIFFICULTY_GRID.x+(i%2)*(DIFFICULTY_GRID.w+DIFFICULTY_GRID.gapX),y:DIFFICULTY_GRID.y+Math.floor(i/2)*(DIFFICULTY_GRID.h+DIFFICULTY_GRID.gapY),w:DIFFICULTY_GRID.w,h:DIFFICULTY_GRID.h});
 export const DIFFICULTY_START:Rect={x:306,y:318,w:128,h:22};
 
-export const PAUSE_MENU={x:44,y:74,w:188,h:35,gapX:12,gapY:8,cols:2,count:7};
-export const pauseRect=(i:number):Rect=>({x:PAUSE_MENU.x+(i%2)*(PAUSE_MENU.w+PAUSE_MENU.gapX),y:PAUSE_MENU.y+Math.floor(i/2)*(PAUSE_MENU.h+PAUSE_MENU.gapY),w:PAUSE_MENU.w,h:PAUSE_MENU.h});
+export const PAUSE_MENU={x:44,y:74,w:188,h:34,gapX:12,gapY:8,cols:2,count:7,fullW:388};
+export const pauseRect=(i:number):Rect=>{
+  if(i===0)return{x:PAUSE_MENU.x,y:PAUSE_MENU.y,w:PAUSE_MENU.fullW,h:PAUSE_MENU.h};
+  const slot=i-1,col=slot%2,row=Math.floor(slot/2);
+  return{x:PAUSE_MENU.x+col*(PAUSE_MENU.w+PAUSE_MENU.gapX),y:PAUSE_MENU.y+42+row*(PAUSE_MENU.h+PAUSE_MENU.gapY),w:PAUSE_MENU.w,h:PAUSE_MENU.h};
+};
 
 export const CONFIRM_RECTS:[Rect,Rect]=[
   {x:250,y:230,w:150,h:34}, // confirmar
@@ -105,8 +110,8 @@ export const ENDLESS_REWARD={y:118,h:112,w:122,gap:12,startX:45};
 export function endlessRewardHit(x:number,y:number,count:number){for(let i=0;i<count;i++)if(inside(x,y,{x:ENDLESS_REWARD.startX+i*(ENDLESS_REWARD.w+ENDLESS_REWARD.gap),y:ENDLESS_REWARD.y,w:ENDLESS_REWARD.w,h:ENDLESS_REWARD.h}))return i;return -1;}
 export const ENDLESS_SECONDARY:Rect={x:120,y:280,w:240,h:28};
 
-export const END_ACTIONS={x:140,y:290,w:200,h:22,gap:4,count:2};
-export const endActionRect=(i:number):Rect=>({x:END_ACTIONS.x,y:END_ACTIONS.y+i*(END_ACTIONS.h+END_ACTIONS.gap),w:END_ACTIONS.w,h:END_ACTIONS.h});
+export const END_ACTIONS={x:134,y:290,w:103,h:24,gap:8,count:2};
+export const endActionRect=(i:number):Rect=>({x:END_ACTIONS.x+i*(END_ACTIONS.w+END_ACTIONS.gap),y:END_ACTIONS.y,w:END_ACTIONS.w,h:END_ACTIONS.h});
 export function endActionHit(x:number,y:number){for(let i=0;i<END_ACTIONS.count;i++)if(inside(x,y,endActionRect(i)))return i;return -1;}
 
 export const SWAP_LAYOUT={x:35,y:51,w:410,h:250,cardsY:171,cardW:185,cardH:84,gap:8};
