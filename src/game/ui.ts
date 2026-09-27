@@ -2,7 +2,6 @@
 // CAPA DE UI  -> tipografía nítida (Bungee para títulos, Chakra Petch para texto)
 // CAPA MUNDO  -> pixel art; si lleva texto, usa una fuente monoespaciada diminuta.
 import { CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH } from './constants';
-import { drawDuck } from './sprites';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -377,96 +376,193 @@ const crumbs: Crumb[] = Array.from({ length: 26 }, () => ({
   ph: Math.random() * Math.PI * 2,
 }));
 
-export function drawMenuScene(ctx: Ctx, frame: number) {
+function drawKawaiiHeistDuck(ctx:Ctx,x:number,y:number,frame:number,scale=1){
+  const bob=Math.sin(frame*.045)*1.5;
+  ctx.save();ctx.translate(x,y+bob);ctx.scale(scale,scale);
+
+  // Sombra.
+  ctx.globalAlpha=.18;ctx.fillStyle='#554769';ctx.beginPath();ctx.ellipse(0,31,31,8,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  // Cuerpo redondo.
+  ctx.fillStyle='#fff6e9';ctx.beginPath();ctx.ellipse(0,12,27,31,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#4a3c60';ctx.lineWidth=2.2;ctx.stroke();
+
+  // Cabeza grande chibi.
+  ctx.fillStyle='#fffaf2';ctx.beginPath();ctx.arc(-2,-17,28,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#4a3c60';ctx.lineWidth=2.2;ctx.stroke();
+
+  // Gorro suave, no bloque rectangular.
+  ctx.fillStyle='#39334f';ctx.beginPath();
+  ctx.moveTo(-28,-22);ctx.quadraticCurveTo(-24,-49,-2,-51);ctx.quadraticCurveTo(23,-49,28,-25);
+  ctx.quadraticCurveTo(16,-31,-1,-31);ctx.quadraticCurveTo(-17,-31,-28,-22);ctx.fill();
+  ctx.strokeStyle='#29263c';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#514866';ctx.beginPath();ctx.ellipse(-2,-30,26,7,0,0,Math.PI*2);ctx.fill();
+
+  // Parche de patito.
+  ctx.fillStyle='#ffc95f';ctx.beginPath();ctx.arc(1,-41,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f49a52';ctx.fillRect(4,-41,4,2);
+  ctx.fillStyle='#443a57';ctx.fillRect(-1,-43,1.5,1.5);
+
+  // Antifaz.
+  ctx.fillStyle='#342d46';ctx.beginPath();
+  ctx.ellipse(-11,-18,11,8,-.08,0,Math.PI*2);ctx.ellipse(10,-18,11,8,.08,0,Math.PI*2);ctx.fill();
+  ctx.fillRect(-12,-23,23,8);
+
+  // Ojos grandes y brillo.
+  const blink=frame%220<7;
+  if(blink){
+    ctx.strokeStyle='#191622';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-16,-17);ctx.lineTo(-7,-17);ctx.moveTo(5,-17);ctx.lineTo(14,-17);ctx.stroke();
+  }else{
+    for(const ex of [-11,10]){
+      ctx.fillStyle='#211b2b';ctx.beginPath();ctx.ellipse(ex,-17,6.6,8.3,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex-2,-20,2.2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#b68572';ctx.globalAlpha=.45;ctx.beginPath();ctx.arc(ex+2,-13,2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    }
+  }
+
+  // Mejillas.
+  ctx.fillStyle='#ff9bb6';ctx.globalAlpha=.72;ctx.beginPath();ctx.ellipse(-22,-6,6,3.5,0,0,Math.PI*2);ctx.ellipse(19,-6,6,3.5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  // Pico sonriente.
+  ctx.fillStyle='#ffad4f';ctx.beginPath();ctx.ellipse(1,-8,10,5.5,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#b86d37';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-5,-8);ctx.quadraticCurveTo(1,-4,7,-8);ctx.stroke();
+
+  // Alas abrazando el botín.
+  ctx.fillStyle='#fff5e5';ctx.beginPath();ctx.ellipse(-18,11,10,18,.65,0,Math.PI*2);ctx.ellipse(19,11,10,18,-.65,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#4a3c60';ctx.lineWidth=1.6;ctx.stroke();
+
+  // Saco de botín.
+  ctx.fillStyle='#d9b17f';ctx.beginPath();ctx.ellipse(9,23,18,22,-.12,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#7e5d63';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#b88a65';ctx.fillRect(-2,3,19,5);
+  ctx.fillStyle='#704d5e';ctx.font='700 15px sans-serif';ctx.textAlign='center';ctx.fillText('$',9,29);
+
+  // Patitas.
+  ctx.fillStyle='#ffad4f';ctx.beginPath();ctx.ellipse(-13,37,10,6,-.35,0,Math.PI*2);ctx.ellipse(13,37,10,6,.35,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawKawaiiMiniDuck(ctx:Ctx,x:number,y:number,frame:number,phase:number,police=false){
+  const bob=Math.sin(frame*.06+phase)*1.6;
+  ctx.save();ctx.translate(x,y+bob);
+  ctx.globalAlpha=.16;ctx.fillStyle='#4e486d';ctx.beginPath();ctx.ellipse(0,16,15,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle='#fff8ec';ctx.beginPath();ctx.ellipse(0,4,12,15,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#51486d';ctx.lineWidth=1.4;ctx.stroke();
+  ctx.fillStyle='#fffaf2';ctx.beginPath();ctx.arc(0,-8,12,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle=police?'#608fd6':'#3b334d';ctx.beginPath();ctx.ellipse(0,-15,12,5,0,Math.PI*2);ctx.fill();
+  if(police){ctx.fillStyle='#ffd15e';ctx.fillRect(-2,-17,4,3);}
+  else {ctx.fillStyle='#2c263c';ctx.fillRect(-10,-9,20,4);}
+  ctx.fillStyle='#201b29';ctx.fillRect(-5,-9,2,2);ctx.fillRect(4,-9,2,2);
+  ctx.fillStyle='#ffab4d';ctx.fillRect(7,-6,7,3);
+  ctx.fillStyle='#ff9db5';ctx.globalAlpha=.65;ctx.fillRect(-9,-4,3,2);ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+export function drawMenuScene(ctx:Ctx,frame:number){
   ctx.save();
-  // El cielo llena cualquier monitor; la composición principal permanece
-  // centrada en el bloque histórico de 480 px para conservar framing.
   const sky=ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
-  sky.addColorStop(0,'#82d9ff');sky.addColorStop(.46,'#c7eaff');sky.addColorStop(1,'#ffe1d1');
+  sky.addColorStop(0,'#69cfff');sky.addColorStop(.42,'#a8e3ff');sky.addColorStop(.72,'#ffd8df');sky.addColorStop(1,'#ffd0aa');
   ctx.fillStyle=sky;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
   const ox=Math.floor((CANVAS_WIDTH-UI_BASE_WIDTH)/2),W=UI_BASE_WIDTH;
   ctx.save();ctx.translate(ox,0);
 
-  ctx.globalAlpha=.72;
-  for(const [x,y,s] of [[44,50,1],[188,35,.8],[395,60,1.2]] as const){
-    ctx.fillStyle='#fff8f4';ctx.beginPath();
-    ctx.arc(x,y,16*s,0,Math.PI*2);ctx.arc(x+17*s,y-4*s,12*s,0,Math.PI*2);ctx.arc(x+31*s,y+2*s,15*s,0,Math.PI*2);ctx.fill();
+  // Sol y nubes estilizadas.
+  ctx.globalAlpha=.30;ctx.fillStyle='#fff4b0';ctx.beginPath();ctx.arc(401,46,34,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  for(const [x,y,s] of [[45,44,1],[181,32,.82],[355,64,.9]] as const){
+    ctx.fillStyle='rgba(255,252,248,.86)';ctx.beginPath();
+    ctx.arc(x,y,15*s,0,Math.PI*2);ctx.arc(x+15*s,y-4*s,11*s,0,Math.PI*2);ctx.arc(x+28*s,y+1*s,14*s,0,Math.PI*2);ctx.fill();
   }
-  ctx.globalAlpha=1;
 
-  const buildings=['#7aa9d8','#8297cf','#6e91be','#9b8ec6','#6ba5c8'];
-  for(let i=0;i<8;i++){
-    const bw=42+(i%3)*10,bh=75+(i%4)*24,x=i*65-18,y=228-bh;
+  // Skyline de cuento.
+  const buildings=['#748fc4','#7ca6d4','#8c86c4','#699ac5','#a37daf'];
+  for(let i=0;i<9;i++){
+    const bw=39+(i%3)*9,bh=67+(i%4)*19,x=i*57-18,y=228-bh;
     ctx.fillStyle=buildings[i%buildings.length];ctx.fillRect(x,y,bw,bh);
-    ctx.fillStyle='rgba(255,244,190,.62)';
-    for(let yy=y+12;yy<y+bh-8;yy+=16)for(let xx=x+9;xx<x+bw-7;xx+=14)ctx.fillRect(xx,yy,5,7);
+    ctx.fillStyle='rgba(255,241,180,.72)';
+    for(let yy=y+11;yy<y+bh-7;yy+=15)for(let xx=x+8;xx<x+bw-6;xx+=13)ctx.fillRect(xx,yy,5,6);
   }
 
-  const bankX=W*.52,bankY=92;
-  ctx.shadowColor='rgba(69,64,109,.18)';ctx.shadowBlur=10;
-  roundedFill(ctx,bankX-104,bankY,208,147,16,'#f7d7bd');ctx.shadowBlur=0;
-  roundedFill(ctx,bankX-92,bankY+12,184,126,12,'#fff1dc');
-  ctx.fillStyle='#e8a67e';ctx.fillRect(bankX-101,bankY+40,202,8);
-  for(const bx of [bankX-72,bankX-28,bankX+28,bankX+72]){
-    roundedFill(ctx,bx-9,bankY+53,18,75,8,'#f3cab4');ctx.fillStyle='#fff7e8';ctx.fillRect(bx-5,bankY+55,10,68);
+  // Banco central con silueta más clara y menos bloqueada.
+  const bx=250,by=93;
+  ctx.shadowColor='rgba(83,55,97,.18)';ctx.shadowBlur=12;
+  roundedFill(ctx,bx-99,by,198,143,17,'#f2c8b6');ctx.shadowBlur=0;
+  roundedFill(ctx,bx-91,by+8,182,132,14,'#fff0dd');
+  ctx.fillStyle='#e58c85';ctx.fillRect(bx-98,by+37,196,8);
+  roundedFill(ctx,bx-71,by-18,142,33,15,'#fff8e8');
+  pixelText(ctx,'BANCO DEL PAN',bx,by+4,'#7b4f68');
+
+  for(const cx of [bx-65,bx-22,bx+22,bx+65]){
+    roundedFill(ctx,cx-8,by+51,16,70,7,'#f0b6ad');
+    ctx.fillStyle='#fff8eb';ctx.fillRect(cx-4,by+54,8,64);
   }
-  roundedFill(ctx,bankX-56,bankY+80,112,60,12,'#6f5f87');
-  roundedFill(ctx,bankX-48,bankY+87,96,53,10,'#3f446b');
-  const glow=.55+.15*Math.sin(frame*.035);
-  ctx.globalAlpha=glow;roundedFill(ctx,bankX-39,bankY+95,78,45,8,'#ffd66b');ctx.globalAlpha=1;
-  roundedFill(ctx,bankX-72,bankY-12,144,35,14,'#fff6df');
-  pixelText(ctx,'BANCO DEL PAN',bankX,bankY+10,'#7c4d68');
 
-  ctx.fillStyle='#ffc85f';ctx.beginPath();ctx.arc(bankX,bankY-27,12,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#ff9e54';ctx.fillRect(bankX+8,bankY-27,7,3);
-  ctx.fillStyle='#39385b';ctx.fillRect(bankX-4,bankY-30,2,2);ctx.fillRect(bankX+3,bankY-30,2,2);
+  // Entrada luminosa con monedas detrás.
+  roundedFill(ctx,bx-54,by+72,108,66,12,'#655378');
+  roundedFill(ctx,bx-47,by+79,94,59,10,'#342f52');
+  const glow=.62+.16*Math.sin(frame*.04);
+  ctx.globalAlpha=glow;roundedFill(ctx,bx-39,by+88,78,50,8,'#ffcf68');ctx.globalAlpha=1;
+  for(let i=0;i<9;i++){
+    const xx=bx-29+(i*13)%59,yy=by+111-(i%3)*7;
+    ctx.fillStyle='#f5b940';ctx.beginPath();ctx.ellipse(xx,yy,6,3,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff1a0';ctx.fillRect(xx-3,yy-1,4,1);
+  }
 
-  ctx.fillStyle='#dc708e';ctx.beginPath();
-  ctx.moveTo(bankX-36,bankY+138);ctx.lineTo(bankX+36,bankY+138);ctx.lineTo(bankX+72,CANVAS_HEIGHT);ctx.lineTo(bankX-74,CANVAS_HEIGHT);ctx.closePath();ctx.fill();
-  ctx.globalAlpha=.25;ctx.fillStyle='#fff1dc';
-  for(let y=bankY+148;y<CANVAS_HEIGHT;y+=16)ctx.fillRect(bankX-44-(y-bankY)*.08,y,88+(y-bankY)*.16,2);
+  // Emblema del banco.
+  ctx.fillStyle='#ffc95f';ctx.beginPath();ctx.arc(bx,by-32,13,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff9f4e';ctx.fillRect(bx+8,by-32,7,3);
+  ctx.fillStyle='#443b5d';ctx.fillRect(bx-4,by-35,2,2);ctx.fillRect(bx+3,by-35,2,2);
+
+  // Alfombra y profundidad.
+  ctx.fillStyle='#d86f92';ctx.beginPath();ctx.moveTo(bx-34,by+138);ctx.lineTo(bx+34,by+138);ctx.lineTo(bx+74,CANVAS_HEIGHT);ctx.lineTo(bx-76,CANVAS_HEIGHT);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=.2;ctx.fillStyle='#fff8e9';
+  for(let yy=by+149;yy<CANVAS_HEIGHT;yy+=15)ctx.fillRect(bx-43-(yy-by)*.08,yy,86+(yy-by)*.16,2);
   ctx.globalAlpha=1;
 
-  const bob=Math.round(Math.sin(frame*.045)*2);
-  ctx.save();ctx.translate(95,203+bob);ctx.scale(6.1,6.1);
-  drawDuck(ctx,-8,-8,frame,'down',frame%220>170,false,false,false,false);ctx.restore();
-  roundedFill(ctx,49,153+bob,91,28,12,'#34334f');
-  ctx.fillStyle='#24243a';ctx.fillRect(57,177+bob,76,13);
-  ctx.fillStyle='#ff8fae';ctx.globalAlpha=.72;ctx.beginPath();ctx.arc(70,213+bob,5,0,Math.PI*2);ctx.arc(121,213+bob,5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  ctx.fillStyle='#d9b17f';ctx.beginPath();ctx.ellipse(146,243+bob,30,36,-.25,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#b88a65';ctx.fillRect(133,211+bob,21,6);pixelText(ctx,'$',146,249+bob,'#674a53');
+  // Protagonista vectorial chibi.
+  drawKawaiiHeistDuck(ctx,96,224,frame,1.28);
 
-  for(const [x,y,scale,phase] of [[28,282,2.2,0],[188,292,2.45,1.7]] as const){
-    const yy=y+Math.sin(frame*.06+phase)*2;ctx.save();ctx.translate(x,yy);ctx.scale(scale,scale);
-    drawDuck(ctx,-8,-8,frame+phase*40,'right',true,false,false,false,false);ctx.restore();
-  }
+  // Cómplices y policía al fondo.
+  drawKawaiiMiniDuck(ctx,35,289,frame,.3,false);
+  drawKawaiiMiniDuck(ctx,195,297,frame,1.7,false);
+  drawKawaiiMiniDuck(ctx,21,201,frame,2.6,true);
 
+  // Auto/patrulla simplificado.
+  roundedFill(ctx,7,213,77,29,10,'#507dc5');roundedFill(ctx,18,204,39,15,7,'#75a7df');
+  ctx.fillStyle='#24314f';ctx.beginPath();ctx.arc(25,242,8,0,Math.PI*2);ctx.arc(67,242,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=frame%36<18?'#ff7595':'#6dd8ff';ctx.fillRect(33,201,11,4);
+  ctx.fillStyle=frame%36<18?'#6dd8ff':'#ff7595';ctx.fillRect(44,201,11,4);
+
+  // Dinero, monedas y estrellas con trayectoria lenta.
   for(let i=0;i<crumbs.length;i++){
-    const p=crumbs[i],x=(p.x+frame*p.s*.55)%W,y=58+((p.y+Math.sin(frame*.018+p.ph)*20)%270);
+    const p=crumbs[i],x=(p.x+frame*p.s*.42)%W,y=45+((p.y+Math.sin(frame*.018+p.ph)*18)%275);
     if(i%4===0){
-      ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(frame*.02+p.ph)*.25);
-      roundedFill(ctx,-7,-4,14,8,2,'#86d5aa');ctx.fillStyle='#4b9d7c';ctx.fillRect(-2,-2,4,4);ctx.restore();
+      ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(frame*.018+p.ph)*.22);
+      roundedFill(ctx,-7,-4,14,8,2,'#7fd5a4');ctx.fillStyle='#4c9a77';ctx.fillRect(-2,-2,4,4);ctx.restore();
     }else if(i%4===1){
-      ctx.fillStyle='#ffc64f';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff1a5';ctx.fillRect(x-1,y-3,1,5);
-    }else if(i%4===2)kawaiiSparkle(ctx,x,y,3,'#fff9c4',.72);
-    else {ctx.globalAlpha=.65;pixelText(ctx,'♥',x,y,MENU_THEME.pink);ctx.globalAlpha=1;}
+      ctx.fillStyle='#ffc84f';ctx.beginPath();ctx.arc(x,y,4.2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff3a8';ctx.fillRect(x-1,y-3,1,5);
+    }else if(i%4===2)kawaiiSparkle(ctx,x,y,3,'#fff7b6',.82);
+    else {ctx.globalAlpha=.66;pixelText(ctx,'♥',x,y,MENU_THEME.pink);ctx.globalAlpha=1;}
   }
 
-  drawWantedPoster(ctx,18,88,frame,0);
-  drawSecurityCam(ctx,W-25,82,frame,-1);
+  // Posters tiernos y cámara para mantener el tema de atraco.
+  drawWantedPoster(ctx,17,82,frame,0);
+  drawSecurityCam(ctx,W-19,75,frame,-1);
 
-  const vg=ctx.createLinearGradient(0,0,W,0);
-  vg.addColorStop(0,'rgba(75,53,103,.06)');vg.addColorStop(.52,'rgba(255,255,255,0)');vg.addColorStop(1,'rgba(75,53,103,.10)');
-  ctx.fillStyle=vg;ctx.fillRect(0,0,W,CANVAS_HEIGHT);
+  // Oscurecido localizado detrás de la zona de botones, no sobre toda la escena.
+  const panelFade=ctx.createLinearGradient(250,0,W,0);
+  panelFade.addColorStop(0,'rgba(255,255,255,0)');
+  panelFade.addColorStop(.35,'rgba(255,245,251,.16)');
+  panelFade.addColorStop(1,'rgba(255,245,251,.34)');
+  ctx.fillStyle=panelFade;ctx.fillRect(235,0,W-235,CANVAS_HEIGHT);
+
   ctx.restore();
 
-  // Alas laterales suaves en monitores anchos.
   if(ox>0){
-    const wing=ctx.createLinearGradient(0,0,ox,0);wing.addColorStop(0,'rgba(108,160,218,.18)');wing.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=wing;ctx.fillRect(0,0,ox,CANVAS_HEIGHT);
-    const wingR=ctx.createLinearGradient(CANVAS_WIDTH-ox,0,CANVAS_WIDTH,0);wingR.addColorStop(0,'rgba(255,255,255,0)');wingR.addColorStop(1,'rgba(255,143,189,.18)');
-    ctx.fillStyle=wingR;ctx.fillRect(CANVAS_WIDTH-ox,0,ox,CANVAS_HEIGHT);
+    const left=ctx.createLinearGradient(0,0,ox,0);left.addColorStop(0,'rgba(87,126,196,.18)');left.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=left;ctx.fillRect(0,0,ox,CANVAS_HEIGHT);
+    const right=ctx.createLinearGradient(CANVAS_WIDTH-ox,0,CANVAS_WIDTH,0);right.addColorStop(0,'rgba(255,255,255,0)');right.addColorStop(1,'rgba(255,124,177,.18)');
+    ctx.fillStyle=right;ctx.fillRect(CANVAS_WIDTH-ox,0,ox,CANVAS_HEIGHT);
   }
   ctx.restore();
 }
@@ -552,26 +648,39 @@ function drawCoinPile(ctx: Ctx, x: number, y: number, frame: number, rows: numbe
 }
 
 /** Logotipo del juego (capa de UI, tipografía display) */
-export function drawTitleLogo(ctx: Ctx, cx: number, y: number, frame: number) {
+export function drawTitleLogo(ctx:Ctx,cx:number,y:number,frame:number){
   ctx.save();
-  const bounce=Math.sin(frame*.045)*1.2,w=148,h=66,x=cx-w/2,top=y-34+bounce;
-  ctx.shadowColor='rgba(69,48,96,.22)';ctx.shadowBlur=9;ctx.shadowOffsetY=4;
-  roundedFill(ctx,x,top,w,h,17,'#fffdf9');ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-  roundedPath(ctx,x+.5,top+.5,w-1,h-1,17);ctx.strokeStyle='#5c4b86';ctx.lineWidth=2.5;ctx.stroke();
+  const bob=Math.sin(frame*.04)*.8,w=128,h=82,x=cx-w/2,top=y-39+bob;
 
-  // Corona pequeña y compacta.
-  ctx.fillStyle='#ffc955';ctx.beginPath();ctx.moveTo(cx-15,top+5);ctx.lineTo(cx-9,top-3);ctx.lineTo(cx,top+4);ctx.lineTo(cx+9,top-3);ctx.lineTo(cx+15,top+5);ctx.lineTo(cx+12,top+12);ctx.lineTo(cx-12,top+12);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#fff2a2';ctx.fillRect(cx-10,top+7,20,2);
+  // Sombra, borde oscuro y línea blanca tipo sticker.
+  ctx.shadowColor='rgba(55,40,83,.26)';ctx.shadowBlur=9;ctx.shadowOffsetY=4;
+  roundedFill(ctx,x,top,w,h,18,'#4b3c70');ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  roundedFill(ctx,x+4,top+4,w-8,h-8,15,'#fffdf8');
+  roundedFill(ctx,x+8,top+8,w-16,h-16,13,'#59477e');
 
-  titleText(ctx,'DUCK',cx,top+30,20,'#ffba4d','center',true);
-  titleText(ctx,'HEIST',cx,top+52,20,'#ff7eae','center',true);
-  // Patito ladrón mínimo en el centro.
-  ctx.fillStyle='#fff4d6';ctx.beginPath();ctx.arc(cx,top+31,5,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#3a3155';ctx.fillRect(cx-5,top+29,10,3);
-  ctx.fillStyle='#f29d54';ctx.fillRect(cx+3,top+32,5,2);
+  // Billetes laterales.
+  ctx.save();ctx.translate(x+8,top+43);ctx.rotate(-.28);roundedFill(ctx,-12,-6,25,12,3,'#77d6ae');ctx.fillStyle='#4b9c7e';ctx.fillRect(-2,-3,5,6);ctx.restore();
+  ctx.save();ctx.translate(x+w-8,top+43);ctx.rotate(.28);roundedFill(ctx,-13,-6,25,12,3,'#77d6ae');ctx.fillStyle='#4b9c7e';ctx.fillRect(-3,-3,5,6);ctx.restore();
 
-  kawaiiSparkle(ctx,x+12,top+14,4,MENU_THEME.cyan,.85);
-  kawaiiSparkle(ctx,x+w-12,top+19,4,MENU_THEME.gold,.85);
-  kawaiiSparkle(ctx,x+w-20,top+h-9,3,MENU_THEME.pink,.65);
+  // Corona.
+  ctx.fillStyle='#ffc84f';ctx.beginPath();
+  ctx.moveTo(cx-16,top+10);ctx.lineTo(cx-10,top);ctx.lineTo(cx,top+8);ctx.lineTo(cx+10,top);ctx.lineTo(cx+16,top+10);ctx.lineTo(cx+13,top+18);ctx.lineTo(cx-13,top+18);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#6a4d67';ctx.lineWidth=1.5;ctx.stroke();
+
+  // Letras apiladas con contorno.
+  ctx.font=`20px ${FONT_TITLE}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.lineJoin='round';
+  ctx.lineWidth=5;ctx.strokeStyle='#fffdf8';ctx.strokeText('DUCK',cx,top+41);
+  ctx.fillStyle='#ffbd50';ctx.fillText('DUCK',cx,top+41);
+  ctx.lineWidth=5;ctx.strokeStyle='#fffdf8';ctx.strokeText('HEIST',cx,top+63);
+  ctx.fillStyle='#ff82ad';ctx.fillText('HEIST',cx,top+63);
+
+  // Carita del ladrón integrada.
+  ctx.fillStyle='#fff2d7';ctx.beginPath();ctx.arc(cx,top+44,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#3b3152';ctx.fillRect(cx-5,top+42,10,3);
+  ctx.fillStyle='#f5a14d';ctx.fillRect(cx+3,top+45,5,2);
+
+  kawaiiSparkle(ctx,x+11,top+17,3.5,'#70d8ef',.9);
+  kawaiiSparkle(ctx,x+w-12,top+20,4,'#ffc95f',.9);
+  kawaiiSparkle(ctx,x+w-18,top+h-11,3,'#ff8fbd',.7);
   ctx.restore();
 }
