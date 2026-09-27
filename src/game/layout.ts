@@ -58,15 +58,12 @@ export function useWideMainMenu():boolean {
   return w>=1120&&h>=620;
 }
 
-export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
-export function mainMenuRect(i:number,wide=false):Rect {
-  if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
-  const safe=visibleCanvasRect(10);
-  const x0=Math.max(Math.round(safe.x+18),UI_OFFSET_X+4);
-  const available=Math.max(360,safe.x+safe.w-x0-8);
-  const width=Math.min(190,Math.max(174,Math.round(available*.33)));
-  const height=27,gap=3,top=Math.max(78,safe.y+74);
-  return {x:x0,y:top+i*(height+gap),w:width,h:height};
+export const MAIN_MENU={x:276,y:93,w:180,h:25,gap:3,count:8};
+export function mainMenuRect(i:number,_wide=false):Rect {
+  // Composición deliberadamente compacta: columna vertical estilo menú kawaii.
+  // Se mantiene dentro del lienzo histórico 480x352 para que clic, teclado y
+  // fullscreen compartan exactamente las mismas coordenadas.
+  return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)};
 }
 export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MENU.count;i++)if(inside(x,y,mainMenuRect(i,wide)))return i;return -1;}
 
