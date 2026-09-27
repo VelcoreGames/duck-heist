@@ -48,14 +48,16 @@ export interface BossDef {
 type Seed=[string,string,BossFamily,string,boolean?];
 
 export const BOSS_FAMILY_STYLE:Record<BossFamily,{accent:string;secondary:string;projectile:string;altProjectile:string;support:string[]}> = {
-  command:{accent:'#5f89df',secondary:'#f3b65b',projectile:'enemy_bullet',altProjectile:'buckshot',support:['policia_pato','policia_rapido','policia_capitan']},
-  finance:{accent:'#70b49f',secondary:'#e0b85a',projectile:'coin_proj',altProjectile:'briefcase',support:['banker_chicken','policia_pato','policia_capitan']},
-  bakery:{accent:'#e29355',secondary:'#ffd47a',projectile:'dough_ball',altProjectile:'toast',support:['evil_croissant','rolling_bagel','toaster_turret']},
-  tech:{accent:'#55cbe0',secondary:'#f26b6b',projectile:'drone_shot',altProjectile:'enemy_bullet',support:['dron_policial','security_camera','camara_movil']},
-  riot:{accent:'#879aaa',secondary:'#5d7faf',projectile:'enemy_bullet',altProjectile:'buckshot',support:['policia_antidisturbios','policia_escopeta','ganso_k9']},
-  war:{accent:'#7d8faa',secondary:'#dc5e52',projectile:'buckshot',altProjectile:'enemy_bullet',support:['policia_rapido','policia_escopeta','policia_capitan']},
-  wealth:{accent:'#e5bd45',secondary:'#fff0a1',projectile:'coin_proj',altProjectile:'briefcase',support:['banker_chicken','policia_capitan','policia_medico']},
-  vault:{accent:'#8e82d9',secondary:'#6bd4c4',projectile:'drone_shot',altProjectile:'coin_proj',support:['security_camera','dron_policial','policia_antidisturbios']},
+  // Paletas de facción v2: cada familia debe leerse por silueta y material
+  // incluso antes de que el jugador lea el nombre del encuentro.
+  command:{accent:'#4f8bd7',secondary:'#e5b954',projectile:'enemy_bullet',altProjectile:'buckshot',support:['policia_pato','policia_rapido','policia_capitan']},
+  finance:{accent:'#4fa58d',secondary:'#d9b45b',projectile:'coin_proj',altProjectile:'briefcase',support:['banker_chicken','policia_pato','policia_capitan']},
+  bakery:{accent:'#d9874d',secondary:'#ffd27a',projectile:'dough_ball',altProjectile:'toast',support:['evil_croissant','rolling_bagel','toaster_turret']},
+  tech:{accent:'#48c7df',secondary:'#ef5e62',projectile:'drone_shot',altProjectile:'enemy_bullet',support:['dron_policial','security_camera','camara_movil']},
+  riot:{accent:'#71889a',secondary:'#4f76a8',projectile:'enemy_bullet',altProjectile:'buckshot',support:['policia_antidisturbios','policia_escopeta','ganso_k9']},
+  war:{accent:'#79866b',secondary:'#d85f50',projectile:'buckshot',altProjectile:'enemy_bullet',support:['policia_rapido','policia_escopeta','policia_capitan']},
+  wealth:{accent:'#d5aa3f',secondary:'#f0df9b',projectile:'coin_proj',altProjectile:'briefcase',support:['banker_chicken','policia_capitan','policia_medico']},
+  vault:{accent:'#7c74cf',secondary:'#58cfc2',projectile:'drone_shot',altProjectile:'coin_proj',support:['security_camera','dron_policial','policia_antidisturbios']},
 };
 
 const ATTACKS:BossAttackKind[]=['fan','ring','spiral','crossfire','cage','mines','lanes','rush','summon','sniper','nova','warp'];
@@ -506,9 +508,9 @@ const SUB_SEEDS:Seed[]=[
   ],
   [
     "cajero_3000",
-    "CAJERO 3000",
+    "CAJERO DE COMBATE 3000",
     "finance",
-    "Monedas, láser y modo emergencia",
+    "Blindaje bancario · cañones de moneda · núcleo de emergencia",
     true
   ],
   [
@@ -793,9 +795,9 @@ const BOSS_SEEDS:Seed[]=[
   ],
   [
     "toaster_9000",
-    "LA TOSTADORA 9000",
+    "DRON DE ASALTO 9000",
     "tech",
-    "Calentamiento, sobrecarga y fusión",
+    "Artillería aérea · sensores térmicos · sobrecarga de combate",
     true
   ],
   [
@@ -814,9 +816,9 @@ const BOSS_SEEDS:Seed[]=[
   ],
   [
     "director_seguridad",
-    "DIRECTOR DE SEGURIDAD",
+    "NÚCLEO DIRECTOR DE SEGURIDAD",
     "tech",
-    "Protocolo, contención y bloqueo total",
+    "IA táctica · contención autónoma · bloqueo total",
     true
   ],
   [
@@ -1081,7 +1083,7 @@ export const FINAL_BOSS_ID='bread_banker';
 export const FINAL_BOSS:BossDef={
   id:FINAL_BOSS_ID,
   name:'EL GRAN JEFE DEL BANCO',
-  subtitle:'Dueño del banco · tres fases · autoridad absoluta sobre toda la bóveda',
+  subtitle:'Presidente del banco · exotraje de bóveda · IA ejecutiva en tres fases',
   hp:560,speed:1.18,size:44,phases:3,family:'wealth',
   accent:'#f4d03f',secondary:'#fff1a3',floorBand:5,finalBoss:true,
   visualIndex:47,scaleX:1.18,scaleY:1.22,hitboxW:46,hitboxH:45,stationary:false,

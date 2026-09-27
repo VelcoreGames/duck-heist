@@ -897,21 +897,22 @@ export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame
 
 type BossVisual={accent:string;secondary:string;family:'command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth'|'vault';bob:number};
 const BOSS_VISUAL:Record<string,BossVisual> = {
-  captain_honk:{accent:'#4f7ad4',secondary:'#f05c55',family:'command',bob:.7},
-  comisario_pico_duro:{accent:'#9db7df',secondary:'#d69c4c',family:'command',bob:.45},
-  toaster_9000:{accent:'#ff7043',secondary:'#ffd166',family:'tech',bob:.18},
-  general_ganso:{accent:'#7189a8',secondary:'#d44747',family:'war',bob:.35},
-  don_levadura:{accent:'#d39b5f',secondary:'#8bb85a',family:'bakery',bob:.65},
-  director_seguridad:{accent:'#55c8de',secondary:'#ff6464',family:'tech',bob:.42},
-  bread_banker:{accent:'#f4d03f',secondary:'#d7a63d',family:'wealth',bob:.5},
-  tax_collector:{accent:'#c44f4f',secondary:'#d6b169',family:'finance',bob:.8},
-  sargento_migajas:{accent:'#7b94bb',secondary:'#f0b44f',family:'war',bob:.65},
-  dron_centinela:{accent:'#55d1e1',secondary:'#ef6666',family:'tech',bob:1.6},
-  panadero_loco:{accent:'#ef8b49',secondary:'#ffd06b',family:'bakery',bob:.9},
-  head_baker:{accent:'#f0eee7',secondary:'#a46f45',family:'bakery',bob:.55},
-  el_auditor:{accent:'#72b8a1',secondary:'#d6b169',family:'finance',bob:.55},
-  ganso_antidisturbios:{accent:'#8797a8',secondary:'#5c7fae',family:'riot',bob:.28},
-  cajero_3000:{accent:'#65d3a8',secondary:'#ffd166',family:'finance',bob:.22},
+  // Clásicos migrados al mismo lenguaje de facción v2.
+  captain_honk:{accent:'#4f8bd7',secondary:'#e5b954',family:'command',bob:.55},
+  comisario_pico_duro:{accent:'#5d96d7',secondary:'#d6aa4c',family:'command',bob:.36},
+  toaster_9000:{accent:'#48c7df',secondary:'#ef5e62',family:'tech',bob:.28},
+  general_ganso:{accent:'#79866b',secondary:'#d85f50',family:'war',bob:.30},
+  don_levadura:{accent:'#d9874d',secondary:'#ffd27a',family:'bakery',bob:.48},
+  director_seguridad:{accent:'#48c7df',secondary:'#ef5e62',family:'tech',bob:.36},
+  bread_banker:{accent:'#d5aa3f',secondary:'#f0df9b',family:'wealth',bob:.32},
+  tax_collector:{accent:'#4fa58d',secondary:'#d9b45b',family:'finance',bob:.50},
+  sargento_migajas:{accent:'#79866b',secondary:'#d85f50',family:'war',bob:.44},
+  dron_centinela:{accent:'#48c7df',secondary:'#ef5e62',family:'tech',bob:1.05},
+  panadero_loco:{accent:'#d9874d',secondary:'#ffd27a',family:'bakery',bob:.58},
+  head_baker:{accent:'#d9874d',secondary:'#ffd27a',family:'bakery',bob:.40},
+  el_auditor:{accent:'#4fa58d',secondary:'#d9b45b',family:'finance',bob:.40},
+  ganso_antidisturbios:{accent:'#71889a',secondary:'#4f76a8',family:'riot',bob:.24},
+  cajero_3000:{accent:'#4fa58d',secondary:'#d9b45b',family:'finance',bob:.20},
 };
 
 function bossVisual(bossType:string):BossVisual|undefined {
@@ -1756,6 +1757,193 @@ function drawBossPhaseTransformation(ctx:Ctx,def:BossDef,frame:number,phase:numb
   ctx.restore();
 }
 
+
+function drawBossFactionCore(
+  ctx:Ctx,def:BossDef,frame:number,phase:number,v:BossVisual,tier:number,key:number
+){
+  const pulse=.5+.5*Math.sin(frame*.11+key*.37);
+  const elite=tier===2,sub=tier===1;
+  const white=def.family==='bakery'?'#f4eee1':'#ecebe4';
+  ctx.save();
+
+  switch(def.family){
+    case 'command': { // policía / mando táctico
+      rect(ctx,-16,-7,32,25,'#dfe4e2');
+      rect(ctx,-15,-2,30,19,'#22384f');
+      rect(ctx,-11,1,22,14,elite?'#294a68':'#2d4660');
+      rect(ctx,-19,0,7,12,'#394b58');rect(ctx,12,0,7,12,'#394b58');
+      rect(ctx,-10,-17,20,11,white);enemyEye(ctx,-7,-13,true);rect(ctx,8,-11,10,4,'#ef8b35');
+      // casco policial con visor y placa
+      rect(ctx,-12,-22,24,5,'#182735');rect(ctx,-8,-26,16,5,'#2b4963');
+      rect(ctx,-6,-24,12,2,v.accent);px(ctx,-2,-21,v.secondary,4);
+      rect(ctx,-4,4,8,7,'#18242d');px(ctx,-2,5,v.secondary,4);
+      // radio y hombros luminosos
+      rect(ctx,-22,-6,5,13,'#27333b');px(ctx,-21,-9,v.accent,3);
+      if(key%2){px(ctx,17,-4,'#5aa4ff',3);px(ctx,17,1,'#ff5d58',3);}
+      break;
+    }
+    case 'riot': { // policía antidisturbios
+      rect(ctx,-19,-7,38,26,'#d8dddc');
+      rect(ctx,-17,-2,34,21,'#3a4652');
+      rect(ctx,-13,1,26,15,'#485661');
+      rect(ctx,-10,-18,20,12,white);rect(ctx,-12,-23,24,7,'#2a343e');
+      rect(ctx,-8,-20,16,5,'#11191e');px(ctx,-6,-19,v.accent,3);px(ctx,3,-19,v.accent,3);
+      // escudo masivo y porra
+      metalEdge(ctx,13,-10,20,35,'#52616d','#8999a4','#242d34');
+      rect(ctx,17,-5,12,25,'#2e3a44');rect(ctx,20,1,6,13,v.secondary);
+      ctx.save();ctx.translate(-20,5);ctx.rotate(.12);rect(ctx,-2,-16,4,31,'#20292f');rect(ctx,-4,-18,8,5,'#65727a');ctx.restore();
+      break;
+    }
+    case 'war': { // militar
+      rect(ctx,-17,-8,34,27,'#e4e5dc');rect(ctx,-16,-2,32,21,'#465343');
+      rect(ctx,-12,1,24,16,'#59654f');
+      rect(ctx,-20,1,7,13,'#39443a');rect(ctx,13,1,7,13,'#39443a');
+      rect(ctx,-10,-18,20,11,white);enemyEye(ctx,-7,-14,true);rect(ctx,8,-12,10,4,'#e58431');
+      // casco de combate / montura nocturna
+      ctx.fillStyle='#384338';ctx.beginPath();ctx.arc(0,-19,12,Math.PI,Math.PI*2);ctx.fill();
+      rect(ctx,-12,-19,24,4,'#303a31');rect(ctx,-4,-25,8,7,'#202821');px(ctx,-2,-27,v.secondary,4);
+      // portacargadores y radio
+      for(let x=-10;x<=5;x+=5)rect(ctx,x,7,4,7,x%10?v.secondary:'#765c38');
+      rect(ctx,-22,-8,5,16,'#283229');px(ctx,-21,-11,v.accent,3);
+      if(elite){rect(ctx,17,-8,5,17,'#303a31');rect(ctx,19,-12,3,5,v.secondary);}
+      break;
+    }
+    case 'finance': { // banquero / auditor
+      rect(ctx,-16,-7,32,25,'#efe9db');rect(ctx,-14,-1,28,19,'#232b31');
+      rect(ctx,-10,1,20,15,'#31433f');
+      rect(ctx,-3,0,6,16,v.secondary);
+      rect(ctx,-10,-17,20,11,'#f1eadb');enemyEye(ctx,-7,-13,true);rect(ctx,8,-11,9,4,'#e78631');
+      // gafas/visor contable
+      ctx.strokeStyle='#2b3539';ctx.lineWidth=2;ctx.strokeRect(-8,-15,6,5);ctx.strokeRect(2,-15,6,5);rect(ctx,-2,-13,4,1,'#2b3539');
+      // terminal de auditoría + maletín
+      rect(ctx,15,-4,10,14,'#25333a');rect(ctx,17,-2,6,6,'#173129');px(ctx,19,0,v.accent,2);
+      rect(ctx,-25,3,10,11,'#4b382d');rect(ctx,-23,1,6,3,'#795c3b');px(ctx,-22,6,v.secondary,2);
+      if(elite){rect(ctx,-14,-5,4,3,v.secondary);rect(ctx,10,-5,4,3,v.secondary);}
+      break;
+    }
+    case 'wealth': { // ejecutivo bancario blindado
+      rect(ctx,-18,-8,36,27,'#eee8da');rect(ctx,-16,-1,32,20,'#20252a');
+      rect(ctx,-12,1,24,16,'#353638');rect(ctx,-3,0,6,17,v.accent);
+      rect(ctx,-10,-18,20,11,'#eee6d7');enemyEye(ctx,-7,-14,true);rect(ctx,8,-12,10,4,'#e88630');
+      // exoesqueleto dorado, sin corona caricaturesca
+      metalEdge(ctx,-23,-5,7,18,'#7b642e',v.accent,'#382e19');
+      metalEdge(ctx,16,-5,7,18,'#7b642e',v.accent,'#382e19');
+      rect(ctx,-10,-22,20,4,'#292823');rect(ctx,-7,-25,14,4,'#454037');
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=1;ctx.beginPath();ctx.arc(5,-13,4,0,Math.PI*2);ctx.stroke();
+      // brazalete de activos / holograma
+      ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.accent;ctx.beginPath();ctx.arc(22,3,7,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      if(elite){rect(ctx,-9,11,18,4,'#171c20');for(let x=-7;x<=5;x+=4)px(ctx,x,12,v.accent,2);}
+      break;
+    }
+    case 'bakery': { // panadero de combate
+      // mochila horno detrás
+      metalEdge(ctx,-22,-4,10,24,'#554238','#8e6a46','#2a211c');
+      ctx.globalAlpha=.45+.3*pulse;rect(ctx,-20,1,6,12,phase?'#e25d35':'#8f482d');ctx.globalAlpha=1;
+      rect(ctx,-17,-8,34,27,'#f0e9dc');rect(ctx,-15,-1,30,20,'#8a5b3c');
+      rect(ctx,-10,2,20,15,'#d7c1a0');rect(ctx,-8,4,16,11,'#6d4934');
+      // cabeza y gran gorro
+      rect(ctx,-10,-17,20,11,'#f1e4d1');enemyEye(ctx,-7,-13,true);rect(ctx,8,-11,9,4,'#e68131');
+      rect(ctx,-13,-23,26,6,'#f0eee7');rect(ctx,-9,-29,18,8,'#faf7ef');rect(ctx,-4,-32,8,4,'#fffdf8');
+      // pala/rodillo industrial
+      ctx.save();ctx.translate(20,4);ctx.rotate(-.45+(key%3)*.08);rect(ctx,-1,-17,3,30,'#735035');rect(ctx,-6,-21,13,7,'#9d6a3f');ctx.restore();
+      if(elite){rect(ctx,-13,11,26,4,'#44352d');px(ctx,-8,12,v.secondary,2);px(ctx,6,12,v.secondary,2);}
+      break;
+    }
+    case 'tech': { // dron de combate
+      const wing=elite?31:sub?28:25;
+      ctx.fillStyle='#25343c';ctx.beginPath();ctx.moveTo(-18,-10);ctx.lineTo(18,-10);ctx.lineTo(23,2);ctx.lineTo(14,17);ctx.lineTo(-14,17);ctx.lineTo(-23,2);ctx.closePath();ctx.fill();
+      rect(ctx,-14,-6,28,17,'#3b515b');rect(ctx,-9,-3,18,10,'#14252c');
+      // sensor principal
+      ctx.globalAlpha=.55+.4*pulse;rect(ctx,-5,-1,10,6,phase>=2?'#ff4f52':v.accent);ctx.globalAlpha=1;
+      rect(ctx,-wing,-4,wing-18,5,'#465a63');rect(ctx,18,-4,wing-18,5,'#465a63');
+      for(const x of [-wing+2,wing-7]){
+        ctx.strokeStyle='#7d8d94';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,-3,7,0,Math.PI*2);ctx.stroke();
+        ctx.save();ctx.translate(x,-3);ctx.rotate(frame*.12*(x<0?-1:1));rect(ctx,-8,-1,16,2,'#97a5aa');rect(ctx,-1,-8,2,16,'#97a5aa');ctx.restore();
+      }
+      // cañones bajo ala y propulsores
+      rect(ctx,-18,8,7,12,'#20292e');rect(ctx,11,8,7,12,'#20292e');
+      rect(ctx,-16,18,4,5,v.secondary);rect(ctx,12,18,4,5,v.secondary);
+      if(elite){rect(ctx,-5,-15,10,6,'#20292e');px(ctx,-2,-18,'#ef5e62',4);}
+      break;
+    }
+    case 'vault': { // IA de bóveda / núcleo autónomo
+      // anillos flotantes detrás del núcleo
+      ctx.globalAlpha=.62;ctx.strokeStyle='#4e496f';ctx.lineWidth=3;
+      ctx.beginPath();ctx.ellipse(0,0,27+tier*3,17+tier*2,frame*.015,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle=v.secondary;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,0,18+tier*2,28+tier*3,-frame*.012,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+      // cuerpo no orgánico
+      ctx.fillStyle='#292642';ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(20,-8);ctx.lineTo(16,17);ctx.lineTo(0,27);ctx.lineTo(-16,17);ctx.lineTo(-20,-8);ctx.closePath();ctx.fill();
+      rect(ctx,-13,-9,26,21,'#3c375e');rect(ctx,-9,-5,18,13,'#151b2a');
+      // ojo IA
+      ctx.globalAlpha=.55+.4*pulse;rect(ctx,-6,-2,12,7,phase>=2?'#ff4b55':v.accent);px(ctx,-2,0,'#e8ffff',4);ctx.globalAlpha=1;
+      // nodos laterales
+      for(const x of [-24,24]){rect(ctx,x-4,-4,8,12,'#302d4b');px(ctx,x-2,-1,v.secondary,4);}
+      if(elite){for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){const xx=Math.cos(a)*33,yy=Math.sin(a)*22;px(ctx,xx-2,yy-2,v.accent,4);}}
+      break;
+    }
+  }
+
+  // Firma individual: rango, serial y desgaste determinista, sin alterar la facción.
+  const rank=1+(key%4);
+  for(let i=0;i<rank;i++)rect(ctx,-7+i*4,14,3,2,i%2?v.secondary:v.accent);
+  if((key>>2)%2)px(ctx,-13,-5,v.secondary,2);
+  if((key>>3)%2)px(ctx,11,-5,v.accent,2);
+  if(phase>=1){
+    ctx.globalAlpha=.22+.18*pulse;ctx.strokeStyle=phase>=2?'#ff5454':v.accent;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,1,24+tier*3+phase*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+
+function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
+  const pulse=.5+.5*Math.sin(frame*.12);
+  ctx.save();
+  // halo de bóveda/IA
+  ctx.globalAlpha=.65;ctx.strokeStyle='#735f2a';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(0,2,34,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<8;i++){const a=i*Math.PI/4+frame*.004;ctx.strokeStyle=i%2?v.accent:'#6f7780';ctx.beginPath();ctx.arc(0,2,28,a,a+.34);ctx.stroke();}
+  ctx.globalAlpha=1;
+
+  // exotraje ejecutivo
+  metalEdge(ctx,-23,-10,46,34,'#272c31','#a98235','#14191c');
+  rect(ctx,-18,-5,36,24,'#343b40');rect(ctx,-13,-1,26,17,'#1f2529');
+  rect(ctx,-4,-2,8,18,v.accent);
+  // puerta/núcleo de bóveda en pecho
+  ctx.fillStyle='#13191d';ctx.beginPath();ctx.arc(0,7,10,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=v.accent;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,7,8,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(Math.cos(a)*7,7+Math.sin(a)*7);ctx.stroke();}
+
+  // cabeza de presidente del banco, ya sin corona/capa
+  rect(ctx,-10,-21,20,12,'#eee8dc');rect(ctx,-7,-19,14,5,'#d6d0c5');
+  enemyEye(ctx,-6,-17,true);enemyEye(ctx,4,-17,true);rect(ctx,8,-15,10,4,'#e88832');
+  rect(ctx,-12,-26,24,5,'#22272b');rect(ctx,-8,-30,16,5,'#3b3c38');rect(ctx,-5,-29,10,2,v.accent);
+
+  // brazos mecánicos: maletín-cañón + terminal de mando
+  metalEdge(ctx,-34,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
+  rect(ctx,-37,7,16,9,'#30271f');rect(ctx,-34,5,10,3,'#7c5d31');px(ctx,-31,10,v.secondary,3);
+  metalEdge(ctx,23,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
+  rect(ctx,25,-2,7,9,'#13272d');px(ctx,27,0,phase>=2?'#ff5050':'#5ad2c4',3);
+
+  // drones de escolta
+  for(const side of [-1,1]){
+    const x=side*(34+phase*3),y=-18+Math.sin(frame*.08+side)*3;
+    rect(ctx,x-5,y-3,10,7,'#28343a');px(ctx,x-2,y-1,side<0?v.secondary:v.accent,4);
+    rect(ctx,x-10,y-1,5,2,'#64767e');rect(ctx,x+5,y-1,5,2,'#64767e');
+  }
+
+  if(phase>=1){
+    ctx.globalAlpha=.2+.14*pulse;ctx.fillStyle=phase>=2?'#ff4d54':v.accent;ctx.beginPath();ctx.arc(0,3,42+phase*5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    // IA toma control: ópticas y pórticos externos
+    for(const x of [-30,27]){rect(ctx,x,-22,4,31,'#75602b');px(ctx,x, -25,phase>=2?'#ff4d54':v.secondary,4);}
+  }
+  if(phase>=2){
+    ctx.strokeStyle='#ff4d54';ctx.lineWidth=2;
+    for(let i=0;i<10;i++){const a=i*Math.PI/5+frame*.01;ctx.beginPath();ctx.moveTo(Math.cos(a)*36,3+Math.sin(a)*26);ctx.lineTo(Math.cos(a)*45,3+Math.sin(a)*33);ctx.stroke();}
+    ctx.globalAlpha=.55+.35*pulse;px(ctx,-3,4,'#ff4d54',6);ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+
 function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:number,phase:number,v:BossVisual,floorBoss:boolean,subBoss:boolean,parts?:BossPartState[],preparedAttack?:number,telegraph=0,recovery=0,recoveryMax=0){
   const def=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
   if(!def){drawGeneratedBossBody(ctx,bx,by,bossType,frame,phase,v,floorBoss,subBoss);return;}
@@ -1763,115 +1951,58 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
   const scale=(tier===2?1.08:tier===1?1:.92)*(def.size>=40?1.04:def.size<=27?.96:1);
   const sx=scale*(def.scaleX??1),sy=scale*(def.scaleY??1);
   const pulse=.55+.45*Math.sin(frame*.13+h%11);
-  ctx.save();ctx.translate(bx+18,by+21);ctx.scale(sx,sy);
 
-  ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,17,15+tier*3,4+tier,0,0,Math.PI*2);ctx.fill();
+  ctx.save();
+  ctx.translate(bx+18,by+21);
+  ctx.scale(sx,sy);
 
-  if(!def.finalBoss&&!def.legacy)drawBossStructuralRig(ctx,key,tier,phase,frame,v,!!def.stationary);
+  ctx.fillStyle='rgba(0,0,0,.44)';
+  ctx.beginPath();ctx.ellipse(0,18,16+tier*4,4+tier,0,0,Math.PI*2);ctx.fill();
 
-  let iconic=false;
-  if(!def.finalBoss&&!!def.legacy){
-    ctx.save();
-    applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
-    iconic=drawIconicBossCore(ctx,bossType,frame,phase,v,parts);
-    drawIconicPhaseShift(ctx,bossType,frame,phase,v,parts);
-    drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
-    ctx.restore();
-  }
-  const roleCoreDrawn=!def.finalBoss&&!def.legacy;
-  if(roleCoreDrawn)drawRoleBossCore(ctx,def,frame,phase,v);
   if(def.finalBoss){
-    // EL GRAN JEFE DEL BANCO: corona de pan, capa de armiño, puerta de bóveda y cetro.
-    ctx.fillStyle='#6e1f31';ctx.beginPath();ctx.moveTo(-25,-5);ctx.lineTo(-30,19);ctx.lineTo(-17,23);ctx.lineTo(0,18);ctx.lineTo(18,23);ctx.lineTo(30,18);ctx.lineTo(25,-5);ctx.closePath();ctx.fill();
-    rect(ctx,-22,-8,44,27,'#f0ece0'); // cuerpo blanco
-    rect(ctx,-19,-5,38,22,'#3a4148');rect(ctx,-15,-2,30,17,'#555f66');
-    // puerta de bóveda central
-    ctx.fillStyle='#20262b';ctx.beginPath();ctx.arc(0,7,11,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#d7b24b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,7,9,0,Math.PI*2);ctx.stroke();
-    for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(Math.cos(a)*8,7+Math.sin(a)*8);ctx.stroke();}
-    crownMark(ctx,-4,3,'#f0c64f');
-    // cabeza y ceño
-    rect(ctx,-10,-18,20,12,'#eee9dc');rect(ctx,-7,-17,14,5,'#d8d1c4');
-    enemyEye(ctx,-6,-14,true);enemyEye(ctx,4,-14,true);rect(ctx,8,-12,9,4,'#ee8a31');
-    // corona de hogazas
-    rect(ctx,-12,-23,24,4,'#c78b39');for(const x of [-10,-4,2,8]){rect(ctx,x,-30,5,8,'#e5b65f');rect(ctx,x+1,-31,3,2,'#f5d68d');}
-    // hombros dorados y tubos
-    rect(ctx,-28,-5,8,14,'#b68a32');rect(ctx,20,-5,8,14,'#b68a32');
-    for(const x of [-24,22]){rect(ctx,x,-13,3,10,'#d7ad4c');rect(ctx,x+3,-16,3,13,'#8b6328');}
-    // mano/gauntlet adelantado
-    rect(ctx,-31,4,12,11,'#30383f');rect(ctx,-34,6,5,7,'#4f5b63');px(ctx,-32,8,'#e5bd45',2);
-    // cetro del capital
-    rect(ctx,26,-9,3,28,'#9c742a');ctx.fillStyle='#d9b34b';ctx.beginPath();ctx.arc(27,-12,7,0,Math.PI*2);ctx.fill();crownMark(ctx,23,-16,'#fff0a0');
-    ctx.strokeStyle='#805f24';ctx.lineWidth=2;ctx.beginPath();ctx.arc(27,-12,4,0,Math.PI*2);ctx.stroke();px(ctx,26,-13,'#fff0a0',2);
-    if(phase>=1){
-      ctx.globalAlpha=.18+.12*pulse;ctx.fillStyle=phase>=2?'#ff4f52':'#f4d03f';ctx.beginPath();ctx.arc(0,2,35+phase*5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      // La armadura imperial se transforma por fase sin tapar los telegraphs de ataque.
-      for(const x of [-30,27]){rect(ctx,x,-15,4,25,'#9c742a');rect(ctx,x-2,-18,8,4,'#d7ad4c');ctx.globalAlpha=.35+.3*pulse;rect(ctx,x,-25,4,7,phase>=2?'#ff5b54':'#f4d03f');ctx.globalAlpha=1;}
-      if(phase>=2){
-        ctx.strokeStyle='#f4d03f';ctx.lineWidth=3;for(let i=0;i<8;i++){const a=i*Math.PI/4+.12;ctx.beginPath();ctx.arc(0,4,39,a,a+.34);ctx.stroke();}
-        rect(ctx,-17,-34,34,3,'#8b6328');rect(ctx,-15,-38,6,5,'#e5b65f');rect(ctx,-3,-41,6,8,'#f0c64f');rect(ctx,9,-38,6,5,'#e5b65f');
-      }
+    drawFinalBankBossV2(ctx,frame,phase,v);
+  }else{
+    // Para tech/vault el rig estructural forma parte del propio chasis.
+    // En aves/personajes sólo aparece en subjefes/jefes y funciona como mochila,
+    // plataforma o armamento secundario sin tapar la identidad de facción.
+    if(def.family==='tech'||def.family==='vault'||tier>0){
+      ctx.save();
+      ctx.globalAlpha=(def.family==='tech'||def.family==='vault')?.72:.36;
+      drawBossStructuralRig(ctx,key,tier,phase,frame,v,!!def.stationary);
+      ctx.restore();
     }
-  }else if(!iconic&&!roleCoreDrawn&&v.family==='tech'){
-    // plataforma mecánica / dron pesado
-    rect(ctx,-17,-8,34,22,'#364751');rect(ctx,-13,-5,26,16,'#536b76');
-    rect(ctx,-8,-2,16,8,'#172d39');enemyEye(ctx,-5,0,true);enemyEye(ctx,3,0,true);
-    rect(ctx,-24,-3,8,5,v.accent);rect(ctx,16,-3,8,5,v.accent);
-    for(const x of [-22,22]){ctx.globalAlpha=.48;rect(ctx,x-7,-13,14,2,'#b8c5c9');rect(ctx,x-4,-15,8,1,'#e3ecee');ctx.globalAlpha=1;}
-    rect(ctx,-7,11,14,5,'#242d33');px(ctx,-1,12,v.secondary,3);
-  }else if(!iconic&&!roleCoreDrawn&&v.family==='vault'){
-    // bestia de bóveda / carnero mecanizado
-    rect(ctx,-18,-7,36,24,'#343b46');rect(ctx,-14,-4,28,18,'#505967');
-    ctx.strokeStyle=v.secondary;ctx.lineWidth=3;
-    ctx.beginPath();ctx.arc(-15,-8,9,.2,Math.PI*1.6);ctx.stroke();ctx.beginPath();ctx.arc(15,-8,9,Math.PI*1.4,Math.PI*.8,true);ctx.stroke();
-    rect(ctx,-10,-14,20,10,'#e8e3d8');enemyEye(ctx,-7,-10,true);enemyEye(ctx,5,-10,true);
-    rect(ctx,-7,1,14,11,'#242a32');crownMark(ctx,-4,3,v.secondary);
-    rect(ctx,-21,7,8,10,'#262e37');rect(ctx,13,7,8,10,'#262e37');
-  }else if(!iconic&&!roleCoreDrawn&&v.family==='bakery'){
-    // chef/horno: gorro enorme + núcleo térmico
-    rect(ctx,-17,-7,34,24,'#ece5d6');rect(ctx,-14,-3,28,18,'#9a633f');
-    rect(ctx,-9,0,18,12,'#33231d');rect(ctx,-6,2,12,8,'#6a2e23');
-    ctx.globalAlpha=.6+.25*pulse;rect(ctx,-4,4,8,5,'#ff7a3c');ctx.globalAlpha=1;
-    rect(ctx,-12,-16,24,8,'#f5f1e8');rect(ctx,-8,-21,16,7,'#fffdf7');rect(ctx,-4,-24,8,4,'#fffdf7');
-    enemyEye(ctx,-7,-7,true);enemyEye(ctx,5,-7,true);rect(ctx,9,-5,8,3,'#ed8730');
-    // pala de horno
-    ctx.save();ctx.translate(21,4);ctx.rotate(-.5);rect(ctx,-1,-14,3,26,'#8d6234');rect(ctx,-6,-17,13,6,'#b67d45');ctx.restore();
-  }else if(!iconic&&!roleCoreDrawn&&(v.family==='finance'||v.family==='wealth')){
-    // banquero/cobrador de alto rango
-    rect(ctx,-16,-7,32,24,v.family==='wealth'?'#eee8d6':'#d7d5cf');rect(ctx,-13,-3,26,19,'#252b34');
-    rect(ctx,-3,-2,6,17,v.secondary);rect(ctx,-10,-15,20,10,'#ede8da');enemyEye(ctx,-7,-11,true);rect(ctx,8,-9,8,3,'#e9872f');
-    if(v.family==='wealth'){rect(ctx,-13,-21,26,4,'#2a2521');rect(ctx,-9,-28,18,8,'#342c24');crownMark(ctx,-4,-27,v.accent);}
-    else{rect(ctx,-12,-20,24,4,'#262d35');rect(ctx,-8,-25,16,6,'#303944');}
-    // maletín / monedas
-    rect(ctx,-24,3,9,10,'#4a352c');rect(ctx,-22,1,5,3,'#7b5c3b');px(ctx,-21,6,v.secondary,2);
-    if(frame%16<3){px(ctx,18,-8,v.secondary,2);px(ctx,22,2,'#79b875',2);}
-  }else if(!iconic&&!roleCoreDrawn){
-    // command / riot / war: ave militar con casco y torso táctico
-    const body=v.family==='riot'?'#3c4652':v.family==='war'?'#455260':'#2d4057';
-    rect(ctx,-16,-6,32,23,'#ece9df');rect(ctx,-15,-2,30,18,body);
-    rect(ctx,-20,0,7,10,'#4d5964');rect(ctx,13,0,7,10,'#4d5964');
-    rect(ctx,-10,-15,20,10,'#eeeae0');enemyEye(ctx,-7,-11,true);rect(ctx,9,-9,9,3,'#ef8b35');
-    rect(ctx,-12,-20,24,5,'#202d3a');rect(ctx,-8,-24,16,5,'#2d4357');crownMark(ctx,-4,-23,v.secondary);
-    if(v.family==='riot'){metalEdge(ctx,13,-1,12,21,'#566574','#9caab4','#2c353d');rect(ctx,15,9,8,2,v.secondary);}
-    if(v.family==='war'){for(let i=0;i<4;i++)rect(ctx,-10+i*6,11,3,5,i%2?v.secondary:'#806239');}
-    if(v.family==='command'){rect(ctx,-20,-4,5,7,v.secondary);rect(ctx,15,-4,5,7,v.secondary);}
+
+    ctx.save();
+    if(def.legacy)applyIconicAttackPose(ctx,bossType,preparedAttack,telegraph,recovery,recoveryMax);
+    drawBossFactionCore(ctx,def,frame,phase,v,tier,key);
+    drawBossRoleHardware(ctx,def,frame,phase,v);
+    if(def.legacy)drawIconicAttackHardware(ctx,bossType,frame,phase,v,preparedAttack,telegraph,recovery,recoveryMax,parts);
+    ctx.restore();
+
+    // Identidad frontal más contenida: insignias y crest sólo en diseños donde
+    // no compiten con el casco, gorro, escudo o núcleo de IA.
+    if(def.family==='command'||def.family==='finance'||def.family==='wealth'){
+      ctx.globalAlpha=.7;drawBossFrontIdentity(ctx,key,tier,v);ctx.globalAlpha=1;
+    }
+    if(def.family==='tech'||def.family==='vault'){
+      ctx.globalAlpha=.65;drawBossCrest(ctx,key,v);ctx.globalAlpha=1;
+    }
+    drawBossPhaseTransformation(ctx,def,frame,phase,v);
   }
 
-  if(!def.finalBoss&&!iconic){
-    drawBossFrontIdentity(ctx,key,tier,v);
-    drawBossCrest(ctx,key,v);
-  }
-
-  if(!def.finalBoss)drawBossPhaseTransformation(ctx,def,frame,phase,v);
-
+  // Hardware asociado al patrón actual: telegraph visual antes de cada ataque.
   drawBossAttackHardware(ctx,{accent:v.accent,secondary:v.secondary,family:v.family,bob:v.bob},def.pattern.sequence,frame,phase);
 
-  // detalles deterministas: cada individuo mantiene una firma visual propia.
-  if(key%2){rect(ctx,-3,14,6,3,v.secondary);}else{px(ctx,-2,15,v.accent,2);px(ctx,2,15,v.secondary,2);}
-  if(Math.floor(key/2)%2)rect(ctx,-23,-7,4,9,'#4c5962');
-  if(Math.floor(key/3)%2)rect(ctx,19,-7,4,9,'#4c5962');
-  if(tier>=1){ctx.strokeStyle=v.accent;ctx.globalAlpha=.32+.18*pulse;ctx.beginPath();ctx.arc(0,1,23+tier*4+phase*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
-  if(tier===2){rect(ctx,-23,16,46,2,v.secondary);px(ctx,-19,14,v.accent,2);px(ctx,17,14,v.accent,2);}
+  // Serial visual individual. Los 145 encuentros mantienen firma distinta sin
+  // recurrir a cuerpos aleatorios que rompan la lectura de facción.
+  if(!def.finalBoss){
+    if(key%2){rect(ctx,-3,17,6,2,v.secondary);}else{px(ctx,-3,16,v.accent,2);px(ctx,2,16,v.secondary,2);}
+    if(Math.floor(key/3)%2)rect(ctx,-24,-7,3,8,'#47545c');
+    if(Math.floor(key/5)%2)rect(ctx,21,-7,3,8,'#47545c');
+    if(tier>=1){ctx.strokeStyle=v.accent;ctx.globalAlpha=.26+.16*pulse;ctx.beginPath();ctx.arc(0,1,25+tier*4+phase*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+    if(tier===2){rect(ctx,-23,18,46,2,v.secondary);px(ctx,-19,16,v.accent,2);px(ctx,17,16,v.accent,2);}
+  }
+
   ctx.restore();
 }
 
@@ -1891,36 +2022,26 @@ function drawBossIdentity(ctx:Ctx,bx:number,by:number,bossType:string,frame:numb
     ctx.restore();return;
   }
 
-  // Los iconos clásicos ya tienen cuerpo dibujado a mano; no volvemos a
-  // cubrirlos con la misma máscara de familia que los encuentros generados.
-  if(!iconic&&v.family==='command'){
-    rect(ctx,bx+2,by+10,4,3,v.accent);rect(ctx,bx+28,by+10,4,3,v.accent);
-    rect(ctx,bx+5,by-5,5,2,v.secondary);rect(ctx,bx+22,by-5,5,2,v.secondary);
-    if(frame%30<15){px(ctx,bx+7,by-7,v.accent,2);px(ctx,bx+24,by-7,v.secondary,2);}
-  } else if(!iconic&&v.family==='finance'){
-    rect(ctx,bx+2,by+18,6,7,'#4d3727');rect(ctx,bx+26,by+18,6,7,'#4d3727');
-    px(ctx,bx+5,by+20,v.secondary,2);px(ctx,bx+29,by+20,v.secondary,2);
-    if(frame%26<5){px(ctx,bx+1,by+5,v.secondary,2);px(ctx,bx+31,by+8,v.secondary,2);}
-  } else if(!iconic&&v.family==='bakery'){
-    rect(ctx,bx-2,by+18,4,8,'#9a6842');rect(ctx,bx+32,by+18,4,8,'#9a6842');
-    ctx.globalAlpha=.4+.2*pulse;rect(ctx,bx+8,by-7,16,3,v.secondary);ctx.globalAlpha=1;
-  } else if(!iconic&&v.family==='tech'){
-    rect(ctx,bx-4,by+11,5,4,v.accent);rect(ctx,bx+33,by+11,5,4,v.accent);
-    ctx.globalAlpha=.45+.35*pulse;px(ctx,bx+4,by+4,v.secondary,2);px(ctx,bx+28,by+4,v.secondary,2);ctx.globalAlpha=1;
-  } else if(!iconic&&v.family==='riot'){
-    rect(ctx,bx+29,by+10,8,22,'#667887');rect(ctx,bx+31,by+12,4,18,v.accent);
-    rect(ctx,bx-3,by+12,4,17,'#343d46');
-  } else if(!iconic&&v.family==='war'){
-    rect(ctx,bx+1,by+12,5,4,'#4c5967');rect(ctx,bx+28,by+12,5,4,'#4c5967');
-    px(ctx,bx+11,by+20,'#d8b24a',2);px(ctx,bx+15,by+20,'#c65a4b',2);px(ctx,bx+19,by+20,'#8aaad1',2);
-  } else if(!iconic&&v.family==='wealth'){
-    // Corona y lluvia de monedas.
-    rect(ctx,bx+7,by-17,22,3,'#3b3020');rect(ctx,bx+9,by-20,4,4,v.accent);rect(ctx,bx+16,by-22,4,6,v.accent);rect(ctx,bx+23,by-20,4,4,v.accent);
-    if(frame%18<4){px(ctx,bx-2,by+6,v.accent,2);px(ctx,bx+38,by+14,v.accent,2);}
-  } else if(!iconic&&v.family==='vault'){
-    rect(ctx,bx-4,by+13,5,14,'#3d365f');rect(ctx,bx+33,by+13,5,14,'#3d365f');
-    ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.secondary;ctx.beginPath();ctx.arc(bx+18,by+17,13+phase*3,0,Math.PI*2);ctx.stroke();
-    px(ctx,bx+17,by+16,v.accent,3);ctx.globalAlpha=1;
+  // Insignia de facción contenida. La silueta principal ya comunica el rol;
+  // aquí sólo reforzamos identidad sin apilar otra capa de geometría.
+  if(v.family==='command'){
+    rect(ctx,bx+14,by+18,8,5,'#1a2731');px(ctx,bx+17,by+19,v.secondary,3);
+    if(frame%28<8){px(ctx,bx+4,by+4,'#5ca7ff',2);px(ctx,bx+30,by+4,'#ff5b58',2);}
+  }else if(v.family==='finance'){
+    rect(ctx,bx+14,by+19,8,4,'#20312e');px(ctx,bx+16,by+20,v.accent,2);px(ctx,bx+20,by+20,v.secondary,2);
+  }else if(v.family==='bakery'){
+    ctx.globalAlpha=.35+.25*pulse;rect(ctx,bx+13,by+24,10,3,phase>=1?'#e85f37':v.secondary);ctx.globalAlpha=1;
+  }else if(v.family==='tech'){
+    ctx.globalAlpha=.45+.35*pulse;px(ctx,bx+8,by+8,v.accent,2);px(ctx,bx+27,by+8,v.secondary,2);ctx.globalAlpha=1;
+  }else if(v.family==='riot'){
+    rect(ctx,bx+29,by+17,5,9,v.accent);rect(ctx,bx+30,by+19,3,5,'#24313a');
+  }else if(v.family==='war'){
+    px(ctx,bx+13,by+22,'#d8b24a',2);px(ctx,bx+17,by+22,'#c65a4b',2);px(ctx,bx+21,by+22,'#8299b0',2);
+  }else if(v.family==='wealth'){
+    rect(ctx,bx+13,by+20,10,3,'#2c2a24');rect(ctx,bx+15,by+20,6,2,v.accent);
+    if(frame%20<3)px(ctx,bx+31,by+5,v.secondary,2);
+  }else if(v.family==='vault'){
+    ctx.globalAlpha=.45+.3*pulse;ctx.strokeStyle=v.secondary;ctx.beginPath();ctx.arc(bx+18,by+18,7+phase*2,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
   }
 
   // Accesorio único por individuo.
