@@ -481,7 +481,6 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
       break;
     }
     case 'counters': {
-      const id = OBSTACLE_BASE + 0;
       for (let x = 2; x < ROOM_WIDTH - 2; x++) { place(x, cy - 2, prop(0)); }
       for (let x = 2; x < ROOM_WIDTH - 2; x++) { place(x, cy + 2, prop(1)); }
       break;
