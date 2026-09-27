@@ -790,14 +790,14 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
   }
 }
 
-export function drawBankKey(ctx:Ctx,x:number,y:number,frame:number,size=16) {
+export function drawBankKey(ctx:Ctx,x:number,y:number,frame:number,size=16,animated=true) {
   const s=Math.max(8,size),scale=s/16,bx=Math.floor(x),by=Math.floor(y);
-  const bob=Math.round(Math.sin(frame*.08+x*.015)*1.2);
+  const bob=animated?Math.round(Math.sin(frame*.08+x*.015)*1.2):0;
   ctx.save();ctx.translate(bx,by+bob);ctx.scale(scale,scale);
 
-  // Sombra y halo: debe leerse como recurso importante, no como moneda.
+  // En el mundo flota para destacar; en HUD se mantiene totalmente estable.
   ctx.globalAlpha=.28;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(8,15,8,2.5,0,0,Math.PI*2);ctx.fill();
-  ctx.globalAlpha=.14+.06*Math.sin(frame*.10);ctx.fillStyle='#e6c56f';ctx.beginPath();ctx.ellipse(8,11,11,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.globalAlpha=animated?.14+.06*Math.sin(frame*.10):.17;ctx.fillStyle='#e6c56f';ctx.beginPath();ctx.ellipse(8,11,11,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
 
   // Cabeza inspirada en dial de bóveda.
   ctx.fillStyle='#6f5625';ctx.beginPath();ctx.arc(5,6,5,0,Math.PI*2);ctx.fill();
