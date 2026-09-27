@@ -16,7 +16,7 @@ import {
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
-  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, hudMenuRect, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
+  inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, MAP_CLOSE, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -558,7 +558,7 @@ export default function App() {
       const p = uiPoint(raw);
       engine.mouseX = p.x; engine.mouseY = p.y;
       if(Math.abs(ev.movementX)+Math.abs(ev.movementY)>1)engine.lastInput='keyboard';
-      if(engine.state===GameState.PLAYING)setCursor(inside(p.x,p.y,hudMenuRect())?'pointer':'crosshair');
+      if(engine.state===GameState.PLAYING)setCursor('crosshair');
       if(engine.state===GameState.MAP) {mapHit(engine,p.x,p.y);return;}
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
@@ -634,7 +634,6 @@ export default function App() {
         const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
       if(engine.state===GameState.PLAYING){
-        if(inside(x,y,hudMenuRect())){engine.pauseIndex=0;playUiSelect();goTo(GameState.PAUSED);return;}
         engine.mouseDown=true;return;
       }
       if(engine.state===GameState.HEIST_INTRO){
