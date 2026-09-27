@@ -1993,6 +1993,37 @@ function drawBossPartWear(ctx:Ctx,parts:BossPartState[]|undefined,frame:number){
  * Devuelve true cuando el cuerpo completo ya fue dibujado y no debe usarse
  * la plantilla de facción genérica.
  */
+
+function drawIconicDuckReadability(ctx:Ctx,family:string,frame:number,phase:number,v:BossVisual){
+  const mechanical=family==='tech'||family==='vault';
+  const body=mechanical?(family==='vault'?'#4a4569':'#536b74'):
+    family==='bakery'?'#f3eadb':'#eee9dd';
+  const shade=mechanical?'#2d3940':family==='bakery'?'#cba878':'#b9c0bd';
+  const beak=mechanical?(family==='vault'?'#c4a34b':'#d79640'):'#ef8d2c';
+  const darkBeak=mechanical?'#745625':'#c7671d';
+  const bob=Math.round(Math.sin(frame*.08)*.5);
+
+  ctx.save();ctx.translate(0,bob);
+
+  // Cabeza frontal de pato superpuesta sobre el equipo del jefe.
+  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(0,-15,11,9,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(-6,-13,4,5,-.3,0,Math.PI*2);ctx.fill();
+  if(mechanical){
+    ctx.strokeStyle=v.secondary;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,-15,10,8,0,0,Math.PI*2);ctx.stroke();
+  }
+  const eye=phase>=2?'#ff514e':'#10161a';
+  px(ctx,-5,-17,mechanical?v.accent:eye,2);px(ctx,4,-17,mechanical?v.accent:eye,2);
+  if(mechanical){px(ctx,-4,-16,'#eaffff',1);px(ctx,5,-16,'#eaffff',1);}
+  rect(ctx,-7,-12,14,5,beak);rect(ctx,-5,-7,10,2,darkBeak);
+  px(ctx,-4,-10,'#8b4a1d',1);px(ctx,3,-10,'#8b4a1d',1);
+
+  // Ala y patas mantienen lectura aviar aunque el torso esté cubierto.
+  ctx.fillStyle=shade;ctx.beginPath();ctx.ellipse(10,5,6,8,.35,0,Math.PI*2);ctx.fill();
+  rect(ctx,-10,18,7,3,beak);rect(ctx,-12,21,10,2,darkBeak);
+  rect(ctx,3,18,7,3,beak);rect(ctx,2,21,10,2,darkBeak);
+  ctx.restore();
+}
+
 function drawIconicBossBodyV3(
   ctx:Ctx,bossType:string,frame:number,phase:number,v:BossVisual,tier:number,parts?:BossPartState[]
 ){
@@ -2172,6 +2203,9 @@ function drawIconicBossBodyV3(
     default: ctx.restore(); return false;
   }
 
+  // Última capa: nunca permitir que armadura, horno, escudo o chasis borren
+  // la lectura de pato del encuentro emblemático.
+  drawIconicDuckReadability(ctx,v.family,frame,phase,v);
   drawBossPartWear(ctx,parts,frame);
   ctx.restore();
   return true;
@@ -2199,10 +2233,15 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual,part
     drawBrokenModule(ctx,0,7,frame,'#ff5a45');
   }
 
-  // cabeza de presidente del banco, ya sin corona/capa
-  rect(ctx,-10,-21,20,12,'#eee8dc');rect(ctx,-7,-19,14,5,'#d6d0c5');
-  enemyEye(ctx,-6,-17,true);enemyEye(ctx,4,-17,true);rect(ctx,8,-15,10,4,'#e88832');
-  rect(ctx,-12,-26,24,5,'#22272b');rect(ctx,-8,-30,16,5,'#3b3c38');rect(ctx,-5,-29,10,2,v.accent);
+  // Presidente-pato: la cabeza y el pico siguen siendo legibles aun dentro
+  // del exotraje. El equipo ejecutivo se monta alrededor, nunca encima del rostro.
+  ctx.fillStyle='#eee8dc';ctx.beginPath();ctx.ellipse(0,-17,12,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#d6d0c5';ctx.beginPath();ctx.ellipse(-6,-15,4,6,-.3,0,Math.PI*2);ctx.fill();
+  px(ctx,-5,-19,'#15191b',2);px(ctx,4,-19,'#15191b',2);
+  rect(ctx,-7,-14,14,5,'#e88832');rect(ctx,-5,-9,10,2,'#bb681f');
+  rect(ctx,-12,-27,24,5,'#22272b');rect(ctx,-8,-31,16,5,'#3b3c38');rect(ctx,-5,-30,10,2,v.accent);
+  rect(ctx,-10,18,7,3,'#e88832');rect(ctx,-12,21,10,2,'#bb681f');
+  rect(ctx,3,18,7,3,'#e88832');rect(ctx,2,21,10,2,'#bb681f');
 
   // brazos mecánicos: maletín-cañón + terminal de mando, ambos destruibles.
   if(iconicPartAlive(parts,'executive_cannon')){
