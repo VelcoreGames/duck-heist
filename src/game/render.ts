@@ -2617,54 +2617,90 @@ function renderDifficultyUI(engine:GameEngine) {
 
 function renderMenuUI(engine:GameEngine,_wide=false) {
   const ctx=engine.ui!,meta=MENU_META[engine.menuIndex]??MENU_META[0],mf=menuFrame(engine);
-  const buttonColors=['#ffc95f','#ff7f83','#b99cff','#75ddb8','#66d9ee','#ffae79','#ff8fbd','#8ec5ff'];
-  const buttonIcons=['▶','∞','✦','+','♥','★','?','⚙'];
+  const colors=['#ffc95f','#ff829d','#a996ff','#75ddb8','#70cfee','#ffae79','#ff8fbd','#8ec5ff'];
+  const icons=['▶','∞','✦','+','♥','★','?','⚙'];
+  const utilityLabels=['MEJORAS','ARMARIO','COLECCIÓN','CÓMO JUGAR','AJUSTES'];
 
-  // Logo compacto y apilado, inspirado en sticker kawaii.
-  drawTitleLogo(ctx,366,48,mf);
-  text(ctx,'ELIGE TU PLAN',366,87,5.1,'#6e6c94','center',true,false);
+  drawTitleLogo(ctx,365,53,mf);
 
-  // Tarjeta de contexto pequeña: informa sin tapar la ilustración del pato.
-  drawMenuCard(ctx,18,62,224,78,true,meta.accent,'rgba(255,250,247,.90)');
-  drawSectionLabel(ctx,meta.eyebrow,34,80,meta.accent);
-  titleText(ctx,meta.title,34,103,11.5,'#3f3b67','left',false);
-  wrappedText(ctx,meta.desc,34,118,188,5.3,7,2,'#777a9d',false);
-  text(ctx,meta.tag,226,134,4.15,meta.accent,'right',true,false);
+  // Pequeña etiqueta contextual; reemplaza la tarjeta grande del primer diseño.
+  const chipW=Math.min(180,58+meta.eyebrow.length*3.5);
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,.88)';
+  ctx.beginPath();ctx.roundRect?.(365-chipW/2,92,chipW,15,7);
+  if(typeof ctx.roundRect==='function')ctx.fill();
+  else ctx.fillRect(365-chipW/2,92,chipW,15);
+  text(ctx,meta.eyebrow,365,102,4.2,meta.accent,'center',true,false);
+  ctx.restore();
 
   MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex,box=mainMenuRect(i,false),hover=inside(engine.mouseX,engine.mouseY,box);
+    const box=mainMenuRect(i,false),on=i===engine.menuIndex,hover=inside(engine.mouseX,engine.mouseY,box);
+    const accent=colors[i]??meta.accent;
     const heistCheckpoint=i===0&&engine.heistCheckpointFloor>0;
     const endlessCheckpoint=i===1&&engine.endlessCheckpointRound>0;
-    const hasCheckpoint=heistCheckpoint||endlessCheckpoint;
-    const label=heistCheckpoint?'CONTINUAR ATRACO':endlessCheckpoint?'CONTINUAR SIN FIN':item.label;
-    const accent=buttonColors[i]??meta.accent;
+    const label=i<3
+      ?(heistCheckpoint?'CONTINUAR ATRACO':endlessCheckpoint?'CONTINUAR SIN FIN':item.label)
+      :utilityLabels[i-3]??item.label;
 
-    drawMenuCard(
-      ctx,box.x,box.y,box.w,box.h,on||hover,accent,
-      on?'rgba(255,252,244,.98)':hover?'rgba(255,249,252,.97)':'rgba(255,255,255,.88)',
-    );
+    if(i<3){
+      const lift=on||hover?-1:0;
+      ctx.save();ctx.translate(0,lift);
+      ctx.shadowColor='rgba(55,45,88,.20)';ctx.shadowBlur=8;ctx.shadowOffsetY=4;
+      roundedHud(ctx,box.x,box.y,box.w,box.h,15,'rgba(255,255,255,.97)',accent);
+      ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+      // Banda pastel llena, más cercana a la referencia aprobada.
+      ctx.globalAlpha=on||hover?.92:.72;
+      roundedHud(ctx,box.x+3,box.y+3,box.w-6,box.h-6,12,accent,'rgba(255,255,255,.78)');
+      ctx.globalAlpha=1;
 
-    // Icono redondo a la izquierda.
-    ctx.fillStyle=accent;ctx.beginPath();ctx.arc(box.x+14,box.y+box.h/2,7,0,Math.PI*2);ctx.fill();
-    text(ctx,buttonIcons[i]??'•',box.x+14,box.y+box.h/2+3,6,'#ffffff','center',true,false);
-    text(ctx,label,box.x+28,box.y+box.h/2+3.2,5.55,on?'#343052':'#515375','left',true,false);
+      ctx.fillStyle='rgba(255,255,255,.95)';ctx.beginPath();ctx.arc(box.x+18,box.y+box.h/2,10,0,Math.PI*2);ctx.fill();
+      text(ctx,icons[i],box.x+18,box.y+box.h/2+4,8,'#3c365f','center',true,false);
+      text(ctx,label,box.x+35,box.y+box.h/2+4.2,6.6,'#3c365f','left',true,false);
 
-    if(on){
-      const pulse=1+Math.sin(mf*.10)*.06;
-      ctx.save();ctx.translate(box.x+box.w-13,box.y+box.h/2);ctx.scale(pulse,pulse);
-      text(ctx,'♥',0,3.5,7,accent,'center',true,false);ctx.restore();
-    }
-
-    if(hasCheckpoint){
-      const badge=heistCheckpoint?'#ffc95f':'#ff7f83';
-      ctx.fillStyle=badge;ctx.beginPath();ctx.arc(box.x+box.w-31,box.y+5,3,0,Math.PI*2);ctx.fill();
-      text(ctx,heistCheckpoint?'P'+engine.heistCheckpointFloor:'R'+engine.endlessCheckpointRound,box.x+box.w-25,box.y+7.5,3.2,'#50466a','left',true,false);
+      if(on){
+        const p=1+Math.sin(mf*.11)*.08;
+        ctx.save();ctx.translate(box.x+box.w-16,box.y+box.h/2);ctx.scale(p,p);
+        text(ctx,'♥',0,4,8,'#ffffff','center',true,false);ctx.restore();
+      }
+      if(heistCheckpoint||endlessCheckpoint){
+        const badge=heistCheckpoint?'P'+engine.heistCheckpointFloor:'R'+engine.endlessCheckpointRound;
+        ctx.fillStyle='#4b426d';ctx.beginPath();ctx.arc(box.x+box.w-36,box.y+8,7,0,Math.PI*2);ctx.fill();
+        text(ctx,badge,box.x+box.w-36,box.y+10.5,3.5,'#fff8ef','center',true,false);
+      }
+      ctx.restore();
+    }else{
+      ctx.save();
+      if(on||hover){ctx.translate(0,-1);ctx.shadowColor=accent+'88';ctx.shadowBlur=7;}
+      roundedHud(ctx,box.x,box.y,box.w,box.h,10,'rgba(255,255,255,.93)',on||hover?'#ffffff':accent);
+      ctx.shadowBlur=0;
+      ctx.globalAlpha=on||hover?.24:.11;ctx.fillStyle=accent;
+      ctx.beginPath();ctx.roundRect?.(box.x+2,box.y+2,box.w-4,box.h-4,8);
+      if(typeof ctx.roundRect==='function')ctx.fill();else ctx.fillRect(box.x+2,box.y+2,box.w-4,box.h-4);
+      ctx.globalAlpha=1;
+      ctx.fillStyle=accent;ctx.beginPath();ctx.arc(box.x+12,box.y+box.h/2,6,0,Math.PI*2);ctx.fill();
+      text(ctx,icons[i],box.x+12,box.y+box.h/2+3,5.1,'#ffffff','center',true,false);
+      text(ctx,label,box.x+22,box.y+box.h/2+3,4.3,'#4d4f74','left',true,false);
+      ctx.restore();
     }
   });
 
-  // Microdetalles estilo sticker, sin paneles técnicos.
-  text(ctx,'PATOS PEQUEÑOS · GRANDES PLANES ♥',24,327,4.5,'#7c7698','left',true,false);
-  text(ctx,T.tagline,456,327,4.8,'#ad7f65','right',true,false);
+  // Recurso visible pero discreto.
+  roundedHud(ctx,18,18,83,20,10,'rgba(255,255,255,.84)','#ffc95f');
+  drawItemIcon(ctx,24,22,'golden_crumb',11);
+  text(ctx,String(engine.totalGoldenCrumbs),43,31,5.2,'#6f5870','left',true,false);
+
+  // Mensaje corto contextual en vez de párrafo.
+  const hints=[
+    engine.heistCheckpointFloor>0?'Tu atraco está guardado.':'Roba los 6 pisos del Banco del Pan.',
+    'Sobrevive todo lo que puedas.',
+    'Misma seed para todos hoy.',
+    'Haz más fuerte a tu pato.',
+    'Cambia el look, no las estadísticas.',
+    'Mira todo lo que ya descubriste.',
+    'Aprende el atraco en un minuto.',
+    'Audio, controles y accesibilidad.',
+  ];
+  text(ctx,hints[engine.menuIndex]??'',18,343,4.3,'#725f7f','left',true,false);
 }
 function renderHowToPlayUI(engine: GameEngine) {
   const ctx=engine.ui!;
