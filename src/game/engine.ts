@@ -4780,7 +4780,7 @@ export const SETTING_ROWS = [
   { key: 'damageNumbers', label: T.settingDamage, kind: 'bool' as const, group:'FEEDBACK', description:'Muestra u oculta los números de daño sobre enemigos.' },
   { key: 'reduceMotion', label: 'REDUCIR MOVIMIENTO UI', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Reduce barridos, pulsos y movimiento decorativo de los menús.' },
   { key: 'highContrast', label: 'ALTO CONTRASTE', kind: 'bool' as const, group:'ACCESIBILIDAD', description:'Aumenta contraste de interfaz y lectura del HUD.' },
-  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento, elimina temblor y amplía la UI.' },
+  { key: 'accessPreset', label: 'PRESET ACCESIBLE', kind: 'action' as const, group:'ACCESIBILIDAD', description:'Activa alto contraste, reduce movimiento y elimina el temblor de cámara.' },
   { key: 'controls', label: 'CONFIGURAR CONTROLES', kind: 'action' as const, group:'CONTROLES', description:'Remapea movimiento, disparo y acciones del teclado.' },
   { key: 'muted', label: 'SILENCIAR TODO', kind: 'bool' as const, group:'AUDIO', description:'Apaga o reactiva música y efectos de una sola vez sin cambiar tus niveles de volumen.' },
   { key: 'fullscreen', label: T.settingFullscreen, kind: 'bool' as const, group:'VIDEO', description:'Activa o desactiva pantalla completa.' },
