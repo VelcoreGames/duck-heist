@@ -167,6 +167,8 @@ export interface RoomContent {
   items: ItemPickup[];
   puddles: Puddle[];
   airStrikes?: AirStrike[];
+  /** HP restante de obstáculos procedurales dañados, indexado como "tx,ty". */
+  obstacleHp?: Record<string,number>;
   chest?: { x: number; y: number; opened: boolean };
   shopItems?: ShopItem[];
   pedestal?: Pedestal;
