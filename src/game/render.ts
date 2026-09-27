@@ -2403,16 +2403,28 @@ function drawHUD(engine: GameEngine) {
   const safe=visibleCanvasRect(6),safeLeft=safe.x,safeRight=safe.x+safe.w;
   const p=engine.player;
 
-  // Estado del ladrón: vida y protección viven en una sola placa.
+  // Estado del ladrón: vida, valor numérico y protección en una sola placa.
+  const shieldTotal=p.shield+p.contactShield+(p.helmetShield?1:0);
   const heartCols=Math.min(p.maxHp,10),heartRows=Math.ceil(p.maxHp/10);
-  const statusW=Math.max(86,heartCols*13+14),statusH=heartRows>1?35:25;
-  hudPlate(ctx,safeLeft+4,4,statusW,statusH,'#e6c56f',.61);
+  const statusW=Math.max(94,heartCols*13+14),statusH=(heartRows>1?35:25)+(shieldTotal>0?10:0);
+  const hpCritical=p.hp<=Math.max(1,Math.ceil(p.maxHp*.3));
+  const hpAccent=hpCritical?'#e66b60':'#e6c56f';
+  const hpValue=Number.isInteger(p.hp)?String(p.hp):p.hp.toFixed(1);
+  hudPlate(ctx,safeLeft+4,4,statusW,statusH,hpAccent,.61);
   text(ctx,'LADRÓN',safeLeft+11,12,4.1,'#738b8e','left',true,false);
+  text(ctx,`${hpValue}/${p.maxHp} HP`,safeLeft+statusW-5,12,4.1,hpCritical?'#ff8d84':'#9eaaa7','right',true,false);
   for(let i=0;i<p.maxHp;i++) {
     ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(safeLeft+9+(i%10)*13,13+Math.floor(i/10)*13);
-    if(p.hp<=1&&i===0)ctx.globalAlpha=.78+Math.sin(engine.frame*.055)*.2;
+    if(hpCritical&&i===0)ctx.globalAlpha=.72+Math.sin(engine.frame*.09)*.26;
     drawHeart(ctx,0,0,i<p.hp,p.hp>i&&p.hp<i+1);
     if(p.healFlash>0&&i<p.hp){ctx.globalAlpha=p.healFlash/36;ctx.fillStyle='#badba4';ctx.fillRect(1,13,10,1);}
+    ctx.restore();
+  }
+  if(hpCritical){
+    ctx.save();
+    ctx.globalAlpha=.22+.16*(.5+.5*Math.sin(engine.frame*.09));
+    ctx.strokeStyle='#ff6c63';ctx.lineWidth=1;
+    ctx.strokeRect(safeLeft+2.5,2.5,statusW+3,statusH+3);
     ctx.restore();
   }
   if(p.hurtTimer>0){
@@ -2420,8 +2432,18 @@ function drawHUD(engine: GameEngine) {
     ctx.save();ctx.globalAlpha=.2+.30*hurtA;ctx.strokeStyle='#ff6c63';ctx.lineWidth=1;
     ctx.strokeRect(safeLeft+2.5,2.5,statusW+3,statusH+3);ctx.restore();
   }
-  const shieldTotal=p.shield+p.contactShield+(p.helmetShield?1:0);
-  if(shieldTotal>0)text(ctx,`ESCUDO ${shieldTotal}`,safeLeft+statusW-4,12,4.2,'#9fdae0','right',true,false);
+  if(shieldTotal>0){
+    const shieldY=4+(heartRows>1?35:25),pipCount=Math.min(6,shieldTotal);
+    ctx.fillStyle='rgba(110,199,211,.09)';ctx.fillRect(safeLeft+8,shieldY,statusW-8,8);
+    text(ctx,'PROTECCIÓN',safeLeft+11,shieldY+6,3.7,'#79a9af','left',true,false);
+    const pipStart=safeLeft+statusW-8-pipCount*8;
+    for(let i=0;i<pipCount;i++){
+      ctx.fillStyle=i===pipCount-1?'#a7e6ea':'#73c2cb';
+      ctx.fillRect(pipStart+i*8,shieldY+2,6,4);
+      ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(pipStart+i*8+1,shieldY+2,4,1);
+    }
+    if(shieldTotal>6)text(ctx,`+${shieldTotal-6}`,pipStart-3,shieldY+6,3.7,'#a7e6ea','right',true,false);
+  }
 
   // Expediente de ubicación: reemplaza texto flotante por un único foco central.
   const modeAccent=engine.gameMode==='endless'?'#d86b58':engine.gameMode==='daily'?'#c98cff':'#e6c56f';
