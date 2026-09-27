@@ -86,33 +86,31 @@ export function drawPanel(
 ) {
   ctx.save();
 
-  // Panel industrial completamente ortogonal: sombra desplazada, marco exterior,
-  // segundo marco interior y cantoneras rectas. Sin redondeos ni siluetas suaves.
-  ctx.fillStyle = 'rgba(0,0,0,0.58)';
-  ctx.fillRect(x + 4, y + 4, w, h);
+  // Panel limpio y ortogonal: sin pestañas, recortes ni salientes.
+  ctx.fillStyle = 'rgba(0,0,0,0.56)';
+  ctx.fillRect(x + 3, y + 3, w, h);
+
   ctx.fillStyle = fill;
   ctx.fillRect(x, y, w, h);
 
   ctx.strokeStyle = accent;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
-  ctx.strokeStyle = border;
   ctx.lineWidth = 1;
-  ctx.strokeRect(x + 4.5, y + 4.5, w - 9, h - 9);
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
 
+  // Segundo marco totalmente contenido dentro del panel.
+  if (w > 18 && h > 18) {
+    ctx.strokeStyle = border;
+    ctx.globalAlpha = .46;
+    ctx.strokeRect(x + 4.5, y + 4.5, w - 9, h - 9);
+    ctx.globalAlpha = 1;
+  }
+
+  // Único acento estructural: barra lateral interna.
   ctx.fillStyle = border;
-  ctx.fillRect(x, y, 5, h);
-  ctx.fillRect(x + 5, y, Math.min(56, Math.max(18, w * .22)), 2);
-
-  // Cantoneras cuadradas tipo placa de seguridad.
-  const s = 7;
-  ctx.fillRect(x, y, s, 2); ctx.fillRect(x, y, 2, s);
-  ctx.fillRect(x + w - s, y, s, 2); ctx.fillRect(x + w - 2, y, 2, s);
-  ctx.fillRect(x, y + h - 2, s, 2); ctx.fillRect(x, y + h - s, 2, s);
-  ctx.fillRect(x + w - s, y + h - 2, s, 2); ctx.fillRect(x + w - 2, y + h - s, 2, s);
+  ctx.fillRect(x + 1, y + 1, 3, h - 2);
 
   ctx.fillStyle = 'rgba(255,255,255,.035)';
-  ctx.fillRect(x + 8, y + 8, w - 16, 1);
+  ctx.fillRect(x + 8, y + 7, Math.max(0, w - 16), 1);
   ctx.restore();
 }
 
@@ -284,44 +282,38 @@ export function drawMenuCard(
 ) {
   ctx.save();
 
-  // Sombra de placa dura, sin halo difuso.
-  ctx.fillStyle='rgba(0,0,0,.56)';
-  ctx.fillRect(x+4,y+4,w,h);
+  // Tarjeta rectangular limpia: sin pestañas, cantoneras ni piezas sobresalientes.
+  ctx.fillStyle='rgba(0,0,0,.54)';
+  ctx.fillRect(x+3,y+3,w,h);
 
-  // Base sólida: aunque un llamador use transparencia, el panel conserva peso.
-  ctx.fillStyle='rgba(5,14,18,.82)';
+  ctx.fillStyle='rgba(5,14,18,.84)';
   ctx.fillRect(x,y,w,h);
   ctx.fillStyle=fill;
   ctx.fillRect(x,y,w,h);
 
-  // Marco exterior e interior completamente rectangulares.
   ctx.strokeStyle=selected?accent:MENU_THEME.line;
   ctx.lineWidth=selected?2:1;
   ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-  ctx.strokeStyle=selected?'rgba(255,255,255,.16)':'rgba(117,164,168,.10)';
-  ctx.lineWidth=1;
-  ctx.strokeRect(x+5.5,y+5.5,w-11,h-11);
 
-  // Lomo y barra superior convierten cada tarjeta en un módulo físico.
-  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?1:.62;
-  ctx.fillRect(x,y,selected?6:4,h);
-  ctx.fillRect(x+(selected?6:4),y,selected?Math.min(74,w*.36):Math.min(40,w*.24),2);
-  ctx.globalAlpha=1;
-
-  // Cantoneras ortogonales.
-  const k=7;
-  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?.72:.34;
-  ctx.fillRect(x+w-k,y,k,2);ctx.fillRect(x+w-2,y,2,k);
-  ctx.fillRect(x+w-k,y+h-2,k,2);ctx.fillRect(x+w-2,y+h-k,2,k);
-  ctx.fillRect(x,y+h-2,k,2);ctx.fillRect(x,y+h-k,2,k);
-  ctx.globalAlpha=1;
-
-  if(h>=34){
-    ctx.fillStyle='rgba(255,255,255,.028)';
-    ctx.fillRect(x+12,y+h-8,w-24,1);
+  // Marco interior discreto y siempre contenido.
+  if(w>20&&h>20){
+    ctx.strokeStyle=selected?'rgba(255,255,255,.14)':'rgba(117,164,168,.09)';
+    ctx.lineWidth=1;
+    ctx.strokeRect(x+4.5,y+4.5,w-9,h-9);
   }
+
+  // Acento lateral compacto. No invade ni rompe la silueta.
+  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
+  ctx.globalAlpha=selected?1:.58;
+  ctx.fillRect(x+1,y+1,selected?4:3,h-2);
+  ctx.globalAlpha=1;
+
+  // Línea técnica interna opcional en tarjetas grandes.
+  if(h>=34&&w>=40){
+    ctx.fillStyle='rgba(255,255,255,.026)';
+    ctx.fillRect(x+10,y+h-7,w-20,1);
+  }
+
   ctx.restore();
 }
 
@@ -349,17 +341,14 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
       :'rgba(7,19,25,.98)'
   );
   ctx.save();
-  if(!disabled){
+  if(!disabled&&hover){
     ctx.fillStyle=col;
-    ctx.globalAlpha=hover?.18:.04;
-    ctx.fillRect(x+6,y+5,w-12,h-10);
+    ctx.globalAlpha=.10;
+    ctx.fillRect(x+5,y+4,w-10,h-8);
     ctx.globalAlpha=1;
-    if(hover){
-      ctx.fillRect(x+6,y+h-4,w-12,2);
-      text(ctx,'›',x+w-11,y+h/2+3,7.5,col,'center',true,false);
-    }
+    ctx.fillRect(x+5,y+h-3,w-10,1);
   }
-  text(ctx,label,x+w/2-(hover?3:0),y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
+  text(ctx,label,x+w/2,y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
   ctx.restore();
 }
 
