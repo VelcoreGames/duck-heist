@@ -117,10 +117,23 @@ export function runSelfChecks():CheckReport {
       const a=endActionRect(0),b=endActionRect(1);
       assert(a.y===b.y&&a.x+a.w<b.x,'acciones finales no quedaron en una fila limpia');
     });
+    check('El cursor actualiza la dirección de apuntado sin disparar',()=>{
+      const e=setup();
+      e.player.x=120;e.player.y=120;e.player.vx=0;e.player.vy=0;e.mouseDown=false;
+      e.mouseX=e.player.x+107;e.mouseY=e.player.y+8;
+      tick(e);
+      assert(Math.abs(e.player.facingAngle)<.08,'cursor a la derecha no orientó el arma a la derecha');
+      e.mouseX=e.player.x+7;e.mouseY=e.player.y-92;
+      tick(e);
+      assert(Math.abs(e.player.facingAngle+Math.PI/2)<.08,'cursor arriba no orientó el arma hacia arriba');
+      e.keys={a:true};e.mouseX=e.player.x+107;e.mouseY=e.player.y+8;
+      tick(e);
+      assert(Math.abs(e.player.facingAngle)<.08,'movimiento contrario anuló la dirección del cursor');
+    });
     check('Pato jugador renderiza locomoción, combate, dash, interacción y muerte',()=>{
       for(const skin of ['robber','chef','executive','ninja','pirate','gold','king']){
         for(const dir of ['up','down','left','right'] as const){
-          drawDuckSkin(ctx,80,80,120,skin,dir,false,false,false,false,false);
+          drawDuckSkin(ctx,80,80,120,skin,dir,false,false,false,false,false,true);
           drawDuckSkin(ctx,80,80,126,skin,dir,true,false,false,false,false);
           drawDuckSkin(ctx,80,80,132,skin,dir,true,false,false,true,false);
           drawDuckSkin(ctx,80,80,138,skin,dir,true,false,true,false,false);

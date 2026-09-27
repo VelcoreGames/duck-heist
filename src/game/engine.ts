@@ -2119,6 +2119,18 @@ export function updateEngine(engine: GameEngine) {
   if (Math.abs(inX) > Math.abs(inY)) { if (inX > 0) player.dir = 'right'; else if (inX < 0) player.dir = 'left'; }
   else if (inY !== 0) player.dir = inY > 0 ? 'down' : 'up';
 
+  // La dirección de apuntado es independiente de la locomoción. El cursor
+  // orienta al pato incluso sin disparar; el stick derecho tiene prioridad
+  // cuando realmente está apuntando con gamepad.
+  let lookX=0,lookY=0;
+  if(engine.pad.connected&&Math.hypot(engine.pad.aimX,engine.pad.aimY)>.18){
+    lookX=engine.pad.aimX;lookY=engine.pad.aimY;
+  }else if(engine.mouseX!==0||engine.mouseY!==0){
+    lookX=engine.mouseX-(player.x+7);
+    lookY=engine.mouseY-(player.y+8);
+  }
+  if(Math.hypot(lookX,lookY)>4) player.facingAngle=Math.atan2(lookY,lookX);
+
   if (player.hurtTimer > 0) player.hurtTimer--;
   if (player.iFrames > 0) player.iFrames--;
   if (player.flash > 0) player.flash--;
