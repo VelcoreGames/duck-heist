@@ -32,7 +32,7 @@ import { completeTutorial, updateTutorial } from './tutorial';
 import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
-import { obstacleHitbox, specialSolidRects, rectsOverlap, pointInRect, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { obstacleHitbox, obstacleMaxHp, obstacleDebrisColor, specialSolidRects, rectsOverlap, pointInRect, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 import { bankKeyDropChance, bankKeyPityAfterAttempt, specialRoomKeyCost, specialRoomLocked, tryUnlockSpecialRoom } from './keyAccess';
 import type {
@@ -524,6 +524,54 @@ function applyDoorTiles(room: MapRoom) {
     const t = DOOR_TILE[d];
     room.layout[t.y][t.x] = TILE_DOOR;
   }
+}
+
+const obstacleStateKey=(tx:number,ty:number)=>tx+','+ty;
+
+export function obstacleHpAt(content:RoomContent,kind:number,tx:number,ty:number){
+  return content.obstacleHp?.[obstacleStateKey(tx,ty)] ?? obstacleMaxHp(kind);
+}
+
+export function damageObstacleTile(
+  engine:GameEngine,room:MapRoom,content:RoomContent,
+  tx:number,ty:number,amount:number,
+){
+  if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return false;
+  const tile=room.layout[ty][tx];
+  if(tile<OBSTACLE_BASE)return false;
+  const kind=tile-OBSTACLE_BASE,maxHp=obstacleMaxHp(kind),key=obstacleStateKey(tx,ty);
+  const current=obstacleHpAt(content,kind,tx,ty);
+  const damage=Math.max(1,Math.round(amount));
+  const next=Math.max(0,current-damage);
+  (content.obstacleHp??={})[key]=next;
+
+  const cx=tx*TILE_SIZE+TILE_SIZE/2,cy=ty*TILE_SIZE+TILE_SIZE/2;
+  const debris=obstacleDebrisColor(kind);
+  spawn(engine,cx,cy,'spark',damage>=12?3:2,debris);
+  if(next>0){
+    if(next/maxHp<.34&&engine.frame%3===0)spawn(engine,cx,cy,'smoke',1,'#5d6668');
+    return false;
+  }
+
+  // Al destruirse, el tile se vuelve suelo inmediatamente: dibujo, colisión,
+  // pathing y proyectiles comparten la misma fuente de verdad.
+  room.layout[ty][tx]=0;
+  delete content.obstacleHp![key];
+  spawn(engine,cx,cy,'hit',8,debris);
+  spawn(engine,cx,cy,'smoke',4,'#606a6c');
+  spawn(engine,cx,cy,'spark',5,'#d2c39a');
+  engine.shakeIntensity=Math.max(engine.shakeIntensity,1.25);
+  playHit();
+  return true;
+}
+
+function projectileObstacleDamage(engine:GameEngine,p:Projectile){
+  let damage=p.damageScaled?p.damage:p.damage*engine.player.damageMultiplier;
+  if(p.type==='buckshot_player'){
+    const lifeRatio=clamp(p.lifetime/Math.max(1,p.maxLifetime),0,1);
+    damage*=.28+.72*lifeRatio;
+  }
+  return Math.max(1,damage);
 }
 
 function pointBlocked(room: MapRoom, px:number, py:number, flying=false):boolean {
@@ -3050,8 +3098,28 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     const tx = Math.floor(p.x / TILE_SIZE), ty = Math.floor(p.y / TILE_SIZE);
     const outside = tx < 0 || ty < 0 || tx >= ROOM_WIDTH || ty >= ROOM_HEIGHT;
     const tile = outside ? TILE_WALL : room.layout[ty][tx];
+    const obstacleHit=!outside&&tile>=OBSTACLE_BASE&&pointInRect(
+      p.x,p.y,obstacleHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)
+    );
     const solid = outside || pointBlocked(room,p.x,p.y,false);
     if (solid) {
+      if(p.friendly&&obstacleHit){
+        if(p.explode>0){
+          explode(engine,p,content);
+          engine.projectiles.splice(i,1);
+          continue;
+        }
+        const destroyed=damageObstacleTile(engine,room,content,tx,ty,projectileObstacleDamage(engine,p));
+        if(destroyed){
+          spawnWeaponImpact(engine,p,p.x,p.y,true);
+          // Un disparo que termina de romper la cobertura no rebota sobre un
+          // objeto que ya dejó de existir. Los penetrantes siguen su trayectoria.
+          if((p.penetration??0)>0){p.penetration!--;continue;}
+          if(p.piercing)continue;
+          engine.projectiles.splice(i,1);
+          continue;
+        }
+      }
       if(p.friendly && tile===TILE_WALL) {
         const direction=room.doors.find(d=>DOOR_TILE[d].x===tx&&DOOR_TILE[d].y===ty);
         if(direction) {
@@ -3203,6 +3271,24 @@ function explode(engine: GameEngine, p: Projectile, content: RoomContent, hurtPl
   }
 
   const r2=radius*radius;
+
+  // Las explosiones golpean todos los props dentro del radio. El daño se
+  // atenúa con la distancia, pero las armas pesadas pueden abrir cobertura.
+  const room=currentRoom(engine);
+  const minTx=Math.max(0,Math.floor((p.x-radius-TILE_SIZE)/TILE_SIZE));
+  const maxTx=Math.min(ROOM_WIDTH-1,Math.floor((p.x+radius+TILE_SIZE)/TILE_SIZE));
+  const minTy=Math.max(0,Math.floor((p.y-radius-TILE_SIZE)/TILE_SIZE));
+  const maxTy=Math.min(ROOM_HEIGHT-1,Math.floor((p.y+radius+TILE_SIZE)/TILE_SIZE));
+  for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
+    const tile=room.layout[ty][tx];
+    if(tile<OBSTACLE_BASE)continue;
+    const hit=obstacleHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE);
+    const cx=hit.x+hit.w/2,cy=hit.y+hit.h/2,d=Math.hypot(cx-p.x,cy-p.y);
+    if(d>radius+Math.max(hit.w,hit.h)*.5)continue;
+    const falloff=Math.max(.35,1-d/Math.max(1,radius)*.65);
+    damageObstacleTile(engine,room,content,tx,ty,Math.max(3,p.damage*1.35*falloff));
+  }
+
   for(let ei=content.enemies.length-1;ei>=0;ei--){
     const e=content.enemies[ei];
     if(!e||e.hp<=0)continue;

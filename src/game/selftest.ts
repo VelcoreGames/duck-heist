@@ -3,7 +3,7 @@ import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENE
 import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
-import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,GameState,SETTING_ROWS } from './engine';
+import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,damageObstacleTile,obstacleHpAt,GameState,SETTING_ROWS } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
 import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,type Dir } from './constants';
@@ -20,7 +20,7 @@ import { coverVisibleCanvasRect,mainMenuRect,mainMenuHit,pauseRect,settingsRect,
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere } from './roomArt';
-import { obstacleHitbox, obstacleOccludes, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { obstacleHitbox, obstacleOccludes, obstacleMaxHp, OBSTACLE_DURABILITY, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { bankKeyDropChance, specialRoomKeyCost, tryUnlockSpecialRoom } from './keyAccess';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
@@ -170,6 +170,33 @@ export function runSelfChecks():CheckReport {
       const low=[1,3,7,9,10];
       for(const kind of tall)assert(obstacleOccludes(kind),`prop alto sin oclusión ${OBSTACLES[kind]}`);
       for(const kind of low)assert(!obstacleOccludes(kind),`prop bajo oculta al pato ${OBSTACLES[kind]}`);
+    });
+    check('Todos los props procedurales tienen resistencia destructible',()=>{
+      assert(OBSTACLE_DURABILITY.length===OBSTACLES.length,'faltan resistencias de objetos');
+      assert(OBSTACLE_DURABILITY.every(d=>d.hp>0),'objeto con resistencia inválida');
+      assert(obstacleMaxHp(10)<obstacleMaxHp(6),'bandeja debería romperse antes que caja fuerte');
+      assert(obstacleMaxHp(3)<obstacleMaxHp(5),'bolsa debería romperse antes que columna');
+      assert(obstacleMaxHp(13)>obstacleMaxHp(1),'contenedor blindado debería resistir más que barrera');
+    });
+    check('Daño de escenario persiste y al romper libera el tile',()=>{
+      const e=setup(),room=e.map.rooms.get(e.currentKey)!,content=e.contents.get(e.currentKey)!;
+      const tx=5,ty=5,kind=6,max=obstacleMaxHp(kind);
+      room.layout[ty][tx]=OBSTACLE_BASE+kind;
+      content.obstacleHp={};
+      const brokeEarly=damageObstacleTile(e,room,content,tx,ty,max*.4);
+      assert(!brokeEarly,'objeto resistente se rompió demasiado pronto');
+      const remaining=obstacleHpAt(content,kind,tx,ty);
+      assert(remaining<max&&remaining>0,'daño no persistió');
+      const broke=damageObstacleTile(e,room,content,tx,ty,max);
+      assert(broke,'objeto no se destruyó al agotar resistencia');
+      assert(room.layout[ty][tx]<OBSTACLE_BASE,'tile destruido sigue siendo sólido');
+    });
+    check('Estados visuales de daño de los 14 props renderizan sin excepción',()=>{
+      for(let kind=0;kind<OBSTACLES.length;kind++){
+        drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,1);
+        drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,.55);
+        drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,.2);
+      }
     });
     check('Props físicos especiales tienen colisión y botín de suelo no',()=>{
       const content:RoomContent={

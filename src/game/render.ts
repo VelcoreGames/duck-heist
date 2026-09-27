@@ -53,7 +53,7 @@ import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChal
 import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
-import { obstacleHitbox, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
+import { obstacleHitbox, obstacleMaxHp, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
@@ -79,6 +79,10 @@ function drawGroundLootBase(
   ctx.restore();
 }
 const menuFrame = (engine:GameEngine) => engine.settings.reduceMotion ? 0 : engine.frame;
+const obstacleIntegrity=(content:RoomContent,kind:number,tx:number,ty:number)=>{
+  const hp=content.obstacleHp?.[tx+','+ty];
+  return hp===undefined?1:clamp(hp/obstacleMaxHp(kind),0,1);
+};
 
 
 function drawGunVanScene(ctx:CanvasRenderingContext2D,f:number) {
@@ -520,7 +524,10 @@ export function renderWorld(engine: GameEngine) {
   for (let y = 0; y < ROOM_HEIGHT; y++) {
     for (let x = 0; x < ROOM_WIDTH; x++) {
       const t = room.layout[y][x];
-      if (t >= OBSTACLE_BASE) drawObstacle(ctx, x * TILE_SIZE, y * TILE_SIZE, t - OBSTACLE_BASE, f);
+      if (t >= OBSTACLE_BASE) {
+        const kind=t-OBSTACLE_BASE;
+        drawObstacle(ctx,x*TILE_SIZE,y*TILE_SIZE,kind,f,obstacleIntegrity(content,kind,x,y));
+      }
     }
   }
 
@@ -1261,7 +1268,7 @@ function drawForegroundProps(
     const bandBottom=Math.min(y+TILE_SIZE,Math.max(y+12,hit.y+5));
     ctx.save();
     ctx.beginPath();ctx.rect(x-2,y-3,TILE_SIZE+4,bandBottom-y+3);ctx.clip();
-    drawObstacle(ctx,x,y,kind,f);
+    drawObstacle(ctx,x,y,kind,f,obstacleIntegrity(content,kind,tx,ty));
     ctx.restore();
   }
 
