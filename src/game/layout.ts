@@ -58,8 +58,8 @@ export function useWideMainMenu():boolean {
   return w>=1120&&h>=620;
 }
 
-export const MAIN_MENU={x:26,y:80,w:145,h:24,gap:3,count:8};
-const mainMenuGroupOffset=(i:number)=>i>=6?12:i>=3?6:0;
+export const MAIN_MENU={x:26,y:80,w:151,h:25,gap:3,count:8};
+const mainMenuGroupOffset=(i:number)=>i>=7?15:i>=5?10:i>=3?5:0;
 export function mainMenuRect(i:number,wide=false):Rect {
   if(!wide||CANVAS_WIDTH<=UI_BASE_WIDTH)return {...MAIN_MENU,y:MAIN_MENU.y+i*(MAIN_MENU.h+MAIN_MENU.gap)+mainMenuGroupOffset(i)};
   const safe=visibleCanvasRect(10);
@@ -87,10 +87,10 @@ export const CONFIRM_RECTS:[Rect,Rect]=[
   {x:80,y:230,w:150,h:34},  // cancelar
 ];
 
-export const BACK_BUTTON:Rect={x:28,y:318,w:92,h:22};
-export const PRIMARY_BUTTON:Rect={x:326,y:318,w:126,h:22};
-export const CONTROLS_RESET:Rect={x:326,y:318,w:126,h:22};
-export const MAP_CLOSE:Rect={x:356,y:318,w:96,h:22};
+export const BACK_BUTTON:Rect={x:28,y:316,w:96,h:24};
+export const PRIMARY_BUTTON:Rect={x:322,y:316,w:130,h:24};
+export const CONTROLS_RESET:Rect={x:322,y:316,w:130,h:24};
+export const MAP_CLOSE:Rect={x:352,y:316,w:100,h:24};
 export const SWAP_CANCEL:Rect={x:176,y:309,w:128,h:24};
 
 export const SETTINGS={x:34,y:82,w:202,h:26,gapX:8,gapY:6,cols:2,rows:6};
@@ -110,7 +110,7 @@ export const ENDLESS_REWARD={y:118,h:112,w:122,gap:12,startX:45};
 export function endlessRewardHit(x:number,y:number,count:number){for(let i=0;i<count;i++)if(inside(x,y,{x:ENDLESS_REWARD.startX+i*(ENDLESS_REWARD.w+ENDLESS_REWARD.gap),y:ENDLESS_REWARD.y,w:ENDLESS_REWARD.w,h:ENDLESS_REWARD.h}))return i;return -1;}
 export const ENDLESS_SECONDARY:Rect={x:120,y:280,w:240,h:28};
 
-export const END_ACTIONS={x:134,y:290,w:103,h:24,gap:8,count:2};
+export const END_ACTIONS={x:89,y:286,w:145,h:28,gap:12,count:2};
 export const endActionRect=(i:number):Rect=>({x:END_ACTIONS.x+i*(END_ACTIONS.w+END_ACTIONS.gap),y:END_ACTIONS.y,w:END_ACTIONS.w,h:END_ACTIONS.h});
 export function endActionHit(x:number,y:number){for(let i=0;i<END_ACTIONS.count;i++)if(inside(x,y,endActionRect(i)))return i;return -1;}
 
