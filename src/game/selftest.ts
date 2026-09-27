@@ -177,6 +177,8 @@ export function runSelfChecks():CheckReport {
       assert(obstacleMaxHp(10)<obstacleMaxHp(6),'bandeja debería romperse antes que caja fuerte');
       assert(obstacleMaxHp(3)<obstacleMaxHp(5),'bolsa debería romperse antes que columna');
       assert(obstacleMaxHp(13)>obstacleMaxHp(1),'contenedor blindado debería resistir más que barrera');
+      assert(obstacleMaxHp(10)<=7&&obstacleMaxHp(3)<=14&&obstacleMaxHp(9)<=14,'props frágiles tardan demasiado');
+      assert(Math.max(...OBSTACLE_DURABILITY.map(d=>d.hp))<=63,'ningún prop debe exigir más de 9 impactos de la pistola inicial');
     });
     check('Daño de escenario persiste y al romper libera el tile',()=>{
       const e=setup(),room=e.map.rooms.get(e.currentKey)!,content=e.contents.get(e.currentKey)!;

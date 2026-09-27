@@ -33,20 +33,22 @@ export interface ObstacleDurability {
  * contenedores blindados necesitan fuego sostenido o armamento pesado.
  */
 export const OBSTACLE_DURABILITY:ReadonlyArray<ObstacleDurability>=[
-  {hp:42, material:'wood',       debris:'#8a694f'}, // desk
-  {hp:28, material:'light',      debris:'#c99e36'}, // barrier
-  {hp:52, material:'metal',      debris:'#738084'}, // shelf
-  {hp:16, material:'light',      debris:'#4d6268'}, // moneybag
-  {hp:82, material:'reinforced', debris:'#69777b'}, // crate
-  {hp:170,material:'structural', debris:'#aab4b3'}, // column
-  {hp:210,material:'structural', debris:'#7e8b90'}, // safe
-  {hp:24, material:'light',      debris:'#68777c'}, // rubble
-  {hp:105,material:'reinforced', debris:'#78817e'}, // deposit lockers
-  {hp:22, material:'light',      debris:'#4d5a5e'}, // briefcase
-  {hp:14, material:'light',      debris:'#718c68'}, // cash tray
-  {hp:76, material:'metal',      debris:'#677579'}, // value cart
-  {hp:92, material:'reinforced', debris:'#727d81'}, // archive cabinet
-  {hp:145,material:'structural', debris:'#68757a'}, // armored case
+  // Balance pensado alrededor de la pistola inicial de 7 de daño:
+  // frágiles 1–2 impactos, medios 3–5 y estructuras fuertes 7–9.
+  {hp:18, material:'wood',       debris:'#8a694f'}, // desk
+  {hp:12, material:'light',      debris:'#c99e36'}, // barrier
+  {hp:24, material:'metal',      debris:'#738084'}, // shelf
+  {hp:9,  material:'light',      debris:'#4d6268'}, // moneybag
+  {hp:32, material:'reinforced', debris:'#69777b'}, // crate
+  {hp:52, material:'structural', debris:'#aab4b3'}, // column
+  {hp:60, material:'structural', debris:'#7e8b90'}, // safe
+  {hp:11, material:'light',      debris:'#68777c'}, // rubble
+  {hp:38, material:'reinforced', debris:'#78817e'}, // deposit lockers
+  {hp:10, material:'light',      debris:'#4d5a5e'}, // briefcase
+  {hp:7,  material:'light',      debris:'#718c68'}, // cash tray
+  {hp:27, material:'metal',      debris:'#677579'}, // value cart
+  {hp:35, material:'reinforced', debris:'#727d81'}, // archive cabinet
+  {hp:48, material:'structural', debris:'#68757a'}, // armored case
 ];
 
 export const obstacleMaxHp=(kind:number)=>OBSTACLE_DURABILITY[kind]?.hp??36;
