@@ -701,6 +701,16 @@ export function runSelfChecks():CheckReport {
       assert(all.length===145,'conteo total inesperado');
       for(const b of all) for(let phase=0;phase<b.phases;phase++) drawBoss(ctx,40,40,b.id,120+phase*7,b.hp,b.hp,false,phase);
     });
+    check('Los 145 encuentros renderizan telegraph, recuperación y daño crítico',()=>{
+      const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
+      for(const b of all){
+        const phase=Math.max(0,b.phases-1);
+        const step=2;
+        drawBoss(ctx,72,72,b.id,170,b.hp*.32,b.hp,false,phase,.78,b.legacy?bossPartsFor(b.id):undefined,step,0,14);
+        drawBoss(ctx,72,72,b.id,181,b.hp*.18,b.hp,false,phase,0,b.legacy?bossPartsFor(b.id):undefined,undefined,9,14);
+      }
+      assert(all.length===145,'catálogo incompleto durante prueba de pose/daño');
+    });
     check('Los 145 encuentros tienen identidad visual estructural única',()=>{
       const all=[...Object.values(MINIBOSSES),...Object.values(SUBBOSSES),...Object.values(BOSSES)];
       const keys=all.map(b=>bossVisualIdentityKey(b.id));
