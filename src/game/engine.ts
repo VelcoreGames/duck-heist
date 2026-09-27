@@ -4032,6 +4032,15 @@ function bossPatternMove(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,a
     Math.cos(ang)*spd*forward+Math.cos(ang+Math.PI/2)*spd*wobble,
     Math.sin(ang)*spd*forward+Math.sin(ang+Math.PI/2)*spd*wobble);
 }
+function plannedLegacyBossAttack(def:BossDef,phase:number,step:number,maxAttack:number){
+  const phases=def.phaseAttackPlan;
+  if(!phases?.length)return rngInt(0,maxAttack);
+  const plan=phases[Math.min(Math.max(0,phase),phases.length-1)];
+  if(!plan?.length)return rngInt(0,maxAttack);
+  const attack=plan[Math.max(0,step)%plan.length];
+  return clamp(Math.round(attack),0,maxAttack);
+}
+
 function startIconicBossSequence(boss:Enemy,attack:number,delay:number){
   boss.bossSequenceAttack=attack;
   boss.bossSequenceStep=0;
@@ -4200,6 +4209,7 @@ function runIconicBossSequence(engine:GameEngine,boss:Enemy,room:MapRoom,content
 function bossPhaseTransition(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossDef,phase:number,tier:'mini'|'sub'|'boss',content:RoomContent) {
   boss.bossPreparedAttack=undefined;boss.bossAttackRecovery=0;boss.bossAttackRecoveryMax=0;finishIconicBossSequence(boss);
   boss.bossPhase=phase;
+  if(def.phaseAttackPlan)boss.bossAttackIndex=0;
   boss.attackTimer=tier==='boss'?78:tier==='sub'?62:38;
   boss.stunned=tier==='boss'?50:tier==='sub'?38:18;
   boss.spawnAnim=Math.max(boss.spawnAnim,tier==='boss'?24:tier==='sub'?16:10);
@@ -4265,6 +4275,25 @@ function bossPhaseTransition(engine:GameEngine,boss:Enemy,room:MapRoom,def:BossD
         break;
     }
   }else{
+    if(def.finalBoss){
+      const px=engine.player.x+7,py=engine.player.y+8;
+      if(phase===1){
+        // Junta de emergencia: obliga a leer cuatro zonas alrededor del jugador
+        // mientras el jefe convoca seguridad y cambia a la segunda rotación.
+        bossRing(engine,boss,8,2.1,'coin_proj',engine.frame*.022);
+        for(const [i,[dx,dy]] of [[56,0],[-56,0],[0,48],[0,-48]].entries()){
+          queueBossAirStrike(content,clamp(px+dx,42,CANVAS_WIDTH-42),clamp(py+dy,42,CANVAS_HEIGHT-42),16,'shell',40+i*6);
+        }
+        bossSupport(engine,room,content,def.pattern.support,5);
+      }else if(phase>=2){
+        // Pánico de bóveda: la tercera fase abre espacio con dos coronas
+        // contrarrotatorias antes de cerrar el área con seguridad reforzada.
+        bossRing(engine,boss,12,2.45,'coin_proj',engine.frame*.045);
+        bossRing(engine,boss,8,2.05,'briefcase',-engine.frame*.032+Math.PI/8);
+        bossHazardRing(content,boss.x+boss.size/2,boss.y+boss.size/2,6,72,150);
+        bossSupport(engine,room,content,def.pattern.support,7);
+      }
+    }
     if(def.family==='tech'||def.family==='vault')bossRing(engine,boss,6+phase*2,1.65+phase*.12,def.pattern.projectile,engine.frame*.02);
     else if(def.family==='wealth'||def.family==='finance')bossRing(engine,boss,6+phase*2,1.5+phase*.12,'coin_proj',-engine.frame*.018);
 
@@ -4316,7 +4345,9 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
   const maxAttack=tier==='boss'?2+phase:tier==='sub'?2+phase:2+(phase>0?1:0);
   if(boss.attackTimer>0 && boss.attackTimer<30) {
     if(boss.bossPreparedAttack===undefined){
-      boss.bossPreparedAttack=def.legacy?rngInt(0,maxAttack):(boss.bossAttackIndex??0);
+      boss.bossPreparedAttack=def.legacy
+        ?plannedLegacyBossAttack(def,phase,boss.bossAttackIndex??0,maxAttack)
+        :(boss.bossAttackIndex??0);
     }
     boss.telegraph=1-boss.attackTimer/30;
     boss.moveAngle=ang;
@@ -4324,7 +4355,9 @@ function updateBossAI(engine: GameEngine, boss: Enemy, room: MapRoom, content: R
 
   if(boss.attackTimer<=0) {
     boss.telegraph=0;
-    const atk=def.legacy?(boss.bossPreparedAttack??rngInt(0,maxAttack)):rngInt(0,maxAttack);
+    const atk=def.legacy
+      ?(boss.bossPreparedAttack??plannedLegacyBossAttack(def,phase,boss.bossAttackIndex??0,maxAttack))
+      :rngInt(0,maxAttack);
     boss.bossPreparedAttack=undefined;
     const attackStep=boss.bossAttackIndex??0;
 
