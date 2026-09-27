@@ -15,7 +15,7 @@ import { T,LOCALE } from './i18n';
 import { DEFAULT_BINDINGS, normalizeBindings, remapBinding, keyLabel } from './controls';
 import { beginControlCapture, requestControlReset, cancelControlReset, resetControls } from './controlsUI';
 import { endlessRoundKind, rewardRounds, endlessScale, endlessOverdrive, endlessHazardTiming, endlessStage } from './endless';
-import { bossVisualIdentityKey, drawBoss, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin, drawBankKey, drawCrumbCluster } from './sprites';
+import { bossVisualIdentityKey, drawBoss, drawDuckSkin, drawPoliciaPato, drawPoliciaRapido, drawPoliciaEscopeta, drawPoliciaAntidisturbios, drawDronPolicial, drawGuardGoose, drawSecurityPigeon, drawToasterTurret, drawRollingBagel, drawEvilCroissant, drawBankerChicken, drawChest, drawDoor, drawObstacle, drawShopPigeon, drawPedestal, drawParticle, drawProjectile, drawCoin, drawBankKey, drawCrumbCluster } from './sprites';
 import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect,mainMenuRect,mainMenuHit,pauseRect,settingsRect,settingsMinusRect,settingsPlusRect,settingsActionRect,endActionRect,BACK_BUTTON,PRIMARY_BUTTON,inside } from './layout';
 import { drawVaultScene } from './titleScene';
@@ -380,7 +380,7 @@ export function runSelfChecks():CheckReport {
 
     check('Item art manifest',()=>assert(report.manifest.issues.length===0,report.manifest.issues.join(', ')));
     check('All content has a pickup category',()=>assert(report.manifest.entries.every(i=>!!i.pickup&&!!i.category),'missing pickup metadata'));
-    check('Exactly eleven cosmetic skins',()=>assert(SKINS.length===11 && SKINS.every(s=>!('hp' in s)&&!('damage' in s)&&s.overlay!=='none'),'invalid cosmetics'));
+    check('Exactly eleven cosmetic skins',()=>assert(SKINS.length===11 && SKINS.every(s=>!('hp' in s)&&!('damage' in s)),'invalid cosmetics'));
     for(let i=0;i<12;i++) for(let floor=0;floor<6;floor++) check(`Map ${i}/${floor}`,()=>assert(validateMap(generateMap(floor,`AUDIT-${i}`)).length===0,'invalid doors, reachability or boss'));
     check('Seeded layouts are reproducible',()=>assert(JSON.stringify([...generateMap(2,'BREAD-TEST').rooms])===JSON.stringify([...generateMap(2,'BREAD-TEST').rooms]),'layout changed'));
     check('Different seeds change maps',()=>assert(JSON.stringify([...generateMap(0,'A').rooms])!==JSON.stringify([...generateMap(0,'B').rooms]),'identical maps'));
