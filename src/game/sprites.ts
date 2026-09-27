@@ -897,21 +897,22 @@ export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame
 
 type BossVisual={accent:string;secondary:string;family:'command'|'finance'|'bakery'|'tech'|'riot'|'war'|'wealth'|'vault';bob:number};
 const BOSS_VISUAL:Record<string,BossVisual> = {
-  captain_honk:{accent:'#4f7ad4',secondary:'#f05c55',family:'command',bob:.7},
-  comisario_pico_duro:{accent:'#9db7df',secondary:'#d69c4c',family:'command',bob:.45},
-  toaster_9000:{accent:'#ff7043',secondary:'#ffd166',family:'tech',bob:.18},
-  general_ganso:{accent:'#7189a8',secondary:'#d44747',family:'war',bob:.35},
-  don_levadura:{accent:'#d39b5f',secondary:'#8bb85a',family:'bakery',bob:.65},
-  director_seguridad:{accent:'#55c8de',secondary:'#ff6464',family:'tech',bob:.42},
-  bread_banker:{accent:'#f4d03f',secondary:'#d7a63d',family:'wealth',bob:.5},
-  tax_collector:{accent:'#c44f4f',secondary:'#d6b169',family:'finance',bob:.8},
-  sargento_migajas:{accent:'#7b94bb',secondary:'#f0b44f',family:'war',bob:.65},
-  dron_centinela:{accent:'#55d1e1',secondary:'#ef6666',family:'tech',bob:1.6},
-  panadero_loco:{accent:'#ef8b49',secondary:'#ffd06b',family:'bakery',bob:.9},
-  head_baker:{accent:'#f0eee7',secondary:'#a46f45',family:'bakery',bob:.55},
-  el_auditor:{accent:'#72b8a1',secondary:'#d6b169',family:'finance',bob:.55},
-  ganso_antidisturbios:{accent:'#8797a8',secondary:'#5c7fae',family:'riot',bob:.28},
-  cajero_3000:{accent:'#65d3a8',secondary:'#ffd166',family:'finance',bob:.22},
+  // Clásicos migrados al mismo lenguaje de facción v2.
+  captain_honk:{accent:'#4f8bd7',secondary:'#e5b954',family:'command',bob:.55},
+  comisario_pico_duro:{accent:'#5d96d7',secondary:'#d6aa4c',family:'command',bob:.36},
+  toaster_9000:{accent:'#48c7df',secondary:'#ef5e62',family:'tech',bob:.28},
+  general_ganso:{accent:'#79866b',secondary:'#d85f50',family:'war',bob:.30},
+  don_levadura:{accent:'#d9874d',secondary:'#ffd27a',family:'bakery',bob:.48},
+  director_seguridad:{accent:'#48c7df',secondary:'#ef5e62',family:'tech',bob:.36},
+  bread_banker:{accent:'#d5aa3f',secondary:'#f0df9b',family:'wealth',bob:.32},
+  tax_collector:{accent:'#4fa58d',secondary:'#d9b45b',family:'finance',bob:.50},
+  sargento_migajas:{accent:'#79866b',secondary:'#d85f50',family:'war',bob:.44},
+  dron_centinela:{accent:'#48c7df',secondary:'#ef5e62',family:'tech',bob:1.05},
+  panadero_loco:{accent:'#d9874d',secondary:'#ffd27a',family:'bakery',bob:.58},
+  head_baker:{accent:'#d9874d',secondary:'#ffd27a',family:'bakery',bob:.40},
+  el_auditor:{accent:'#4fa58d',secondary:'#d9b45b',family:'finance',bob:.40},
+  ganso_antidisturbios:{accent:'#71889a',secondary:'#4f76a8',family:'riot',bob:.24},
+  cajero_3000:{accent:'#4fa58d',secondary:'#d9b45b',family:'finance',bob:.20},
 };
 
 function bossVisual(bossType:string):BossVisual|undefined {
