@@ -290,20 +290,23 @@ function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:n
 export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
   const s = engine.state;
-  if(s===GameState.MENU || s===GameState.DIFFICULTY || s===GameState.DAILY_BRIEF || s===GameState.HEIST_INTRO) {
-    const intro=s===GameState.HEIST_INTRO;
-    const elapsed=intro?HEIST_INTRO_FRAMES-engine.heistIntroTimer:0;
-    const p=intro?clamp(elapsed/HEIST_INTRO_FRAMES,0,1):0;
-    const opening=intro?easeOutCubic(clamp((p-.24)/.38,0,1)):0;
+  if(s===GameState.MENU||s===GameState.DIFFICULTY||s===GameState.DAILY_BRIEF){
+    drawMenuScene(ctx,engine.settings.reduceMotion?0:engine.frame);
+    return;
+  }
+
+  // La animación de entrada a partida se conserva como pieza cinematográfica
+  // independiente del nuevo lenguaje kawaii de menús.
+  if(s===GameState.HEIST_INTRO){
+    const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
+    const p=clamp(elapsed/HEIST_INTRO_FRAMES,0,1);
+    const opening=easeOutCubic(clamp((p-.24)/.38,0,1));
     const introAccent=engine.pendingMode==='endless'?'#d86b58':engine.pendingMode==='daily'?'#79b9d2':'#e6c56f';
 
     ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
     drawVaultWings(ctx,engine.frame);
-
     ctx.save();
-    if(intro&&!engine.settings.reduceMotion){
-      // Una sola coreografía de cámara: establece la bóveda, acompaña el golpe
-      // mecánico y termina asentada sobre el protagonista.
+    if(!engine.settings.reduceMotion){
       const reveal=smoothStep(.12,.76,p);
       const zoom=1.072-.072*easeOutCubic(reveal);
       const offsetY=7*(1-easeOutCubic(smoothStep(0,.46,p)));
@@ -311,54 +314,36 @@ export function renderWorld(engine: GameEngine) {
       const unlock=Math.sin(clamp((p-.245)/.095,0,1)*Math.PI);
       const micro=Math.sin(engine.frame*1.9)*unlock*1.05;
       ctx.translate(CANVAS_WIDTH/2+panX+micro,CANVAS_HEIGHT/2+offsetY);
-      ctx.scale(zoom,zoom);
-      ctx.translate(-CANVAS_WIDTH/2,-CANVAS_HEIGHT/2);
+      ctx.scale(zoom,zoom);ctx.translate(-CANVAS_WIDTH/2,-CANVAS_HEIGHT/2);
     }
     ctx.translate(UI_OFFSET_X,0);
     drawVaultScene(ctx,engine.frame,engine.equippedSkin,opening,engine.mouseX||240,engine.mouseY||176,p,introAccent);
     ctx.restore();
 
-    if(intro){
-      ctx.save();
-
-      // La sala cae ligeramente antes del desbloqueo y la luz cálida gana peso
-      // cuando aparece el interior real de la bóveda.
-      const preOpen=1-smoothStep(.30,.62,p);
-      ctx.fillStyle=`rgba(1,7,10,${.18*preOpen})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-
-      const vignette=ctx.createRadialGradient(CANVAS_WIDTH*.58,CANVAS_HEIGHT*.52,76,CANVAS_WIDTH*.58,CANVAS_HEIGHT*.52,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
-      vignette.addColorStop(0,'rgba(2,7,9,0)');
-      vignette.addColorStop(1,`rgba(2,7,9,${.42*(1-smoothStep(.74,.96,p))})`);
-      ctx.fillStyle=vignette;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-
-      // Barrido de acero sincronizado con los cerrojos.
-      const sweep=smoothStep(.26,.61,p);
-      if(sweep>0&&sweep<1){
-        const sx=CANVAS_WIDTH*.30+sweep*CANVAS_WIDTH*.53;
-        const g=ctx.createLinearGradient(sx-54,0,sx+54,0);
-        g.addColorStop(0,'rgba(255,239,179,0)');
-        g.addColorStop(.5,`rgba(255,239,179,${.14*Math.sin(sweep*Math.PI)})`);
-        g.addColorStop(1,'rgba(255,239,179,0)');
-        ctx.fillStyle=g;ctx.fillRect(0,34,CANVAS_WIDTH,CANVAS_HEIGHT-58);
-      }
-
-      // Entrada limpia y transición final al gameplay sin flash blanco.
-      const fadeIn=1-smoothStep(0,.09,p);
-      if(fadeIn>0){ctx.fillStyle=`rgba(2,7,10,${fadeIn})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
-      const fadeOut=smoothStep(.935,1,p);
-      if(fadeOut>0){ctx.fillStyle=`rgba(4,12,16,${fadeOut*.96})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
-      ctx.restore();
+    ctx.save();
+    const preOpen=1-smoothStep(.30,.62,p);
+    ctx.fillStyle=`rgba(1,7,10,${.18*preOpen})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    const vignette=ctx.createRadialGradient(CANVAS_WIDTH*.58,CANVAS_HEIGHT*.52,76,CANVAS_WIDTH*.58,CANVAS_HEIGHT*.52,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
+    vignette.addColorStop(0,'rgba(2,7,9,0)');vignette.addColorStop(1,`rgba(2,7,9,${.42*(1-smoothStep(.74,.96,p))})`);
+    ctx.fillStyle=vignette;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    const sweep=smoothStep(.26,.61,p);
+    if(sweep>0&&sweep<1){
+      const sx=CANVAS_WIDTH*.30+sweep*CANVAS_WIDTH*.53,g=ctx.createLinearGradient(sx-54,0,sx+54,0);
+      g.addColorStop(0,'rgba(255,239,179,0)');g.addColorStop(.5,`rgba(255,239,179,${.14*Math.sin(sweep*Math.PI)})`);g.addColorStop(1,'rgba(255,239,179,0)');
+      ctx.fillStyle=g;ctx.fillRect(0,34,CANVAS_WIDTH,CANVAS_HEIGHT-58);
     }
+    const fadeIn=1-smoothStep(0,.09,p);
+    if(fadeIn>0){ctx.fillStyle=`rgba(2,7,10,${fadeIn})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
+    const fadeOut=smoothStep(.935,1,p);
+    if(fadeOut>0){ctx.fillStyle=`rgba(4,12,16,${fadeOut*.96})`;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);}
+    ctx.restore();
     return;
   }
 
-  if (s === GameState.HOW_TO_PLAY || s === GameState.SETTINGS ||
-      s === GameState.WARDROBE || s === GameState.UPGRADES || s===GameState.COLLECTION || s===GameState.CONTROLS || s===GameState.CAREER) {
-    ctx.fillStyle='#10191f';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-    drawVaultWings(ctx,engine.frame);
-    ctx.save();ctx.translate(UI_OFFSET_X,0);drawVaultScene(ctx,engine.frame,engine.equippedSkin);ctx.restore();
-    ctx.fillStyle = 'rgba(4,6,14,0.86)';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  if(s===GameState.HOW_TO_PLAY||s===GameState.SETTINGS||s===GameState.WARDROBE||
+     s===GameState.UPGRADES||s===GameState.COLLECTION||s===GameState.CONTROLS||s===GameState.CAREER){
+    drawMenuScene(ctx,engine.settings.reduceMotion?0:engine.frame);
+    ctx.fillStyle='rgba(255,248,252,.60)';ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
     return;
   }
   if (s === GameState.GAME_OVER || s === GameState.VICTORY) {
