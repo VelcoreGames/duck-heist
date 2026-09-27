@@ -20,6 +20,39 @@ export interface ObstacleRect {
   h:number;
 }
 
+export type ObstacleMaterial='light'|'wood'|'metal'|'reinforced'|'structural';
+export interface ObstacleDurability {
+  hp:number;
+  material:ObstacleMaterial;
+  debris:string;
+}
+
+/**
+ * Resistencia base de los 14 props procedurales. La diferencia entre objetos
+ * es intencional: una bandeja o bolsa cae rápido; cajas fuertes, columnas y
+ * contenedores blindados necesitan fuego sostenido o armamento pesado.
+ */
+export const OBSTACLE_DURABILITY:ReadonlyArray<ObstacleDurability>=[
+  {hp:42, material:'wood',       debris:'#8a694f'}, // desk
+  {hp:28, material:'light',      debris:'#c99e36'}, // barrier
+  {hp:52, material:'metal',      debris:'#738084'}, // shelf
+  {hp:16, material:'light',      debris:'#4d6268'}, // moneybag
+  {hp:82, material:'reinforced', debris:'#69777b'}, // crate
+  {hp:170,material:'structural', debris:'#aab4b3'}, // column
+  {hp:210,material:'structural', debris:'#7e8b90'}, // safe
+  {hp:24, material:'light',      debris:'#68777c'}, // rubble
+  {hp:105,material:'reinforced', debris:'#78817e'}, // deposit lockers
+  {hp:22, material:'light',      debris:'#4d5a5e'}, // briefcase
+  {hp:14, material:'light',      debris:'#718c68'}, // cash tray
+  {hp:76, material:'metal',      debris:'#677579'}, // value cart
+  {hp:92, material:'reinforced', debris:'#727d81'}, // archive cabinet
+  {hp:145,material:'structural', debris:'#68757a'}, // armored case
+];
+
+export const obstacleMaxHp=(kind:number)=>OBSTACLE_DURABILITY[kind]?.hp??36;
+export const obstacleMaterial=(kind:number)=>OBSTACLE_DURABILITY[kind]?.material??'metal';
+export const obstacleDebrisColor=(kind:number)=>OBSTACLE_DURABILITY[kind]?.debris??'#7a8588';
+
 /** Pedestal: la colisión sólo ocupa la base metálica visible. */
 export const PEDESTAL_INTERACT_RADIUS=42;
 export function pedestalHitbox(ped:{x:number;y:number}):ObstacleRect {
