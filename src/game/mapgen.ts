@@ -5,7 +5,7 @@
 import {
   ROOM_WIDTH, ROOM_HEIGHT, RoomType,
   DIRS, DIR_VECTORS, DOOR_TILE, OPPOSITE,
-  TILE_FLOOR, TILE_WALL, OBSTACLE_BASE, OBSTACLE_VARIANTS_PER_FAMILY,
+  TILE_FLOOR, TILE_WALL, OBSTACLE_BASE, OBSTACLES_PER_FLOOR,
   type Dir,
 } from './constants';
 import { seededRandom, gameRandom } from './random';
@@ -374,20 +374,21 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
 
   const pattern=forcedTemplate ?? pick(ROOM_TEMPLATES);
   room.template=pattern;
-  // Las salas eligen primero una familia y después una de sus seis variantes.
-  // Así los 120 props entran al generador sin convertir cada layout en una lista
-  // gigantesca de IDs mágicos.
+  // Cada piso tiene 20 objetos propios. Las familias cambian de nombre,
+  // acabado y valor con el piso; aquí sólo elegimos qué siluetas encajan mejor
+  // en cada sector del banco.
   const familySets=[
-    [0,1,10,14,15,16,17],     // vestíbulo / atención
-    [1,5,6,7,18,19],           // seguridad
-    [2,3,4,8,9,11,12],         // archivo y custodia
-    [4,10,11,14,15,17,18],     // operaciones privadas
-    [5,6,8,12,13,18,19],       // alta seguridad
-    [4,5,6,8,13,18,19],        // cámara principal
+    [0,1,10,14,15,16,17],      // piso 1 · atención y oficina
+    [1,5,6,7,18,19],            // piso 2 · seguridad
+    [2,3,4,8,9,11,12],          // piso 3 · archivo y custodia
+    [0,4,10,11,14,15,18],       // piso 4 · banca privada
+    [5,6,8,12,13,18,19],        // piso 5 · bóveda
+    [4,5,6,8,13,18,19],         // piso 6 · cámara soberana
   ];
-  const prop=(family:number,variant?:number)=>
-    OBSTACLE_BASE+family*OBSTACLE_VARIANTS_PER_FAMILY+(variant??rInt(0,OBSTACLE_VARIANTS_PER_FAMILY-1));
-  const obstacle=()=>prop(pick(familySets[Math.min(5,room.floorIndex ?? 0)]));
+  const floorTier=Math.max(0,Math.min(5,room.floorIndex ?? 0));
+  const prop=(family:number,tier=floorTier)=>
+    OBSTACLE_BASE+Math.max(0,Math.min(5,tier))*OBSTACLES_PER_FLOOR+family;
+  const obstacle=()=>prop(pick(familySets[floorTier]));
 
   const place = (x: number, y: number, id?: number) => {
     if (x <= 0 || y <= 0 || x >= ROOM_WIDTH - 1 || y >= ROOM_HEIGHT - 1) return;
