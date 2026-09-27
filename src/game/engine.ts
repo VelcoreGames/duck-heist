@@ -3114,10 +3114,8 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
           spawnWeaponImpact(engine,p,p.x,p.y,true);
           // Un disparo que termina de romper la cobertura no rebota sobre un
           // objeto que ya dejó de existir. Los penetrantes siguen su trayectoria.
-          if((p.penetration??0)>0)p.penetration!--;
-          if(p.piercing||(p.penetration??0)>=0){
-            if(p.piercing||(p.penetration??0)>0)continue;
-          }
+          if((p.penetration??0)>0){p.penetration!--;continue;}
+          if(p.piercing)continue;
           engine.projectiles.splice(i,1);
           continue;
         }
