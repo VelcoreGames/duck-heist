@@ -3,7 +3,6 @@
 // CAPA MUNDO  -> pixel art; si lleva texto, usa una fuente monoespaciada diminuta.
 import { CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH } from './constants';
 import { drawDuck } from './sprites';
-import { drawPixelLogo } from './titleScene';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -174,146 +173,130 @@ export function drawBar(ctx: Ctx, x: number, y: number, w: number, value: number
 }
 
 export const MENU_THEME = {
-  ink:'#050b0f',
-  ink2:'#081319',
-  panel:'#0b1920',
-  panel2:'#10262e',
-  steel:'#233a42',
-  steel2:'#49626a',
-  line:'#355a62',
-  lineSoft:'rgba(117,164,168,.18)',
-  muted:'#7f9798',
-  text:'#dce7df',
-  gold:'#e6c56f',
-  goldBright:'#f7dda0',
-  gold2:'#8e6d2f',
-  paper:'#efe2bd',
-  cyan:'#73c7c8',
-  red:'#dc6159',
-  green:'#72c796',
+  // Paleta kawaii/chibi: brillante, suave y contrastada sin perder lectura.
+  ink:'#2d3158',
+  ink2:'#3b3f6b',
+  panel:'#fff8f2',
+  panel2:'#f6f0ff',
+  steel:'#80d6ef',
+  steel2:'#a8b8ee',
+  line:'#ffffff',
+  lineSoft:'rgba(77,76,126,.16)',
+  muted:'#6f7398',
+  text:'#40436d',
+  gold:'#ffc95f',
+  goldBright:'#fff0a8',
+  gold2:'#e8a84c',
+  paper:'#fffaf2',
+  cyan:'#66d9ee',
+  red:'#ff7396',
+  green:'#75ddb8',
+  pink:'#ff8fbd',
+  lavender:'#b99cff',
+  peach:'#ffae79',
 };
+
+function roundedPath(ctx:Ctx,x:number,y:number,w:number,h:number,radius:number){
+  const rr=Math.max(0,Math.min(radius,w/2,h/2));
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);ctx.lineTo(x+w-rr,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rr);
+  ctx.lineTo(x+w,y+h-rr);ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+  ctx.lineTo(x+rr,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rr);
+  ctx.lineTo(x,y+rr);ctx.quadraticCurveTo(x,y,x+rr,y);ctx.closePath();
+}
+function roundedFill(ctx:Ctx,x:number,y:number,w:number,h:number,radius:number,color:string){
+  roundedPath(ctx,x,y,w,h,radius);ctx.fillStyle=color;ctx.fill();
+}
+function kawaiiSparkle(ctx:Ctx,x:number,y:number,size:number,color:string,alpha=1){
+  ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.beginPath();
+  ctx.moveTo(x,y-size);ctx.lineTo(x+size*.28,y-size*.28);ctx.lineTo(x+size,y);
+  ctx.lineTo(x+size*.28,y+size*.28);ctx.lineTo(x,y+size);ctx.lineTo(x-size*.28,y+size*.28);
+  ctx.lineTo(x-size,y);ctx.lineTo(x-size*.28,y-size*.28);ctx.closePath();ctx.fill();ctx.restore();
+}
 
 /** Fondo común para pantallas de menú: oscurece el mundo sin borrar su contexto. */
 export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle=`rgba(3,8,12,${opacity})`;
-  ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  // Velo luminoso y lechoso: mantiene contexto del fondo pero elimina el aspecto industrial oscuro.
+  const bg=ctx.createLinearGradient(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  bg.addColorStop(0,`rgba(255,239,247,${Math.min(.92,opacity)})`);
+  bg.addColorStop(.48,`rgba(235,247,255,${Math.min(.90,opacity)})`);
+  bg.addColorStop(1,`rgba(244,238,255,${Math.min(.92,opacity)})`);
+  ctx.fillStyle=bg;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
 
-  // Luz ambiental suave: aprovecha mejor el tamaño físico actual sin competir
-  // con el contenido de cada menú.
-  const ambient=ctx.createRadialGradient(UI_BASE_WIDTH*.72,38,8,UI_BASE_WIDTH*.72,38,230);
-  ambient.addColorStop(0,'rgba(115,199,200,.055)');
-  ambient.addColorStop(.52,'rgba(230,197,111,.018)');
-  ambient.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=ambient;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  // Burbujas y estrellitas de baja intensidad dan vida sin competir con el texto.
+  for(let i=0;i<9;i++){
+    const x=24+(i*59)%438,y=72+(i*37)%224;
+    ctx.globalAlpha=.07+(i%3)*.025;ctx.fillStyle=i%2?MENU_THEME.pink:MENU_THEME.cyan;
+    ctx.beginPath();ctx.arc(x,y,7+(i%4)*3,0,Math.PI*2);ctx.fill();
+  }
+  for(let i=0;i<7;i++){
+    const x=30+(i*71+frame*.08)%430,y=46+(i*43)%260;
+    kawaiiSparkle(ctx,x,y,2+(i%2),i%3===0?MENU_THEME.gold:accent,.12+.05*Math.sin(frame*.035+i));
+  }
+  ctx.globalAlpha=1;
 
-  // Retícula/scan muy tenue para que las pantallas grandes no se vean vacías.
-  ctx.globalAlpha=.055;ctx.fillStyle=accent;
-  for(let x=20;x<UI_BASE_WIDTH-18;x+=46)ctx.fillRect(x,18,1,CANVAS_HEIGHT-36);
-  ctx.globalAlpha=.035;
-  for(let y=62;y<CANVAS_HEIGHT-24;y+=36)ctx.fillRect(18,y,UI_BASE_WIDTH-36,1);
-
-  const sweep=(frame*.55)%(UI_BASE_WIDTH+120)-60;
-  const g=ctx.createLinearGradient(sweep-70,0,sweep+70,0);
-  g.addColorStop(0,'rgba(255,255,255,0)');
-  g.addColorStop(.5,'rgba(255,255,255,.03)');
-  g.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.globalAlpha=1;ctx.fillStyle=g;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
-
-  ctx.globalAlpha=.16;ctx.fillStyle=accent;
-  ctx.fillRect(18,18,2,CANVAS_HEIGHT-36);
-  ctx.fillRect(UI_BASE_WIDTH-20,18,2,CANVAS_HEIGHT-36);
-  ctx.fillRect(18,CANVAS_HEIGHT-19,UI_BASE_WIDTH-36,1);
-
-  // Viñeta inferior para anclar botones y pies de menú.
-  const bottom=ctx.createLinearGradient(0,CANVAS_HEIGHT-92,0,CANVAS_HEIGHT);
-  bottom.addColorStop(0,'rgba(2,6,10,0)');
-  bottom.addColorStop(1,'rgba(2,6,10,.48)');
-  ctx.globalAlpha=1;ctx.fillStyle=bottom;ctx.fillRect(0,CANVAS_HEIGHT-92,UI_BASE_WIDTH,92);
+  // Marco suave tipo sticker.
+  roundedPath(ctx,12,10,UI_BASE_WIDTH-24,CANVAS_HEIGHT-20,18);
+  ctx.strokeStyle='rgba(255,255,255,.70)';ctx.lineWidth=2;ctx.stroke();
   ctx.restore();
 }
 
 /** Encabezado tipo expediente bancario para todos los menús. */
 export function drawMenuHeader(
   ctx:Ctx,title:string,subtitle:string,frame:number,
-  accent=MENU_THEME.gold,eyebrow='EXPEDIENTE DEL ATRACO',
+  accent=MENU_THEME.gold,eyebrow='DUCK HEIST',
 ) {
   ctx.save();
-  const x=22,y=15,w=UI_BASE_WIDTH-44,h=46;
+  const x=22,y=14,w=UI_BASE_WIDTH-44,h=48;
+  ctx.shadowColor='rgba(72,55,103,.16)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
+  roundedFill(ctx,x,y,w,h,15,'rgba(255,250,248,.96)');
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  roundedPath(ctx,x+.5,y+.5,w-1,h-1,15);ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=2;ctx.stroke();
 
-  ctx.fillStyle='rgba(3,11,15,.94)';ctx.fillRect(x,y,w,h);
-  ctx.fillStyle='rgba(255,255,255,.025)';ctx.fillRect(x+5,y+5,w-10,h-10);
-  ctx.strokeStyle='rgba(126,166,169,.20)';ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  // Insignia redonda con cara de pato simplificada.
+  ctx.fillStyle=accent;ctx.beginPath();ctx.arc(x+22,y+24,13,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff8ed';ctx.beginPath();ctx.arc(x+22,y+22,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=MENU_THEME.ink;ctx.fillRect(x+18,y+20,2,2);ctx.fillRect(x+24,y+20,2,2);
+  ctx.fillStyle='#ffad62';ctx.fillRect(x+20,y+24,5,2);
+  ctx.fillStyle=MENU_THEME.pink;ctx.globalAlpha=.45;ctx.fillRect(x+16,y+23,2,2);ctx.fillRect(x+27,y+23,2,2);ctx.globalAlpha=1;
 
-  // Banda de seguridad: color de contexto + doble guía de bóveda.
-  ctx.fillStyle=accent;ctx.fillRect(x,y,5,h);
-  ctx.globalAlpha=.34;ctx.fillRect(x+5,y,w-5,1);ctx.fillRect(x+5,y+h-2,w-5,1);ctx.globalAlpha=1;
-  ctx.fillStyle=MENU_THEME.steel2;ctx.fillRect(x+12,y+8,1,h-16);
+  text(ctx,eyebrow,x+43,y+15,5.1,accent,'left',true,false);
+  titleText(ctx,title,x+43,y+35,14.2,MENU_THEME.ink,'left',false);
+  const maxSub=subtitle.length>47?subtitle.slice(0,46)+'…':subtitle;
+  text(ctx,maxSub,x+w-16,y+34,5.0,MENU_THEME.muted,'right',false,false);
 
-  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(x+18,y+8,9,9);
-  ctx.strokeStyle=accent;ctx.globalAlpha=.72;ctx.strokeRect(x+19.5,y+9.5,6,6);ctx.globalAlpha=1;
-
-  text(ctx,eyebrow,x+34,y+15,5.1,accent,'left',true,false);
-  titleText(ctx,title,x+18,y+36,15.2,MENU_THEME.paper,'left',false);
-
-  // Subtítulo como estado/contexto técnico, alineado y más legible.
-  const maxSub=subtitle.length>48?subtitle.slice(0,47)+'…':subtitle;
-  text(ctx,maxSub,x+w-16,y+34,5.2,MENU_THEME.muted,'right',false,false);
-
-  const pulse=.28+.26*Math.sin(frame*.08);
-  ctx.globalAlpha=pulse;ctx.fillStyle=accent;
-  for(let i=0;i<3;i++)ctx.fillRect(x+w-39+i*8,y+10,5,2);
-  ctx.globalAlpha=1;
-
-  // Código visual fijo de Duck Heist.
-  text(ctx,'DH // VAULT OPS',x+w-16,y+14,4.1,'#587176','right',true,false);
+  kawaiiSparkle(ctx,x+w-24,y+13,4,accent,.55+.18*Math.sin(frame*.07));
+  kawaiiSparkle(ctx,x+w-40,y+18,2,MENU_THEME.pink,.5);
   ctx.restore();
 }
 
 /** Tarjeta de menú coherente con bordes recortados y jerarquía fuerte. */
 export function drawMenuCard(
   ctx:Ctx,x:number,y:number,w:number,h:number,
-  selected=false,accent=MENU_THEME.gold,fill='rgba(10,24,30,.94)',
+  selected=false,accent=MENU_THEME.gold,fill='rgba(255,250,247,.94)',
 ) {
   ctx.save();
+  const lift=selected?1:0;
+  ctx.shadowColor=selected?accent+'66':'rgba(66,51,93,.14)';
+  ctx.shadowBlur=selected?10:6;ctx.shadowOffsetY=4;
+  roundedFill(ctx,x,y-lift,w,h,Math.min(13,h*.35),fill);
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
 
-  // Sombra dura de píxel + halo sólo en selección. Evita blur continuo en gameplay;
-  // estas tarjetas sólo viven en interfaces/menús.
-  ctx.fillStyle='rgba(0,0,0,.48)';
-  ctx.fillRect(x+4,y+5,w,h);
-  if(selected){ctx.shadowColor=accent;ctx.shadowBlur=10;}
+  roundedPath(ctx,x+.5,y-lift+.5,w-1,h-1,Math.min(13,h*.35));
+  ctx.strokeStyle=selected?'#ffffff':MENU_THEME.line;ctx.lineWidth=selected?2:1.5;ctx.stroke();
 
-  ctx.fillStyle=fill;
-  ctx.fillRect(x,y,w,h);
+  // Banda pastel y brillo superior tipo sticker.
+  ctx.save();roundedPath(ctx,x+2,y-lift+2,w-4,h-4,Math.min(11,h*.32));ctx.clip();
+  ctx.globalAlpha=selected?.20:.08;ctx.fillStyle=accent;ctx.fillRect(x+2,y-lift+2,w-4,h-4);
+  const shine=ctx.createLinearGradient(x,y-lift,x,y-lift+h);
+  shine.addColorStop(0,'rgba(255,255,255,.65)');shine.addColorStop(.45,'rgba(255,255,255,.04)');shine.addColorStop(1,'rgba(104,80,124,.05)');
+  ctx.fillStyle=shine;ctx.fillRect(x+3,y-lift+2,w-6,h-4);ctx.restore();
 
-  const top=ctx.createLinearGradient(x,y,x,y+h);
-  top.addColorStop(0,selected?'rgba(255,255,255,.075)':'rgba(255,255,255,.032)');
-  top.addColorStop(.42,'rgba(255,255,255,0)');
-  top.addColorStop(1,'rgba(0,0,0,.24)');
-  ctx.fillStyle=top;ctx.fillRect(x+3,y+2,w-6,h-4);
-
-  // Lomo de expediente / placa de bóveda.
-  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?.95:.55;ctx.fillRect(x,y,4,h);ctx.globalAlpha=1;
-
-  ctx.strokeStyle=selected?accent:MENU_THEME.line;
-  ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-  ctx.globalAlpha=selected?.52:.20;ctx.fillStyle=accent;ctx.fillRect(x+4,y,w-8,1);ctx.globalAlpha=1;
-
-  // Esquinas técnicas recortadas y remaches: firma común de toda la UI.
-  ctx.fillStyle=MENU_THEME.ink;
-  ctx.fillRect(x+w-8,y,8,3);ctx.fillRect(x+w-3,y,3,8);
-  ctx.fillRect(x,y+h-3,8,3);ctx.fillRect(x,y+h-8,3,8);
-  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?.76:.42;
-  for(const [rx,ry] of [[x+8,y+7],[x+w-10,y+h-9]] as const){
-    ctx.fillRect(rx,ry,2,2);
-  }
-  ctx.globalAlpha=1;
-
-  // Línea de lectura horizontal: hace que tarjetas grandes parezcan paneles construidos.
-  if(h>=34){
-    ctx.fillStyle='rgba(255,255,255,.025)';ctx.fillRect(x+10,y+h-8,w-20,1);
+  ctx.fillStyle=accent;ctx.beginPath();ctx.arc(x+10,y-lift+h/2,3.2,0,Math.PI*2);ctx.fill();
+  if(selected){
+    kawaiiSparkle(ctx,x+w-12,y-lift+8,3,accent,.86);
+    ctx.globalAlpha=.55;ctx.fillStyle=accent;roundedFill(ctx,x+18,y-lift+h-4,Math.max(15,w*.26),2,1,accent);ctx.globalAlpha=1;
   }
   ctx.restore();
 }
@@ -324,65 +307,65 @@ export function drawMenuChoice(
   x:number,y:number,w:number,h:number,selected:boolean,frame:number,
   accent=MENU_THEME.gold,
 ) {
-  drawMenuCard(ctx,x,y,w,h,selected,accent,selected?'rgba(36,39,29,.96)':'rgba(11,25,31,.93)');
-  text(ctx,label,x+13,y+13,7.5,selected?'#fff3c4':MENU_THEME.text,'left',true,false);
-  if(description) text(ctx,description,x+13,y+h-5,4.6,selected?'#c9b978':MENU_THEME.muted,'left',false,false);
+  drawMenuCard(ctx,x,y,w,h,selected,accent,selected?'rgba(255,250,244,.98)':'rgba(252,249,255,.94)');
+  text(ctx,label,x+17,y+13,7.2,selected?MENU_THEME.ink:MENU_THEME.text,'left',true,false);
+  if(description)text(ctx,description,x+17,y+h-5,4.5,selected?MENU_THEME.muted:'#898caf','left',false,false);
   if(selected){
-    const sx=x+w-13+Math.sin(frame*.12)*1.2;
-    text(ctx,'›',sx,y+h/2+4,12,accent,'center',true,false);
+    const pulse=1+Math.sin(frame*.12)*.08;
+    ctx.save();ctx.translate(x+w-14,y+h/2);ctx.scale(pulse,pulse);
+    text(ctx,'♥',0,3,7,accent,'center',true,false);ctx.restore();
   }
 }
 
 export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,h:number,hover=false,accent=MENU_THEME.gold,danger=false,disabled=false){
-  const col=disabled?'#526167':danger?MENU_THEME.red:accent;
-  drawMenuCard(
-    ctx,x,y,w,h,hover&&!disabled,col,
-    disabled?'rgba(10,17,21,.86)':hover
-      ?(danger?'rgba(58,26,30,.98)':'rgba(28,38,34,.98)')
-      :'rgba(7,19,25,.96)'
-  );
+  const col=disabled?'#aeb3c8':danger?MENU_THEME.red:accent;
+  const fill=disabled?'rgba(235,235,242,.92)':danger?'rgba(255,232,238,.98)':'rgba(255,250,246,.97)';
   ctx.save();
+  if(hover&&!disabled){ctx.translate(0,-1);ctx.shadowColor=col+'70';ctx.shadowBlur=9;}
+  roundedFill(ctx,x,y,w,h,Math.min(12,h*.46),fill);
+  ctx.shadowBlur=0;
+  roundedPath(ctx,x+.5,y+.5,w-1,h-1,Math.min(12,h*.46));ctx.strokeStyle=hover&&!disabled?'#ffffff':col;ctx.lineWidth=hover&&!disabled?2:1.5;ctx.stroke();
+  ctx.globalAlpha=hover&&!disabled?.20:.09;ctx.fillStyle=col;roundedFill(ctx,x+3,y+3,w-6,h-6,Math.min(10,h*.38),col);ctx.globalAlpha=1;
   if(!disabled){
-    // Ranura de acción: comunica clic/selección sin convertir cada botón en un bloque dorado.
-    ctx.fillStyle=col;ctx.globalAlpha=hover?.18:.055;
-    ctx.fillRect(x+5,y+4,w-10,h-8);ctx.globalAlpha=1;
-    if(hover){
-      ctx.fillStyle=col;ctx.fillRect(x+7,y+h-4,Math.max(12,w*.26),1);
-      text(ctx,'›',x+w-10,y+h/2+3,7,col,'center',true,false);
-    }
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(x+10,y+h/2,3,0,Math.PI*2);ctx.fill();
+    if(hover){kawaiiSparkle(ctx,x+w-11,y+7,3,col,.8);text(ctx,'♥',x+w-12,y+h/2+4,6,col,'center',true,false);}
   }
-  text(ctx,label,x+w/2-(hover?3:0),y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
+  text(ctx,label,x+w/2-(hover&&!disabled?2:0),y+h/2+3.5,6.1,disabled?'#9699aa':MENU_THEME.ink,'center',true,false);
   ctx.restore();
 }
 
 /** Pie consistente de controles. */
 export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle='rgba(5,13,18,.88)';ctx.fillRect(22,CANVAS_HEIGHT-28,UI_BASE_WIDTH-44,18);
-  ctx.fillStyle=accent;ctx.fillRect(22,CANVAS_HEIGHT-28,3,18);
-  text(ctx,left,32,CANVAS_HEIGHT-16,5.7,'#91a7a5','left',true,false);
-  if(right) text(ctx,right,UI_BASE_WIDTH-32,CANVAS_HEIGHT-16,5.7,accent,'right',true,false);
+  roundedFill(ctx,22,CANVAS_HEIGHT-29,UI_BASE_WIDTH-44,19,9,'rgba(255,250,247,.92)');
+  ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=1.5;roundedPath(ctx,22.5,CANVAS_HEIGHT-28.5,UI_BASE_WIDTH-45,18,9);ctx.stroke();
+  ctx.fillStyle=accent;ctx.beginPath();ctx.arc(31,CANVAS_HEIGHT-19.5,3,0,Math.PI*2);ctx.fill();
+  text(ctx,left,39,CANVAS_HEIGHT-16,5.5,MENU_THEME.muted,'left',true,false);
+  if(right)text(ctx,right,UI_BASE_WIDTH-32,CANVAS_HEIGHT-16,5.5,accent,'right',true,false);
   ctx.restore();
 }
 
 /** Etiqueta de sección tipo sello. */
 export function drawSectionLabel(ctx:Ctx,label:string,x:number,y:number,accent=MENU_THEME.gold) {
   ctx.save();
-  text(ctx,label,x,y,5.3,accent,'left',true,false);
-  ctx.fillStyle=accent;ctx.globalAlpha=.45;ctx.fillRect(x,y+4,70,1);
+  roundedFill(ctx,x-3,y-9,Math.max(58,label.length*3.7+12),14,7,accent+'24');
+  text(ctx,label,x+4,y,5.15,accent,'left',true,false);
+  kawaiiSparkle(ctx,x-1,y-3,2,accent,.65);
   ctx.restore();
 }
 
 /** Chip de control para teclas/botones. */
 export function drawKeyChip(ctx:Ctx,key:string,x:number,y:number,w=34,active=true) {
   ctx.save();
-  ctx.fillStyle=active?'#1d343b':'#17242a';ctx.fillRect(x,y,w,14);
-  ctx.strokeStyle=active?MENU_THEME.gold:'#33464d';ctx.strokeRect(x+.5,y+.5,w-1,13);
-  text(ctx,key,x+w/2,y+10,5.6,active?'#f2dea1':'#7d8d91','center',true,false);
+  const col=active?MENU_THEME.cyan:'#b9bfd0';
+  roundedFill(ctx,x,y,w,14,6,active?'rgba(236,251,255,.96)':'rgba(239,239,245,.94)');
+  roundedPath(ctx,x+.5,y+.5,w-1,13,6);ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.stroke();
+  text(ctx,key,x+w/2,y+10,5.5,active?MENU_THEME.ink:'#8b8fa4','center',true,false);
   ctx.restore();
 }
 
 // ---------------------------------------------------------------------------
+// ESCENA DEL MENÚ PRINCIPAL// ---------------------------------------------------------------------------
 // ESCENA DEL MENÚ PRINCIPAL (se dibuja en la capa de mundo pixelada)
 // ---------------------------------------------------------------------------
 
@@ -395,188 +378,93 @@ const crumbs: Crumb[] = Array.from({ length: 26 }, () => ({
 }));
 
 export function drawMenuScene(ctx: Ctx, frame: number) {
-  const g = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-  g.addColorStop(0, '#0a0e1e');
-  g.addColorStop(0.55, '#121728');
-  g.addColorStop(1, '#080a14');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-  // Suelo de mármol del vestíbulo
-  ctx.fillStyle = '#161b2c';
-  ctx.fillRect(0, 235, CANVAS_WIDTH, CANVAS_HEIGHT - 235);
-  for (let i = 0; i < 16; i++) {
-    ctx.fillStyle = i % 2 === 0 ? '#1b2136' : '#141a2b';
-    ctx.fillRect(i * 32, 235, 32, 6);
-  }
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  for (let i = 0; i < 8; i++) ctx.fillRect(i * 64 + 10, 241, 2, CANVAS_HEIGHT - 241);
-
-  // Pared con paneles
-  ctx.fillStyle = '#0e1322';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, 235);
-  for (let i = 0; i < 6; i++) {
-    ctx.fillStyle = '#131a2c';
-    ctx.fillRect(8 + i * 82, 20, 60, 200);
-    ctx.fillStyle = '#0c1120';
-    ctx.fillRect(11 + i * 82, 23, 54, 194);
-  }
-
-  const vx = CANVAS_WIDTH / 2;
-  const vaultY = 132;
-
-  // Luz dorada de la bóveda
-  const lightPulse = 0.55 + Math.sin(frame * 0.035) * 0.18;
-  const lg = ctx.createRadialGradient(vx, vaultY, 6, vx, vaultY, 132);
-  lg.addColorStop(0, `rgba(255,214,102,${0.42 * lightPulse})`);
-  lg.addColorStop(0.45, `rgba(244,208,63,${0.16 * lightPulse})`);
-  lg.addColorStop(1, 'rgba(244,208,63,0)');
-  ctx.fillStyle = lg;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-  // Haz de luz proyectado en el suelo
-  ctx.globalAlpha = 0.14 * lightPulse;
-  ctx.fillStyle = '#f4d03f';
-  ctx.beginPath();
-  ctx.moveTo(vx - 42, 200);
-  ctx.lineTo(vx + 42, 200);
-  ctx.lineTo(vx + 96, CANVAS_HEIGHT);
-  ctx.lineTo(vx - 96, CANVAS_HEIGHT);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Estructura de la bóveda
-  ctx.fillStyle = '#0a0d18';
-  ctx.fillRect(vx - 84, vaultY - 78, 168, 150);
-  ctx.fillStyle = '#2b323f';
-  ctx.fillRect(vx - 80, vaultY - 74, 160, 142);
-  ctx.fillStyle = '#1d2330';
-  ctx.fillRect(vx - 74, vaultY - 68, 148, 130);
-  ctx.fillStyle = '#8a94a0';
-  for (let i = 0; i < 9; i++) {
-    ctx.fillRect(vx - 78 + i * 19, vaultY - 72, 3, 3);
-    ctx.fillRect(vx - 78 + i * 19, vaultY + 62, 3, 3);
-  }
-  for (let i = 0; i < 7; i++) {
-    ctx.fillRect(vx - 78, vaultY - 66 + i * 19, 3, 3);
-    ctx.fillRect(vx + 75, vaultY - 66 + i * 19, 3, 3);
-  }
-
-  // Puerta con forma de hogaza
-  const r = 58;
-  ctx.fillStyle = '#a9752f';
-  ctx.beginPath();
-  ctx.arc(vx, vaultY - 6, r, Math.PI, 0);
-  ctx.rect(vx - r, vaultY - 6, r * 2, 46);
-  ctx.fill();
-  ctx.fillStyle = '#d9a24a';
-  ctx.beginPath();
-  ctx.arc(vx, vaultY - 6, r - 7, Math.PI, 0);
-  ctx.rect(vx - (r - 7), vaultY - 6, (r - 7) * 2, 39);
-  ctx.fill();
-  ctx.fillStyle = '#e8c07a';
-  ctx.beginPath();
-  ctx.arc(vx, vaultY - 6, r - 15, Math.PI, 0);
-  ctx.rect(vx - (r - 15), vaultY - 6, (r - 15) * 2, 32);
-  ctx.fill();
-
-  ctx.strokeStyle = '#8a5a1f';
-  ctx.lineWidth = 3;
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath();
-    ctx.moveTo(vx + i * 26 - 9, vaultY - 46);
-    ctx.lineTo(vx + i * 26 + 5, vaultY - 30);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = '#6c7684';
-  ctx.fillRect(vx - r, vaultY + 22, r * 2, 5);
-  ctx.fillStyle = '#98a2ae';
-  ctx.fillRect(vx - r, vaultY + 22, r * 2, 2);
-
-  const wheelSpin = frame * 0.006;
   ctx.save();
-  ctx.translate(vx, vaultY);
-  ctx.rotate(wheelSpin);
-  ctx.strokeStyle = '#c9a227';
-  ctx.lineWidth = 5;
-  ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = '#f4d03f';
-  ctx.lineWidth = 3;
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * 5, Math.sin(a) * 5);
-    ctx.lineTo(Math.cos(a) * 20, Math.sin(a) * 20);
-    ctx.stroke();
+  // Cielo brillante y ciudad pastel.
+  const sky=ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
+  sky.addColorStop(0,'#82d9ff');sky.addColorStop(.46,'#c7eaff');sky.addColorStop(1,'#ffe1d1');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+
+  // Nubes suaves.
+  ctx.globalAlpha=.72;
+  for(const [x,y,s] of [[44,50,1],[188,35,.8],[395,60,1.2]] as const){
+    ctx.fillStyle='#fff8f4';
+    ctx.beginPath();ctx.arc(x,y,16*s,0,Math.PI*2);ctx.arc(x+17*s,y-4*s,12*s,0,Math.PI*2);ctx.arc(x+31*s,y+2*s,15*s,0,Math.PI*2);ctx.fill();
   }
+  ctx.globalAlpha=1;
+
+  // Skyline juguetón.
+  const buildings=['#7aa9d8','#8297cf','#6e91be','#9b8ec6','#6ba5c8'];
+  for(let i=0;i<8;i++){
+    const bw=42+(i%3)*10,bh=75+(i%4)*24,x=i*65-18,y=228-bh;
+    ctx.fillStyle=buildings[i%buildings.length];ctx.fillRect(x,y,bw,bh);
+    ctx.fillStyle='rgba(255,244,190,.62)';
+    for(let yy=y+12;yy<y+bh-8;yy+=16)for(let xx=x+9;xx<x+bw-7;xx+=14)ctx.fillRect(xx,yy,5,7);
+  }
+
+  // Banco central kawaii.
+  const bankX=CANVAS_WIDTH*.52,bankY=92;
+  ctx.shadowColor='rgba(69,64,109,.18)';ctx.shadowBlur=10;
+  roundedFill(ctx,bankX-104,bankY,208,147,16,'#f7d7bd');ctx.shadowBlur=0;
+  roundedFill(ctx,bankX-92,bankY+12,184,126,12,'#fff1dc');
+  ctx.fillStyle='#e8a67e';ctx.fillRect(bankX-101,bankY+40,202,8);
+  for(const bx of [bankX-72,bankX-28,bankX+28,bankX+72]){
+    roundedFill(ctx,bx-9,bankY+53,18,75,8,'#f3cab4');ctx.fillStyle='#fff7e8';ctx.fillRect(bx-5,bankY+55,10,68);
+  }
+  roundedFill(ctx,bankX-56,bankY+80,112,60,12,'#6f5f87');
+  roundedFill(ctx,bankX-48,bankY+87,96,53,10,'#3f446b');
+  const glow=.55+.15*Math.sin(frame*.035);
+  ctx.globalAlpha=glow;roundedFill(ctx,bankX-39,bankY+95,78,45,8,'#ffd66b');ctx.globalAlpha=1;
+  roundedFill(ctx,bankX-72,bankY-12,144,35,14,'#fff6df');
+  pixelText(ctx,'BANCO DEL PAN',bankX,bankY+10,'#7c4d68');
+
+  // Patito emblema sobre el banco.
+  ctx.fillStyle='#ffc85f';ctx.beginPath();ctx.arc(bankX,bankY-27,12,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff9e54';ctx.fillRect(bankX+8,bankY-27,7,3);
+  ctx.fillStyle='#39385b';ctx.fillRect(bankX-4,bankY-30,2,2);ctx.fillRect(bankX+3,bankY-30,2,2);
+
+  // Entrada roja/rosa y alfombra.
+  ctx.fillStyle='#dc708e';ctx.beginPath();ctx.moveTo(bankX-36,bankY+138);ctx.lineTo(bankX+36,bankY+138);ctx.lineTo(bankX+72,CANVAS_HEIGHT);ctx.lineTo(bankX-74,CANVAS_HEIGHT);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=.25;ctx.fillStyle='#fff1dc';for(let y=bankY+148;y<CANVAS_HEIGHT;y+=16)ctx.fillRect(bankX-44-(y-bankY)*.08,y,88+(y-bankY)*.16,2);ctx.globalAlpha=1;
+
+  // Mascota ladrón chibi en primer plano.
+  const bob=Math.round(Math.sin(frame*.045)*2);
+  ctx.save();ctx.translate(95,203+bob);ctx.scale(6.1,6.1);
+  drawDuck(ctx,-8,-8,frame,'down',frame%220>170,false,false,false,false);ctx.restore();
+  // Gorro/antifaz y mejillas encima del sprite para reforzar el estilo.
+  ctx.fillStyle='#34334f';roundedFill(ctx,49,153+bob,91,28,12,'#34334f');
+  ctx.fillStyle='#24243a';ctx.fillRect(57,177+bob,76,13);
+  ctx.fillStyle='#ff8fae';ctx.globalAlpha=.72;ctx.beginPath();ctx.arc(70,213+bob,5,0,Math.PI*2);ctx.arc(121,213+bob,5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  // Saco de botín.
+  ctx.fillStyle='#d9b17f';ctx.beginPath();ctx.ellipse(146,243+bob,30,36,-.25,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#b88a65';ctx.fillRect(133,211+bob,21,6);pixelText(ctx,'$',146,249+bob,'#674a53');
+
+  // Patitos secundarios en persecución.
+  for(const [x,y,scale,phase] of [[28,282,2.2,0],[188,292,2.45,1.7]] as const){
+    const yy=y+Math.sin(frame*.06+phase)*2;ctx.save();ctx.translate(x,yy);ctx.scale(scale,scale);
+    drawDuck(ctx,-8,-8,frame+phase*40,'right',true,false,false,false,false);ctx.restore();
+  }
+
+  // Monedas, billetes, corazones y destellos animados.
+  for(let i=0;i<crumbs.length;i++){
+    const p=crumbs[i],x=(p.x+frame*p.s*.55)%CANVAS_WIDTH,y=58+((p.y+Math.sin(frame*.018+p.ph)*20)%270);
+    if(i%4===0){
+      ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(frame*.02+p.ph)*.25);
+      ctx.fillStyle='#86d5aa';roundedFill(ctx,-7,-4,14,8,2,'#86d5aa');ctx.fillStyle='#4b9d7c';ctx.fillRect(-2,-2,4,4);ctx.restore();
+    }else if(i%4===1){
+      ctx.fillStyle='#ffc64f';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff1a5';ctx.fillRect(x-1,y-3,1,5);
+    }else if(i%4===2)kawaiiSparkle(ctx,x,y,3,'#fff9c4',.72);
+    else {ctx.globalAlpha=.65;pixelText(ctx,'♥',x,y,MENU_THEME.pink);ctx.globalAlpha=1;}
+  }
+
+  // Cute security details as background easter eggs.
+  drawWantedPoster(ctx,18,88,frame,0);
+  drawSecurityCam(ctx,CANVAS_WIDTH-25,82,frame,-1);
+
+  // Viñeta muy ligera sólo para separar UI.
+  const vg=ctx.createLinearGradient(0,0,CANVAS_WIDTH,0);
+  vg.addColorStop(0,'rgba(75,53,103,.06)');vg.addColorStop(.52,'rgba(255,255,255,0)');vg.addColorStop(1,'rgba(75,53,103,.10)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   ctx.restore();
-  ctx.fillStyle = '#fff3b0';
-  ctx.beginPath(); ctx.arc(vx, vaultY, 5, 0, Math.PI * 2); ctx.fill();
-
-  ctx.globalAlpha = lightPulse;
-  ctx.fillStyle = '#ffe89a';
-  ctx.fillRect(vx - 2, vaultY - 60, 4, 96);
-  ctx.globalAlpha = 1;
-
-  ctx.fillStyle = '#2b323f';
-  ctx.fillRect(vx + 64, vaultY + 4, 14, 20);
-  for (let i = 0; i < 6; i++) {
-    ctx.fillStyle = (frame + i * 11) % 90 < 12 ? '#39d353' : '#4c5666';
-    ctx.fillRect(vx + 66 + (i % 2) * 5, vaultY + 7 + Math.floor(i / 2) * 5, 4, 4);
-  }
-
-  drawWantedPoster(ctx, 34, 52, frame, 0);
-  drawWantedPoster(ctx, CANVAS_WIDTH - 66, 64, frame, 1.7);
-  drawSecurityCam(ctx, 96, 26, frame, 1);
-  drawSecurityCam(ctx, CANVAS_WIDTH - 106, 26, frame, -1);
-  drawCoinPile(ctx, vx - 118, 246, frame, 5);
-  drawCoinPile(ctx, vx + 92, 252, frame, 4);
-  drawCoinPile(ctx, vx + 128, 240, frame, 3);
-
-  for (const c of crumbs) {
-    c.y -= c.s;
-    if (c.y < -4) { c.y = CANVAS_HEIGHT + 4; c.x = Math.random() * CANVAS_WIDTH; }
-    const sway = Math.sin(frame * 0.02 + c.ph) * 6;
-    const a = 0.25 + Math.sin(frame * 0.05 + c.ph) * 0.2;
-    ctx.globalAlpha = Math.max(0.08, a);
-    ctx.fillStyle = '#e8c99b';
-    ctx.fillRect(Math.floor(c.x + sway), Math.floor(c.y), 2, 2);
-  }
-  ctx.globalAlpha = 1;
-
-  // El pato criminal
-  const duckBob = Math.round(Math.sin(frame * 0.045));
-  const dx = vx - 14;
-  const dy = 196 + duckBob;
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath();
-  ctx.ellipse(dx + 14, dy + 36, 20, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.save();
-  ctx.scale(1.75, 1.75);
-  drawDuck(ctx, dx / 1.75, dy / 1.75, frame, 'down', false, false, false);
-  ctx.restore();
-
-  if (frame % 420 < 90) {
-    const bubX = dx + 62;
-    const bubY = dy - 6;
-    ctx.fillStyle = 'rgba(12,14,26,0.92)';
-    ctx.fillRect(bubX - 24, bubY - 12, 50, 16);
-    ctx.fillStyle = '#f4d03f';
-    ctx.fillRect(bubX - 24, bubY - 12, 50, 1);
-    ctx.fillRect(bubX - 24, bubY + 3, 50, 1);
-    ctx.fillRect(bubX - 27, bubY - 3, 3, 3);
-    pixelText(ctx, '¡CUAC!', bubX + 1, bubY + 1, '#fff6c9');
-  }
-
-  // Viñeta
-  const vg = ctx.createRadialGradient(vx, CANVAS_HEIGHT / 2, 90, vx, CANVAS_HEIGHT / 2, 330);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.72)');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 function drawWantedPoster(ctx: Ctx, x: number, y: number, frame: number, phase: number) {
@@ -661,8 +549,25 @@ function drawCoinPile(ctx: Ctx, x: number, y: number, frame: number, rows: numbe
 
 /** Logotipo del juego (capa de UI, tipografía display) */
 export function drawTitleLogo(ctx: Ctx, cx: number, y: number, frame: number) {
-  drawPixelLogo(ctx);
-  text(ctx,'E L   B A N C O   D E L   P A N',cx,83,10,'#c4cfb2','center',true);
-  ctx.fillStyle='#6b6850';ctx.fillRect(cx-109,88,218,1);
-  void y; void frame;
+  ctx.save();
+  const bounce=Math.sin(frame*.045)*1.2,w=148,h=66,x=cx-w/2,top=y-34+bounce;
+  ctx.shadowColor='rgba(69,48,96,.22)';ctx.shadowBlur=9;ctx.shadowOffsetY=4;
+  roundedFill(ctx,x,top,w,h,17,'#fffdf9');ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  roundedPath(ctx,x+.5,top+.5,w-1,h-1,17);ctx.strokeStyle='#5c4b86';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Corona pequeña y compacta.
+  ctx.fillStyle='#ffc955';ctx.beginPath();ctx.moveTo(cx-15,top+5);ctx.lineTo(cx-9,top-3);ctx.lineTo(cx,top+4);ctx.lineTo(cx+9,top-3);ctx.lineTo(cx+15,top+5);ctx.lineTo(cx+12,top+12);ctx.lineTo(cx-12,top+12);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff2a2';ctx.fillRect(cx-10,top+7,20,2);
+
+  titleText(ctx,'DUCK',cx,top+30,20,'#ffba4d','center',true);
+  titleText(ctx,'HEIST',cx,top+52,20,'#ff7eae','center',true);
+  // Patito ladrón mínimo en el centro.
+  ctx.fillStyle='#fff4d6';ctx.beginPath();ctx.arc(cx,top+31,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#3a3155';ctx.fillRect(cx-5,top+29,10,3);
+  ctx.fillStyle='#f29d54';ctx.fillRect(cx+3,top+32,5,2);
+
+  kawaiiSparkle(ctx,x+12,top+14,4,MENU_THEME.cyan,.85);
+  kawaiiSparkle(ctx,x+w-12,top+19,4,MENU_THEME.gold,.85);
+  kawaiiSparkle(ctx,x+w-20,top+h-9,3,MENU_THEME.pink,.65);
+  ctx.restore();
 }
