@@ -2448,8 +2448,11 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
   const accents=['#90a3a7','#5f8fb5','#b45e58','#c6a04c','#787f7b','#9da8ad'];
   const darks=['#263036','#23303a','#38282a','#342f25','#2c302e','#252c31'];
   const mids=['#58666b','#4f6878','#6d5050','#756848','#59615f','#68757a'];
-  const lights=['#aab6b7','#8fb6ca','#c8928e','#d6bd78','#949b96','#c6d0d0'];
-  const accent=accents[variant],dark=darks[variant],mid=mids[variant],light=lights[variant];
+  // Highlights contenidos y apagados: evitamos blancos puros que en pixel-art
+  // se leen como líneas rotas o bordes de selección sobre el escenario.
+  const lights=['#7f8d91','#7693a3','#9f7774','#a98f5c','#78807c','#8fa0a4'];
+  const details=['#69777b','#668293','#8b6867','#8e7b54','#696f6c','#7b898d'];
+  const accent=accents[variant],dark=darks[variant],mid=mids[variant],light=lights[variant],detail=details[variant];
   const worn=variant===4,reinforced=variant===5;
   const pulse=.5+.5*Math.sin(frame*.055+kind*.37);
 
@@ -2467,7 +2470,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       rect(ctx,bx+3,by+11,26,17,dark);rect(ctx,bx+5,by+12,22,14,mid);
       rect(ctx,bx+7,by+13,11,7,'#16252c');rect(ctx,bx+8,by+14,9,4,variant===2?'#55262b':'#29444d');
       rect(ctx,bx+20,by+14,5,2,accent);rect(ctx,bx+20,by+18,5,5,'#20292d');
-      rect(ctx,bx+5,by+9,22,3,light);feet();break;
+      rect(ctx,bx+6,by+9,20,2,detail);rect(ctx,bx+8,by+10,16,1,light);feet();break;
     }
     case 1: { // separador de fila
       rect(ctx,bx+4,by+20,24,3,accent);rect(ctx,bx+5,by+23,3,5,mid);rect(ctx,bx+24,by+23,3,5,mid);
@@ -2476,7 +2479,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 2: { // carrusel de documentos
       rect(ctx,bx+5,by+8,22,20,dark);rect(ctx,bx+7,by+9,18,18,mid);
-      for(let yy=11;yy<=23;yy+=4){rect(ctx,bx+8,by+yy,16,2,light);rect(ctx,bx+9+(yy%3),by+yy+2,5,1,accent);}
+      for(let yy=11;yy<=23;yy+=4){rect(ctx,bx+8,by+yy,16,2,detail);rect(ctx,bx+9,by+yy,14,1,light);rect(ctx,bx+9+(yy%3),by+yy+2,5,1,accent);}
       rect(ctx,bx+14,by+5,4,4,accent);feet();break;
     }
     case 3: { // tote sellado
@@ -2490,7 +2493,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       for(const p of [[5,13],[25,13],[5,25],[25,25]])bolt(p[0],p[1]);feet();break;
     }
     case 5: { // soporte reforzado
-      rect(ctx,bx+8,by+2,16,29,dark);rect(ctx,bx+10,by+3,12,27,mid);rect(ctx,bx+12,by+4,3,24,light);
+      rect(ctx,bx+8,by+2,16,29,dark);rect(ctx,bx+10,by+3,12,27,mid);rect(ctx,bx+12,by+4,2,24,detail);
       rect(ctx,bx+6,by+2,20,4,accent);rect(ctx,bx+5,by+27,22,4,dark);
       if(reinforced){rect(ctx,bx+16,by+5,4,20,accent);}break;
     }
@@ -2508,7 +2511,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 8: { // torre de cajones
       rect(ctx,bx+4,by+6,24,22,dark);rect(ctx,bx+6,by+7,20,20,mid);
-      for(let yy=9;yy<=21;yy+=6){rect(ctx,bx+8,by+yy,16,5,light);rect(ctx,bx+13,by+yy+2,6,2,accent);}
+      for(let yy=9;yy<=21;yy+=6){rect(ctx,bx+8,by+yy,16,5,detail);rect(ctx,bx+9,by+yy+1,14,1,light);rect(ctx,bx+13,by+yy+2,6,2,accent);}
       feet();break;
     }
     case 9: { // hardcase de mensajero
@@ -2524,13 +2527,13 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 11: { // carro de archivo
       rect(ctx,bx+5,by+11,21,15,dark);rect(ctx,bx+7,by+12,17,13,mid);
-      rect(ctx,bx+9,by+14,13,2,light);rect(ctx,bx+9,by+19,13,4,'#273239');
+      rect(ctx,bx+9,by+14,13,2,detail);rect(ctx,bx+10,by+14,11,1,light);rect(ctx,bx+9,by+19,13,4,'#273239');
       rect(ctx,bx+25,by+8,3,16,accent);
       ctx.fillStyle='#0d1214';ctx.beginPath();ctx.arc(bx+9,by+28,3,0,Math.PI*2);ctx.arc(bx+23,by+28,3,0,Math.PI*2);ctx.fill();break;
     }
     case 12: { // locker de evidencia
       rect(ctx,bx+4,by+5,24,23,dark);rect(ctx,bx+6,by+6,20,21,mid);
-      for(let yy=8;yy<=20;yy+=6){rect(ctx,bx+8,by+yy,16,5,light);rect(ctx,bx+17,by+yy+2,4,1,accent);}
+      for(let yy=8;yy<=20;yy+=6){rect(ctx,bx+8,by+yy,16,5,detail);rect(ctx,bx+9,by+yy+1,14,1,light);rect(ctx,bx+17,by+yy+2,4,1,accent);}
       feet();break;
     }
     case 13: { // jaula de lingotes
@@ -2541,11 +2544,11 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     }
     case 14: { // impresora / multifunción
       rect(ctx,bx+5,by+13,22,15,dark);rect(ctx,bx+7,by+14,18,12,mid);
-      rect(ctx,bx+9,by+9,14,6,light);rect(ctx,bx+11,by+10,10,2,'#dce4e1');
+      rect(ctx,bx+9,by+9,14,6,detail);rect(ctx,bx+11,by+10,10,1,light);
       rect(ctx,bx+10,by+19,12,4,'#20292d');px(ctx,bx+22,by+16,accent,2);break;
     }
     case 15: { // silla de oficina
-      rect(ctx,bx+11,by+11,10,10,mid);rect(ctx,bx+12,by+12,8,8,light);
+      rect(ctx,bx+11,by+11,10,10,mid);rect(ctx,bx+12,by+12,8,8,detail);rect(ctx,bx+13,by+13,6,1,light);
       rect(ctx,bx+10,by+20,12,5,dark);rect(ctx,bx+15,by+24,2,4,mid);
       rect(ctx,bx+9,by+28,14,2,dark);px(ctx,bx+8,by+29,light,2);px(ctx,bx+22,by+29,light,2);break;
     }
@@ -2563,11 +2566,11 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     case 18: { // consola de vigilancia
       rect(ctx,bx+3,by+12,26,16,dark);rect(ctx,bx+5,by+14,22,12,mid);
       for(let i=0;i<3;i++){rect(ctx,bx+7+i*7,by+15,6,5,'#14262d');px(ctx,bx+8+i*7,by+16,i===1?accent:'#648b96',2);}
-      rect(ctx,bx+9,by+22,14,2,light);feet();break;
+      rect(ctx,bx+9,by+22,14,2,detail);rect(ctx,bx+10,by+22,12,1,light);feet();break;
     }
     case 19: { // torre de servidor
       rect(ctx,bx+7,by+3,18,26,dark);rect(ctx,bx+9,by+5,14,22,mid);
-      for(let yy=7;yy<=22;yy+=4){rect(ctx,bx+11,by+yy,10,2,'#19252b');px(ctx,bx+12,by+yy,variant===2?'#e05e58':accent,1);px(ctx,bx+19,by+yy,light,1);}
+      for(let yy=7;yy<=22;yy+=4){rect(ctx,bx+11,by+yy,10,2,'#19252b');px(ctx,bx+12,by+yy,variant===2?'#e05e58':accent,1);px(ctx,bx+19,by+yy,detail,1);}
       feet();break;
     }
     default: {
@@ -2603,7 +2606,7 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     ctx.restore();
   }
 
-  ctx.globalAlpha=.08;ctx.fillStyle='#dce6df';ctx.fillRect(bx+5,by+5,T-10,1);ctx.globalAlpha=1;
+  ctx.globalAlpha=.025;ctx.fillStyle='#7f8f93';ctx.fillRect(bx+7,by+5,T-14,1);ctx.globalAlpha=1;
   ctx.restore();
 }
 
