@@ -58,6 +58,10 @@ import type { GameEngine, Enemy, RoomContent, Pedestal } from './types';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const duckAimDir=(angle:number):'up'|'down'|'left'|'right'=> {
+  const x=Math.cos(angle),y=Math.sin(angle);
+  return Math.abs(x)>Math.abs(y)?(x>=0?'right':'left'):(y>=0?'down':'up');
+};
 const easeOutCubic=(v:number)=>1-Math.pow(1-clamp(v,0,1),3);
 const BALLISTIC_PLAYER_PROJECTILES=new Set([
   'pistol_round','buckshot_player','smg_round','rifle_556','rifle_762','lmg_556',
@@ -787,6 +791,7 @@ export function renderWorld(engine: GameEngine) {
   }
 
   const p = engine.player;
+  const aimDir=duckAimDir(p.facingAngle);
   const b=getBuild(p);
   for(const child of p.companions) {
     ctx.save();ctx.translate(child.x+8,child.y+8);ctx.scale(.72,.72);
@@ -825,7 +830,7 @@ export function renderWorld(engine: GameEngine) {
         ctx.translate(p.x+ox+7,p.y+oy+9);
         const horizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
         ctx.scale(horizontal?1.12:.9,horizontal?.88:1.1);
-        drawDuckSkin(ctx,-7,-9,f-i*2,engine.equippedSkin,p.dir,true,false,true,p.shootFlash>0);
+        drawDuckSkin(ctx,-7,-9,f-i*2,engine.equippedSkin,aimDir,true,false,true,p.shootFlash>0,false,true);
         ctx.restore();
       }
       ctx.save();
@@ -862,8 +867,8 @@ export function renderWorld(engine: GameEngine) {
     ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
     if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
     ctx.scale(sx*(1+interact*.025),sy*(1-interact*.045));
-    drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,p.dir,p.moving,
-      p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0);
+    drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,aimDir,p.moving,
+      p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true);
     ctx.restore();
 
     // Ala de apoyo: con armas largas/pesadas la silueta comunica que el pato
