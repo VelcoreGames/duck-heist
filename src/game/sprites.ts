@@ -318,130 +318,229 @@ export function drawFood(ctx: Ctx, x: number, y: number, kind: string, frame: nu
   ctx.restore();
 }
 
-/** Pato con skin cosmética (paleta + accesorio) */
-export function drawDuckSkin(
-  ctx: Ctx, x: number, y: number, frame: number,
-  skinId: string, dir: DuckDir = 'down', moving = false, hurt = false,
-  dashing = false, shooting = false, dead = false,
-) {
-  const skin = getSkin(skinId);
-  const pal: DuckPaletteLike = skin?.palette ?? DEFAULT_DUCK;
-  drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal);
-  if (!skin || skin.overlay === 'none' || dead) return;
-
-  const bx=Math.floor(x);
-  const by=Math.floor(y);
+/** Capas posteriores que cambian la silueta sin tapar la lectura del pato. */
+function drawSkinBackLayer(
+  ctx:Ctx,bx:number,by:number,frame:number,overlay:string,accent:string,trim:string,metal:string,
+  dir:DuckDir,moving:boolean,dashing:boolean,shooting:boolean,
+){
   const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
-  const overlayBob=moving?Math.round(Math.sin(frame*.38)):idleBreath;
-  ctx.save();
-  // Los accesorios forman parte del cuerpo: sombreros, capas y delantales deben
-  // acompañar la respiración/waddle en vez de flotar sobre un sprite animado.
-  ctx.translate(0,overlayBob);
-  switch (skin.overlay) {
+  const bob=moving?Math.round(Math.sin(frame*.38)):idleBreath;
+  ctx.save();ctx.translate(0,bob);
+  switch(overlay){
+    case 'robber':
+      // Pañuelo de atracador: el nudo asoma siempre por un lado de la silueta.
+      rect(ctx,bx+(dir==='left'?12:1),by+5,3,2,accent);
+      rect(ctx,bx+(dir==='left'?14:0),by+6,2,4,accent);
+      break;
     case 'fedora':
-      // Sombrero fedora oscuro con cinta roja
-      rect(ctx, bx + 1, by - 1, 14, 2, '#12121a');
-      rect(ctx, bx + 4, by - 4, 8, 4, '#1b1b24');
-      rect(ctx, bx + 4, by - 1, 8, 1, '#c0392b');
-      // Cadena dorada
-      rect(ctx, bx + 4, by + 10, 8, 1, '#f4d03f');
-      rect(ctx, bx + 7, by + 11, 2, 2, '#f4d03f');
+      // Faldones de abrigo, anchos pero cortos para no confundirse con hitbox.
+      rect(ctx,bx+2,by+12,12,5,'#1b1c23');
+      rect(ctx,bx+1,by+14,4,3,'#252630');
+      rect(ctx,bx+11,by+14,4,3,'#252630');
       break;
-
     case 'prison':
-      // Mono naranja con rayas blancas
-      rect(ctx, bx + 3, by + 7, 10, 8, '#f0912b');
-      rect(ctx, bx + 4, by + 8, 8, 1, '#ffffff');
-      rect(ctx, bx + 4, by + 11, 8, 1, '#ffffff');
-      rect(ctx, bx + 4, by + 13, 8, 1, '#ffffff');
+      // Cadena del grillete convertida en trofeo.
+      rect(ctx,bx+12,by+14,2,2,metal);px(ctx,bx+14,by+15,metal,1);px(ctx,bx+15,by+16,metal,1);
       break;
-
     case 'chef':
-      // Gran gorro de chef blanco con pliegues
-      rect(ctx, bx + 2, by - 2, 12, 3, '#e0e0e0');
-      rect(ctx, bx + 3, by - 7, 10, 6, '#f8f8f8');
-      rect(ctx, bx + 5, by - 9, 6, 3, '#ffffff');
-      rect(ctx, bx + 4, by - 6, 2, 4, '#d0d0d0');
-      rect(ctx, bx + 8, by - 6, 2, 4, '#d0d0d0');
-      // Delantal blanco frontal
-      rect(ctx, bx + 3, by + 7, 10, 8, '#f0f0f0');
-      rect(ctx, bx + 4, by + 8, 8, 6, '#ffffff');
-      rect(ctx, bx + 5, by + 6, 6, 2, '#c0c0c0'); // tirantes
+      // Lazos del delantal.
+      rect(ctx,bx+1,by+11,3,2,trim);rect(ctx,bx+12,by+11,3,2,trim);
       break;
-
     case 'executive':
-      // Cuello de camisa, corbata roja y maletín ejecutivo
-      rect(ctx, bx + 5, by + 6, 6, 3, '#ffffff');
-      rect(ctx, bx + 7, by + 7, 2, 7, '#c0392b');
-      rect(ctx, bx + 8, by + 14, 1, 1, '#c0392b');
-      // Maletín en la mano
-      rect(ctx, bx + 13, by + 8, 5, 5, '#4a3020');
-      rect(ctx, bx + 14, by + 7, 3, 1, '#8a6545');
-      px(ctx, bx + 15, by + 10, '#f4d03f', 1);
+      // Chaqueta ligeramente más larga y maletín que rompe la silueta lateral.
+      rect(ctx,bx+2,by+12,12,4,'#222b39');
+      rect(ctx,bx+(dir==='left'?-2:13),by+9,5,6,'#382719');
+      rect(ctx,bx+(dir==='left'?-1:14),by+8,3,1,metal);
       break;
-
+    case 'rose':
+      // Bomber corta con hombros muy legibles.
+      rect(ctx,bx+1,by+8,3,5,'#7e365f');rect(ctx,bx+12,by+8,3,5,'#7e365f');
+      break;
     case 'ninja':
-      // Capucha ninja negra + cinta roja en la frente con lazos
-      rect(ctx, bx + 3, by, 10, 3, '#14161d');
-      rect(ctx, bx + 4, by + 3, 8, 2, '#c0392b');
-      rect(ctx, bx + 12, by + 3, 3, 2, '#e74c3c');
-      rect(ctx, bx + 14, by + 5, 2, 3, '#c0392b');
+      // Dos colas de cinta carmesí siguen el movimiento.
+      {const sway=moving?Math.round(Math.sin(frame*.42)*2):0;
+      rect(ctx,bx+(dir==='left'?13:1),by+3,4,2,accent);
+      rect(ctx,bx+(dir==='left'?15:-2),by+4+sway,4,1,accent);}
       break;
-
     case 'undercover':
-      // Gorra de policía azul + bigote falso cómico
-      rect(ctx, bx + 2, by - 1, 12, 3, '#2b4a8b');
-      rect(ctx, bx + 4, by - 3, 8, 3, '#1b2f5c');
-      px(ctx, bx + 7, by - 1, '#f4d03f', 2);
-      rect(ctx, bx + 12, by + 1, 3, 1, '#111118');
-      // Bigotón negro debajo del pico
-      rect(ctx, bx + 4, by + 7, 8, 2, '#1a1a24');
-      rect(ctx, bx + 3, by + 8, 2, 2, '#1a1a24');
-      rect(ctx, bx + 11, by + 8, 2, 2, '#1a1a24');
+      // Antena/radio visible desde espalda y perfil.
+      rect(ctx,bx+(dir==='left'?12:2),by+7,3,6,'#1c293d');
+      rect(ctx,bx+(dir==='left'?14:1),by+4,1,5,metal);
       break;
-
     case 'pirate':
-      // Sombrero pirata bicornio con calavera + parche en el ojo
-      rect(ctx, bx + 1, by - 3, 14, 4, '#1a1618');
-      rect(ctx, bx + 3, by - 6, 10, 4, '#241f22');
-      rect(ctx, bx, by - 4, 3, 3, '#1a1618');
-      rect(ctx, bx + 13, by - 4, 3, 3, '#1a1618');
-      px(ctx, bx + 7, by - 3, '#ffffff', 2); // calavera
-      // Parche en el ojo
-      rect(ctx, bx + 4, by + 3, 3, 3, '#08080c');
-      rect(ctx, bx + 3, by + 2, 6, 1, '#08080c');
+      // Abrigo abierto con dos faldones.
+      rect(ctx,bx+1,by+11,4,6,'#37231e');rect(ctx,bx+11,by+11,4,6,'#37231e');
+      rect(ctx,bx+2,by+15,3,2,accent);rect(ctx,bx+11,by+15,3,2,accent);
       break;
-
     case 'gold':
-      // Corona de oro puro + destellos dorados
-      rect(ctx, bx + 4, by - 3, 8, 3, '#ffd95e');
-      rect(ctx, bx + 4, by - 5, 2, 3, '#f4a72b');
-      rect(ctx, bx + 7, by - 6, 2, 4, '#fff3b0');
-      rect(ctx, bx + 10, by - 5, 2, 3, '#f4a72b');
-      px(ctx, bx + 5, by - 2, '#ffffff', 1);
-      px(ctx, bx + 9, by - 2, '#ffffff', 1);
+      // Placas posteriores de lingote.
+      rect(ctx,bx+1,by+8,3,6,'#b98522');rect(ctx,bx+12,by+8,3,6,'#b98522');
+      px(ctx,bx+2,by+9,trim,1);px(ctx,bx+13,by+9,trim,1);
       break;
-
     case 'king':
-      // Corona de rey con joyas + capa real púrpura con ribete de armiño
-      rect(ctx, bx + 3, by - 4, 10, 4, '#ffd95e');
-      rect(ctx, bx + 3, by - 7, 2, 4, '#ffd95e');
-      rect(ctx, bx + 7, by - 8, 2, 5, '#fff3b0');
-      rect(ctx, bx + 11, by - 7, 2, 4, '#ffd95e');
-      px(ctx, bx + 5, by - 2, '#ff3b56', 2); // rubí
-      px(ctx, bx + 9, by - 2, '#4f9dd8', 2); // zafiro
-      // Capa real
-      rect(ctx, bx + 2, by + 7, 12, 9, '#7a1424');
-      rect(ctx, bx + 3, by + 6, 10, 2, '#f5f5f5'); // cuello de armiño
-      px(ctx, bx + 5, by + 7, '#000', 1);
-      px(ctx, bx + 9, by + 7, '#000', 1);
+      // Capa amplia: es la silueta más grande del armario.
+      rect(ctx,bx,by+6,16,10,accent);
+      rect(ctx,bx-1,by+9,3,8,accent);rect(ctx,bx+14,by+9,3,8,accent);
+      rect(ctx,bx,by+15,16,2,trim);
+      px(ctx,bx+2,by+15,'#161015',1);px(ctx,bx+7,by+15,'#161015',1);px(ctx,bx+12,by+15,'#161015',1);
       break;
-
-    default: break;
   }
   ctx.restore();
 }
 
+function drawSkinDeathAccessory(
+  ctx:Ctx,bx:number,by:number,overlay:string,accent:string,trim:string,metal:string,
+){
+  // El game-over conserva la identidad: el accesorio cae junto al personaje
+  // en vez de desaparecer al activar el sprite de muerte.
+  switch(overlay){
+    case 'robber':rect(ctx,bx-2,by+13,7,2,accent);px(ctx,bx-3,by+14,accent,2);break;
+    case 'fedora':rect(ctx,bx-3,by+13,10,2,'#15161d');rect(ctx,bx,by+10,6,3,'#23242d');rect(ctx,bx,by+12,6,1,accent);break;
+    case 'prison':rect(ctx,bx-2,by+14,3,2,metal);px(ctx,bx+1,by+15,metal,1);px(ctx,bx+3,by+15,metal,1);break;
+    case 'chef':rect(ctx,bx-3,by+11,9,3,trim);rect(ctx,bx-1,by+8,5,3,'#ffffff');break;
+    case 'executive':rect(ctx,bx-4,by+10,7,6,'#382719');rect(ctx,bx-3,by+9,5,1,metal);break;
+    case 'rose':rect(ctx,bx-3,by+11,8,2,accent);px(ctx,bx,by+10,trim,1);break;
+    case 'ninja':rect(ctx,bx-4,by+12,9,2,accent);rect(ctx,bx+3,by+13,4,1,accent);break;
+    case 'undercover':rect(ctx,bx-3,by+11,9,3,'#304b75');rect(ctx,bx-1,by+9,6,2,'#203653');px(ctx,bx+1,by+11,accent,1);break;
+    case 'pirate':rect(ctx,bx-4,by+10,10,4,'#21191a');rect(ctx,bx-2,by+8,6,3,'#302326');px(ctx,bx+1,by+10,trim,1);break;
+    case 'gold':rect(ctx,bx-3,by+11,8,3,'#c89229');rect(ctx,bx-1,by+10,4,1,trim);px(ctx,bx+4,by+10,metal,1);break;
+    case 'king':rect(ctx,bx-4,by+10,9,3,metal);px(ctx,bx-3,by+8,metal,2);px(ctx,bx,by+7,metal,2);px(ctx,bx+3,by+8,metal,2);break;
+  }
+}
+
+/** Pato con skin cosmética completa: silueta + ropa + accesorios + estados. */
+export function drawDuckSkin(
+  ctx: Ctx, x: number, y: number, frame: number,
+  skinId: string, dir: DuckDir = 'down', moving = false, hurt = false,
+  dashing = false, shooting = false, dead = false, aiming = false,
+) {
+  const skin = getSkin(skinId);
+  const pal: DuckPaletteLike = skin?.palette ?? DEFAULT_DUCK;
+  const bx=Math.floor(x),by=Math.floor(y);
+  const accent=skin?.accent ?? '#c9473b';
+  const trim=skin?.trim ?? '#ead77c';
+  const metal=skin?.metal ?? '#aeb8b8';
+  const overlay=skin?.overlay ?? 'robber';
+
+  if(!dead)drawSkinBackLayer(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving,dashing,shooting);
+  drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal, aiming);
+  if(dead){drawSkinDeathAccessory(ctx,bx,by,overlay,accent,trim,metal);return;}
+
+  const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
+  const overlayBob=moving?Math.round(Math.sin(frame*.38)):idleBreath;
+  const front=dir==='down',back=dir==='up',left=dir==='left',right=dir==='right';
+
+  ctx.save();ctx.translate(0,overlayBob);
+  switch (overlay) {
+    case 'robber':
+      // Beanie bajo + pañuelo + arnés de herramientas: identidad del héroe base.
+      rect(ctx,bx+4,by-1,8,2,'#20242a');rect(ctx,bx+3,by+1,10,1,'#11151a');
+      rect(ctx,bx+3,by+6,10,2,accent);
+      if(front){rect(ctx,bx+7,by+7,2,5,'#34231f');px(ctx,bx+7,by+10,metal,2);rect(ctx,bx+11,by+11,3,3,'#4a3024');px(ctx,bx+12,by+12,metal,1);}
+      else if(back){rect(ctx,bx+5,by+7,1,6,trim);rect(ctx,bx+10,by+7,1,6,trim);px(ctx,bx+7,by+9,metal,2);}
+      else {rect(ctx,bx+(left?11:2),by+8,3,5,'#4a3024');px(ctx,bx+(left?12:3),by+9,metal,1);}
+      break;
+
+    case 'fedora':
+      // Fedora más ancho, cinta vino, traje a rayas y cadena real.
+      rect(ctx,bx,by-1,16,2,'#111219');rect(ctx,bx+3,by-5,10,5,'#20212a');
+      rect(ctx,bx+4,by-2,8,1,accent);px(ctx,bx+11,by-2,metal,1);
+      if(!back){
+        rect(ctx,bx+3,by+7,10,7,'#242630');
+        if(front){rect(ctx,bx+6,by+7,4,3,'#e8e1d4');rect(ctx,bx+7,by+8,2,5,accent);}
+        for(let yy=8;yy<=13;yy+=3){px(ctx,bx+5,by+yy,'#4a4b58',1);px(ctx,bx+11,by+yy,'#4a4b58',1);}
+        rect(ctx,bx+4,by+13,8,1,trim);px(ctx,bx+7,by+14,metal,2);
+      }
+      break;
+
+    case 'prison':
+      // Mono de preso con franjas, placa e improvisaciones de fuga.
+      rect(ctx,bx+3,by+7,10,8,'#dd741f');
+      rect(ctx,bx+3,by+8,10,1,trim);rect(ctx,bx+3,by+11,10,1,trim);rect(ctx,bx+3,by+14,10,1,trim);
+      if(front){rect(ctx,bx+4,by+9,3,2,'#342f2c');px(ctx,bx+5,by+9,trim,1);rect(ctx,bx+9,by+8,3,3,'#bc5c19');}
+      if(left||right){rect(ctx,bx+(left?11:2),by+8,2,5,'#7d3c18');}
+      rect(ctx,bx+11,by+15,3,1,metal);px(ctx,bx+14,by+15,metal,1);
+      break;
+
+    case 'chef':
+      // Toque alto, chaqueta cruzada, botones y pañuelo de cocina.
+      rect(ctx,bx+2,by-2,12,3,'#e2e5e3');rect(ctx,bx+3,by-7,10,6,'#faf7ee');
+      rect(ctx,bx+5,by-9,6,3,'#ffffff');rect(ctx,bx+4,by-6,2,4,'#d8dddc');rect(ctx,bx+9,by-6,2,4,'#d8dddc');
+      rect(ctx,bx+4,by+6,8,2,accent);
+      if(!back){rect(ctx,bx+3,by+8,10,7,trim);rect(ctx,bx+7,by+8,1,6,'#d1d7d6');}
+      if(front){for(const yy of [9,12]){px(ctx,bx+6,by+yy,metal,1);px(ctx,bx+9,by+yy,metal,1);}rect(ctx,bx+11,by+10,2,4,'#b67842');px(ctx,bx+12,by+9,metal,1);}
+      break;
+
+    case 'executive':
+      // Traje anguloso, lapelas, corbata y reloj.
+      if(!back){
+        rect(ctx,bx+3,by+7,10,8,'#283445');
+        if(front){
+          rect(ctx,bx+5,by+7,6,3,trim);
+          rect(ctx,bx+7,by+8,2,6,accent);px(ctx,bx+8,by+14,accent,1);
+          rect(ctx,bx+3,by+8,3,5,'#344156');rect(ctx,bx+10,by+8,3,5,'#344156');
+          px(ctx,bx+12,by+12,metal,1);
+        }
+      }
+      rect(ctx,bx+(left?0:13),by+9,5,5,'#3a281a');rect(ctx,bx+(left?1:14),by+8,3,1,metal);px(ctx,bx+(left?2:15),by+11,metal,1);
+      break;
+
+    case 'rose':
+      // Bomber magenta, visor cian y emblema corazón.
+      rect(ctx,bx+3,by+7,10,7,'#8f3a70');rect(ctx,bx+4,by+8,8,1,'#b64e87');
+      if(front){rect(ctx,bx+7,by+8,2,6,accent);px(ctx,bx+5,by+10,trim,1);px(ctx,bx+6,by+11,trim,1);px(ctx,bx+5,by+12,trim,1);}
+      if(!back){ctx.globalAlpha=.75;rect(ctx,bx+4,by+3,8,2,accent);ctx.globalAlpha=1;px(ctx,bx+10,by+3,'#e9ffff',1);}
+      rect(ctx,bx+3,by+14,10,1,trim);
+      break;
+
+    case 'ninja':
+      // Capucha segmentada, única ventana de ojos y vendas de antebrazo.
+      rect(ctx,bx+3,by-1,10,3,'#0e1116');rect(ctx,bx+2,by+1,12,4,'#141820');
+      rect(ctx,bx+3,by+3,10,2,accent);
+      if(front){rect(ctx,bx+4,by+2,8,2,'#090b0f');rect(ctx,bx+5,by+2,2,1,'#e8eceb');rect(ctx,bx+9,by+2,2,1,'#e8eceb');}
+      rect(ctx,bx+3,by+9,3,1,trim);rect(ctx,bx+10,by+9,3,1,trim);
+      rect(ctx,bx+4,by+13,8,1,'#3a4049');px(ctx,bx+12,by+12,metal,1);
+      break;
+
+    case 'undercover':
+      // Gorra de policía, placa, gabardina y el bigote imposible.
+      rect(ctx,bx+2,by-1,12,3,'#304e7a');rect(ctx,bx+4,by-3,8,3,'#203653');rect(ctx,bx+5,by-1,6,1,trim);px(ctx,bx+7,by-2,accent,2);
+      rect(ctx,bx+3,by+7,10,8,'#354b6a');rect(ctx,bx+4,by+8,8,1,'#55749b');
+      if(front){px(ctx,bx+5,by+10,accent,2);rect(ctx,bx+5,by+7,6,1,metal);rect(ctx,bx+4,by+7,3,2,'#17191f');rect(ctx,bx+9,by+7,3,2,'#17191f');}
+      else if(left||right){rect(ctx,bx+(left?3:10),by+6,4,2,'#17191f');}
+      px(ctx,bx+12,by+9,metal,1);
+      break;
+
+    case 'pirate':
+      // Tricornio asimétrico, parche, pañuelo, sash y herraje de latón.
+      rect(ctx,bx,by-3,16,3,'#1d181a');rect(ctx,bx+3,by-6,10,4,'#2a2225');rect(ctx,bx-1,by-4,4,3,'#1d181a');rect(ctx,bx+13,by-4,4,3,'#1d181a');
+      px(ctx,bx+7,by-3,trim,2);px(ctx,bx+8,by-4,trim,1);
+      rect(ctx,bx+3,by+7,10,2,accent);rect(ctx,bx+3,by+12,10,2,'#3b261d');px(ctx,bx+7,by+12,metal,2);
+      if(front){rect(ctx,bx+4,by+3,3,3,'#07080b');rect(ctx,bx+3,by+2,6,1,'#07080b');}
+      if(right){rect(ctx,bx+13,by+10,2,4,metal);px(ctx,bx+14,by+14,metal,1);}
+      if(left){rect(ctx,bx+1,by+10,2,4,metal);px(ctx,bx+1,by+14,metal,1);}
+      break;
+
+    case 'gold':
+      // Sin corona: placas de lingote, visor claro y cierres de bóveda.
+      ctx.globalAlpha=.24+.08*Math.sin(frame*.12);rect(ctx,bx+1,by+6,14,9,accent);ctx.globalAlpha=1;
+      rect(ctx,bx+2,by+7,4,3,'#bd8b25');rect(ctx,bx+10,by+7,4,3,'#bd8b25');
+      if(!back){rect(ctx,bx+4,by+2,8,2,accent);px(ctx,bx+5,by+2,'#ffffff',1);px(ctx,bx+10,by+2,'#ffffff',1);}
+      if(front){rect(ctx,bx+5,by+10,6,3,'#c99529');rect(ctx,bx+6,by+10,4,1,trim);px(ctx,bx+7,by+12,metal,2);}
+      px(ctx,bx+2,by+5,metal,1);px(ctx,bx+13,by+11,metal,1);
+      break;
+
+    case 'king':
+      // Corona alta y capa visible también de frente: el cosmético final domina la silueta.
+      rect(ctx,bx+3,by-4,10,4,metal);rect(ctx,bx+3,by-7,2,4,metal);rect(ctx,bx+7,by-8,2,5,trim);rect(ctx,bx+11,by-7,2,4,metal);
+      px(ctx,bx+5,by-2,'#d84d5b',2);px(ctx,bx+9,by-2,'#4f9dd8',2);
+      rect(ctx,bx+2,by+6,12,3,trim);px(ctx,bx+4,by+7,'#171318',1);px(ctx,bx+8,by+7,'#171318',1);px(ctx,bx+12,by+7,'#171318',1);
+      if(front){rect(ctx,bx+6,by+9,4,4,accent);px(ctx,bx+7,by+10,metal,2);}
+      else if(left||right){rect(ctx,bx+(left?2:11),by+8,3,6,accent);}
+      break;
+  }
+  ctx.restore();
+}
 
 
 export function drawBreadHP(ctx: Ctx, x: number, y: number, filled: boolean) {
