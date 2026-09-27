@@ -1845,30 +1845,38 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
 // CAPA DE UI
 // ===========================================================================
 
-function drawWideMenuChrome(engine:GameEngine,_label:string,accent='#e6c56f') {
-  if(CANVAS_WIDTH<=UI_BASE_WIDTH+16)return;
-  const ctx=engine.ui!;
-  const safe=visibleCanvasRect(8);
-  const safeLeft=safe.x,safeRight=safe.x+safe.w;
-
-  ctx.save();
-
-  // Sin barra superior: el fondo y el propio encabezado de cada panel deben
-  // llevar la identidad. Conservamos únicamente una ayuda inferior discreta.
-  const bottomY=Math.min(CANVAS_HEIGHT-23,safe.y+safe.h-23);
-
-  ctx.fillStyle='rgba(5,13,18,.86)';
-  ctx.fillRect(safeLeft,bottomY,safe.w,18);
-  ctx.globalAlpha=.24;
-  ctx.fillStyle=accent;
-  ctx.fillRect(safeLeft,bottomY,safe.w,1);
-  ctx.globalAlpha=1;
-  text(ctx,'ESC · VOLVER / PAUSA',safeLeft+10,bottomY+12,4.25,'#788f93','left',true,false);
-  text(ctx,'F · PANTALLA COMPLETA',safeRight-10,bottomY+12,4.25,'#788f93','right',true,false);
-
-  ctx.restore();
+function roundedHud(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number,fill:string,stroke:string){
+  const rr=Math.max(0,Math.min(r,w/2,h/2));
+  ctx.beginPath();ctx.moveTo(x+rr,y);ctx.lineTo(x+w-rr,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rr);
+  ctx.lineTo(x+w,y+h-rr);ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+  ctx.lineTo(x+rr,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rr);ctx.lineTo(x,y+rr);ctx.quadraticCurveTo(x,y,x+rr,y);ctx.closePath();
+  ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();
 }
 
+function drawWideMenuChrome(engine:GameEngine,_label:string,accent='#ffc95f') {
+  if(CANVAS_WIDTH<=UI_BASE_WIDTH+16)return;
+  const ctx=engine.ui!,safe=visibleCanvasRect(8),safeLeft=safe.x,safeRight=safe.x+safe.w;
+  ctx.save();
+
+  // Laterales pastel decorativos para monitores anchos; nada de rails industriales.
+  const leftW=Math.max(0,(CANVAS_WIDTH-UI_BASE_WIDTH)/2);
+  if(leftW>8){
+    ctx.globalAlpha=.20;ctx.fillStyle='#ff9fbd';ctx.fillRect(safeLeft,24,leftW-8,CANVAS_HEIGHT-48);
+    ctx.fillStyle='#70d8ef';ctx.fillRect(safeRight-leftW+8,24,leftW-8,CANVAS_HEIGHT-48);
+    ctx.globalAlpha=.55;
+    for(let i=0;i<5;i++){
+      const y=54+i*55;
+      text(ctx,i%2?'♥':'✦',safeLeft+leftW/2,y,7,i%2?'#fff4fb':'#fff6bd','center',true,false);
+      text(ctx,i%2?'✦':'♥',safeRight-leftW/2,y,7,i%2?'#fff6bd':'#fff4fb','center',true,false);
+    }
+  }
+
+  const bottomY=Math.min(CANVAS_HEIGHT-23,safe.y+safe.h-23);
+  roundedHud(ctx,safeLeft,bottomY,safe.w,18,9,'rgba(255,250,247,.86)',accent);
+  text(ctx,'ESC · VOLVER / PAUSA',safeLeft+10,bottomY+12,4.25,'#73769a','left',true,false);
+  text(ctx,'F · PANTALLA COMPLETA',safeRight-10,bottomY+12,4.25,'#73769a','right',true,false);
+  ctx.restore();
+}
 
 function renderHeistIntroUI(engine:GameEngine) {
   const ctx=engine.ui!;
@@ -2622,112 +2630,56 @@ function renderDifficultyUI(engine:GameEngine) {
   drawMouseButton(ctx,engine.pendingMode==='endless'?'INICIAR SIN FIN':'INICIAR ATRACO',DIFFICULTY_START.x,DIFFICULTY_START.y,DIFFICULTY_START.w,DIFFICULTY_START.h,inside(engine.mouseX,engine.mouseY,DIFFICULTY_START),accent,false,locked);
 }
 
-function renderMenuUI(engine: GameEngine,wide=false) {
+function renderMenuUI(engine:GameEngine,_wide=false) {
   const ctx=engine.ui!,meta=MENU_META[engine.menuIndex]??MENU_META[0],mf=menuFrame(engine);
-  const safe=visibleCanvasRect(wide?10:0);
-  const viewW=wide?safe.w:UI_BASE_WIDTH;
-  const viewX=wide?safe.x:0;
+  const buttonColors=['#ffc95f','#ff7f83','#b99cff','#75ddb8','#66d9ee','#ffae79','#ff8fbd','#8ec5ff'];
+  const buttonIcons=['▶','∞','✦','+','♥','★','?','⚙'];
 
-  ctx.save();
-  ctx.fillStyle='rgba(3,8,12,.24)';
-  ctx.fillRect(viewX,0,viewW,CANVAS_HEIGHT);
-  if(wide){
-    const ambient=ctx.createRadialGradient(viewX+viewW*.72,88,16,viewX+viewW*.72,88,300);
-    ambient.addColorStop(0,meta.accent+'20');
-    ambient.addColorStop(.55,'rgba(0,0,0,0)');
-    ambient.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=ambient;ctx.fillRect(viewX,0,viewW,CANVAS_HEIGHT);
-    ctx.globalAlpha=.06;ctx.fillStyle=meta.accent;
-    for(let x=viewX+18;x<viewX+viewW;x+=48)ctx.fillRect(x,26,1,CANVAS_HEIGHT-52);
-    ctx.globalAlpha=1;
-  }
-  ctx.restore();
+  // Logo compacto y apilado, inspirado en sticker kawaii.
+  drawTitleLogo(ctx,366,48,mf);
+  text(ctx,'ELIGE TU PLAN',366,87,5.1,'#6e6c94','center',true,false);
 
-  // El logo conserva la versión que funcionaba mejor visualmente, pero queda
-  // centrado dentro de la zona realmente visible en fullscreen.
-  ctx.save();
-  if(wide){
-    const visibleCenter=safe.x+safe.w/2;
-    ctx.translate(visibleCenter-UI_BASE_WIDTH/2,0);
-  }
-  drawTitleLogo(ctx,UI_BASE_WIDTH/2,58,mf);
-  ctx.restore();
-
-  const first=mainMenuRect(0,wide);
-  text(ctx,'ELIGE UNA OPERACIÓN',first.x,70,wide?5.0:4.7,'#8aa09d','left',true,false);
+  // Tarjeta de contexto pequeña: informa sin tapar la ilustración del pato.
+  drawMenuCard(ctx,18,62,224,78,true,meta.accent,'rgba(255,250,247,.90)');
+  drawSectionLabel(ctx,meta.eyebrow,34,80,meta.accent);
+  titleText(ctx,meta.title,34,103,11.5,'#3f3b67','left',false);
+  wrappedText(ctx,meta.desc,34,118,188,5.3,7,2,'#777a9d',false);
+  text(ctx,meta.tag,226,134,4.15,meta.accent,'right',true,false);
 
   MENU_ITEMS.forEach((item,i)=>{
-    const on=i===engine.menuIndex,box=mainMenuRect(i,wide),hover=inside(engine.mouseX,engine.mouseY,box);
+    const on=i===engine.menuIndex,box=mainMenuRect(i,false),hover=inside(engine.mouseX,engine.mouseY,box);
     const heistCheckpoint=i===0&&engine.heistCheckpointFloor>0;
     const endlessCheckpoint=i===1&&engine.endlessCheckpointRound>0;
     const hasCheckpoint=heistCheckpoint||endlessCheckpoint;
     const label=heistCheckpoint?'CONTINUAR ATRACO':endlessCheckpoint?'CONTINUAR SIN FIN':item.label;
-    const desc=heistCheckpoint?'PISO '+engine.heistCheckpointFloor+' · GUARDADO':endlessCheckpoint?'R'+engine.endlessCheckpointRound+' GUARDADA':['Campaña','Supervivencia','Reto de hoy','Progresión','Aspectos','Archivo','Guía','Sistema'][i]??'';
-    drawMenuCard(ctx,box.x,box.y,box.w,box.h,on||hover,meta.accent,on?'rgba(31,35,28,.94)':hover?'rgba(18,31,33,.95)':'rgba(9,22,28,.88)');
-    text(ctx,label,box.x+11,box.y+(wide?11:10),wide?6.55:6.35,on?'#fff0bd':hover?'#dde7df':'#c5d2ce','left',true,false);
-    text(ctx,desc,box.x+11,box.y+(wide?21:19),wide?4.15:4.05,on?'#bcae75':'#647a7d','left',false,false);
-    if(on)text(ctx,'›',box.x+box.w-11,box.y+box.h/2+3,wide?9:8.5,meta.accent,'center',true,false);
+    const accent=buttonColors[i]??meta.accent;
+
+    drawMenuCard(
+      ctx,box.x,box.y,box.w,box.h,on||hover,accent,
+      on?'rgba(255,252,244,.98)':hover?'rgba(255,249,252,.97)':'rgba(255,255,255,.88)',
+    );
+
+    // Icono redondo a la izquierda.
+    ctx.fillStyle=accent;ctx.beginPath();ctx.arc(box.x+14,box.y+box.h/2,7,0,Math.PI*2);ctx.fill();
+    text(ctx,buttonIcons[i]??'•',box.x+14,box.y+box.h/2+3,6,'#ffffff','center',true,false);
+    text(ctx,label,box.x+28,box.y+box.h/2+3.2,5.55,on?'#343052':'#515375','left',true,false);
+
+    if(on){
+      const pulse=1+Math.sin(mf*.10)*.06;
+      ctx.save();ctx.translate(box.x+box.w-13,box.y+box.h/2);ctx.scale(pulse,pulse);
+      text(ctx,'♥',0,3.5,7,accent,'center',true,false);ctx.restore();
+    }
+
     if(hasCheckpoint){
-      const badgeColor=heistCheckpoint?'#d8b85f':'#d86b58';
-      ctx.fillStyle=badgeColor;ctx.fillRect(box.x+box.w-34,box.y+3,26,6);
-      text(ctx,'GUARD.',box.x+box.w-21,box.y+8,3.4,'#fff2d5','center',true,false);
+      const badge=heistCheckpoint?'#ffc95f':'#ff7f83';
+      ctx.fillStyle=badge;ctx.beginPath();ctx.arc(box.x+box.w-31,box.y+5,3,0,Math.PI*2);ctx.fill();
+      text(ctx,heistCheckpoint?'P'+engine.heistCheckpointFloor:'R'+engine.endlessCheckpointRound,box.x+box.w-25,box.y+7.5,3.2,'#50466a','left',true,false);
     }
   });
 
-  const px=wide?first.x+first.w+16:183;
-  const py=wide?74:76;
-  const safeRight=wide?safe.x+safe.w:UI_BASE_WIDTH;
-  const pw=wide?Math.max(286,safeRight-px):271;
-  const ph=wide?244:232;
-  // Panel informativo tipo "glass": deja ver la escena del banco detrás
-  // sin perder contraste en títulos, métricas ni textos secundarios.
-  drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.72)');
-  drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
-  titleText(ctx,meta.title,px+16,py+47,wide?14:13,'#efe3bc','left',false);
-  wrappedText(ctx,meta.desc,px+16,py+69,pw-32,wide?7.1:7,wide?10:10,4,'#9db0ad');
-  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+120,pw-32,1);
-  text(ctx,meta.tag,px+16,py+138,wide?5.45:5.3,meta.accent,'left',true,false);
-
-  const valueX=px+(wide?116:104);
-  if(engine.menuIndex===0){
-    const saved=engine.heistCheckpointFloor>0;
-    text(ctx,saved?'PARTIDA GUARDADA':'MEJOR PISO',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,saved?'PISO '+engine.heistCheckpointFloor:String(engine.bestFloor)+'/6',valueX,py+166,wide?7.8:7.5,'#e7d79e','left',true,false);
-    text(ctx,'DIFICULTAD',px+16,py+184,wide?5.4:5.2,'#71878b','left',false,false);
-    const diff=saved&&engine.heistCheckpointDifficulty?DIFFICULTIES[engine.heistCheckpointDifficulty].label:DIFFICULTIES[engine.difficulty].label;
-    text(ctx,diff,valueX,py+184,wide?7.45:7.2,meta.accent,'left',true,false);
-  } else if(engine.menuIndex===1){
-    const rec=engine.endlessRecords[engine.difficulty];
-    text(ctx,'RÉCORD',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,'RONDA '+rec.round,valueX,py+166,wide?7.8:7.5,'#e7d79e','left',true,false);
-    text(ctx,'CHECKPOINT',px+16,py+184,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,engine.endlessCheckpointRound>0?'RONDA '+engine.endlessCheckpointRound:'SIN GUARDADO',valueX,py+184,wide?7.45:7.2,engine.endlessCheckpointRound>0?'#d86b58':'#6f8185','left',true,false);
-  } else if(engine.menuIndex===2){
-    const rec=engine.dailyProfile.current;
-    text(ctx,'MEJOR HOY',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,String(rec.bestScore),valueX,py+166,wide?7.8:7.5,'#efe3bc','left',true,false);
-    text(ctx,'MEDALLA',px+16,py+184,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,rec.bestMedal,valueX,py+184,wide?7.45:7.2,dailyMedalColor(rec.bestMedal),'left',true,false);
-  } else if(engine.menuIndex===3||engine.menuIndex===4){
-    text(ctx,'MONEDAS',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    drawItemIcon(ctx,valueX-3,py+154,'golden_crumb',14);
-    text(ctx,String(engine.totalGoldenCrumbs),valueX+18,py+166,wide?8.1:8,meta.accent,'left',true,false);
-  } else if(engine.menuIndex===5){
-    const found=Object.values(engine.discovered).reduce((a,list)=>a+list.length,0);
-    text(ctx,'REGISTROS ABIERTOS',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,String(found),px+(wide?168:154),py+166,wide?8.1:8,meta.accent,'left',true,false);
-  } else {
-    text(ctx,'ESTADO',px+16,py+166,wide?5.4:5.2,'#71878b','left',false,false);
-    text(ctx,'LISTO',valueX,py+166,wide?7.45:7.2,meta.accent,'left',true,false);
-  }
-
-  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+208,pw-32,1);
-  text(ctx,'SELECCIONA UNA OPCIÓN PARA CONTINUAR',px+16,py+220,wide?4.65:4.4,'#6f8587','left',true,false);
-  if(wide)text(ctx,'PERFIL · '+DIFFICULTIES[engine.difficulty].label,px+pw-16,py+220,4.55,'#6f8587','right',true,false);
-
-  const center=wide?safe.x+safe.w/2:UI_BASE_WIDTH/2;
-  const taglineY=wide?Math.min(336,safe.y+safe.h-18):329;
-  text(ctx,T.tagline,center,taglineY,wide?7.65:7.5,'#dbc486','center',true,false);
+  // Microdetalles estilo sticker, sin paneles técnicos.
+  text(ctx,'PATOS PEQUEÑOS · GRANDES PLANES ♥',24,327,4.5,'#7c7698','left',true,false);
+  text(ctx,T.tagline,456,327,4.8,'#ad7f65','right',true,false);
 }
 function renderHowToPlayUI(engine: GameEngine) {
   const ctx=engine.ui!;
