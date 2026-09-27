@@ -327,8 +327,10 @@ export default function App() {
         }
       }
 
+      // MAP no es mouse-only: M debe poder cerrarlo y WASD/flechas deben
+      // seguir navegando por los nodos mientras está abierto.
       const mouseOnlyMenu = [
-        GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.MAP,GameState.COLLECTION,GameState.CAREER,
+        GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.COLLECTION,GameState.CAREER,
         GameState.HOW_TO_PLAY,GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,GameState.ENDLESS_RESUME,
         GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
       ].includes(engine.state);

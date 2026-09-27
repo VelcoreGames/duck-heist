@@ -54,6 +54,15 @@ export function runSelfChecks():CheckReport {
     return e;
   };
   try {
+    check('Mapa abre y cierra con el mismo toggle',()=>{
+      const e=setup();
+      e.state=GameState.PLAYING;
+      const before=e.state;
+      assert(toggleFloorMap(e),'M no abrió el mapa desde juego');
+      assert(e.state===GameState.MAP,'estado no cambió a MAP');
+      assert(toggleFloorMap(e),'M no cerró el mapa');
+      assert(e.state===before,'el mapa no volvió al estado anterior');
+    });
     check('Intro de atraco tiene duración y skip válidos',()=>{
       assert(HEIST_INTRO_FRAMES>=120&&HEIST_INTRO_FRAMES<=180,'duración fuera de rango');
       assert(HEIST_INTRO_SKIP_AFTER>=12&&HEIST_INTRO_SKIP_AFTER<HEIST_INTRO_FRAMES*.35,'skip fuera de rango');
