@@ -648,74 +648,97 @@ export interface DuckPalette {
 }
 
 export type SkinOverlay =
-  | 'none' | 'fedora' | 'prison' | 'chef' | 'executive'
-  | 'ninja' | 'undercover' | 'pirate' | 'gold' | 'king';
+  | 'robber' | 'fedora' | 'prison' | 'chef' | 'executive'
+  | 'rose' | 'ninja' | 'undercover' | 'pirate' | 'gold' | 'king';
 
 export interface DuckSkin {
   id: string; name: string; description: string; cost: number;
   palette: DuckPalette; overlay: SkinOverlay;
+  /** Colores de identidad usados por ropa, insignias y accesorios. */
+  accent: string; trim: string; metal: string;
 }
 
 export const DEFAULT_PALETTE: DuckPalette = {
-  body: '#f9e547', dark: '#e0c31c', shade: '#c9ae13',
-  beak: '#f0912b', beakDark: '#cf6f14', mask: '#15151f', pack: '#3b2f2a', strap: '#2a211d',
+  body: '#f8df4f', dark: '#d7ba28', shade: '#b79a18',
+  beak: '#f39a32', beakDark: '#c96c19', mask: '#11131a', pack: '#3a2e2a', strap: '#241c1a',
 };
 
 export const SKINS: DuckSkin[] = [
   {
     id: 'robber', name: 'PATO LADRÓN',
-    description: 'El clásico. Amarillo, sospechoso y sorprendentemente profesional.',
-    cost: 0, palette: DEFAULT_PALETTE, overlay: 'none',
+    description: 'El icono del atraco: antifaz, pañuelo rojo, arnés de herramientas y bolsa compacta.',
+    cost: 0, palette: DEFAULT_PALETTE, overlay: 'robber',
+    accent: '#c9473b', trim: '#ead77c', metal: '#aeb8b8',
   },
   {
     id: 'gangster', name: 'PATO GÁNSTER',
-    description: 'Traje negro, fedora y cadena de oro.',
-    cost: 200, palette: { ...DEFAULT_PALETTE, body: '#2c2c36', dark: '#23232c', shade: '#1b1b22', pack: '#111118' }, overlay: 'fedora',
+    description: 'Fedora de ala ancha, traje con raya diplomática, corbata vino y cadena dorada.',
+    cost: 200,
+    palette: { ...DEFAULT_PALETTE, body: '#464650', dark: '#33343d', shade: '#24252c', mask: '#0d0f14', pack: '#17141a', strap: '#2a2026' },
+    overlay: 'fedora', accent: '#9f2f3d', trim: '#d8b65a', metal: '#d9c27b',
   },
   {
     id: 'prisoner', name: 'PATO PRESIDIARIO',
-    description: 'Mono naranja a rayas.',
-    cost: 150, palette: { ...DEFAULT_PALETTE, body: '#f0912b', dark: '#e07f1e', shade: '#c96f14', pack: '#8a4c10' }, overlay: 'prison',
+    description: 'Mono penitenciario reforzado, placa de interno, costuras rotas y grillete convertido en trofeo.',
+    cost: 150,
+    palette: { ...DEFAULT_PALETTE, body: '#ef872a', dark: '#cf6d1b', shade: '#a95014', pack: '#6d3714', strap: '#4b2b18' },
+    overlay: 'prison', accent: '#f7e8c7', trim: '#4e5660', metal: '#9aa5aa',
   },
   {
     id: 'baker', name: 'PATO PANADERO',
-    description: 'Gorro de chef y delantal blanco.',
-    cost: 120, palette: { ...DEFAULT_PALETTE, mask: '#f9e547' }, overlay: 'chef',
+    description: 'Toque alto, pañuelo rojo, chaqueta de cocina cruzada y utensilios listos para un atraco caliente.',
+    cost: 120,
+    palette: { ...DEFAULT_PALETTE, body: '#f5df67', dark: '#d5bd43', shade: '#b89d2c', pack: '#70482f', strap: '#4a2f22' },
+    overlay: 'chef', accent: '#b84536', trim: '#f7f0df', metal: '#b8c2bf',
   },
   {
     id: 'executive', name: 'PATO EJECUTIVO',
-    description: 'Traje oscuro, corbata y maletín.',
-    cost: 250, palette: { ...DEFAULT_PALETTE, body: '#3a3f52', dark: '#2f3342', shade: '#262a36', pack: '#15161c' }, overlay: 'executive',
+    description: 'Traje azul carbón, camisa impecable, corbata borgoña, reloj dorado y maletín de alta dirección.',
+    cost: 250,
+    palette: { ...DEFAULT_PALETTE, body: '#465267', dark: '#313b4d', shade: '#202837', mask: '#111723', pack: '#171b24', strap: '#272d39' },
+    overlay: 'executive', accent: '#9c3340', trim: '#f1efe7', metal: '#d5b65a',
   },
   {
     id: 'pink', name: 'PATO ROSA',
-    description: 'Plumas rosas con antifaz negro.',
-    cost: 150, palette: { ...DEFAULT_PALETTE, body: '#ff8fb3', dark: '#f07ba3', shade: '#d96a92' }, overlay: 'none',
+    description: 'Plumas rosa neón, chaqueta corta, visor ahumado y detalles cian para robar con demasiada presencia.',
+    cost: 150,
+    palette: { ...DEFAULT_PALETTE, body: '#f58daf', dark: '#d96d92', shade: '#b85378', mask: '#25192c', pack: '#43243f', strap: '#602f54' },
+    overlay: 'rose', accent: '#59d7dd', trim: '#ffd2df', metal: '#c8d9dc',
   },
   {
     id: 'ninja', name: 'PATO NINJA',
-    description: 'Capucha oscura y cinta roja.',
-    cost: 300, palette: { ...DEFAULT_PALETTE, body: '#242730', dark: '#1b1d24', shade: '#13151a', pack: '#15151f' }, overlay: 'ninja',
+    description: 'Capucha segmentada, cinta carmesí, vendas de combate y una silueta hecha para desaparecer entre alarmas.',
+    cost: 300,
+    palette: { ...DEFAULT_PALETTE, body: '#292d37', dark: '#1d2028', shade: '#12151b', beak: '#d17a2d', beakDark: '#9a4d20', mask: '#090b0f', pack: '#11141a', strap: '#252a32' },
+    overlay: 'ninja', accent: '#c93f43', trim: '#5a626d', metal: '#8e969c',
   },
   {
     id: 'undercover', name: 'PATO POLICÍA INFILTRADO',
-    description: 'Absolutamente nadie sospechará.',
-    cost: 275, palette: { ...DEFAULT_PALETTE, body: '#2b4a8b', dark: '#1b2f5c', shade: '#152445' }, overlay: 'undercover',
+    description: 'Gorra oficial, placa, radio, gabardina azul y un bigote tan convincente como sospechoso.',
+    cost: 275,
+    palette: { ...DEFAULT_PALETTE, body: '#4c6692', dark: '#344a72', shade: '#253654', mask: '#111a2a', pack: '#1d2a3d', strap: '#2b3c56' },
+    overlay: 'undercover', accent: '#e0b84e', trim: '#8fb8d8', metal: '#aebbc2',
   },
   {
     id: 'pirate', name: 'PATO PIRATA',
-    description: 'Busca el pan enterrado.',
-    cost: 225, palette: { ...DEFAULT_PALETTE, body: '#4a3b32', dark: '#3b2f28', shade: '#2e241f', pack: '#201814' }, overlay: 'pirate',
+    description: 'Tricornio gastado, parche, pañuelo carmesí, cinturón de latón y abrigo de saqueador del pan.',
+    cost: 225,
+    palette: { ...DEFAULT_PALETTE, body: '#6b5040', dark: '#4f392f', shade: '#392820', mask: '#171217', pack: '#241915', strap: '#40291f' },
+    overlay: 'pirate', accent: '#a83b35', trim: '#d7bd87', metal: '#c5943e',
   },
   {
     id: 'golden', name: 'PATO DORADO',
-    description: 'El crimen nunca había brillado tanto.',
-    cost: 500, palette: { ...DEFAULT_PALETTE, body: '#ffd95e', dark: '#f0c33c', shade: '#d4a81f', beak: '#ffb73d', beakDark: '#d08a12', pack: '#5a4515' }, overlay: 'gold',
+    description: 'Blindaje ceremonial de lingotes, visor blanco y herrajes de bóveda: lujo criminal sin corona.',
+    cost: 500,
+    palette: { ...DEFAULT_PALETTE, body: '#ffd75c', dark: '#e7b93a', shade: '#bd8d24', beak: '#ffb44a', beakDark: '#c98220', mask: '#4b3614', pack: '#6a4e1c', strap: '#8a6727' },
+    overlay: 'gold', accent: '#fff2a6', trim: '#f2ba3f', metal: '#ffe49a',
   },
   {
     id: 'king', name: 'PATO REY DEL PAN',
-    description: 'Gobierna sobre todas las migajas.',
-    cost: 750, palette: { ...DEFAULT_PALETTE, body: '#fff3b0', dark: '#f4d03f', shade: '#d4a81f', pack: '#7a1f28' }, overlay: 'king',
+    description: 'Corona de migajas, capa real, cuello de armiño y joyas de bóveda. El atraco terminó en monarquía.',
+    cost: 750,
+    palette: { ...DEFAULT_PALETTE, body: '#fff0b1', dark: '#e6c85e', shade: '#c29e34', mask: '#4a1526', pack: '#6d1830', strap: '#4a1222' },
+    overlay: 'king', accent: '#7b2f8f', trim: '#f6f0df', metal: '#ffd861',
   },
 ];
 
