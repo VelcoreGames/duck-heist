@@ -2121,7 +2121,7 @@ function drawIconicBossBodyV3(
   return true;
 }
 
-function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
+function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual,parts?:BossPartState[]){
   const pulse=.5+.5*Math.sin(frame*.12);
   ctx.save();
   // halo de bóveda/IA
@@ -2134,27 +2134,38 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
   metalEdge(ctx,-23,-10,46,34,'#272c31','#a98235','#14191c');
   rect(ctx,-18,-5,36,24,'#343b40');rect(ctx,-13,-1,26,17,'#1f2529');
   rect(ctx,-4,-2,8,18,v.accent);
-  // puerta/núcleo de bóveda en pecho
+  // puerta/núcleo de bóveda en pecho: se expone en fase 2 y puede romperse.
   ctx.fillStyle='#13191d';ctx.beginPath();ctx.arc(0,7,10,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle=v.accent;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,7,8,0,Math.PI*2);ctx.stroke();
-  for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(Math.cos(a)*7,7+Math.sin(a)*7);ctx.stroke();}
+  if(iconicPartAlive(parts,'vault_core')){
+    ctx.strokeStyle=v.accent;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,7,8,0,Math.PI*2);ctx.stroke();
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(Math.cos(a)*7,7+Math.sin(a)*7);ctx.stroke();}
+  }else{
+    drawBrokenModule(ctx,0,7,frame,'#ff5a45');
+  }
 
   // cabeza de presidente del banco, ya sin corona/capa
   rect(ctx,-10,-21,20,12,'#eee8dc');rect(ctx,-7,-19,14,5,'#d6d0c5');
   enemyEye(ctx,-6,-17,true);enemyEye(ctx,4,-17,true);rect(ctx,8,-15,10,4,'#e88832');
   rect(ctx,-12,-26,24,5,'#22272b');rect(ctx,-8,-30,16,5,'#3b3c38');rect(ctx,-5,-29,10,2,v.accent);
 
-  // brazos mecánicos: maletín-cañón + terminal de mando
-  metalEdge(ctx,-34,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
-  rect(ctx,-37,7,16,9,'#30271f');rect(ctx,-34,5,10,3,'#7c5d31');px(ctx,-31,10,v.secondary,3);
-  metalEdge(ctx,23,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
-  rect(ctx,25,-2,7,9,'#13272d');px(ctx,27,0,phase>=2?'#ff5050':'#5ad2c4',3);
+  // brazos mecánicos: maletín-cañón + terminal de mando, ambos destruibles.
+  if(iconicPartAlive(parts,'executive_cannon')){
+    metalEdge(ctx,-34,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
+    rect(ctx,-37,7,16,9,'#30271f');rect(ctx,-34,5,10,3,'#7c5d31');px(ctx,-31,10,v.secondary,3);
+  }else drawBrokenModule(ctx,-32,4,frame);
+  if(iconicPartAlive(parts,'command_terminal')){
+    metalEdge(ctx,23,-5,11,22,'#3d454a','#8c6e2e','#1b2125');
+    rect(ctx,25,-2,7,9,'#13272d');px(ctx,27,0,phase>=2?'#ff5050':'#5ad2c4',3);
+  }else drawBrokenModule(ctx,29,2,frame);
 
-  // drones de escolta
-  for(const side of [-1,1]){
+  // drones de escolta destruibles
+  for(const side of [-1,1] as const){
+    const id=side<0?'escort_drone_l':'escort_drone_r';
     const x=side*(34+phase*3),y=-18+Math.sin(frame*.08+side)*3;
-    rect(ctx,x-5,y-3,10,7,'#28343a');px(ctx,x-2,y-1,side<0?v.secondary:v.accent,4);
-    rect(ctx,x-10,y-1,5,2,'#64767e');rect(ctx,x+5,y-1,5,2,'#64767e');
+    if(iconicPartAlive(parts,id)){
+      rect(ctx,x-5,y-3,10,7,'#28343a');px(ctx,x-2,y-1,side<0?v.secondary:v.accent,4);
+      rect(ctx,x-10,y-1,5,2,'#64767e');rect(ctx,x+5,y-1,5,2,'#64767e');
+    }else drawBrokenModule(ctx,x,y,frame);
   }
 
   if(phase>=1){
@@ -2165,8 +2176,9 @@ function drawFinalBankBossV2(ctx:Ctx,frame:number,phase:number,v:BossVisual){
   if(phase>=2){
     ctx.strokeStyle='#ff4d54';ctx.lineWidth=2;
     for(let i=0;i<10;i++){const a=i*Math.PI/5+frame*.01;ctx.beginPath();ctx.moveTo(Math.cos(a)*36,3+Math.sin(a)*26);ctx.lineTo(Math.cos(a)*45,3+Math.sin(a)*33);ctx.stroke();}
-    ctx.globalAlpha=.55+.35*pulse;px(ctx,-3,4,'#ff4d54',6);ctx.globalAlpha=1;
+    if(iconicPartAlive(parts,'vault_core')){ctx.globalAlpha=.55+.35*pulse;px(ctx,-3,4,'#ff4d54',6);ctx.globalAlpha=1;}
   }
+  drawBossPartWear(ctx,parts,frame);
   ctx.restore();
 }
 
@@ -2186,7 +2198,7 @@ function drawPremiumBossBody(ctx:Ctx,bx:number,by:number,bossType:string,frame:n
   ctx.beginPath();ctx.ellipse(0,18,16+tier*4,4+tier,0,0,Math.PI*2);ctx.fill();
 
   if(def.finalBoss){
-    drawFinalBankBossV2(ctx,frame,phase,v);
+    drawFinalBankBossV2(ctx,frame,phase,v,parts);
   }else{
     // Para tech/vault el rig estructural forma parte del propio chasis.
     // En aves/personajes sólo aparece en subjefes/jefes y funciona como mochila,
