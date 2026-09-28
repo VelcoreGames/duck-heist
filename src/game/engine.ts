@@ -32,7 +32,7 @@ import { completeTutorial, updateTutorial } from './tutorial';
 import { MODIFIER_LABELS } from './modifiers';
 import { aimVector } from './aim';
 import { throwBreadGrenade, updateGrenades } from './grenades';
-import { obstacleHitbox, obstacleMaxHp, obstacleDebrisColor, specialSolidRects, rectsOverlap, pointInRect, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { obstacleHitbox, obstacleProjectileHitbox, obstacleMaxHp, obstacleDebrisColor, specialSolidRects, rectsOverlap, pointInRect, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { notifyCloudSave } from '../cloud/cloudSaveEvents';
 import { bankKeyDropChance, bankKeyPityAfterAttempt, specialRoomKeyCost, specialRoomLocked, tryUnlockSpecialRoom } from './keyAccess';
 import type {
@@ -604,7 +604,7 @@ function damageObstacleAtBox(
   for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
     const tile=room.layout[ty][tx];
     if(tile<OBSTACLE_BASE)continue;
-    if(!rectsOverlap(bx,by,bw,bh,obstacleHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)))continue;
+    if(!rectsOverlap(bx,by,bw,bh,obstacleProjectileHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)))continue;
     damageObstacleTile(engine,room,content,tx,ty,amount);
     hit=true;
   }
@@ -3148,9 +3148,9 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
     const outside = tx < 0 || ty < 0 || tx >= ROOM_WIDTH || ty >= ROOM_HEIGHT;
     const tile = outside ? TILE_WALL : room.layout[ty][tx];
     const obstacleHit=!outside&&tile>=OBSTACLE_BASE&&pointInRect(
-      p.x,p.y,obstacleHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)
+      p.x,p.y,obstacleProjectileHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE)
     );
-    const solid = outside || pointBlocked(room,p.x,p.y,false);
+    const solid = outside || obstacleHit || pointBlocked(room,p.x,p.y,false);
     if (solid) {
       if(obstacleHit){
         if(p.explode>0){
@@ -3337,7 +3337,7 @@ function explode(engine: GameEngine, p: Projectile, content: RoomContent, hurtPl
   for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
     const tile=room.layout[ty][tx];
     if(tile<OBSTACLE_BASE)continue;
-    const hit=obstacleHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE);
+    const hit=obstacleProjectileHitbox(tile-OBSTACLE_BASE,tx*TILE_SIZE,ty*TILE_SIZE);
     const cx=hit.x+hit.w/2,cy=hit.y+hit.h/2,d=Math.hypot(cx-p.x,cy-p.y);
     if(d>radius+Math.max(hit.w,hit.h)*.5)continue;
     const falloff=Math.max(.35,1-d/Math.max(1,radius)*.65);
