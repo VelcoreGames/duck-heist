@@ -2874,7 +2874,7 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   const center=wide?safe.x+safe.w/2:UI_BASE_WIDTH/2;
   const taglineY=wide?Math.min(336,safe.y+safe.h-18):329;
   text(ctx,T.tagline,center,taglineY,wide?7.65:7.5,'#dbc486','center',true,false);
-  text(ctx,`${GAME_VERSION_LABEL} · ART ${ART_SCALE}X`,wide?safe.x+safe.w-8:UI_BASE_WIDTH-8,taglineY,3.8,'#50666d','right',true,false);
+  text(ctx,`${GAME_VERSION_LABEL} · ART ${ART_SCALE}X · AUTO`,wide?safe.x+safe.w-8:UI_BASE_WIDTH-8,taglineY,3.8,'#50666d','right',true,false);
 }
 function howToBindingLabel(raw:string,compact=false){
   const k=(raw??'').toLowerCase();
