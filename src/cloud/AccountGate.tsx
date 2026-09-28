@@ -5,6 +5,7 @@ import {
   loadCloudConfig,loginEmail,loginUsername,logoutAccount,parseAuthCallback,resendVerification,resolveConflict,
   sendPasswordReset,signUpEmail,syncCurrent,updatePassword,validateEmail,validatePassword,validateSession,validateUsername,
 } from './cloudClient';
+import { GAME_VERSION_LABEL } from '../game/version';
 
 type Mode='login'|'signup'|'recover';
 type Gate='boot'|'auth'|'verify'|'username'|'reset'|'ready'|'offline'|'conflict';
@@ -307,7 +308,7 @@ function AccountShell({title,subtitle,children}:{title:string;subtitle:ReactNode
       <div className="vg-account-kicker">BANCO DEL PAN · CUENTA EN LA NUBE</div>
       <h1>{title}</h1><p className="vg-account-sub">{subtitle}</p>
       {children}
-      <p className="vg-account-version">BANCO DEL PAN // DUCK HEIST v0.8.0</p>
+      <p className="vg-account-version">BANCO DEL PAN // DUCK HEIST {GAME_VERSION_LABEL}</p>
     </section>
   </main>;
 }
