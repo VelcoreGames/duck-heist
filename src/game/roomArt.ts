@@ -13,22 +13,142 @@ function r(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: nu
   ctx.fillStyle = color; ctx.fillRect(artSnap(x), artSnap(y), artSpan(w), artSpan(h));
 }
 
+function floorTierFromDeco(deco:string){
+  return deco==='lobby'?0:deco==='security'?1:deco==='storage'?2:deco==='bakery'?3:deco==='vault'?4:5;
+}
+
 function decoMetal(deco:string){
-  return deco==='security'?'#8faeb7':
-    deco==='storage'?'#b89562':
-    deco==='bakery'?'#bd835c':
-    deco==='vault'?'#c9ad62':
-    deco==='golden'?'#e6c56f':
-    '#c6a866';
+  return deco==='security'?'#a99369':
+    deco==='storage'?'#b38c55':
+    deco==='bakery'?'#c99c55':
+    deco==='vault'?'#dfb83f':
+    deco==='golden'?'#f2ca4c':
+    '#9f8555';
 }
 
 function decoVein(deco:string){
-  return deco==='security'?'rgba(126,177,194,.11)':
-    deco==='storage'?'rgba(203,173,126,.10)':
-    deco==='bakery'?'rgba(211,143,104,.10)':
-    deco==='vault'?'rgba(215,202,163,.09)':
-    deco==='golden'?'rgba(255,230,156,.12)':
-    'rgba(220,229,225,.11)';
+  return deco==='security'?'rgba(235,229,214,.10)':
+    deco==='storage'?'rgba(223,208,184,.12)':
+    deco==='bakery'?'rgba(247,237,215,.18)':
+    deco==='vault'?'rgba(235,201,92,.16)':
+    deco==='golden'?'rgba(142,224,255,.18)':
+    'rgba(111,105,94,.10)';
+}
+
+function drawMarbleVein(ctx:CanvasRenderingContext2D,px:number,py:number,h:number,color:string,strong=.12){
+  ctx.save();ctx.globalAlpha=strong;ctx.strokeStyle=color;ctx.lineWidth=.75;
+  const bend=(h%7)-3;
+  ctx.beginPath();
+  ctx.moveTo(px+2,py+7+(h%5));
+  ctx.lineTo(px+10,py+10+bend);
+  ctx.lineTo(px+18,py+7+(h%9));
+  ctx.lineTo(px+30,py+13+(h%6));
+  ctx.stroke();
+  if(h%3===0){
+    ctx.globalAlpha=strong*.55;ctx.beginPath();
+    ctx.moveTo(px+8,py+25);ctx.lineTo(px+15,py+20);ctx.lineTo(px+28,py+23);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawLuxuryFloorDetail(
+  ctx:CanvasRenderingContext2D,px:number,py:number,h:number,theme:FloorTheme,frame:number,
+){
+  const tier=floorTierFromDeco(theme.deco),metal=decoMetal(theme.deco),variant=h%7;
+
+  if(tier===0){
+    // Entrada: losas grandes de piedra clara y juntas limpias.
+    if(variant===0||variant===4) drawMarbleVein(ctx,px,py,h,'#7f7a70',.10);
+    ctx.globalAlpha=.22;r(ctx,px+3,py+3,T-6,1,'#f3eee1');ctx.globalAlpha=1;
+    if(h%5===0){ctx.globalAlpha=.34;r(ctx,px+25,py+25,2,2,metal);ctx.globalAlpha=1;}
+  }else if(tier===1){
+    // Administración: piedra/terrazzo con inserto champagne y notas de roble.
+    if(variant<3){
+      ctx.globalAlpha=.11;
+      for(const [ox,oy] of [[7,8],[18,6],[12,18],[24,22]] as const)r(ctx,px+ox,py+oy,2,1,(ox+oy+h)%2?'#d8d2c5':'#6f6c66');
+      ctx.globalAlpha=1;
+    }
+    if(h%4===0){ctx.globalAlpha=.25;r(ctx,px+5,py+25,22,1,metal);ctx.globalAlpha=1;}
+  }else if(tier===2){
+    // Ejecutivos: piedra humo con marcos de nogal.
+    if(variant%2===0){ctx.globalAlpha=.18;r(ctx,px+3,py+3,2,T-6,'#42362f');r(ctx,px+27,py+3,2,T-6,'#42362f');ctx.globalAlpha=1;}
+    drawMarbleVein(ctx,px,py,h,'#d7cab6',.09);
+    if(h%5===0){ctx.globalAlpha=.28;r(ctx,px+9,py+26,14,1,metal);ctx.globalAlpha=1;}
+  }else if(tier===3){
+    // Alta dirección: mármol crema pulido, vetas y latón.
+    drawMarbleVein(ctx,px,py,h,'#f5ead6',.18);
+    if(variant===0||variant===3){
+      ctx.globalAlpha=.42;r(ctx,px+3,py+3,T-6,1,metal);r(ctx,px+3,py+28,T-6,1,metal);ctx.globalAlpha=1;
+    }
+    if(h%6===0){ctx.globalAlpha=.10;r(ctx,px+6,py+6,20,20,'#ffffff');ctx.globalAlpha=1;}
+  }else if(tier===4){
+    // Tesorería: mármol oscuro con incrustaciones de oro.
+    drawMarbleVein(ctx,px,py,h,'#d9c16b',.15);
+    if(variant<=2){
+      ctx.globalAlpha=.48;r(ctx,px+3,py+3,T-6,1,metal);r(ctx,px+3,py+28,T-6,1,metal);
+      if(variant===0){r(ctx,px+15,py+4,2,24,metal);}
+      ctx.globalAlpha=1;
+    }
+    if(h%5===0){ctx.globalAlpha=.24;ctx.fillStyle='#f3d86f';ctx.fillRect(px+6,py+7,2,1);ctx.fillRect(px+24,py+21,1,1);ctx.globalAlpha=1;}
+  }else{
+    // Cámara soberana: ónix, oro y destellos diamante.
+    drawMarbleVein(ctx,px,py,h,'#708399',.16);
+    if(variant<=3){
+      ctx.globalAlpha=.52;r(ctx,px+3,py+3,T-6,1,metal);r(ctx,px+3,py+28,T-6,1,metal);
+      if(variant===0||variant===2){r(ctx,px+4,py+15,24,2,metal);}
+      ctx.globalAlpha=1;
+    }
+    const shimmer=.38+.22*Math.sin(frame*.055+h);
+    ctx.globalAlpha=shimmer;
+    for(const [ox,oy] of [[7,8],[22,6],[13,23],[25,19]] as const){
+      ctx.fillStyle=(ox+oy+h)%2?'#d7f8ff':'#82d8f5';ctx.fillRect(px+ox,py+oy,1+(h%3===0?1:0),1);
+    }
+    ctx.globalAlpha=1;
+  }
+}
+
+function drawWallPanelBase(ctx:CanvasRenderingContext2D,px:number,py:number,theme:FloorTheme,h:number){
+  const tier=floorTierFromDeco(theme.deco),metal=decoMetal(theme.deco);
+  r(ctx,px,py,T,T,tier>=4?'#07090b':'rgba(28,24,21,.40)');
+  r(ctx,px+1,py+1,T-2,T-2,theme.wall[(h+Math.floor(px/T)+Math.floor(py/T))%2]);
+
+  if(tier===0){
+    r(ctx,px+2,py+2,T-4,3,'rgba(255,255,255,.22)');
+    r(ctx,px+3,py+24,T-6,6,'#8e877c');
+    r(ctx,px+3,py+23,T-6,1,metal);
+    if(h%3===0){r(ctx,px+5,py+6,T-10,15,'rgba(255,255,255,.08)');}
+  }else if(tier===1){
+    // panel administrativo + listones de roble
+    r(ctx,px+3,py+4,T-6,20,'rgba(255,255,255,.045)');
+    if(h%3===0){
+      for(let xx=px+6;xx<px+28;xx+=5)r(ctx,xx,py+5,3,19,'#756657');
+    }else{r(ctx,px+4,py+23,T-8,5,'#6d645a');}
+    r(ctx,px+3,py+3,T-6,1,metal);
+  }else if(tier===2){
+    // nogal ejecutivo.
+    r(ctx,px+3,py+4,T-6,22,'#4b4037');
+    for(let xx=px+6;xx<px+29;xx+=6)r(ctx,xx,py+5,1,20,'rgba(212,176,125,.10)');
+    r(ctx,px+3,py+3,T-6,1,metal);r(ctx,px+3,py+26,T-6,2,'#332c27');
+  }else if(tier===3){
+    // mármol + nogal oscuro + latón.
+    r(ctx,px+3,py+3,T-6,8,'#a69d90');
+    drawMarbleVein(ctx,px+1,py,h,'#eee1ca',.16);
+    r(ctx,px+4,py+12,T-8,15,'#463a31');
+    r(ctx,px+3,py+11,T-6,1,metal);r(ctx,px+3,py+27,T-6,1,metal);
+  }else if(tier===4){
+    // tesorería: piedra negra y marcos de oro.
+    r(ctx,px+3,py+3,T-6,T-6,'#292a27');
+    r(ctx,px+5,py+5,T-10,T-10,'#393832');
+    ctx.globalAlpha=.68;r(ctx,px+4,py+4,T-8,1,metal);r(ctx,px+4,py+27,T-8,1,metal);
+    r(ctx,px+4,py+5,1,22,metal);r(ctx,px+27,py+5,1,22,metal);ctx.globalAlpha=1;
+  }else{
+    // cámara soberana: ónix, oro y filete diamante.
+    r(ctx,px+2,py+2,T-4,T-4,'#14171c');
+    r(ctx,px+5,py+5,T-10,T-10,'#242832');
+    ctx.globalAlpha=.80;r(ctx,px+3,py+3,T-6,1,metal);r(ctx,px+3,py+28,T-6,1,metal);
+    r(ctx,px+3,py+4,1,24,metal);r(ctx,px+28,py+4,1,24,metal);ctx.globalAlpha=1;
+    ctx.globalAlpha=.38;r(ctx,px+6,py+7,20,1,'#9deaff');r(ctx,px+6,py+24,20,1,'#6acff1');ctx.globalAlpha=1;
+  }
 }
 
 function drawHazardBand(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,accent:string,vertical=false){
@@ -47,61 +167,6 @@ function drawHazardBand(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,
   ctx.restore();
 }
 
-function drawFloorPlateDetail(
-  ctx:CanvasRenderingContext2D,px:number,py:number,h:number,theme:FloorTheme,frame:number,
-){
-  const metal=decoMetal(theme.deco),variant=h%9;
-  if(variant===0){
-    // rejilla industrial hundida
-    r(ctx,px+6,py+6,20,20,'rgba(3,7,9,.28)');
-    r(ctx,px+7,py+7,18,18,'rgba(255,255,255,.018)');
-    ctx.globalAlpha=.24;ctx.fillStyle='#05090b';
-    for(let yy=py+9;yy<py+24;yy+=4)ctx.fillRect(px+9,yy,14,2);
-    ctx.globalAlpha=.20;ctx.fillStyle=metal;ctx.fillRect(px+8,py+7,16,1);ctx.globalAlpha=1;
-  }else if(variant===1){
-    // tapa de mantenimiento con tornillos
-    ctx.strokeStyle='rgba(255,255,255,.09)';ctx.lineWidth=1;ctx.strokeRect(px+6.5,py+6.5,19,19);
-    r(ctx,px+9,py+10,14,1,'rgba(0,0,0,.20)');
-    for(const [ox,oy] of [[8,8],[23,8],[8,23],[23,23]] as const)r(ctx,px+ox,py+oy,1,1,'rgba(210,220,220,.20)');
-  }else if(variant===2){
-    // canal técnico con luz
-    r(ctx,px+4,py+15,24,3,'rgba(2,6,8,.34)');
-    r(ctx,px+5,py+16,22,1,'rgba(255,255,255,.04)');
-    ctx.globalAlpha=.24+.08*Math.sin(frame*.035+h);r(ctx,px+9,py+16,8,1,metal);ctx.globalAlpha=1;
-  }else if(variant===3){
-    // placa perforada
-    r(ctx,px+5,py+7,22,18,'rgba(4,8,10,.18)');
-    ctx.globalAlpha=.22;
-    for(let yy=py+10;yy<=py+22;yy+=4)for(let xx=px+8;xx<=px+23;xx+=5)r(ctx,xx,yy,1,1,'#05090b');
-    ctx.globalAlpha=1;
-  }else if(variant===4){
-    // esquinas de advertencia, sin forma de flecha
-    ctx.globalAlpha=.38;
-    drawHazardBand(ctx,px+3,py+3,12,3,metal);
-    drawHazardBand(ctx,px+17,py+26,12,3,metal);
-    ctx.globalAlpha=1;
-  }else if(variant===5){
-    // desgaste / arañazos
-    ctx.globalAlpha=.15;ctx.fillStyle='#a9b3b2';
-    r(ctx,px+6,py+11,11,1,'rgba(190,201,200,.16)');
-    r(ctx,px+14,py+14,9,1,'rgba(190,201,200,.11)');
-    r(ctx,px+9,py+21,7,1,'rgba(190,201,200,.09)');
-    ctx.globalAlpha=1;
-  }else if(variant===6){
-    // inserto de señalización
-    r(ctx,px+5,py+25,22,2,'rgba(4,8,10,.30)');
-    ctx.globalAlpha=.42;r(ctx,px+8,py+25,8,1,metal);ctx.globalAlpha=1;
-  }else if(variant===7){
-    // doble carril metálico
-    ctx.globalAlpha=.16;r(ctx,px+9,py+4,1,24,metal);r(ctx,px+22,py+4,1,24,metal);ctx.globalAlpha=1;
-  }else{
-    // panel limpio premium con herrajes
-    ctx.globalAlpha=.16;
-    for(const [ox,oy] of [[6,6],[25,6],[6,25],[25,25]] as const)r(ctx,px+ox,py+oy,1,1,metal);
-    ctx.globalAlpha=1;
-  }
-}
-
 export function drawRichTile(
   ctx: CanvasRenderingContext2D, x: number, y: number, wall: boolean,
   theme: FloorTheme, gx: number, gy: number, frame: number,
@@ -109,182 +174,153 @@ export function drawRichTile(
 ) {
   const px=x*T,py=y*T;
   const h=hash(x+gx*ROOM_WIDTH,y+gy*11,theme.deco.charCodeAt(0));
-  const metal=decoMetal(theme.deco);
+  const tier=floorTierFromDeco(theme.deco),metal=decoMetal(theme.deco);
 
   if(wall){
-    // Pared reforzada: tres profundidades visuales + bastidor estructural.
-    r(ctx,px,py,T,T,'#060a0d');
-    r(ctx,px+1,py+1,T-2,T-2,theme.wall[(x+y+h)%2]);
-    r(ctx,px+2,py+2,T-4,2,'rgba(255,255,255,.075)');
-    r(ctx,px+2,py+4,T-4,2,'rgba(0,0,0,.34)');
-
-    // Bastidor vertical y zócalo grueso.
+    drawWallPanelBase(ctx,px,py,theme,h);
+    // Juntas arquitectónicas: cada piso gana más precisión y metales nobles.
     if(x%2===0){
-      r(ctx,px+1,py+4,3,T-8,'rgba(3,6,8,.38)');
-      r(ctx,px+3,py+5,1,T-10,'rgba(255,255,255,.055)');
-    }else{
-      r(ctx,px+T-4,py+4,3,T-8,'rgba(3,6,8,.38)');
-      r(ctx,px+T-4,py+5,1,T-10,'rgba(255,255,255,.035)');
+      ctx.globalAlpha=tier>=3?.55:.20;r(ctx,px+1,py+3,tier>=4?2:1,T-6,metal);ctx.globalAlpha=1;
     }
-    r(ctx,px+2,py+25,T-4,6,'rgba(2,5,7,.52)');
-    r(ctx,px+3,py+25,T-6,1,'rgba(255,255,255,.045)');
-
-    // Panel central hundido.
-    r(ctx,px+5,py+7,T-10,16,'rgba(3,7,10,.30)');
-    r(ctx,px+6,py+8,T-12,14,'rgba(255,255,255,.025)');
-    r(ctx,px+6,py+8,T-12,1,'rgba(255,255,255,.075)');
-    r(ctx,px+6,py+21,T-12,1,'rgba(0,0,0,.38)');
-
-    // Carril de sector y herrajes.
-    r(ctx,px+3,py+5,T-6,1,metal);
-    ctx.globalAlpha=.28;r(ctx,px+4,py+6,T-8,1,metal);ctx.globalAlpha=1;
-    for(const [ox,oy] of [[6,9],[T-7,9],[6,21],[T-7,21]] as const)r(ctx,px+ox,py+oy,1,1,'rgba(215,224,223,.13)');
-
-    // Variación arquitectónica grande: vents / luces / placas / franjas.
-    const variant=h%6;
-    if(variant===0){
-      r(ctx,px+8,py+11,16,8,'#0a1013');
-      ctx.globalAlpha=.45;for(let yy=py+12;yy<py+19;yy+=2)r(ctx,px+10,yy,12,1,'#27333a');ctx.globalAlpha=1;
-    }else if(variant===1){
-      r(ctx,px+8,py+10,16,9,'#091217');
-      r(ctx,px+9,py+11,14,7,theme.deco==='security'?'#0f3446':'#1f3332');
-      ctx.globalAlpha=.55;r(ctx,px+11,py+13,8,1,metal);r(ctx,px+11,py+15,5,1,metal);ctx.globalAlpha=1;
-    }else if(variant===2){
-      r(ctx,px+8,py+13,16,5,'#11181b');
-      ctx.globalAlpha=.72+.18*Math.sin(frame*.045+h);r(ctx,px+10,py+14,12,2,theme.glow);ctx.globalAlpha=1;
-    }else if(variant===3){
-      ctx.strokeStyle='rgba(225,232,230,.10)';ctx.strokeRect(px+9.5,py+10.5,13,10);
-      r(ctx,px+12,py+13,7,1,metal);r(ctx,px+12,py+16,4,1,'rgba(210,220,220,.20)');
-    }else if(variant===4){
-      ctx.globalAlpha=.38;drawHazardBand(ctx,px+8,py+11,16,4,metal);ctx.globalAlpha=1;
+    if(tier>=3&&h%5===0){
+      ctx.globalAlpha=.16;r(ctx,px+7,py+7,18,14,'#ffffff');ctx.globalAlpha=1;
     }
-
     if(wallProps)drawWallProp(ctx,px,py,theme.deco,h,frame,y===0,x===0||x===ROOM_WIDTH-1);
     return;
   }
 
-  // Suelo de panel industrial. Sigue alineado con el tilemap pero deja de verse
-  // como una cuadrícula plana: macroplacas, biseles, módulos y desgaste.
+  // Cada piso usa un material reconocible: piedra -> oficina -> nogal/piedra ->
+  // mármol ejecutivo -> mármol con oro -> ónix con oro/diamante.
   const macro=((Math.floor(x/2)+Math.floor(y/2))&1);
-  const base=macro?theme.floor[1]:theme.floor[0];
-  r(ctx,px,py,T,T,base);
+  r(ctx,px,py,T,T,macro?theme.floor[1]:theme.floor[0]);
 
-  // Juntas de macroplaca más profundas; juntas internas más finas.
-  if(x%2===0){r(ctx,px,py,2,T,theme.floor[2]);r(ctx,px+2,py,1,T,'rgba(255,255,255,.035)');}
-  else r(ctx,px,py,1,T,'rgba(0,0,0,.11)');
-  if(y%2===0){r(ctx,px,py,T,2,theme.floor[2]);r(ctx,px,py+2,T,1,'rgba(255,255,255,.03)');}
-  else r(ctx,px,py,T,1,'rgba(0,0,0,.11)');
+  const seam=tier<=1?1:tier<=3?1.25:1.5;
+  ctx.globalAlpha=.34;
+  r(ctx,px,py,seam,T,theme.floor[2]);r(ctx,px,py,T,seam,theme.floor[2]);
+  ctx.globalAlpha=1;
 
-  // Bisel metálico y manchas tonales amplias.
-  r(ctx,px+2,py+2,T-4,1,'rgba(255,255,255,.055)');
-  r(ctx,px+2,py+T-3,T-4,1,'rgba(0,0,0,.16)');
-  if(h%4===0){ctx.globalAlpha=.07;r(ctx,px+4,py+4,T-8,T-8,'#000');ctx.globalAlpha=1;}
-  if(h%7===0){ctx.globalAlpha=.035;r(ctx,px+3,py+3,T-6,T-6,'#d7e1df');ctx.globalAlpha=1;}
-
-  drawFloorPlateDetail(ctx,px,py,h,theme,frame);
-
-  // Identidad sectorial visible en el propio material.
-  if(theme.deco==='security'&&(x+y)%5===0){
-    ctx.globalAlpha=.30;r(ctx,px+26,py+5,2,12,'#55b8da');ctx.globalAlpha=1;
-  }else if(theme.deco==='storage'&&h%5===0){
-    ctx.globalAlpha=.30;r(ctx,px+5,py+26,16,2,'#b48b50');ctx.globalAlpha=1;
-  }else if(theme.deco==='bakery'&&h%5===0){
-    ctx.globalAlpha=.28;r(ctx,px+5,py+5,2,18,'#bd6f3f');ctx.globalAlpha=1;
-  }else if(theme.deco==='vault'&&h%4===0){
-    ctx.globalAlpha=.30;r(ctx,px+24,py+7,2,18,'#c9ad62');ctx.globalAlpha=1;
-  }else if(theme.deco==='golden'&&h%3===0){
-    ctx.globalAlpha=.34;r(ctx,px+6,py+24,20,2,'#e6bd4f');ctx.globalAlpha=1;
+  // Baldosas más grandes en pisos caros.
+  if(tier>=3){
+    if(x%2===0){ctx.globalAlpha=.22;r(ctx,px+1,py,1,T,metal);ctx.globalAlpha=1;}
+    if(y%2===0){ctx.globalAlpha=.22;r(ctx,px,py+1,T,1,metal);ctx.globalAlpha=1;}
   }
 
-  // Desgaste lineal corto: nunca apunta a pickups ni crea flechas.
-  const vein=decoVein(theme.deco);
-  if(h%3===0){r(ctx,px+5,py+10,8,1,vein);r(ctx,px+15,py+10,6,1,vein);}
-  if(h%5===0){r(ctx,px+10,py+21,9,1,vein);r(ctx,px+20,py+20,5,1,vein);}
+  r(ctx,px+2,py+2,T-4,1,tier>=4?'rgba(255,255,255,.065)':'rgba(255,255,255,.09)');
+  r(ctx,px+2,py+T-3,T-4,1,'rgba(0,0,0,.12)');
+  drawLuxuryFloorDetail(ctx,px,py,h,theme,frame);
+
+  // Inlays que crecen en riqueza conforme subes.
+  if(tier===0&&x%4===0&&y%3===0){
+    ctx.globalAlpha=.13;r(ctx,px+5,py+26,22,1,metal);ctx.globalAlpha=1;
+  }else if(tier===1&&(x+y)%5===0){
+    ctx.globalAlpha=.17;r(ctx,px+5,py+5,1,22,metal);ctx.globalAlpha=1;
+  }else if(tier===2&&h%4===0){
+    ctx.globalAlpha=.20;r(ctx,px+4,py+26,24,1,metal);ctx.globalAlpha=1;
+  }else if(tier===3&&h%3===0){
+    ctx.globalAlpha=.28;r(ctx,px+4,py+4,24,1,metal);r(ctx,px+4,py+27,24,1,metal);ctx.globalAlpha=1;
+  }else if(tier===4&&h%2===0){
+    ctx.globalAlpha=.38;r(ctx,px+3,py+15,26,2,metal);ctx.globalAlpha=1;
+  }else if(tier===5){
+    ctx.globalAlpha=.38;
+    if(h%2===0)r(ctx,px+3,py+15,26,2,metal);
+    if(h%3===0)r(ctx,px+15,py+3,2,26,'#8ddff5');
+    ctx.globalAlpha=1;
+  }
+}
+
+function drawGalleryPainting(
+  ctx:CanvasRenderingContext2D,px:number,py:number,frameColor:string,seed:number,large=false,diamond=false,
+){
+  const w=large?38:24,h=large?20:16,x=px+(32-w)/2,y=py+(large?5:8);
+  r(ctx,x-2,y-2,w+4,h+4,'#17120d');
+  r(ctx,x-1,y-1,w+2,h+2,frameColor);
+  r(ctx,x,y,w,h,'#221d19');
+  const palettes=[
+    ['#213746','#b68555','#d7c7a8'],
+    ['#4b2731','#b6a064','#d9d0bb'],
+    ['#26392d','#947447','#c8bca6'],
+    ['#3b354c','#c09c58','#d9c7a5'],
+  ];
+  const p=palettes[seed%palettes.length];
+  // Pintura original tipo museo: horizonte, arquitectura/figura abstracta.
+  r(ctx,x+2,y+2,w-4,h-4,p[0]);
+  r(ctx,x+2,y+Math.floor(h*.58),w-4,Math.ceil(h*.38),p[1]);
+  ctx.fillStyle=p[2];ctx.globalAlpha=.76;
+  ctx.beginPath();ctx.ellipse(x+w*.62,y+h*.42,large?5:3,large?6:4,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.35;r(ctx,x+3,y+3,Math.max(5,w*.35),1,'#f7ead3');
+  if(diamond){
+    ctx.globalAlpha=.9;
+    for(const [ox,oy] of [[0,0],[w+1,0],[0,h+1],[w+1,h+1]] as const){
+      ctx.fillStyle='#b8f3ff';ctx.fillRect(x-1+ox,y-1+oy,2,2);
+    }
+  }
+  ctx.globalAlpha=1;
 }
 
 function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, deco: string, h: number, f: number, north: boolean, side: boolean) {
-  // Props arquitectónicos sólo donde se leen como parte del muro. Más grandes y
-  // con siluetas distintas para que la pared tenga profundidad real.
   if(!north&&!side&&h%4!==0)return;
-  const seed=h%8,metal=decoMetal(deco),pulse=.5+.5*Math.sin(f*.06+h);
+  const tier=floorTierFromDeco(deco),seed=h%8,metal=decoMetal(deco),pulse=.5+.5*Math.sin(f*.06+h);
 
-  if(deco==='lobby'){
-    if(seed===0||seed===5){ // cajero / terminal de banco
-      r(ctx,px+4,py+7,24,20,'#11191d');r(ctx,px+6,py+8,20,18,'#435159');
-      r(ctx,px+8,py+10,16,8,'#071116');r(ctx,px+9,py+11,14,6,'#113a47');
-      ctx.globalAlpha=.75;r(ctx,px+11,py+13,8,1,'#58c6df');r(ctx,px+11,py+15,5,1,'#58c6df');ctx.globalAlpha=1;
-      r(ctx,px+8,py+20,16,4,'#8d9898');r(ctx,px+10,py+21,5,2,'#d5ae55');r(ctx,px+19,py+21,3,2,pulse>.5?'#79d79a':'#355b45');
-      r(ctx,px+4,py+6,24,1,metal);
-    }else if(seed===1){ // panel de marca / información
-      r(ctx,px+5,py+8,22,15,'#12191d');r(ctx,px+7,py+9,18,13,'#26333a');
-      r(ctx,px+9,py+11,14,9,'#101b21');
-      ctx.globalAlpha=.78;r(ctx,px+11,py+13,10,2,metal);r(ctx,px+13,py+16,6,1,'#d7c582');ctx.globalAlpha=1;
-    }else if(seed===2){ // luminaria vertical
-      r(ctx,px+12,py+6,8,18,'#171e21');r(ctx,px+13,py+7,6,16,'#403a28');
-      ctx.globalAlpha=.75+.18*pulse;r(ctx,px+14,py+8,4,14,'#f1c966');ctx.globalAlpha=1;
-    }else if(seed===3){ // rejilla técnica
-      r(ctx,px+6,py+9,20,13,'#0a1013');
-      for(let yy=py+11;yy<py+21;yy+=3)r(ctx,px+9,yy,14,1,'#39464c');
-      r(ctx,px+6,py+8,20,1,metal);
-    }else if(seed===4&&north){ // cámara
-      r(ctx,px+9,py+6,11,5,'#56656a');r(ctx,px+18,py+7,7,3,'#121b1f');
-      r(ctx,px+23,py+7,2,2,pulse>.5?'#ef5a4f':'#6e2c2d');
-    }
-  }else if(deco==='security'){
-    if(seed%4===0){ // videowall
-      r(ctx,px+4,py+7,24,17,'#071014');r(ctx,px+6,py+9,20,13,'#17313c');
-      r(ctx,px+8,py+11,8,4,'#0d4056');r(ctx,px+18,py+11,6,4,'#123748');
-      r(ctx,px+8,py+17,16,3,'#0b2531');
-      const scan=py+10+((f>>3)%11);ctx.globalAlpha=.75;r(ctx,px+7,scan,18,1,'#5ad2f2');ctx.globalAlpha=1;
-    }else if(seed%4===1){ // biométrico
-      r(ctx,px+7,py+8,18,17,'#111d23');r(ctx,px+9,py+10,14,4,'#294956');
-      r(ctx,px+10,py+16,12,6,'#091116');r(ctx,px+12,py+18,4,2,'#69bad3');r(ctx,px+19,py+18,2,2,pulse>.45?'#68e09d':'#2c6846');
-    }else if(seed%4===2){ // beacon rojo
-      r(ctx,px+13,py+8,6,15,'#172025');r(ctx,px+14,py+9,4,5,'#482126');
-      ctx.globalAlpha=.55+.35*pulse;r(ctx,px+15,py+10,2,3,'#ff5c55');ctx.globalAlpha=1;
-      drawHazardBand(ctx,px+8,py+20,16,3,'#d59a42');
-    }else{ // vent de alta seguridad
-      r(ctx,px+5,py+9,22,14,'#0a1013');for(let yy=py+11;yy<py+22;yy+=3)r(ctx,px+8,yy,16,1,'#40545d');
-    }
-  }else if(deco==='storage'){
-    if(seed%3===0){ // archivo / cajas de valores
-      r(ctx,px+4,py+7,24,19,'#292824');r(ctx,px+6,py+8,20,17,'#555044');
-      for(let yy=0;yy<3;yy++)for(let xx=0;xx<2;xx++){
-        const bx=px+8+xx*9,by=py+10+yy*5;r(ctx,bx,by,7,4,'#716551');r(ctx,bx+2,by+1,3,1,metal);
-      }
-    }else if(seed%3===1){ // ducto / soporte bronce
-      r(ctx,px+13,py+5,6,20,'#36332d');r(ctx,px+14,py+5,4,20,'#876e4a');
-      r(ctx,px+9,py+8,14,3,'#555b5b');r(ctx,px+9,py+20,14,3,'#555b5b');
+  if(tier===0){
+    if(seed===0||seed===5){ // señalización bancaria / reloj elegante
+      r(ctx,px+6,py+8,20,13,'#eee8dc');r(ctx,px+7,py+9,18,11,'#c9c0af');
+      ctx.globalAlpha=.75;r(ctx,px+9,py+11,14,2,metal);r(ctx,px+11,py+15,10,1,'#6f6b63');ctx.globalAlpha=1;
+    }else if(seed===1||seed===6){
+      drawGalleryPainting(ctx,px,py,'#8d744b',seed,false,false);
+    }else if(seed===2){ // aplique cálido
+      r(ctx,px+13,py+6,6,18,'#756b5f');
+      ctx.globalAlpha=.72+.15*pulse;r(ctx,px+14,py+8,4,14,'#f2d8a5');ctx.globalAlpha=1;
     }else{
-      r(ctx,px+6,py+9,20,14,'#161819');r(ctx,px+8,py+11,16,10,'#3d3d38');r(ctx,px+10,py+13,12,2,metal);r(ctx,px+10,py+17,8,1,'#8f8063');
+      r(ctx,px+6,py+9,20,12,'rgba(255,255,255,.10)');r(ctx,px+7,py+20,18,2,metal);
     }
-  }else if(deco==='bakery'){
-    if(seed%3===0){ // panel térmico
-      r(ctx,px+4,py+7,24,19,'#221a17');r(ctx,px+6,py+9,20,15,'#52362c');
-      r(ctx,px+8,py+11,16,9,'#1b1210');ctx.globalAlpha=.35+.15*pulse;r(ctx,px+9,py+12,14,7,'#d56f3d');ctx.globalAlpha=1;
-    }else if(seed%3===1){ // tuberías
-      for(const ox of [9,16]){r(ctx,px+ox,py+5,4,21,'#5d3f31');r(ctx,px+ox+1,py+5,2,21,'#b66d45');}
-      r(ctx,px+7,py+8,14,3,'#4d5659');r(ctx,px+7,py+20,14,3,'#4d5659');
+  }else if(tier===1){
+    if(seed%4===0) drawGalleryPainting(ctx,px,py,'#a99369',seed,false,false);
+    else if(seed%4===1){ // certificados/panel de oficina
+      r(ctx,px+7,py+7,18,18,'#5f584f');r(ctx,px+9,py+9,14,14,'#d4cec2');
+      r(ctx,px+11,py+12,10,1,'#8b8175');r(ctx,px+11,py+15,7,1,'#8b8175');r(ctx,px+15,py+19,4,2,metal);
+    }else if(seed%4===2){ // vidrio esmerilado
+      r(ctx,px+6,py+6,20,18,'rgba(210,220,220,.16)');ctx.globalAlpha=.30;r(ctx,px+9,py+8,1,14,metal);r(ctx,px+16,py+8,1,14,metal);ctx.globalAlpha=1;
     }else{
-      r(ctx,px+6,py+9,20,14,'#211c1a');drawHazardBand(ctx,px+8,py+11,16,4,'#c47d45');r(ctx,px+10,py+18,12,3,'#55423b');
+      r(ctx,px+8,py+8,16,14,'#3e3934');for(let yy=py+10;yy<py+21;yy+=3)r(ctx,px+10,yy,12,1,'#8f806f');
     }
-  }else if(deco==='vault'){
-    if(seed%3===0){ // caja empotrada reforzada
-      r(ctx,px+4,py+7,24,18,'#252c30');r(ctx,px+6,py+9,20,14,'#60686a');
-      r(ctx,px+8,py+11,16,10,'#2a3133');ctx.strokeStyle=metal;ctx.strokeRect(px+9.5,py+12.5,13,7);
-      r(ctx,px+15,py+14,3,3,metal);
-    }else if(seed%3===1){ // emisor de seguridad
-      r(ctx,px+8,py+7,16,7,'#4a565b');r(ctx,px+10,py+9,12,2,'#a5b0af');
-      ctx.globalAlpha=.40+.28*pulse;r(ctx,px+15,py+14,2,10,'#e45149');ctx.globalAlpha=1;
-    }else{
-      r(ctx,px+5,py+9,22,14,'#0a1012');for(let yy=py+11;yy<py+22;yy+=3)r(ctx,px+8,yy,16,1,'#445055');r(ctx,px+5,py+8,22,1,metal);
+  }else if(tier===2){
+    if(seed%3===0) drawGalleryPainting(ctx,px,py,'#b38c55',seed,seed%6===0,false);
+    else if(seed%3===1){ // librero/nogal
+      r(ctx,px+5,py+5,22,20,'#3d332c');
+      for(let yy=py+8;yy<py+24;yy+=5){r(ctx,px+7,yy,18,1,metal);for(let xx=px+8;xx<px+24;xx+=4)r(ctx,xx,yy-3,2,3,(xx+yy)%3?'#6d4939':'#8a7455');}
+    }else{ // aplique de bronce
+      r(ctx,px+14,py+5,4,18,metal);ctx.globalAlpha=.55+.2*pulse;r(ctx,px+11,py+8,10,7,'#e7c88d');ctx.globalAlpha=1;
     }
-  }else if(deco==='golden'){
-    r(ctx,px+4,py+7,24,18,'#25231d');r(ctx,px+6,py+9,20,14,'#5d5239');
-    for(let yy=0;yy<2;yy++)for(let xx=0;xx<3;xx++){
-      const bx=px+8+xx*6,by=py+11+yy*6;r(ctx,bx,by,5,5,'#826d3d');r(ctx,bx+1,by+1,3,1,'#d6b65d');
+  }else if(tier===3){
+    if(seed%3===0||seed===5) drawGalleryPainting(ctx,px,py,'#d2a550',seed,true,false);
+    else if(seed%3===1){ // panel de mármol
+      r(ctx,px+5,py+5,22,20,'#a69c8d');drawMarbleVein(ctx,px,py,h,'#f2e3ca',.20);r(ctx,px+5,py+4,22,1,metal);
+    }else{ // sconce de latón
+      r(ctx,px+15,py+5,2,19,metal);r(ctx,px+11,py+9,10,3,'#dfc187');
+      ctx.globalAlpha=.35+.2*pulse;r(ctx,px+8,py+11,16,9,'#f3deb2');ctx.globalAlpha=1;
     }
-    ctx.globalAlpha=.65;r(ctx,px+4,py+6,24,1,metal);ctx.globalAlpha=1;
+  }else if(tier===4){
+    if(seed%3===0) drawGalleryPainting(ctx,px,py,'#e0b842',seed,true,false);
+    else if(seed%3===1){ // relieve de oro
+      r(ctx,px+6,py+6,20,18,'#171816');r(ctx,px+7,py+7,18,16,'#3d3929');
+      ctx.globalAlpha=.78;ctx.strokeStyle=metal;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(px+16,py+15,7,5,0,0,Math.PI*2);ctx.stroke();
+      r(ctx,px+15,py+11,2,8,metal);r(ctx,px+12,py+14,8,2,metal);ctx.globalAlpha=1;
+    }else{ // nicho iluminado
+      r(ctx,px+7,py+6,18,18,'#10110f');r(ctx,px+9,py+8,14,14,'#24231c');
+      ctx.globalAlpha=.45+.2*pulse;r(ctx,px+10,py+9,12,1,'#f0d36b');r(ctx,px+15,py+12,2,7,metal);ctx.globalAlpha=1;
+    }
+  }else{
+    if(seed%3===0||seed===5) drawGalleryPainting(ctx,px,py,'#f0c84e',seed,true,true);
+    else if(seed%3===1){ // vitrina de gema de pared
+      r(ctx,px+6,py+5,20,20,'#090b0f');r(ctx,px+8,py+7,16,16,'#17212b');
+      ctx.fillStyle='#aef1ff';ctx.globalAlpha=.88+.10*pulse;ctx.beginPath();
+      ctx.moveTo(px+16,py+9);ctx.lineTo(px+21,py+15);ctx.lineTo(px+16,py+22);ctx.lineTo(px+11,py+15);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=.65;r(ctx,px+15,py+10,2,10,'#e8fdff');ctx.globalAlpha=1;
+    }else{ // escudo/monograma de oro y diamante
+      r(ctx,px+7,py+6,18,19,'#17191e');ctx.strokeStyle=metal;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(px+16,py+8);ctx.lineTo(px+22,py+12);ctx.lineTo(px+20,py+20);ctx.lineTo(px+16,py+23);ctx.lineTo(px+12,py+20);ctx.lineTo(px+10,py+12);ctx.closePath();ctx.stroke();
+      ctx.globalAlpha=.9;r(ctx,px+15,py+13,3,4,'#aef1ff');ctx.globalAlpha=1;
+    }
   }
 }
 
