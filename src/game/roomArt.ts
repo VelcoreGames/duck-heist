@@ -325,165 +325,127 @@ function drawWallProp(ctx: CanvasRenderingContext2D, px: number, py: number, dec
 }
 
 export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, frame: number, special = false) {
-  const accent=decoMetal(deco);
-  const baseLights=deco==='lobby'?[[120,48],[360,48]]:
-    deco==='security'?[[80,42],[240,38],[400,42]]:
-    deco==='bakery'?[[100,48],[380,48]]:
-    deco==='vault'?[[160,42],[320,42]]:
-    deco==='golden'?[[150,42],[330,42]]:
-    [[140,48],[340,48]];
-  const lights=baseLights.map(([x,y])=>[x/480*CANVAS_WIDTH,y] as [number,number]);
+  const accent=decoMetal(deco),tier=floorTierFromDeco(deco);
+  const warm=deco==='golden'?'174,238,255':
+    deco==='vault'?'245,211,105':
+    deco==='bakery'?'232,197,137':
+    deco==='storage'?'221,193,146':
+    deco==='security'?'219,210,190':
+    '245,226,188';
 
-  // Iluminación arquitectónica: luminarias de pared que bañan piedra y metal.
+  const lightCounts=[3,3,3,4,4,5];
+  const count=lightCounts[tier];
+  const lights:Array<[number,number]>=[];
+  for(let i=0;i<count;i++)lights.push([78+(CANVAS_WIDTH-156)*(i+.5)/count,42+(i%2)*4]);
+
+  // Baños de luz arquitectónica: de sucursal abierta a galería de lujo.
   for(const [lx,ly] of lights){
-    const g=ctx.createRadialGradient(lx,ly,3,lx,ly+44,108);
-    const col=deco==='bakery'?'226,164,111':
-      deco==='golden'?'255,229,154':
-      deco==='vault'?'230,208,131':
-      deco==='security'?'116,183,208':
-      deco==='storage'?'217,196,157':
-      '216,229,228';
-    const base=deco==='golden'?.22:deco==='lobby'?.18:.16;
-    g.addColorStop(0,'rgba('+col+','+(base+.025*Math.sin(frame*.035+lx))+')');
-    g.addColorStop(.38,'rgba('+col+','+(base*.42)+')');
+    const radius=tier>=4?112:96;
+    const g=ctx.createRadialGradient(lx,ly,3,lx,ly+46,radius);
+    const base=.13+tier*.012;
+    g.addColorStop(0,'rgba('+warm+','+(base+.025*Math.sin(frame*.035+lx))+')');
+    g.addColorStop(.40,'rgba('+warm+','+(base*.38)+')');
     g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g;ctx.fillRect(lx-108,ly-12,216,174);
-
-    // Luminaria física empotrada en el muro.
-    ctx.globalAlpha=.55;ctx.fillStyle=accent;ctx.fillRect(lx-9,38,18,2);
-    ctx.globalAlpha=.18;ctx.fillStyle='#fff8dd';ctx.fillRect(lx-5,40,10,2);
+    ctx.fillStyle=g;ctx.fillRect(lx-radius,ly-8,radius*2,160);
+    ctx.globalAlpha=.46+tier*.05;ctx.fillStyle=accent;ctx.fillRect(lx-8,38,16,2);
+    ctx.globalAlpha=.16;ctx.fillStyle=tier===5?'#dffbff':'#fff4d7';ctx.fillRect(lx-5,40,10,2);
     ctx.globalAlpha=1;
-
-    // El baño de pared ahora alcanza el mármol como una huella elíptica.
-    // Se mantiene extremadamente tenue para no competir con balas, loot o telegraphs.
-    ctx.save();
-    ctx.translate(lx,216);ctx.scale(1,.28);
-    const floorPool=ctx.createRadialGradient(0,0,4,0,0,74);
-    floorPool.addColorStop(0,'rgba(255,245,214,.055)');
-    floorPool.addColorStop(.42,'rgba(255,245,214,.022)');
-    floorPool.addColorStop(1,'rgba(255,245,214,0)');
-    ctx.fillStyle=floorPool;ctx.beginPath();ctx.arc(0,0,74,0,Math.PI*2);ctx.fill();
-    ctx.restore();
   }
 
   ctx.save();
-  // Marco interior continuo: incrustación que hace que la sala se lea como
-  // una estancia bancaria diseñada, no como un conjunto de tiles.
-  ctx.globalAlpha=deco==='golden'?.20:.11;
-  ctx.strokeStyle=accent;ctx.lineWidth=1;
-  ctx.strokeRect(43.5,43.5,CANVAS_WIDTH-87,CANVAS_HEIGHT-87);
-  ctx.globalAlpha=deco==='golden'?.10:.055;
-  ctx.strokeRect(49.5,49.5,CANVAS_WIDTH-99,CANVAS_HEIGHT-99);
 
-  // Marcas de sector integradas en las cuatro esquinas: arquitectura, no HUD.
-  // Cada ala del banco conserva su metal propio y gana una firma reconocible.
-  ctx.globalAlpha=.20;ctx.strokeStyle=accent;ctx.lineWidth=1;
-  const inset=58,len=13;
-  for(const [sx,sy,dx,dy] of [
-    [inset,inset,1,1],[CANVAS_WIDTH-inset,inset,-1,1],
-    [inset,CANVAS_HEIGHT-inset,1,-1],[CANVAS_WIDTH-inset,CANVAS_HEIGHT-inset,-1,-1],
-  ] as const){
-    ctx.beginPath();ctx.moveTo(sx+dx*len,sy);ctx.lineTo(sx,sy);ctx.lineTo(sx,sy+dy*len);ctx.stroke();
-    ctx.globalAlpha=.08;ctx.fillStyle=accent;ctx.fillRect(sx+dx*4-(dx<0?4:0),sy+dy*4-(dy<0?4:0),4,4);ctx.globalAlpha=.20;
+  // Marco arquitectónico interior. Cada nivel sube la cantidad de metal noble.
+  ctx.globalAlpha=.10+tier*.035;ctx.strokeStyle=accent;ctx.lineWidth=tier>=4?2:1;
+  ctx.strokeRect(43.5,43.5,CANVAS_WIDTH-87,CANVAS_HEIGHT-87);
+  if(tier>=2){
+    ctx.globalAlpha=.06+tier*.02;ctx.strokeRect(50.5,50.5,CANVAS_WIDTH-101,CANVAS_HEIGHT-101);
   }
 
-  // Eje central pulido/incrustado según sector.
-  if(deco==='lobby'){
-    ctx.globalAlpha=.09;ctx.fillStyle=accent;
-    ctx.fillRect(CANVAS_WIDTH/2-1,48,2,CANVAS_HEIGHT-96);
-    ctx.fillRect(48,CANVAS_HEIGHT/2-1,CANVAS_WIDTH-96,2);
-    ctx.globalAlpha=.06;ctx.strokeStyle='#dce7e4';ctx.strokeRect(62.5,57.5,CANVAS_WIDTH-125,CANVAS_HEIGHT-115);
-  }else if(deco==='security'){
-    const scan=52+(frame*.38)%(CANVAS_HEIGHT-104);
-    ctx.globalAlpha=.055;ctx.fillStyle='#74b7d0';ctx.fillRect(46,scan,CANVAS_WIDTH-92,1);
-    ctx.globalAlpha=.028;ctx.fillRect(46,scan-4,CANVAS_WIDTH-92,9);
-    ctx.globalAlpha=.075;ctx.fillStyle='#ba554d';
-    for(const x of [70,CANVAS_WIDTH-74])if(((frame+Math.floor(x))>>4)%2===0)ctx.fillRect(x,47,3,2);
-  }else if(deco==='storage'){
-    // Archivo de valores: líneas de bronce y zonas de circulación limpias.
-    ctx.globalAlpha=.075;ctx.fillStyle=accent;
-    for(let x=72;x<CANVAS_WIDTH-64;x+=112)ctx.fillRect(x,54,1,CANVAS_HEIGHT-108);
-    ctx.globalAlpha=.035;ctx.fillStyle='#050708';
-    for(let y=88;y<CANVAS_HEIGHT-64;y+=76)ctx.fillRect(54,y,CANVAS_WIDTH-108,2);
-  }else if(deco==='bakery'){
-    // Servicios privados: calor contenido en líneas de cobre, sin suciedad visual.
-    const heat=.045+.014*Math.sin(frame*.05);
-    ctx.globalAlpha=heat;ctx.fillStyle=accent;
-    ctx.fillRect(42,50,3,CANVAS_HEIGHT-100);ctx.fillRect(CANVAS_WIDTH-45,50,3,CANVAS_HEIGHT-100);
-    ctx.globalAlpha=.032;ctx.fillStyle='#f0c39a';
-    for(let y=78;y<CANVAS_HEIGHT-62;y+=58)ctx.fillRect(58,y,CANVAS_WIDTH-116,1);
-  }else if(deco==='vault'){
-    ctx.globalAlpha=.075;ctx.strokeStyle=accent;
-    for(let i=0;i<3;i++)ctx.strokeRect(54+i*16+.5,51+i*11+.5,CANVAS_WIDTH-109-i*32,CANVAS_HEIGHT-103-i*22);
-    ctx.globalAlpha=.035;ctx.fillStyle='#d7ddd8';
-    for(let x=74;x<CANVAS_WIDTH-68;x+=64)ctx.fillRect(x,54,1,CANVAS_HEIGHT-108);
-  }else if(deco==='golden'){
-    // Cámara principal: geometría simétrica y reflejos de oro muy controlados.
-    const shimmer=.06+.022*Math.sin(frame*.045);
-    ctx.globalAlpha=shimmer;ctx.strokeStyle=accent;
+  if(tier===0){
+    // Lobby: ejes claros y sensación de entrada abierta.
+    ctx.globalAlpha=.07;ctx.fillStyle=accent;
+    ctx.fillRect(CANVAS_WIDTH/2-1,50,2,CANVAS_HEIGHT-100);
+    ctx.globalAlpha=.06;ctx.strokeStyle='#fff6e2';ctx.strokeRect(62.5,58.5,CANVAS_WIDTH-125,CANVAS_HEIGHT-117);
+  }else if(tier===1){
+    // Administración: paneles ordenados, sobrios y regulares.
+    ctx.globalAlpha=.08;ctx.strokeStyle=accent;ctx.lineWidth=1;
+    for(let x=84;x<CANVAS_WIDTH-78;x+=64){ctx.beginPath();ctx.moveTo(x,54);ctx.lineTo(x,CANVAS_HEIGHT-54);ctx.stroke();}
+    ctx.globalAlpha=.035;ctx.fillStyle='#ffffff';ctx.fillRect(58,86,CANVAS_WIDTH-116,1);
+  }else if(tier===2){
+    // Administración ejecutiva: nogal y bronce.
+    ctx.globalAlpha=.10;ctx.strokeStyle=accent;
+    ctx.strokeRect(58.5,55.5,CANVAS_WIDTH-117,CANVAS_HEIGHT-111);
+    ctx.globalAlpha=.055;ctx.fillStyle='#6f5541';
+    ctx.fillRect(54,70,3,CANVAS_HEIGHT-140);ctx.fillRect(CANVAS_WIDTH-57,70,3,CANVAS_HEIGHT-140);
+  }else if(tier===3){
+    // Alta dirección: simetría de galería y latón.
+    ctx.globalAlpha=.13;ctx.strokeStyle=accent;ctx.lineWidth=1;
+    ctx.strokeRect(54.5,52.5,CANVAS_WIDTH-109,CANVAS_HEIGHT-105);
+    ctx.strokeRect(66.5,62.5,CANVAS_WIDTH-133,CANVAS_HEIGHT-125);
+    ctx.globalAlpha=.045;ctx.fillStyle='#f4e8d2';
+    ctx.fillRect(58,CANVAS_HEIGHT/2-1,CANVAS_WIDTH-116,2);
+  }else if(tier===4){
+    // Tesorería: reflejos de oro en mármol negro.
+    const shimmer=.08+.025*Math.sin(frame*.05);
+    ctx.globalAlpha=.16;ctx.strokeStyle=accent;ctx.lineWidth=2;
     ctx.strokeRect(52.5,50.5,CANVAS_WIDTH-105,CANVAS_HEIGHT-101);
-    ctx.strokeRect(68.5,63.5,CANVAS_WIDTH-137,CANVAS_HEIGHT-127);
-    ctx.globalAlpha=.045;ctx.fillStyle='#ffe59a';
-    ctx.fillRect(CANVAS_WIDTH/2-1,52,2,CANVAS_HEIGHT-104);
-    for(let i=0;i<6;i++){
-      const x=78+(i*79)%Math.max(90,CANVAS_WIDTH-156),y=72+((i*41+Math.floor(frame*.1))%(CANVAS_HEIGHT-144));
-      ctx.fillRect(x,y,i%2?1:2,1);
+    ctx.strokeRect(68.5,62.5,CANVAS_WIDTH-137,CANVAS_HEIGHT-125);
+    ctx.globalAlpha=shimmer;ctx.fillStyle='#ffe07a';
+    for(let x=76;x<CANVAS_WIDTH-70;x+=72)ctx.fillRect(x,56,2,CANVAS_HEIGHT-112);
+  }else{
+    // Cámara soberana: oro + cristal, con destellos de diamante animados.
+    const shimmer=.10+.035*Math.sin(frame*.055);
+    ctx.globalAlpha=.20;ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.strokeRect(50.5,48.5,CANVAS_WIDTH-101,CANVAS_HEIGHT-97);
+    ctx.strokeRect(66.5,60.5,CANVAS_WIDTH-133,CANVAS_HEIGHT-121);
+    ctx.globalAlpha=.10;ctx.strokeStyle='#9deaff';
+    ctx.strokeRect(74.5,68.5,CANVAS_WIDTH-149,CANVAS_HEIGHT-137);
+    ctx.globalAlpha=shimmer;ctx.fillStyle='#e4fcff';
+    for(let i=0;i<10;i++){
+      const x=70+((i*67+Math.floor(frame*.12))%Math.max(100,CANVAS_WIDTH-140));
+      const y=66+((i*43+Math.floor(frame*.07))%Math.max(80,CANVAS_HEIGHT-132));
+      ctx.fillRect(x,y,i%3===0?2:1,i%3===0?2:1);
     }
   }
-  // Infraestructura perimetral visible: canaletas, balizas y luces de piso.
-  // Esto da la lectura industrial de la referencia sin invadir la zona de combate.
-  ctx.globalAlpha=.34;ctx.fillStyle='#071014';
-  ctx.fillRect(42,48,5,CANVAS_HEIGHT-96);
-  ctx.fillRect(CANVAS_WIDTH-47,48,5,CANVAS_HEIGHT-96);
-  ctx.fillRect(48,42,CANVAS_WIDTH-96,5);
-  ctx.fillRect(48,CANVAS_HEIGHT-47,CANVAS_WIDTH-96,5);
 
-  // Balizas laterales cálidas/cian según sector.
-  const sideGlow=deco==='security'?'#5ad2f2':
-    deco==='bakery'?'#f0a15b':
-    deco==='storage'?'#d5ad68':
-    deco==='vault'||deco==='golden'?'#f0c65a':'#edc35c';
+  // Zócalo perimetral noble en lugar de canaletas industriales.
+  const plinth=tier<=1?'#746d62':tier===2?'#4a3e35':tier===3?'#3a3029':tier===4?'#161714':'#0b0d12';
+  ctx.globalAlpha=.44;ctx.fillStyle=plinth;
+  ctx.fillRect(42,48,4,CANVAS_HEIGHT-96);ctx.fillRect(CANVAS_WIDTH-46,48,4,CANVAS_HEIGHT-96);
+  ctx.fillRect(48,42,CANVAS_WIDTH-96,4);ctx.fillRect(48,CANVAS_HEIGHT-46,CANVAS_WIDTH-96,4);
+  ctx.globalAlpha=.38+tier*.05;ctx.fillStyle=accent;
+  ctx.fillRect(46,46,CANVAS_WIDTH-92,1);ctx.fillRect(46,CANVAS_HEIGHT-47,CANVAS_WIDTH-92,1);
+
+  // Apliques laterales: más joya y menos baliza conforme sube el piso.
   for(const yy of [92,176,260]){
-    ctx.globalAlpha=.18;ctx.fillStyle=sideGlow;
-    ctx.fillRect(43,yy-11,3,22);ctx.fillRect(CANVAS_WIDTH-46,yy-11,3,22);
-    ctx.globalAlpha=.68;ctx.fillRect(44,yy-7,1,14);ctx.fillRect(CANVAS_WIDTH-45,yy-7,1,14);
+    ctx.globalAlpha=.16+tier*.025;ctx.fillStyle=accent;
+    ctx.fillRect(43,yy-9,tier>=4?3:2,18);ctx.fillRect(CANVAS_WIDTH-46,yy-9,tier>=4?3:2,18);
+    if(tier===5){
+      ctx.globalAlpha=.65;ctx.fillStyle='#aeefff';
+      ctx.fillRect(44,yy-3,2,6);ctx.fillRect(CANVAS_WIDTH-46,yy-3,2,6);
+    }
   }
 
-  // Carriles luminosos empotrados: cortos y horizontales para no parecer flechas.
-  ctx.globalAlpha=.16+.04*Math.sin(frame*.045);ctx.fillStyle=sideGlow;
-  for(const x of [86,170,254,338]){
-    ctx.fillRect(x,55,26,2);
-    ctx.fillRect(x,CANVAS_HEIGHT-57,26,2);
-  }
   ctx.globalAlpha=1;
   ctx.restore();
 
-  // Reflejo central tenue sobre el piso pulido.
-  // Un segundo brillo lateral muy fino rompe la simetría perfecta y da
-  // profundidad sin introducir decoración que se pueda confundir con pickups.
-  ctx.save();
-  ctx.globalAlpha=.032;ctx.fillStyle='#ffffff';
-  const drift=((frame*.018)%96);
-  ctx.fillRect(74+drift,66,1,CANVAS_HEIGHT-132);
-  ctx.globalAlpha=.016;ctx.fillRect(CANVAS_WIDTH-92-drift*.55,72,1,CANVAS_HEIGHT-144);
-  ctx.restore();
-
+  // Reflejo pulido: más visible en mármol de alta gama.
   const reflection=ctx.createLinearGradient(0,62,0,CANVAS_HEIGHT-56);
   reflection.addColorStop(0,'rgba(255,255,255,0)');
-  reflection.addColorStop(.48,'rgba(255,255,255,.018)');
-  reflection.addColorStop(.55,'rgba(255,255,255,.032)');
+  reflection.addColorStop(.48,'rgba(255,255,255,'+(tier>=3?'.030':'.015')+')');
+  reflection.addColorStop(.55,'rgba(255,255,255,'+(tier>=4?'.050':'.026')+')');
   reflection.addColorStop(1,'rgba(255,255,255,0)');
   ctx.fillStyle=reflection;ctx.fillRect(54,54,CANVAS_WIDTH-108,CANVAS_HEIGHT-108);
 
   const vignette=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,126,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
   vignette.addColorStop(0,'rgba(0,0,0,0)');
-  vignette.addColorStop(1,'rgba(1,6,9,.14)');
+  vignette.addColorStop(1,'rgba(1,4,7,'+(tier>=4?'.18':'.08')+')');
   ctx.fillStyle=vignette;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
   if(special){
     const g=ctx.createRadialGradient(CANVAS_WIDTH/2,176,18,CANVAS_WIDTH/2,176,180);
-    g.addColorStop(0,'rgba(198,168,102,.10)');
-    g.addColorStop(.55,'rgba(86,55,70,.055)');
+    g.addColorStop(0,tier===5?'rgba(174,238,255,.12)':'rgba(218,183,92,.10)');
+    g.addColorStop(.55,'rgba(86,55,70,.045)');
     g.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=g;ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   }
