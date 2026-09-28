@@ -98,16 +98,44 @@ export const obstacleDebrisColor=(kind:number)=>OBSTACLE_DURABILITY[kind]?.debri
  * Huella física: sólo la base visible bloquea movimiento. La zona superior
  * queda libre para que el pato pueda pasar por detrás y ser ocluido.
  */
+function luxuryPhysicsOverride(kind:number){
+  const tier=obstacleFloorTier(kind),family=obstacleFamilyIndex(kind);
+  const key=tier*20+family;
+  const overrides:Record<number,{hitbox:{x:number;y:number;w:number;h:number};projectile:{x:number;y:number;w:number;h:number}}>={
+    17:{hitbox:{x:2,y:21,w:28,h:10},projectile:{x:1,y:6,w:30,h:25}}, // lobby fountain
+    62:{hitbox:{x:8,y:23,w:16,h:7},projectile:{x:8,y:4,w:16,h:26}}, // art pedestal
+    77:{hitbox:{x:2,y:21,w:28,h:10},projectile:{x:1,y:5,w:30,h:26}}, // executive fountain
+    82:{hitbox:{x:8,y:22,w:16,h:8},projectile:{x:5,y:3,w:22,h:27}}, // gold painting/easel
+    83:{hitbox:{x:5,y:22,w:22,h:8},projectile:{x:5,y:10,w:22,h:20}}, // money stack
+    88:{hitbox:{x:4,y:21,w:24,h:9},projectile:{x:4,y:8,w:24,h:22}}, // money pile
+    89:{hitbox:{x:4,y:22,w:24,h:8},projectile:{x:4,y:8,w:24,h:22}}, // gold bars
+    93:{hitbox:{x:7,y:23,w:18,h:8},projectile:{x:7,y:1,w:18,h:30}}, // gold statue
+    96:{hitbox:{x:8,y:24,w:16,h:7},projectile:{x:5,y:4,w:22,h:27}}, // gold sculpture
+    97:{hitbox:{x:1,y:21,w:30,h:10},projectile:{x:1,y:4,w:30,h:27}}, // gold fountain
+    102:{hitbox:{x:5,y:22,w:22,h:8},projectile:{x:3,y:2,w:26,h:28}}, // diamond masterpiece
+    103:{hitbox:{x:5,y:22,w:22,h:8},projectile:{x:4,y:8,w:24,h:22}}, // diamond pile
+    108:{hitbox:{x:3,y:21,w:26,h:9},projectile:{x:3,y:5,w:26,h:25}}, // diamond mound
+    109:{hitbox:{x:4,y:22,w:24,h:8},projectile:{x:4,y:10,w:24,h:20}}, // gem cases
+    113:{hitbox:{x:4,y:23,w:24,h:8},projectile:{x:4,y:0,w:24,h:31}}, // monumental statue
+    116:{hitbox:{x:7,y:24,w:18,h:7},projectile:{x:5,y:1,w:22,h:30}}, // crystal sculpture
+    117:{hitbox:{x:1,y:21,w:30,h:10},projectile:{x:1,y:2,w:30,h:29}}, // diamond fountain
+    118:{hitbox:{x:1,y:21,w:30,h:8},projectile:{x:1,y:8,w:30,h:21}}, // crown gallery
+  };
+  return overrides[key];
+}
+
 export function obstacleHitbox(kind:number,x:number,y:number):ObstacleRect {
   const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
-  const h=family?.hitbox ?? {x:5,y:22,w:22,h:8};
+  const special=luxuryPhysicsOverride(kind);
+  const h=special?.hitbox ?? family?.hitbox ?? {x:5,y:22,w:22,h:8};
   return {x:x+h.x,y:y+h.y,w:h.w,h:h.h};
 }
 
 /** Caja del cuerpo visible: permite disparar a la parte alta sin volverla sólida al caminar. */
 export function obstacleProjectileHitbox(kind:number,x:number,y:number):ObstacleRect {
   const family=OBSTACLE_FAMILY_PHYSICS[obstacleFamilyIndex(kind)];
-  const h=family?.projectile ?? family?.hitbox ?? {x:5,y:10,w:22,h:19};
+  const special=luxuryPhysicsOverride(kind);
+  const h=special?.projectile ?? family?.projectile ?? family?.hitbox ?? {x:5,y:10,w:22,h:19};
   return {x:x+h.x,y:y+h.y,w:h.w,h:h.h};
 }
 
