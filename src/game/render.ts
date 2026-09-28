@@ -684,9 +684,8 @@ export function renderWorld(engine: GameEngine) {
     for (const it of content.shopItems) {
       if (it.sold) continue;
       drawShopStand(ctx,it.x,it.y,room.type===RoomType.GUN_VAN?'van':content.cafe?'cafe':'shop');
-      if(it.isFood) drawItemIcon(ctx,it.x-12,it.y-12,it.itemId,24);
-      else if (it.isWeapon) drawWeaponIcon(ctx, it.x - 8, it.y - 8, it.itemId);
-      else drawItem(ctx, it.x - 8, it.y - 8, it.itemId, f);
+      const shopBob=Math.round(Math.sin(f*.06+it.x*.02));
+      drawItemIcon(ctx,it.x-15,it.y-20+shopBob,it.itemId,30);
     }
   }
 
@@ -1003,7 +1002,8 @@ export function renderWorld(engine: GameEngine) {
     ctx.translate(drawX+7,drawY+9+interact*1.5);
     ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
     if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
-    ctx.scale(sx*(1+interact*.025),sy*(1-interact*.045));
+    const heroScale=1.12;
+    ctx.scale(sx*(1+interact*.025)*heroScale,sy*(1-interact*.045)*heroScale);
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,aimDir,p.moving,
       p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true);
     ctx.restore();
@@ -1439,8 +1439,10 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
     }
   }
 
-  ctx.globalAlpha=.3;ctx.fillStyle='#06141c';ctx.fillRect(ped.x+4,ped.y+6,16,3);ctx.globalAlpha=1;
-  drawItemIcon(ctx,ped.x,ped.y-22+Math.round(Math.sin(f*.06)*2),ped.itemId,24,color);
+  ctx.globalAlpha=.3;ctx.fillStyle='#06141c';ctx.fillRect(ped.x+1,ped.y+6,22,3);ctx.globalAlpha=1;
+  // El objeto expuesto gana tamaño real de lectura; antes seguía viéndose como
+  // el mismo icono de 24 px aunque el renderer fuera 4x.
+  drawItemIcon(ctx,ped.x-4,ped.y-30+Math.round(Math.sin(f*.06)*2),ped.itemId,32,color);
   const n=(def?.rarity ?? 0)>=3?3:1;
   for(let i=0;i<n;i++) {
     const a=(f*.017+i*.33)%1;ctx.globalAlpha=(1-a)*.45;ctx.fillStyle=color;
@@ -1960,9 +1962,10 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     const wind=e.telegraph>.05?e.telegraph:(sequenceActive?.28+.10*Math.sin(f*.18):0);
     const choreoAttack=e.bossPreparedAttack??e.bossSequenceAttack;
     const phasePulse=(e.phaseTransition??0)>0?Math.sin((54-(e.phaseTransition??0))*.28)*.045:0;
-    const scale=1+wind*.055+phasePulse;
+    const bossVisualScale=(BOSSES[e.bossType]?1.18:SUBBOSSES[e.bossType]?1.14:1.10);
+    const scale=bossVisualScale*(1+wind*.055+phasePulse);
     ctx.translate(cx,cy);
-    ctx.scale(scale,Math.max(.9,1-wind*.025+phasePulse));
+    ctx.scale(scale,bossVisualScale*Math.max(.9,1-wind*.025+phasePulse));
     ctx.translate(-cx,-cy);
 
     // Presencia de jefe/subjefe: plataforma visual dependiente de fase.
@@ -2005,13 +2008,15 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx,p.sy);ctx.translate(-cx,-cy);
+    const tacticalScale=e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.14:1.10;
+    ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*tacticalScale,p.sy*tacticalScale);ctx.translate(-cx,-cy);
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
     ctx.restore();
     drawEnemyRoleAccent(ctx,e,f);
   } else {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx,p.sy);ctx.translate(-cx,-cy);
+    const regularScale=e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.14:e.type==='dron_policial'||e.type==='rolling_bagel'?1.08:1.10;
+    ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*regularScale,p.sy*regularScale);ctx.translate(-cx,-cy);
     switch (e.type) {
       case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;
       case 'policia_rapido': drawPoliciaRapido(ctx, e.x, e.y, f, hurt, dirX); break;
@@ -2957,6 +2962,42 @@ function renderDifficultyUI(engine:GameEngine) {
   drawMouseButton(ctx,engine.pendingMode==='endless'?'INICIAR SIN FIN':'INICIAR ATRACO',DIFFICULTY_START.x,DIFFICULTY_START.y,DIFFICULTY_START.w,DIFFICULTY_START.h,inside(engine.mouseX,engine.mouseY,DIFFICULTY_START),accent,false,locked);
 }
 
+function drawMenuHeroVisual(
+  ctx:CanvasRenderingContext2D,engine:GameEngine,index:number,
+  x:number,y:number,w:number,h:number,accent:string,frame:number,
+){
+  const cx=x+w-58,cy=y+92,pulse=.5+.5*Math.sin(frame*.055);
+  ctx.save();
+  const g=ctx.createRadialGradient(cx,cy,8,cx,cy,58);
+  g.addColorStop(0,accent+'34');g.addColorStop(.55,accent+'12');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(cx-62,cy-62,124,124);
+  ctx.globalAlpha=.55;ctx.strokeStyle=accent;ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(cx,cy,35+pulse*2,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=.24;ctx.beginPath();ctx.arc(cx,cy,48-pulse*2,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4+frame*.004,r=43;
+    ctx.globalAlpha=.32;ctx.fillStyle=accent;
+    ctx.fillRect(Math.round(cx+Math.cos(a)*r)-1,Math.round(cy+Math.sin(a)*r)-1,3,3);
+  }
+  ctx.globalAlpha=1;
+
+  if(index===0||index===1||index===2||index===4){
+    ctx.save();ctx.translate(cx,cy+4);ctx.scale(index===4?4.5:4.1,index===4?4.5:4.1);
+    const dirs=['down','right','up','left'] as const;
+    const dir=dirs[Math.floor((frame%720)/180)];
+    drawDuckSkin(ctx,-8,-8,frame,engine.equippedSkin,dir,index===1,false,false,false,false,true);
+    ctx.restore();
+  }else{
+    const ids=['golden_crumb','golden_crumb','golden_crumb','golden_crumb','golden_crumb','stolen_helmet','baguette','toaster'];
+    const id=ids[index]??'golden_crumb';
+    drawItemIcon(ctx,cx-31,cy-31,id,62);
+  }
+
+  ctx.globalAlpha=.5;ctx.fillStyle=accent;ctx.fillRect(cx-30,y+h-39,60,2);
+  text(ctx,['ATRACO','SIN FIN','DIARIO','MEJORAS','ARMARIO','ARCHIVO','MANUAL','SISTEMA'][index]??'OPERACIÓN',cx,y+h-26,4.6,accent,'center',true,false);
+  ctx.restore();
+}
+
 function renderMenuUI(engine: GameEngine,wide=false) {
   const ctx=engine.ui!,meta=MENU_META[engine.menuIndex]??MENU_META[0],mf=menuFrame(engine);
   const safe=visibleCanvasRect(wide?10:0);
@@ -3026,8 +3067,10 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   drawMenuCard(ctx,px,py,pw,ph,true,meta.accent,'rgba(7,18,24,.72)');
   drawSectionLabel(ctx,meta.eyebrow,px+16,py+20,meta.accent);
   titleText(ctx,meta.title,px+16,py+47,wide?14:13,'#efe3bc','left',false);
-  wrappedText(ctx,meta.desc,px+16,py+69,pw-32,wide?7.1:7,wide?10:10,4,'#9db0ad');
-  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+120,pw-32,1);
+  const heroReserve=wide?132:118;
+  wrappedText(ctx,meta.desc,px+16,py+69,Math.max(112,pw-heroReserve),wide?7.1:7,wide?10:10,5,'#9db0ad');
+  drawMenuHeroVisual(ctx,engine,engine.menuIndex,px,py,pw,ph,meta.accent,mf);
+  ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(px+16,py+120,Math.max(84,pw-heroReserve),1);
   text(ctx,meta.tag,px+16,py+138,wide?5.45:5.3,meta.accent,'left',true,false);
 
   const valueX=px+(wide?116:104);
