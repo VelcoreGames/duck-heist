@@ -1217,7 +1217,7 @@ export function renderWorld(engine: GameEngine) {
 // El fondo arquitectónico es casi estático, pero antes se reconstruían ~165
 // tiles + gradientes en cada frame. Se rasteriza a 2x y sólo se refresca a
 // 10 Hz; actores, proyectiles, partículas y overlays siguen a la tasa completa.
-const ROOM_BACKDROP_SCALE=2;
+const ROOM_BACKDROP_SCALE=3; // escenario estático más nítido; actores siguen usando resolución adaptativa hasta 4x
 let roomBackdropCanvas:HTMLCanvasElement|null=null;
 let roomBackdropCtx:CanvasRenderingContext2D|null=null;
 let roomBackdropRef:ReturnType<typeof currentRoomOf>|null=null;
