@@ -83,13 +83,24 @@ export default function App() {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    // El mundo se rasteriza a 4x pero conserva coordenadas lógicas 1:1.
-    // Así ganamos detalle real sin modificar física, hitboxes ni layouts.
-    wc.width = CANVAS_WIDTH * ART_SCALE;
-    wc.height = CANVAS_HEIGHT * ART_SCALE;
+    // El arte sigue autorado a 4x, pero el backing store puede bajar
+    // temporalmente si el navegador no sostiene 60 FPS. Gameplay y hitboxes
+    // continúan en las mismas coordenadas lógicas.
+    let worldRenderScale=ART_SCALE;
+    wc.width = CANVAS_WIDTH * worldRenderScale;
+    wc.height = CANVAS_HEIGHT * worldRenderScale;
     const wctx = wc.getContext('2d', { alpha: false })!;
     const uctx = uc.getContext('2d')!;
-    wctx.setTransform(ART_SCALE, 0, 0, ART_SCALE, 0, 0);
+    const applyWorldRenderScale=(next:number)=>{
+      const scale=Math.max(2,Math.min(ART_SCALE,Math.round(next)));
+      if(scale===worldRenderScale&&wc.width===CANVAS_WIDTH*scale&&wc.height===CANVAS_HEIGHT*scale)return;
+      worldRenderScale=scale;
+      wc.width=CANVAS_WIDTH*scale;
+      wc.height=CANVAS_HEIGHT*scale;
+      wctx.setTransform(scale,0,0,scale,0,0);
+      wctx.imageSmoothingEnabled=false;
+    };
+    wctx.setTransform(worldRenderScale, 0, 0, worldRenderScale, 0, 0);
     wctx.imageSmoothingEnabled = false;
     if(new URLSearchParams(window.location.search).get('auditoria')==='1') {
       const report=runSelfChecks();setAudit(report);
@@ -793,10 +804,55 @@ export default function App() {
     // ------------------------------------------------------------------
     let last = performance.now();
     const step = 1000 / 60;
+    let accumulator=0;
+    let perfElapsed=0,perfFrames=0,upgradeStableWindows=0;
+    let renderScaleCooldownUntil=0;
     let lastUiScale = engine.settings.uiScale;
     let lastBrightness=-1;
     let lastContrast=engine.settings.highContrast;
     let lastDevice=engine.lastInput;
+
+    const advanceSimulation=()=>{
+      const st=engine.state;
+      const live = st === GameState.PLAYING || st === GameState.FLOOR_INTRO ||
+        st === GameState.BOSS_INTRO || st === GameState.FLOOR_CLEAR || st===GameState.HEIST_INTRO ||
+        st===GameState.ENDLESS_REWARD;
+      if(live)updateEngine(engine);
+      else if(st===GameState.MAP)engine.mapView.frame++;
+      else engine.frame++;
+      engine.wardrobeScroll+=(engine.wardrobeScrollTarget-engine.wardrobeScroll)*.22;
+    };
+
+    const sampleRenderPerformance=(delta:number,ts:number)=>{
+      const gameplay=engine.state===GameState.PLAYING||engine.state===GameState.BOSS_INTRO||
+        engine.state===GameState.FLOOR_INTRO||engine.state===GameState.ENDLESS_REWARD;
+      if(!gameplay||document.hidden||delta<=0||delta>80)return;
+      perfElapsed+=delta;perfFrames++;
+      if(perfFrames<75)return;
+      const average=perfElapsed/perfFrames;
+      perfElapsed=0;perfFrames=0;
+
+      // Bajar resolución es rápido y prioriza respuesta. Subir requiere varios
+      // segundos estables para evitar oscilaciones durante combates pesados.
+      if(average>19.25&&worldRenderScale>2){
+        applyWorldRenderScale(worldRenderScale===4?3:2);
+        upgradeStableWindows=0;
+        renderScaleCooldownUntil=ts+30000;
+      }else if(average>22.5&&worldRenderScale>2){
+        applyWorldRenderScale(2);
+        upgradeStableWindows=0;
+        renderScaleCooldownUntil=ts+30000;
+      }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<ART_SCALE){
+        upgradeStableWindows++;
+        if(upgradeStableWindows>=4){
+          applyWorldRenderScale(worldRenderScale+1);
+          upgradeStableWindows=0;
+          renderScaleCooldownUntil=ts+12000;
+        }
+      }else{
+        upgradeStableWindows=0;
+      }
+    };
     const padAction=(action:PadAction)=>{
       if(engine.state===GameState.HEIST_INTRO){
         const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
@@ -827,13 +883,17 @@ export default function App() {
 
     const loop = (ts: number) => {
       rafRef.current = requestAnimationFrame(loop);
-      const delta = ts - last;
-      if (delta < step) return;
-      last = ts - (delta % step);
+      const rawDelta=ts-last;
+      last=ts;
+
+      // Si la pestaña estuvo dormida no intentamos "recuperar" segundos enteros.
+      if(rawDelta>250){accumulator=0;return;}
+      const delta=Math.min(100,Math.max(0,rawDelta));
+      accumulator+=delta;
+
       if(document.hasFocus())padInput.poll(engine,padAction,ts);
       if(lastDevice!==engine.lastInput){lastDevice=engine.lastInput;setHint(hintFor(engine));}
 
-      // La escala elegida en configuración se aplica al instante.
       if (engine.settings.uiScale !== lastUiScale) {
         lastUiScale = engine.settings.uiScale;
         applySize();
@@ -844,21 +904,24 @@ export default function App() {
         uc.style.filter=lastContrast?'contrast(1.18) saturate(1.05)':'none';
       }
 
-      const st = engine.state;
-      const live = st === GameState.PLAYING || st === GameState.FLOOR_INTRO ||
-        st === GameState.BOSS_INTRO || st === GameState.FLOOR_CLEAR || st===GameState.HEIST_INTRO ||
-        st===GameState.ENDLESS_REWARD;
-      if (live) updateEngine(engine);
-      else if(st===GameState.MAP) engine.mapView.frame++;
-      else engine.frame++;
-      engine.wardrobeScroll+=(engine.wardrobeScrollTarget-engine.wardrobeScroll)*.22;
+      // La simulación corre a 60 Hz independientemente del FPS de render.
+      // Antes se actualizaba una sola vez por frame: si 4x bajaba a 45 FPS,
+      // TODO el juego pasaba efectivamente a ~75% de su velocidad.
+      let updates=0;
+      while(accumulator>=step&&updates<4){
+        advanceSimulation();
+        accumulator-=step;
+        updates++;
+      }
+      if(updates===4&&accumulator>step*2)accumulator=step*2;
+      if(updates===0)return;
+
+      sampleRenderPerformance(delta,ts);
 
       const wctx2 = engine.ctx;
-      // Limpiamos en píxeles físicos y restauramos la matriz 4x antes de cada
-      // frame. Los draw calls continúan usando las coordenadas lógicas antiguas.
       wctx2.setTransform(1, 0, 0, 1, 0, 0);
       wctx2.clearRect(0, 0, wc.width, wc.height);
-      wctx2.setTransform(ART_SCALE, 0, 0, ART_SCALE, 0, 0);
+      wctx2.setTransform(worldRenderScale, 0, 0, worldRenderScale, 0, 0);
       wctx2.imageSmoothingEnabled = false;
       renderWorld(engine);
 
