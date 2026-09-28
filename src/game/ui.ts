@@ -105,12 +105,20 @@ export function drawPanel(
     ctx.globalAlpha = 1;
   }
 
-  // Único acento estructural: barra lateral interna.
+  // Acento estructural lateral + cuatro esquinas técnicas.
   ctx.fillStyle = border;
   ctx.fillRect(x + 1, y + 1, 3, h - 2);
 
   ctx.fillStyle = 'rgba(255,255,255,.035)';
   ctx.fillRect(x + 8, y + 7, Math.max(0, w - 16), 1);
+  ctx.strokeStyle=border;ctx.globalAlpha=.62;ctx.lineWidth=1;
+  const k=Math.min(10,Math.max(5,Math.floor(Math.min(w,h)*.08)));
+  ctx.beginPath();
+  ctx.moveTo(x+5,y+k);ctx.lineTo(x+5,y+5);ctx.lineTo(x+k,y+5);
+  ctx.moveTo(x+w-k,y+5);ctx.lineTo(x+w-5,y+5);ctx.lineTo(x+w-5,y+k);
+  ctx.moveTo(x+5,y+h-k);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+k,y+h-5);
+  ctx.moveTo(x+w-k,y+h-5);ctx.lineTo(x+w-5,y+h-5);ctx.lineTo(x+w-5,y+h-k);
+  ctx.stroke();ctx.globalAlpha=1;
   ctx.restore();
 }
 
@@ -271,6 +279,14 @@ export function drawMenuHeader(
   ctx.fillStyle=accent;
   ctx.fillRect(x+w-50,y+19,36,2);
   ctx.globalAlpha=1;
+
+  // Estado operativo: tres módulos pequeños que sustituyen adornos ambiguos.
+  for(let i=0;i<3;i++){
+    ctx.fillStyle=i===Math.floor(frame/24)%3?accent:'#31494f';
+    ctx.globalAlpha=i===Math.floor(frame/24)%3?.82:.52;
+    ctx.fillRect(x+w-50+i*10,y+24,6,2);
+  }
+  ctx.globalAlpha=1;
   ctx.restore();
 }
 
@@ -307,10 +323,27 @@ export function drawMenuCard(
   ctx.fillRect(x+1,y+1,selected?4:3,h-2);
   ctx.globalAlpha=1;
 
+  // Esquinas técnicas y brillo superior compartidos por todos los menús.
+  // Refuerzan la identidad del juego sin convertir cada tarjeta en una caja distinta.
+  const corner=Math.min(8,Math.max(4,Math.floor(Math.min(w,h)*.16)));
+  ctx.strokeStyle=selected?accent:'rgba(126,166,169,.32)';
+  ctx.lineWidth=1;
+  ctx.globalAlpha=selected?.92:.55;
+  ctx.beginPath();
+  ctx.moveTo(x+1,y+corner);ctx.lineTo(x+1,y+1);ctx.lineTo(x+corner,y+1);
+  ctx.moveTo(x+w-corner,y+1);ctx.lineTo(x+w-1,y+1);ctx.lineTo(x+w-1,y+corner);
+  ctx.moveTo(x+1,y+h-corner);ctx.lineTo(x+1,y+h-1);ctx.lineTo(x+corner,y+h-1);
+  ctx.moveTo(x+w-corner,y+h-1);ctx.lineTo(x+w-1,y+h-1);ctx.lineTo(x+w-1,y+h-corner);
+  ctx.stroke();
+  ctx.globalAlpha=.12;ctx.fillStyle='#ffffff';ctx.fillRect(x+6,y+5,Math.max(0,w-12),1);
+  ctx.globalAlpha=1;
+
   if(selected&&w>=70){
     ctx.fillStyle=accent;
     ctx.globalAlpha=.42;
     ctx.fillRect(x+7,y+h-3,Math.min(58,w-14),1);
+    ctx.globalAlpha=.08;
+    ctx.fillRect(x+5,y+5,w-10,Math.max(0,h-10));
     ctx.globalAlpha=1;
   }
 
@@ -347,6 +380,9 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
     ctx.fillRect(x+5,y+4,w-10,h-8);
     ctx.globalAlpha=1;
     ctx.fillRect(x+5,y+h-3,w-10,1);
+    // Indicadores laterales hacen evidente que es una acción, no sólo una tarjeta.
+    ctx.fillRect(x+8,y+h/2-1,7,2);
+    ctx.fillRect(x+w-15,y+h/2-1,7,2);
   }
   text(ctx,label,x+w/2,y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
   ctx.restore();
