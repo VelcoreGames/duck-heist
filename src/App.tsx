@@ -834,12 +834,12 @@ export default function App() {
 
       // Bajar resolución es rápido y prioriza respuesta. Subir requiere varios
       // segundos estables para evitar oscilaciones durante combates pesados.
-      if(average>19.25&&worldRenderScale>2){
-        applyWorldRenderScale(worldRenderScale===4?3:2);
-        upgradeStableWindows=0;
-        renderScaleCooldownUntil=ts+30000;
-      }else if(average>22.5&&worldRenderScale>2){
+      if(average>22.5&&worldRenderScale>2){
         applyWorldRenderScale(2);
+        upgradeStableWindows=0;
+        renderScaleCooldownUntil=ts+45000;
+      }else if(average>19.25&&worldRenderScale>2){
+        applyWorldRenderScale(worldRenderScale===4?3:2);
         upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+30000;
       }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<ART_SCALE){
