@@ -21,7 +21,7 @@ import { coverVisibleCanvasRect,mainMenuRect,mainMenuHit,pauseRect,settingsRect,
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
 import { drawRoomAtmosphere, drawRichTile } from './roomArt';
-import { obstacleHitbox, obstacleCoverRect, obstacleOccludes, obstacleMaxHp, obstacleValue, obstacleFloorTier, OBSTACLE_DURABILITY, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
+import { obstacleHitbox, obstacleProjectileHitbox, obstacleCoverRect, obstacleOccludes, obstacleMaxHp, obstacleValue, obstacleFloorTier, OBSTACLE_DURABILITY, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { bankKeyDropChance, specialRoomKeyCost, tryUnlockSpecialRoom } from './keyAccess';
 
 export interface CheckReport { passed:number; failures:string[]; manifest:ReturnType<typeof auditContent>; }
@@ -263,9 +263,12 @@ export function runSelfChecks():CheckReport {
       let coverCount=0;
       for(let kind=0;kind<OBSTACLES.length;kind++){
         const r=obstacleHitbox(kind,64,96);
+        const shot=obstacleProjectileHitbox(kind,64,96);
         assert(r.w>0&&r.h>0,`hitbox vacío ${OBSTACLES[kind]}`);
         assert(r.x>=64&&r.y>=96&&r.x+r.w<=96&&r.y+r.h<=128,`hitbox fuera del tile ${OBSTACLES[kind]}`);
-        assert(r.y>100,`base sin espacio para pasar detrás ${OBSTACLES[kind]}`);
+        assert(r.y>=115,`huella demasiado alta para la base visual ${OBSTACLES[kind]}`);
+        assert(shot.x>=64&&shot.y>=96&&shot.x+shot.w<=96&&shot.y+shot.h<=128,`cuerpo de proyectil fuera del tile ${OBSTACLES[kind]}`);
+        assert(shot.x<=r.x&&shot.y<=r.y&&shot.x+shot.w>=r.x+r.w&&shot.y+shot.h>=r.y+r.h,`cuerpo de proyectil no contiene la huella ${OBSTACLES[kind]}`);
         if(obstacleOccludes(kind)){
           coverCount++;
           const cover=obstacleCoverRect(kind,64,96);
@@ -274,6 +277,23 @@ export function runSelfChecks():CheckReport {
         }
       }
       assert(coverCount>=72,'hay muy pocos props altos que funcionen como cobertura visual');
+    });
+    check('Los seis tiers comparten exactamente la misma huella física por familia',()=>{
+      for(let family=0;family<OBSTACLES_PER_FLOOR;family++){
+        const base=obstacleHitbox(family,0,0),body=obstacleProjectileHitbox(family,0,0);
+        for(let tier=1;tier<6;tier++){
+          const kind=tier*OBSTACLES_PER_FLOOR+family;
+          assert(JSON.stringify(obstacleHitbox(kind,0,0))===JSON.stringify(base),`tier alteró huella familia ${family}`);
+          assert(JSON.stringify(obstacleProjectileHitbox(kind,0,0))===JSON.stringify(body),`tier alteró cuerpo familia ${family}`);
+        }
+      }
+    });
+    check('Props altos reciben proyectiles en el cuerpo aunque el pato sólo choque con la base',()=>{
+      const family=19,kind=family;
+      const foot=obstacleHitbox(kind,64,96),body=obstacleProjectileHitbox(kind,64,96);
+      assert(body.y<foot.y,'servidor no separa cuerpo de huella');
+      assert(body.h>foot.h,'servidor no tiene volumen de disparo superior');
+      assert(!(body.y+2>=foot.y&&body.y+2<foot.y+foot.h),'punto de prueba cayó dentro de huella');
     });
     check('Los 120 props mantienen destrucción rápida pero los pisos altos resisten un poco más',()=>{
       assert(OBSTACLE_DURABILITY.length===OBSTACLES.length,'faltan resistencias de objetos');
