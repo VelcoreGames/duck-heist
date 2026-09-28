@@ -1,6 +1,6 @@
 import { auditContent, CATALOG, COLLECTION_TABS } from './catalog';
 import { ITEMS, ACTIVE_ITEMS, WEAPONS, SKINS, BOSSES, MINIBOSSES, SUBBOSSES, ENEMIES, FLOOR_BOSS_POOL, FLOOR_MINIBOSS_POOL, FLOOR_SUBBOSS_POOL, FINAL_BOSS_ID } from './data';
-import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,type MapRoom } from './mapgen';
+import { generateMap, validateMap,generateRoomLayout,ROOM_TEMPLATES,BANK_ROOM_TEMPLATES_BY_FLOOR,BANK_ROOM_TEMPLATES,type MapRoom } from './mapgen';
 import { getBuild, BASE_EFFECTS, PASSIVE_RULES, ACTIVE_RULES } from './itemRules';
 import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,damageObstacleTile,obstacleHpAt,GameState,SETTING_ROWS } from './engine';
@@ -298,6 +298,32 @@ export function runSelfChecks():CheckReport {
           }
         }
       }
+    });
+    check('Generación normal usa layouts bancarios del piso correspondiente',()=>{
+      for(let floor=0;floor<6;floor++){
+        const room:MapRoom={gx:2,gy:-1,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,layout:[],distance:3,floorIndex:floor};
+        generateRoomLayout(room,()=>.42);
+        assert(BANK_ROOM_TEMPLATES_BY_FLOOR[floor].includes(room.template as never),`piso ${floor+1} usó layout fuera de su zona bancaria: ${room.template}`);
+        assert(BANK_ROOM_TEMPLATES.includes(room.template as never),`layout ${room.template} no está registrado como bancario`);
+      }
+    });
+    check('Layouts bancarios conservan corredores de puerta y centro libres',()=>{
+      for(let floor=0;floor<6;floor++)for(const template of BANK_ROOM_TEMPLATES_BY_FLOOR[floor]){
+        const room:MapRoom={gx:1,gy:1,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,layout:[],distance:2,floorIndex:floor};
+        const layout=generateRoomLayout(room,()=>.41,template);
+        const cx=Math.floor(layout[0].length/2),cy=Math.floor(layout.length/2);
+        for(let x=1;x<layout[0].length-1;x++)assert(layout[cy][x]<OBSTACLE_BASE,`${template} bloqueó corredor horizontal`);
+        for(let y=1;y<layout.length-1;y++)assert(layout[y][cx]<OBSTACLE_BASE,`${template} bloqueó corredor vertical`);
+      }
+    });
+    check('Sala inicial también se amuebla como banco sin bloquear accesos',()=>{
+      const room:MapRoom={gx:0,gy:0,type:RoomType.START,doors:['N','E','S'],visited:false,cleared:false,generated:false,layout:[],distance:0,floorIndex:0};
+      const layout=generateRoomLayout(room,()=>.2);
+      const props=layout.flat().filter(v=>v>=OBSTACLE_BASE);
+      assert(props.length>=4,'START sigue pareciendo una sala vacía');
+      assert(room.template==='bankLobby','START no usa recepción bancaria');
+      const cx=Math.floor(layout[0].length/2),cy=Math.floor(layout.length/2);
+      assert(layout[cy][cx]<OBSTACLE_BASE,'START bloqueó el centro');
     });
     check('Daño de escenario persiste y al romper libera el tile',()=>{
       const e=setup(),room=e.map.rooms.get(e.currentKey)!,content=e.contents.get(e.currentKey)!;
