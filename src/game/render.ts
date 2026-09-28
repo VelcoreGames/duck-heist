@@ -5,6 +5,7 @@ import {
   TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH, UI_OFFSET_X, ART_SCALE,
   HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
+  type FloorTheme,
 } from './constants';
 import {
   drawDuck, drawHeart, drawSecurityPigeon, drawGuardGoose, drawToasterTurret,
@@ -1078,6 +1079,70 @@ export function renderWorld(engine: GameEngine) {
 }
 
 // ---------------------------------------------------------------------------
+// El fondo arquitectónico es casi estático, pero antes se reconstruían ~165
+// tiles + gradientes en cada frame. Se rasteriza a 2x y sólo se refresca a
+// 10 Hz; actores, proyectiles, partículas y overlays siguen a la tasa completa.
+const ROOM_BACKDROP_SCALE=2;
+let roomBackdropCanvas:HTMLCanvasElement|null=null;
+let roomBackdropCtx:CanvasRenderingContext2D|null=null;
+let roomBackdropRef:ReturnType<typeof currentRoomOf>|null=null;
+let roomBackdropBucket=-1;
+let roomBackdropDeco='';
+let roomBackdropSpecial=false;
+
+function drawRoomBackdropCached(
+  ctx:CanvasRenderingContext2D,
+  room:ReturnType<typeof currentRoomOf>,
+  theme:FloorTheme,
+  f:number,
+  special:boolean,
+){
+  if(!roomBackdropCanvas){
+    roomBackdropCanvas=document.createElement('canvas');
+    roomBackdropCanvas.width=CANVAS_WIDTH*ROOM_BACKDROP_SCALE;
+    roomBackdropCanvas.height=CANVAS_HEIGHT*ROOM_BACKDROP_SCALE;
+    roomBackdropCtx=roomBackdropCanvas.getContext('2d',{alpha:false});
+  }
+  const bucket=Math.floor(f/6);
+  const rebuild=!!roomBackdropCtx&&(
+    roomBackdropRef!==room||
+    roomBackdropBucket!==bucket||
+    roomBackdropDeco!==theme.deco||
+    roomBackdropSpecial!==special
+  );
+  if(rebuild&&roomBackdropCtx&&roomBackdropCanvas){
+    const b=roomBackdropCtx;
+    b.setTransform(1,0,0,1,0,0);
+    b.clearRect(0,0,roomBackdropCanvas.width,roomBackdropCanvas.height);
+    b.setTransform(ROOM_BACKDROP_SCALE,0,0,ROOM_BACKDROP_SCALE,0,0);
+    b.imageSmoothingEnabled=false;
+    const sampledFrame=bucket*6;
+    for(let y=0;y<ROOM_HEIGHT;y++){
+      for(let x=0;x<ROOM_WIDTH;x++){
+        const t=room.layout[y][x];
+        if(t===TILE_DOOR){
+          b.fillStyle='#080b0d';
+          b.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
+        }else{
+          drawRichTile(b,x,y,t===1,theme,room.gx,room.gy,sampledFrame,room.type!==RoomType.START);
+        }
+      }
+    }
+    drawInnerWallShadow(b);
+    drawRoomAtmosphere(b,theme.deco,sampledFrame,special);
+    roomBackdropRef=room;
+    roomBackdropBucket=bucket;
+    roomBackdropDeco=theme.deco;
+    roomBackdropSpecial=special;
+  }
+  if(roomBackdropCanvas){
+    ctx.save();
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(roomBackdropCanvas,0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    ctx.restore();
+  }
+}
+
 function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof currentRoomOf>, content: RoomContent, f: number, floorIndex: number) {
   const th=FLOOR_THEMES[Math.min(floorIndex,FLOOR_THEMES.length-1)];
   const itemRoom=room.type===RoomType.ITEM;
@@ -1090,20 +1155,7 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
   };
   const theme=itemRoom?itemTheme:th;
 
-  for(let y=0;y<ROOM_HEIGHT;y++){
-    for(let x=0;x<ROOM_WIDTH;x++){
-      const t=room.layout[y][x];
-      if(t===TILE_DOOR){
-        ctx.fillStyle='#080b0d';
-        ctx.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
-      }else{
-        drawRichTile(ctx,x,y,t===1,theme,room.gx,room.gy,f,room.type!==RoomType.START);
-      }
-    }
-  }
-
-  drawInnerWallShadow(ctx);
-  drawRoomAtmosphere(ctx,theme.deco,f,itemRoom);
+  drawRoomBackdropCached(ctx,room,theme,f,itemRoom);
 
   const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2;
   ctx.save();
