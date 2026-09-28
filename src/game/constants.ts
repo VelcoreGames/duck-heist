@@ -130,18 +130,18 @@ export interface FloorTheme {
 }
 
 export const FLOOR_THEMES: FloorTheme[] = [
-  // 1 · Vestíbulo tecnobancario: acero azul petróleo + luz cálida de recepción.
-  { floor: ['#1e2b34', '#273640', '#111a21'], wall: ['#2b3943', '#18242c'], trim: '#d1a652', glow: '#efc66a', deco: 'lobby' },
-  // 2 · Seguridad: metal azul-negro + señalización cian/roja.
-  { floor: ['#13242f', '#1b303c', '#0a151d'], wall: ['#213846', '#122630'], trim: '#79b9d2', glow: '#55c9f0', deco: 'security' },
-  // 3 · Archivo de valores: acero ahumado + bronce industrial.
-  { floor: ['#2a2926', '#35322d', '#171715'], wall: ['#3a3934', '#242421'], trim: '#bd9655', glow: '#e0b96f', deco: 'storage' },
-  // 4 · Servicios / panadería: grafito caliente + cobre/ámbar.
-  { floor: ['#302520', '#3a2d27', '#191310'], wall: ['#46352e', '#2a211d'], trim: '#c47d45', glow: '#f0a45e', deco: 'bakery' },
-  // 5 · Alta seguridad: titanio oscuro + señalización dorada.
-  { floor: ['#1b2328', '#252e33', '#0e1418'], wall: ['#303b42', '#1a242a'], trim: '#d0ae59', glow: '#f0cb6d', deco: 'vault' },
-  // 6 · Cámara principal: negro grafito + oro de alta custodia.
-  { floor: ['#24231e', '#302d24', '#11110f'], wall: ['#3d3a31', '#211f1a'], trim: '#e6bd4f', glow: '#ffd76d', deco: 'golden' },
+  // 1 · Gran entrada: piedra caliza clara, marfil, latón discreto y mucha luz.
+  { floor: ['#c8c4b6', '#b8b3a5', '#8f8b82'], wall: ['#d9d1c1', '#bcb2a1'], trim: '#9e8351', glow: '#f3d9a2', deco: 'lobby' },
+  // 2 · Administración: piedra gris cálida, roble claro y metal champagne.
+  { floor: ['#aaa79f', '#98958d', '#706f6a'], wall: ['#b7afa4', '#8f887f'], trim: '#a99269', glow: '#e0d0b3', deco: 'security' },
+  // 3 · Administración ejecutiva: piedra humo, nogal y bronce.
+  { floor: ['#817f79', '#706e68', '#4d4c49'], wall: ['#6e665d', '#4e4944'], trim: '#b18d58', glow: '#e0bb78', deco: 'storage' },
+  // 4 · Alta dirección: mármol crema, nogal oscuro y latón pulido.
+  { floor: ['#b7ae9f', '#9e9588', '#6d655d'], wall: ['#54493f', '#352f2a'], trim: '#c59b58', glow: '#e8c17b', deco: 'bakery' },
+  // 5 · Tesorería privada: mármol negro, crema, oro y bóveda de lujo.
+  { floor: ['#383832', '#292a27', '#171816'], wall: ['#454239', '#292821'], trim: '#d7b13e', glow: '#f5d66a', deco: 'vault' },
+  // 6 · Cámara soberana: mármol ónix, oro alto brillo y acentos diamante.
+  { floor: ['#20232a', '#15181e', '#090b0e'], wall: ['#30323a', '#17191e'], trim: '#f0c84e', glow: '#aeeaff', deco: 'golden' },
 ];
 
 export enum RoomType {
@@ -195,46 +195,46 @@ export const OBSTACLES_PER_FLOOR = 20;
  */
 export const FLOOR_PROP_NAMES = [
   [
-    'reception_terminal','nylon_queue_post','brochure_carousel','document_tote',
-    'supply_case','plaster_support','basic_access_pad','alarm_junction',
-    'filing_drawers','courier_case','bill_counter','records_cart',
-    'evidence_cabinet','coin_cage','office_printer','visitor_chair',
-    'ceramic_planter','water_dispenser','cctv_monitor','network_tower',
+    'reception_terminal','velvet_queue_post','brochure_stand','visitor_document_tray',
+    'teller_cash_case','marble_lobby_column','guest_access_kiosk','lobby_alarm_panel',
+    'reception_drawers','courier_briefcase','note_counter','reception_cart',
+    'staff_cabinet','coin_display_cage','office_printer','lobby_lounge_chair',
+    'grand_planter','drinking_fountain','lobby_information_screen','network_cabinet',
   ],
   [
-    'teller_workstation','chrome_queue_post','form_rotary','sealed_cash_tote',
-    'transfer_crate','steel_support','security_keypad','alarm_controller',
-    'deposit_drawers','cash_hardcase','currency_sorter','secure_file_cart',
-    'security_locker','silver_storage_cage','laser_multifunction','ergonomic_chair',
-    'stone_planter','filtered_water_station','surveillance_console','rack_server',
+    'admin_workstation','chrome_queue_post','file_carousel','document_box',
+    'supply_credenza','oak_office_column','staff_access_pad','office_alarm_panel',
+    'filing_bank','executive_briefcase','note_counter','records_cart',
+    'document_locker','archive_cage','multifunction_printer','ergonomic_chair',
+    'office_planter','water_station','meeting_display','server_tower',
   ],
   [
-    'dual_teller_console','brass_queue_gate','legal_file_carousel','tamperproof_tote',
-    'armored_dispatch_box','reinforced_column','biometric_keypad','alarm_matrix',
-    'bond_drawer_bank','executive_courier_case','note_authenticator','motorized_archive_cart',
-    'evidence_safe_locker','precious_metal_cage','production_printer','executive_task_chair',
-    'granite_planter','chilled_water_bar','camera_control_desk','encrypted_server',
+    'executive_desk','brass_partition','art_display_stand','leather_document_case',
+    'executive_credenza','walnut_brass_column','biometric_pad','executive_alarm',
+    'deed_drawer','premium_briefcase','currency_authenticator','service_cart',
+    'executive_safe','rare_document_cage','secure_printer','leather_chair',
+    'sculpted_planter','glass_water_bar','boardroom_console','encrypted_server',
   ],
   [
-    'private_banker_desk','velvet_queue_gate','contract_display','leather_document_case',
-    'executive_transfer_chest','marble_brass_column','biometric_terminal','security_command_box',
-    'deed_drawer_wall','diplomatic_hardcase','forensic_currency_lab','powered_vault_cart',
-    'deed_archive_vault','platinum_cage','secure_document_press','leather_executive_chair',
-    'sculpted_planter','glass_water_column','security_wall_console','blade_server',
+    'private_banker_desk','velvet_rope_barrier','museum_art_pedestal','leather_portfolio',
+    'marble_credenza','marble_brass_column','biometric_terminal','silent_alarm_box',
+    'art_archive_drawers','diplomatic_case','currency_lab','champagne_service_cart',
+    'private_safe','platinum_display_cage','intaglio_press','club_chair',
+    'marble_planter','indoor_fountain','gallery_media_wall','blade_server',
   ],
   [
-    'vault_operator_console','illuminated_security_gate','bearer_bond_display','sealed_bullion_satchel',
-    'armored_value_crate','titanium_support','retina_access_station','redundant_alarm_core',
-    'vault_deposit_stack','bullion_transit_case','highspeed_currency_lab','armored_value_trolley',
-    'classified_record_safe','palladium_cage','encrypted_print_station','security_command_chair',
-    'designer_stone_planter','premium_hydration_station','tactical_surveillance_rig','hardened_server_rack',
+    'gold_banker_console','gold_velvet_barrier','framed_gold_painting','money_stack',
+    'bullion_chest','gilded_column','retina_access_station','gold_alarm_core',
+    'money_pile','gold_bar_stack','gold_currency_table','bullion_cart',
+    'gold_safe','gold_statue','gold_document_press','velvet_throne_chair',
+    'gold_sculpture','gold_fountain','gilded_gallery_wall','treasury_server',
   ],
   [
-    'master_vault_console','gold_security_gate','rare_bond_reliquary','royal_document_coffer',
-    'sovereign_bullion_crate','gilded_titanium_pillar','quantum_biometric_terminal','vault_alarm_nexus',
-    'crown_deposit_array','diplomatic_bullion_case','sovereign_currency_scanner','autonomous_bullion_cart',
-    'royal_archive_safe','gold_bar_display_cage','secure_intaglio_press','master_director_chair',
-    'jade_gold_planter','crystal_water_station','panoramic_security_command','sovereign_data_vault',
+    'diamond_vault_console','jeweled_barrier','diamond_masterpiece','diamond_pile',
+    'diamond_gold_chest','crystal_gold_column','quantum_access_terminal','crown_alarm_nexus',
+    'diamond_mound','diamond_case_stack','gem_appraisal_table','jewel_cart',
+    'diamond_safe','monumental_gold_statue','royal_intaglio_press','diamond_lounge_chair',
+    'crystal_sculpture','diamond_fountain','crown_gallery_wall','sovereign_data_vault',
   ],
 ] as const;
 
