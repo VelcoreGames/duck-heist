@@ -1,6 +1,6 @@
 // Motor lógico: DUCK HEIST · EL BANCO DEL PAN
 import {
-  TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT,
+  TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH,
   PLAYER_SPEED, DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, RESTART_HOLD_FRAMES, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, OPPOSITE,
   TILE_WALL, TILE_DOOR, OBSTACLE_BASE, type Dir,
@@ -2967,6 +2967,18 @@ function checkSynergies(engine: GameEngine, justGot: string) {
 // ---------------------------------------------------------------------------
 // PROYECTILES
 // ---------------------------------------------------------------------------
+// Las salas ahora pueden ser más anchas que el layout histórico de 480 px.
+// Conservamos el alcance RELATIVO de cada familia de proyectiles para que no
+// desaparezcan a mitad de una sala panorámica. Las escopetas escalan mucho
+// menos para mantener su identidad de corto alcance.
+const PROJECTILE_ROOM_RATIO=Math.max(1,CANVAS_WIDTH/UI_BASE_WIDTH);
+function scaledProjectileLifetime(base:number,shortRange=false) {
+  const scale=shortRange
+    ? Math.min(1.35,1+(PROJECTILE_ROOM_RATIO-1)*.24)
+    : Math.min(2.15,1+(PROJECTILE_ROOM_RATIO-1)*.64);
+  return Math.max(base,Math.round(base*scale));
+}
+
 function makeProjectile(
   x: number, y: number, vx: number, vy: number, type: string,
   damage: number, friendly: boolean, life: number, opts: Partial<Projectile> = {},
@@ -3054,11 +3066,16 @@ function fireWeapon(engine: GameEngine, dx: number, dy: number) {
     const speed=w.projectileSpeed*b.projectileSpeed;
     const radius=(w.explode ?? 0)*(b.uranium?1.5:1)*Math.sqrt(b.explosionScale);
 
-    const muzzleForward=w.id==='breadcrumb_shotgun'?8:0;
+    // El proyectil nace delante del pato, no enterrado bajo el sprite del arma.
+    // Esto recupera lectura instantánea del disparo en los pisos más detallados.
+    const muzzleForward=w.id==='breadcrumb_shotgun'?12:
+      w.id==='baguette_launcher'||w.id==='plasma_baker'||w.id==='baguette_sniper'?10:8;
+    const baseLife=w.boomerang?62:continuous?46:w.projectileType==='buckshot_player'?26:80;
+    const life=scaledProjectileLifetime(baseLife,w.projectileType==='buckshot_player');
     const proj=makeProjectile(
       p.x+7+dx*muzzleForward,p.y+8+dy*muzzleForward,
       Math.cos(a)*speed,Math.sin(a)*speed,
-      type, dmg, true, w.boomerang?62:continuous?46:w.projectileType==='buckshot_player'?26:80,
+      type, dmg, true, life,
       {bounces,piercing:w.piercing,boomerang:w.boomerang,burning,explode:radius,sourceWeapon:w.id,baseSpeed:speed,
         penetration:b.penetration+(piercingShot&&w.id==='plasma_baker'?2:0),knockback:w.knockback,orbit:b.spiral?30:b.orbit?21:0,radius:projRadius,nuclear:b.uranium>0,damageScaled:true,bounceBoost:0,originDamage:dmg},
     );
@@ -3402,8 +3419,14 @@ function enemyShoot(engine: GameEngine, e: Enemy, ang: number, speed: number, ty
   const pelletJitter=shotgun?.025:0;
   const a = ang + (e.elite ? jitter * 0.25 : jitter) + rng(-jitter-pelletJitter, jitter+pelletJitter);
   const damage=shotgun?.55:e.behavior==='sniper'?2:1;
-  const life=shotgun?48:e.behavior==='sniper'?145:110;
-  engine.projectiles.push(makeProjectile(e.x + e.size / 2, e.y + e.size / 2, Math.cos(a) * speed, Math.sin(a) * speed, type, damage, false, life));
+  const baseLife=shotgun?48:e.behavior==='sniper'?145:110;
+  const life=scaledProjectileLifetime(baseLife,shotgun);
+  // Saca la bala del centro del sprite enemigo para que el jugador vea el
+  // origen y la dirección desde el primer frame, especialmente en fondos ricos.
+  const muzzleDistance=Math.max(7,e.size*.42);
+  const muzzleX=e.x+e.size/2+Math.cos(a)*muzzleDistance;
+  const muzzleY=e.y+e.size/2+Math.sin(a)*muzzleDistance;
+  engine.projectiles.push(makeProjectile(muzzleX,muzzleY,Math.cos(a)*speed,Math.sin(a)*speed,type,damage,false,life));
   // En ráfagas de jefes no generamos partículas por CADA proyectil. Antes una
   // espiral de 18 balas podía crear 36 partículas en el mismo frame, causando
   // un pico de trabajo perceptible como "trabón" aunque las balas sean pequeñas.
