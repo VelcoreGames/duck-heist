@@ -173,23 +173,37 @@ function drawCafeScene(ctx:CanvasRenderingContext2D,f:number) {
 function drawShopStand(ctx:CanvasRenderingContext2D,x:number,y:number,kind:'van'|'cafe'|'shop') {
   ctx.save();
   const pulse=.5+.5*Math.sin((x+y)*.02);
-  ctx.globalAlpha=.30;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(x,y+18,22,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.globalAlpha=.32;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(x,y+18,22,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
   const body=kind==='van'?'#101619':kind==='cafe'?'#5a3c2d':'#1d332b';
   const mid=kind==='van'?'#273136':kind==='cafe'?'#865b41':'#355b4c';
   const edge=kind==='van'?'#d38b3f':kind==='cafe'?'#dfb77d':'#70c194';
+
+  // Base física de tres capas y soporte central para el producto.
   ctx.fillStyle=body;ctx.fillRect(x-20,y+8,40,12);
   ctx.fillStyle=mid;ctx.fillRect(x-18,y+10,36,7);
   ctx.fillStyle='#090e11';ctx.fillRect(x-17,y+17,34,3);
   ctx.fillStyle=edge;ctx.fillRect(x-17,y+8,34,2);
   ctx.globalAlpha=.42;ctx.fillStyle='#f3efe3';ctx.fillRect(x-13,y+9,12,1);ctx.globalAlpha=1;
   ctx.fillStyle='#1b2326';ctx.fillRect(x-17,y+20,7,2);ctx.fillRect(x+10,y+20,7,2);
+  ctx.fillStyle='#121b1f';ctx.fillRect(x-5,y+4,10,5);
+  ctx.fillStyle=edge;ctx.globalAlpha=.58;ctx.fillRect(x-3,y+4,6,1);ctx.globalAlpha=1;
+
+  // Luz de vitrina: simétrica y horizontal, no parece un marcador direccional.
+  ctx.save();
+  ctx.globalAlpha=.09+.045*pulse;ctx.fillStyle=edge;ctx.beginPath();ctx.ellipse(x,y+5,19,6,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.34;ctx.strokeStyle=edge;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+8,18,4,0,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+
   if(kind==='van'){
     ctx.fillStyle='#66757a';ctx.fillRect(x-17,y+12,4,4);ctx.fillRect(x+13,y+12,4,4);
     ctx.fillStyle='#d38b3f';ctx.globalAlpha=.35+.15*pulse;ctx.fillRect(x-2,y+12,4,2);ctx.globalAlpha=1;
+    ctx.fillStyle='#9da9ad';ctx.fillRect(x-14,y+18,8,1);ctx.fillRect(x+6,y+18,8,1);
   }else if(kind==='cafe'){
     ctx.fillStyle='#d9c198';ctx.fillRect(x-15,y+12,30,1);ctx.fillStyle='#3f291f';ctx.fillRect(x-4,y+14,8,3);
+    ctx.fillStyle='#f0d8aa';ctx.globalAlpha=.45;ctx.fillRect(x-10,y+18,20,1);ctx.globalAlpha=1;
   }else{
     ctx.fillStyle='#87d2a8';ctx.fillRect(x-15,y+13,3,3);ctx.fillRect(x+12,y+13,3,3);ctx.fillStyle='#cdebd9';ctx.fillRect(x-2,y+12,4,1);
+    ctx.globalAlpha=.42;ctx.strokeStyle='#87d2a8';ctx.strokeRect(x-14.5,y+11.5,29,5);ctx.globalAlpha=1;
   }
   ctx.restore();
 }
@@ -3411,7 +3425,19 @@ function renderFloorIntroUI(engine: GameEngine) {
   text(ctx,'DESCENSO AL BANCO · SECTOR '+String(idx+1).padStart(2,'0'),panelX+18,106+slide,5.3,accent,'left',true,false);
   text(ctx,'SEGURIDAD '+(idx===0?'BÁSICA':idx<3?'REFORZADA':idx<5?'ALTA':'MÁXIMA'),panelX+panelW-18,106+slide,5.1,'#8d9fa2','right',true,false);
 
-  drawItemIcon(ctx,panelX+24,125+slide,['crumb','stolen_helmet','baguette','toaster','golden_crumb','pan_dorado'][idx],32);
+  const sectorIcon=['crumb','stolen_helmet','baguette','toaster','golden_crumb','pan_dorado'][idx];
+  const iconCx=panelX+40,iconCy=141+slide;
+  ctx.save();
+  const sectorPulse=.5+.5*Math.sin(f*.10);
+  ctx.globalAlpha=.10+.05*sectorPulse;ctx.fillStyle=glowColor;ctx.beginPath();ctx.arc(iconCx,iconCy,30,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.45;ctx.strokeStyle=accent;ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(iconCx,iconCy,25+sectorPulse*2,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2+Math.PI/4,r=31;
+    ctx.fillStyle=accent;ctx.globalAlpha=.45;ctx.fillRect(Math.round(iconCx+Math.cos(a)*r)-1,Math.round(iconCy+Math.sin(a)*r)-1,2,2);
+  }
+  ctx.restore();
+  drawItemIcon(ctx,panelX+24,125+slide,sectorIcon,32);
   titleText(ctx,T.floor+' '+(idx+1)+'/6',panelX+68,147+slide,18,accent,'left',false);
   titleText(ctx,FLOOR_NAMES_ES[idx],panelX+68,176+slide,idx===5?18:20,'#efe5c8','left',true);
 
@@ -3419,6 +3445,7 @@ function renderFloorIntroUI(engine: GameEngine) {
   text(ctx,idx===0?'LA OPERACIÓN COMIENZA AQUÍ':idx===5?'ÚLTIMA CÁMARA · NO HAY MARCHA ATRÁS':'LA SEGURIDAD AUMENTA · ADAPTA TU BUILD',panelX+18,215+slide,6.1,'#9cafaf','left',true,false);
 
   const progressW=Math.min(250,panelW-60),progressX=panelX+panelW-progressW-20,py=231+slide;
+  ctx.globalAlpha=.22;ctx.fillStyle=accent;ctx.fillRect(panelX+18,py-1,Math.max(42,progressX-panelX-34),1);ctx.globalAlpha=alpha;
   ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(progressX,py,progressW,4);
   const segment=progressW/6;
   for(let i=0;i<6;i++){
