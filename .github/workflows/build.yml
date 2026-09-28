@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/v0100-hires-art-scale]
   pull_request:
     branches: [main]
 
