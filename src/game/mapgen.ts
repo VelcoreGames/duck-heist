@@ -335,11 +335,11 @@ function assignRandom(pool: MapRoom[], type: RoomType,random=Math.random) {
  */
 export const BANK_ROOM_TEMPLATES_BY_FLOOR=[
   ['bankLobby','tellerHall','waitingArea'],
-  ['securityCheckpoint','surveillanceOps','secureLanes'],
-  ['archiveRows','custodyTransfer','recordCages'],
-  ['privateBanking','executivePods','cashOffice'],
-  ['vaultCheckpoint','safeDeposit','secureTransfer'],
-  ['sovereignVault','goldCages','coreSecurity'],
+  ['adminOpenOffice','meetingWing','operationsOffice'],
+  ['executiveAdmin','recordsAndFinance','boardroomSupport'],
+  ['privateBanking','executiveSuite','directorBoardroom'],
+  ['goldTreasury','goldGallery','wealthVault'],
+  ['diamondVault','royalGallery','crownTreasury'],
 ] as const;
 
 export const BANK_ROOM_TEMPLATES=[...new Set(BANK_ROOM_TEMPLATES_BY_FLOOR.flat())];
@@ -400,12 +400,12 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
   // acabado y valor con el piso; aquí sólo elegimos qué siluetas encajan mejor
   // en cada sector del banco.
   const familySets=[
-    [0,1,10,14,15,16,17],      // piso 1 · atención y oficina
-    [1,5,6,7,18,19],            // piso 2 · seguridad
-    [2,3,4,8,9,11,12],          // piso 3 · archivo y custodia
-    [0,4,10,11,14,15,18],       // piso 4 · banca privada
-    [5,6,8,12,13,18,19],        // piso 5 · bóveda
-    [4,5,6,8,13,18,19],         // piso 6 · cámara soberana
+    [0,1,10,14,15,16,17,18],    // piso 1 · gran entrada y atención
+    [0,2,8,11,14,15,16,18,19],  // piso 2 · administración abierta
+    [0,2,4,8,10,12,14,15,16,18],// piso 3 · administración ejecutiva
+    [0,2,4,10,12,14,15,16,17,18],// piso 4 · alta dirección / private banking
+    [2,3,4,8,9,11,12,13,16,17,18],// piso 5 · dinero y oro
+    [2,3,4,8,9,11,12,13,16,17,18],// piso 6 · oro y diamante
   ];
   const prop=(family:number,tier=floorTier)=>
     OBSTACLE_BASE+Math.max(0,Math.min(5,tier))*OBSTACLES_PER_FLOOR+family;
@@ -426,12 +426,122 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     // LAYOUTS BANCARIOS: los props forman estaciones y zonas funcionales.
     // Siempre respetan la cruz de circulación central y los accesos a puertas.
     // ---------------------------------------------------------------------
+    case 'adminOpenOffice': {
+      // Filas de escritorios, impresoras y archivo: oficina bancaria real, no sala de seguridad.
+      for(const [x,y] of [[cx-5,2],[cx-2,2],[cx+2,2],[cx+5,2],[cx-5,7],[cx-2,7],[cx+2,7],[cx+5,7]]) place(x,y,prop(0));
+      for(const [x,y] of [[cx-4,3],[cx-1,3],[cx+3,3],[cx-4,8],[cx-1,8],[cx+3,8]]) place(x,y,prop(15));
+      place(2,2,prop(8)); place(ROOM_WIDTH-3,2,prop(14));
+      place(2,ROOM_HEIGHT-3,prop(16)); place(ROOM_WIDTH-3,ROOM_HEIGHT-3,prop(19));
+      break;
+    }
+    case 'meetingWing': {
+      // Salas de reunión y apoyo administrativo, con áreas despejadas.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]) place(x,y,prop(0));
+      for(const [x,y] of [[cx-4,3],[cx+4,3],[cx-4,7],[cx+4,7]]) place(x,y,prop(15));
+      place(2,3,prop(18)); place(ROOM_WIDTH-3,3,prop(18));
+      place(2,7,prop(14)); place(ROOM_WIDTH-3,7,prop(8));
+      break;
+    }
+    case 'operationsOffice': {
+      // Back office: archivo, carros, impresoras y estaciones técnicas.
+      for(const y of [2,4,6,8]){place(3,y,prop(8));place(ROOM_WIDTH-4,y,prop(12));}
+      place(4,2,prop(11));place(ROOM_WIDTH-5,8,prop(11));
+      place(4,8,prop(14));place(ROOM_WIDTH-5,2,prop(19));
+      break;
+    }
+    case 'executiveAdmin': {
+      // Escritorios ejecutivos con arte, mobiliario y zonas de consulta.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]) place(x,y,prop(0));
+      for(const [x,y] of [[cx-4,3],[cx+4,3],[cx-4,7],[cx+4,7]]) place(x,y,prop(15));
+      place(2,2,prop(2));place(ROOM_WIDTH-3,2,prop(16));
+      place(2,8,prop(14));place(ROOM_WIDTH-3,8,prop(18));
+      break;
+    }
+    case 'recordsAndFinance': {
+      // Administración financiera: archivo premium, credenzas y autenticación.
+      for(const y of [2,4,6,8]){place(3,y,prop(8));place(ROOM_WIDTH-4,y,prop(12));}
+      place(5,2,prop(10));place(ROOM_WIDTH-6,2,prop(10));
+      place(5,8,prop(4));place(ROOM_WIDTH-6,8,prop(4));
+      break;
+    }
+    case 'boardroomSupport': {
+      // Antesala de consejo: arte, sillas y estaciones auxiliares.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]) place(x,y,prop(2));
+      for(const [x,y] of [[cx-4,3],[cx+4,3],[cx-4,7],[cx+4,7]]) place(x,y,prop(15));
+      place(2,5,prop(18));place(ROOM_WIDTH-3,5,prop(16));
+      break;
+    }
+    case 'executiveSuite': {
+      // Alta dirección: menos clutter, piezas más grandes y hospitality.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]) place(x,y,prop(0));
+      place(2,2,prop(2));place(ROOM_WIDTH-3,2,prop(2));
+      place(2,8,prop(17));place(ROOM_WIDTH-3,8,prop(16));
+      place(cx-4,7,prop(15));place(cx+4,7,prop(15));
+      break;
+    }
+    case 'directorBoardroom': {
+      // Sala de consejo representada por asientos y arte perimetral.
+      for(const x of [cx-5,cx-2,cx+2,cx+5]){place(x,2,prop(15));place(x,8,prop(15));}
+      place(2,2,prop(2));place(ROOM_WIDTH-3,2,prop(2));
+      place(2,8,prop(17));place(ROOM_WIDTH-3,8,prop(18));
+      break;
+    }
+    case 'goldTreasury': {
+      // Oro visible: dinero, lingotes y estatuaria con circulación central.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(9));
+      place(5,2,prop(3));place(ROOM_WIDTH-6,2,prop(8));
+      place(5,8,prop(13));place(ROOM_WIDTH-6,8,prop(16));
+      place(2,5,prop(17));place(ROOM_WIDTH-3,5,prop(12));
+      break;
+    }
+    case 'goldGallery': {
+      // Galería privada: cuadros dorados, esculturas y fuente.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(2));
+      place(5,2,prop(13));place(ROOM_WIDTH-6,2,prop(16));
+      place(5,8,prop(17));place(ROOM_WIDTH-6,8,prop(3));
+      place(2,5,prop(18));place(ROOM_WIDTH-3,5,prop(18));
+      break;
+    }
+    case 'wealthVault': {
+      // Bóveda patrimonial: cajas, dinero y oro en grupos pesados.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(4));
+      place(5,2,prop(9));place(ROOM_WIDTH-6,2,prop(9));
+      place(5,8,prop(8));place(ROOM_WIDTH-6,8,prop(3));
+      place(2,5,prop(13));place(ROOM_WIDTH-3,5,prop(12));
+      break;
+    }
+    case 'diamondVault': {
+      // Cámara diamante: gemas en varios tamaños y seguridad de alto lujo.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(8));
+      place(5,2,prop(3));place(ROOM_WIDTH-6,2,prop(9));
+      place(5,8,prop(16));place(ROOM_WIDTH-6,8,prop(17));
+      place(2,5,prop(12));place(ROOM_WIDTH-3,5,prop(13));
+      break;
+    }
+    case 'royalGallery': {
+      // Galería soberana: pinturas joya, estatua monumental y fuentes.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(2));
+      place(5,2,prop(13));place(ROOM_WIDTH-6,2,prop(16));
+      place(5,8,prop(17));place(ROOM_WIDTH-6,8,prop(18));
+      place(2,5,prop(9));place(ROOM_WIDTH-3,5,prop(3));
+      break;
+    }
+    case 'crownTreasury': {
+      // Tesoro final: mezcla deliberada de oro, diamantes y vitrinas.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(4));
+      place(5,2,prop(8));place(ROOM_WIDTH-6,2,prop(8));
+      place(5,8,prop(13));place(ROOM_WIDTH-6,8,prop(16));
+      place(2,5,prop(17));place(ROOM_WIDTH-3,5,prop(18));
+      break;
+    }
+
     case 'bankLobby': {
-      // Recepción al norte, filas a los lados, espera/decoración en esquinas.
+      // Gran entrada: recepción frontal, filas, lounge, vegetación y fuente.
       for(const x of [cx-4,cx-2,cx+2,cx+4]) place(x,2,prop(0));
       for(const [x,y] of [[cx-5,3],[cx-5,4],[cx+5,3],[cx+5,4]]) place(x,y,prop(1));
       place(2,2,prop(16)); place(ROOM_WIDTH-3,2,prop(16));
-      place(2,ROOM_HEIGHT-3,prop(15)); place(ROOM_WIDTH-3,ROOM_HEIGHT-3,prop(17));
+      place(2,ROOM_HEIGHT-3,prop(15)); place(ROOM_WIDTH-3,ROOM_HEIGHT-3,prop(15));
+      place(4,ROOM_HEIGHT-3,prop(17)); place(ROOM_WIDTH-5,ROOM_HEIGHT-3,prop(18));
       break;
     }
     case 'tellerHall': {
