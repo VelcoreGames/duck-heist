@@ -3440,6 +3440,16 @@ function drawLuxuryPropOverride(
   const diamond='#aeeeff';
   const money='#6d9b63';
 
+  // Piso 1: una fuente baja en el lobby para que la entrada se sienta institucional.
+  if(tier===0&&family===17){
+    ctx.fillStyle='rgba(0,0,0,.20)';ctx.beginPath();ctx.ellipse(bx+16,by+27,14,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#89847b';ctx.beginPath();ctx.ellipse(bx+16,by+23,13,5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#b9b4aa';ctx.beginPath();ctx.ellipse(bx+16,by+21,10,3,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#7cc9d8';ctx.globalAlpha=.55+.12*pulse;ctx.beginPath();ctx.ellipse(bx+16,by+21,8,2,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.62;rect(ctx,bx+15,by+9,2,11,'#9adce6');ctx.fillStyle='#9adce6';ctx.beginPath();ctx.arc(bx+16,by+9,2.5,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;return true;
+  }
+
   // Piso 4: arte y hospitality comienzan a dominar sobre lo puramente técnico.
   if(tier===3&&family===2){ // pedestal de arte / escultura pequeña
     rect(ctx,bx+8,by+20,16,9,'#463a31');rect(ctx,bx+10,by+18,12,3,'#c59b58');
@@ -3563,11 +3573,11 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
   const tier=Math.max(0,Math.min(5,Math.floor(kind/20))),family=((kind%20)+20)%20;
   // Cada piso tiene un lenguaje material propio: operativo, seguridad, custodia,
   // ejecutivo, bóveda y soberano. No son simples recolores del mismo set.
-  const accents=['#d0a64e','#55bfe2','#bd9655','#c47b48','#d0ae59','#e6bd4f'];
-  const darks=['#172126','#13222b','#292722','#2b211d','#151e22','#101315'];
-  const mids=['#455861','#3b5966','#61594b','#60473f','#46595b','#5b5544'];
-  const lights=['#8fa1a6','#8eb6c8','#ad9a77','#aa8877','#8fa8a6','#c2ad72'];
-  const details=['#5b7079','#557c8e','#806f55','#815f52','#607c7a','#8c7c54'];
+  const accents=['#9f8555','#a99369','#b38c55','#c99c55','#dfb83f','#f2ca4c'];
+  const darks=['#4f4b45','#47413a','#3d342e','#2e2722','#171714','#0d1016'];
+  const mids=['#8b857a','#75695d','#69584a','#5c483a','#494331','#303640'];
+  const lights=['#d4ccbd','#c7bca9','#c8ad84','#d6b477','#e0c565','#bcefff'];
+  const details=['#736c61','#8a7865','#8e7455','#9a7547','#8d742d','#6abbd6'];
   const accent=accents[tier],dark=darks[tier],mid=mids[tier],light=lights[tier],detail=details[tier];
   const basic=tier===0,premium=tier>=3,reinforced=tier>=4,elite=tier===5;
   const pulse=.5+.5*Math.sin(frame*.055+kind*.37);
