@@ -1278,6 +1278,77 @@ function drawRoomBackdropCached(
   }
 }
 
+function drawFloorSectorIdentity(
+  ctx:CanvasRenderingContext2D,floorIndex:number,f:number,roomType:RoomType,
+){
+  if(roomType===RoomType.ITEM||roomType===RoomType.SHOP||roomType===RoomType.GUN_VAN||
+     roomType===RoomType.BOSS||roomType===RoomType.SUBBOSS||roomType===RoomType.SECRET)return;
+  const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2,pulse=.5+.5*Math.sin(f*.035);
+  const palette=[
+    ['#d8b96a','#243942'], // lobby
+    ['#79c8e0','#173b4a'], // security
+    ['#c6a06a','#3a3028'], // storage
+    ['#d58b5d','#4a2d25'], // bakery
+    ['#c9c5b4','#32383d'], // vault
+    ['#f1cf67','#554521'], // golden
+  ] as const;
+  const [accent,deep]=palette[Math.max(0,Math.min(palette.length-1,floorIndex))];
+
+  ctx.save();
+  // Base de sector suficientemente visible para que cada piso se identifique
+  // sin mirar el HUD. Se limita al interior transitable y no altera colisiones.
+  ctx.globalAlpha=.075;ctx.fillStyle=deep;
+  ctx.fillRect(58,58,CANVAS_WIDTH-116,CANVAS_HEIGHT-116);
+
+  if(floorIndex===0){
+    ctx.globalAlpha=.15;ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.strokeRect(cx-94.5,cy-56.5,189,113);
+    ctx.globalAlpha=.09;ctx.fillStyle=accent;
+    ctx.fillRect(cx-2,cy-50,4,100);ctx.fillRect(cx-84,cy-2,168,4);
+    ctx.globalAlpha=.14;ctx.strokeStyle=accent;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(cx,cy,48,24,0,0,Math.PI*2);ctx.stroke();
+  }else if(floorIndex===1){
+    ctx.globalAlpha=.10;ctx.strokeStyle=accent;ctx.lineWidth=1;
+    for(let x=76;x<CANVAS_WIDTH-70;x+=44){ctx.beginPath();ctx.moveTo(x,64);ctx.lineTo(x,CANVAS_HEIGHT-64);ctx.stroke();}
+    for(let y=76;y<CANVAS_HEIGHT-70;y+=36){ctx.beginPath();ctx.moveTo(64,y);ctx.lineTo(CANVAS_WIDTH-64,y);ctx.stroke();}
+    const scan=72+(f*.5)%(CANVAS_HEIGHT-144);
+    ctx.globalAlpha=.18;ctx.fillStyle=accent;ctx.fillRect(64,scan,CANVAS_WIDTH-128,2);
+  }else if(floorIndex===2){
+    ctx.globalAlpha=.14;ctx.fillStyle=accent;
+    for(let x=78;x<CANVAS_WIDTH-72;x+=84)ctx.fillRect(x,68,3,CANVAS_HEIGHT-136);
+    ctx.globalAlpha=.08;ctx.fillStyle='#e1c69b';
+    for(let y=92;y<CANVAS_HEIGHT-78;y+=58)ctx.fillRect(70,y,CANVAS_WIDTH-140,2);
+    ctx.globalAlpha=.12;ctx.strokeStyle=accent;ctx.strokeRect(72.5,70.5,CANVAS_WIDTH-145,CANVAS_HEIGHT-141);
+  }else if(floorIndex===3){
+    ctx.globalAlpha=.11;ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.strokeRect(66.5,66.5,CANVAS_WIDTH-133,CANVAS_HEIGHT-133);
+    ctx.globalAlpha=.07;ctx.fillStyle=accent;
+    for(let y=84;y<CANVAS_HEIGHT-76;y+=30)ctx.fillRect(72,y,CANVAS_WIDTH-144,3);
+    ctx.globalAlpha=.12+.03*pulse;ctx.fillStyle='#f0b680';
+    ctx.fillRect(62,cy-1,CANVAS_WIDTH-124,2);
+  }else if(floorIndex===4){
+    ctx.globalAlpha=.14;ctx.strokeStyle=accent;ctx.lineWidth=1;
+    for(let i=0;i<4;i++)ctx.strokeRect(64+i*14+.5,64+i*10+.5,CANVAS_WIDTH-129-i*28,CANVAS_HEIGHT-129-i*20);
+    ctx.globalAlpha=.08;ctx.fillStyle=accent;
+    for(let x=92;x<CANVAS_WIDTH-82;x+=64)ctx.fillRect(x,72,2,CANVAS_HEIGHT-144);
+  }else{
+    ctx.globalAlpha=.13;ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.strokeRect(62.5,62.5,CANVAS_WIDTH-125,CANVAS_HEIGHT-125);
+    ctx.strokeRect(82.5,78.5,CANVAS_WIDTH-165,CANVAS_HEIGHT-157);
+    ctx.globalAlpha=.10+.04*pulse;ctx.fillStyle=accent;
+    ctx.fillRect(cx-3,70,6,CANVAS_HEIGHT-140);
+    ctx.fillRect(72,cy-3,CANVAS_WIDTH-144,6);
+    ctx.globalAlpha=.18;ctx.beginPath();ctx.ellipse(cx,cy,60,32,0,0,Math.PI*2);ctx.stroke();
+  }
+
+  // Firma de sector en las esquinas internas.
+  ctx.globalAlpha=.32;ctx.fillStyle=accent;
+  for(const [x,y] of [[70,70],[CANVAS_WIDTH-76,70],[70,CANVAS_HEIGHT-76],[CANVAS_WIDTH-76,CANVAS_HEIGHT-76]] as const){
+    ctx.fillRect(x,y,6,2);ctx.fillRect(x,y,2,6);
+  }
+  ctx.restore();
+}
+
 function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof currentRoomOf>, content: RoomContent, f: number, floorIndex: number) {
   const th=FLOOR_THEMES[Math.min(floorIndex,FLOOR_THEMES.length-1)];
   const itemRoom=room.type===RoomType.ITEM;
@@ -1291,6 +1362,7 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
   const theme=itemRoom?itemTheme:th;
 
   drawRoomBackdropCached(ctx,room,theme,f,itemRoom);
+  drawFloorSectorIdentity(ctx,floorIndex,f,room.type);
 
   const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2;
   ctx.save();
