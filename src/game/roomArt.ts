@@ -1,4 +1,4 @@
-import { TILE_SIZE, ROOM_WIDTH, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_DOOR } from './constants';
+import { TILE_SIZE, ROOM_WIDTH, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_DOOR, ART_SCALE, ART_PIXEL } from './constants';
 import type { FloorTheme } from './constants';
 
 const T = TILE_SIZE;
@@ -7,8 +7,10 @@ function hash(x: number, y: number, s = 0) {
   return Math.abs((x * 73 + y * 37 + s * 19) * 2654435761) >>> 0;
 }
 
+const artSnap=(v:number)=>Math.round(v*ART_SCALE)/ART_SCALE;
+const artSpan=(v:number)=>Math.max(ART_PIXEL,Math.round(v*ART_SCALE)/ART_SCALE);
 function r(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) {
-  ctx.fillStyle = color; ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+  ctx.fillStyle = color; ctx.fillRect(artSnap(x), artSnap(y), artSpan(w), artSpan(h));
 }
 
 function decoMetal(deco:string){
