@@ -1954,10 +1954,10 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     // Presencia de jefe/subjefe: plataforma visual dependiente de fase.
     const bossAccent=bossDef?.accent??'#e6c56f',bossSecondary=bossDef?.secondary??bossAccent;
     ctx.save();
-    const phasePulse=.5+.5*Math.sin(f*.055+e.bossPhase);
-    ctx.globalAlpha=.07+.035*phasePulse;ctx.fillStyle=bossAccent;ctx.beginPath();
+    const groundPhasePulse=.5+.5*Math.sin(f*.055+e.bossPhase);
+    ctx.globalAlpha=.07+.035*groundPhasePulse;ctx.fillStyle=bossAccent;ctx.beginPath();
     ctx.ellipse(cx,cy+e.size*.38,e.size*.72,e.size*.24,0,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=.22+.08*phasePulse;ctx.strokeStyle=bossSecondary;ctx.lineWidth=1;
+    ctx.globalAlpha=.22+.08*groundPhasePulse;ctx.strokeStyle=bossSecondary;ctx.lineWidth=1;
     ctx.beginPath();ctx.ellipse(cx,cy+e.size*.38,e.size*(.72+e.bossPhase*.035),e.size*(.24+e.bossPhase*.012),0,0,Math.PI*2);ctx.stroke();
     const ticks=Math.min(8,4+(bossDef?.phases??1));
     for(let i=0;i<ticks;i++){
