@@ -862,12 +862,28 @@ export function renderWorld(engine: GameEngine) {
       ctx.restore();
     }
   }
+  // Al ensanchar el mundo, cada píxel lógico ocupa menos pantalla. Escalamos
+  // sólo la REPRESENTACIÓN de las balas (no hitboxes ni daño) para mantener
+  // legibilidad y separar claramente fuego aliado de fuego enemigo.
+  const projectileRoomRatio=Math.max(1,CANVAS_WIDTH/UI_BASE_WIDTH);
+  const projectileVisualBase=Math.min(1.42,1+(projectileRoomRatio-1)*.58);
   for (const p of engine.projectiles) {
     ctx.save();
     ctx.translate(p.x,p.y);
     const speed=Math.hypot(p.vx,p.vy)||1,dx=p.vx/speed,dy=p.vy/speed;
     const directional=p.friendly&&BALLISTIC_PLAYER_PROJECTILES.has(p.type)||p.type==='enemy_bullet'||p.type==='pistol'||p.type==='buckshot'||p.type==='drone_shot'||p.type==='sniper_baguette';
     if(directional)ctx.rotate(Math.atan2(p.vy,p.vx));
+    const projectileVisualScale=p.friendly?projectileVisualBase:Math.min(1.55,projectileVisualBase*1.08);
+    ctx.scale(projectileVisualScale,projectileVisualScale);
+
+    // Halo de peligro: muy tenue pero suficiente para que el fuego enemigo no
+    // se pierda contra mármol, oro, reflejos o props de los pisos nuevos.
+    if(!p.friendly){
+      const danger=p.type==='buckshot'?'#ffad58':p.type==='drone_shot'?'#ff544c':'#ff7368';
+      ctx.globalAlpha=.13;ctx.fillStyle=danger;ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5:5.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    } else if(BALLISTIC_PLAYER_PROJECTILES.has(p.type)) {
+      ctx.globalAlpha=.07;ctx.fillStyle='#fff0bd';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?3.6:3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    }
 
     // Estela corta y orientada para leer velocidad/dirección sin blur ni filtros.
     if(speed>1.8&&(directional||p.type==='coin_proj'||p.type==='toast'||p.type==='dough_ball')){
