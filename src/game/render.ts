@@ -2648,6 +2648,8 @@ function drawHUD(engine: GameEngine) {
   const hpAccent=hpCritical?'#e66b60':'#e6c56f';
   const hpValue=Number.isInteger(p.hp)?String(p.hp):p.hp.toFixed(1);
   hudPlate(ctx,safeLeft+4,4,statusW,statusH,hpAccent,.61);
+  const hudSkin=getSkin(engine.equippedSkin);
+  ctx.save();ctx.globalAlpha=.74;ctx.fillStyle=hudSkin.accent;ctx.fillRect(safeLeft+10,8,22,1);ctx.restore();
   text(ctx,'LADRÓN',safeLeft+11,12,4.1,'#738b8e','left',true,false);
   text(ctx,`${hpValue}/${p.maxHp} HP`,safeLeft+statusW-5,12,4.1,hpCritical?'#ff8d84':'#9eaaa7','right',true,false);
   for(let i=0;i<p.maxHp;i++) {
@@ -2805,9 +2807,27 @@ function drawBossBar(engine: GameEngine) {
   const pct=clamp(boss.hp/boss.maxHp,0,1)*clamp(1-boss.spawnAnim/30,0,1);
 
   hudPlate(ctx,x,y,w,31,accent,.76);
+  const combatState=(boss.phaseTransition??0)>0?'CAMBIO DE FASE':
+    boss.telegraph>.55?'ATAQUE ENTRANTE':
+    (boss.bossAttackRecovery??0)>0?'RECUPERANDO':'';
   text(ctx,tier,x+10,y+10,4.1,'#718589','left',true,false);
   if(phaseText)text(ctx,phaseText,x+w-10,y+10,4.2,accent,'right',true,false);
+  if(combatState&&w>=260)text(ctx,combatState,x+w/2,y+10,3.55,combatState==='ATAQUE ENTRANTE'?'#ff9a87':'#8ea0a2','center',true,false);
   titleText(ctx,def?.name??'',x+w/2,y+20,isFloorBoss?8.7:isSubBoss?8.1:7.5,'#efe4c8','center',false);
+  ctx.save();
+  ctx.strokeStyle=accent;ctx.lineWidth=1;ctx.globalAlpha=.38;
+  const bk=6;
+  ctx.beginPath();
+  ctx.moveTo(x+2,y+bk);ctx.lineTo(x+2,y+2);ctx.lineTo(x+2+bk,y+2);
+  ctx.moveTo(x+w-2-bk,y+2);ctx.lineTo(x+w-2,y+2);ctx.lineTo(x+w-2,y+bk);
+  ctx.moveTo(x+2,y+31-bk);ctx.lineTo(x+2,y+29);ctx.lineTo(x+2+bk,y+29);
+  ctx.moveTo(x+w-2-bk,y+29);ctx.lineTo(x+w-2,y+29);ctx.lineTo(x+w-2,y+31-bk);
+  ctx.stroke();
+  if(boss.telegraph>.05){
+    ctx.globalAlpha=.10+.16*boss.telegraph;ctx.fillStyle=accent;
+    ctx.fillRect(x+6,y+22,w-12,1);
+  }
+  ctx.restore();
 
   ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(x+9,y+24,w-18,5);
   const g=ctx.createLinearGradient(x+9,0,x+w-9,0);
@@ -3520,6 +3540,25 @@ function renderBossIntroUI(engine: GameEngine) {
   }
   ctx.globalAlpha=1;
 
+  // Escáner del expediente: encuadra la silueta sin tapar el arte del jefe.
+  ctx.save();
+  const scanTop=top+18,scanBottom=top+panelH-40;
+  const scanY=scanTop+((f*.72)%(scanBottom-scanTop));
+  const scanGlow=ctx.createLinearGradient(0,scanY-8,0,scanY+8);
+  scanGlow.addColorStop(0,'rgba(255,255,255,0)');
+  scanGlow.addColorStop(.5,accent+'28');
+  scanGlow.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=scanGlow;ctx.fillRect(rightX+7,scanY-8,rightW-14,16);
+  ctx.globalAlpha=.52;ctx.strokeStyle=accent;ctx.lineWidth=1;
+  const br=Math.min(18,rightW*.12),pad=10;
+  ctx.beginPath();
+  ctx.moveTo(rightX+pad,top+pad+br);ctx.lineTo(rightX+pad,top+pad);ctx.lineTo(rightX+pad+br,top+pad);
+  ctx.moveTo(rightX+rightW-pad-br,top+pad);ctx.lineTo(rightX+rightW-pad,top+pad);ctx.lineTo(rightX+rightW-pad,top+pad+br);
+  ctx.moveTo(rightX+pad,top+panelH-pad-br);ctx.lineTo(rightX+pad,top+panelH-pad);ctx.lineTo(rightX+pad+br,top+panelH-pad);
+  ctx.moveTo(rightX+rightW-pad-br,top+panelH-pad);ctx.lineTo(rightX+rightW-pad,top+panelH-pad);ctx.lineTo(rightX+rightW-pad,top+panelH-pad-br);
+  ctx.stroke();
+  ctx.restore();
+
   if(bosses.length>1){
     bosses.slice(0,2).forEach((boss,i)=>{
       const bossFloor=!!BOSSES[boss.bossType],bossSub=!!SUBBOSSES[boss.bossType];
@@ -3537,6 +3576,15 @@ function renderBossIntroUI(engine: GameEngine) {
   }
 
   ctx.globalAlpha=.94;
+  const phaseRailW=Math.min(86,rightW-30),phaseRailX=portraitCx-phaseRailW/2,phaseRailY=top+203;
+  for(let i=0;i<phaseCount;i++){
+    const segW=(phaseRailW-(phaseCount-1)*4)/phaseCount;
+    ctx.fillStyle=i===0?accent:'rgba(255,255,255,.10)';
+    ctx.fillRect(phaseRailX+i*(segW+4),phaseRailY,segW,3);
+    ctx.globalAlpha=i===0?.75:.35;
+    ctx.fillStyle=i===0?secondary:'#607277';ctx.fillRect(phaseRailX+i*(segW+4),phaseRailY,segW,1);
+    ctx.globalAlpha=.94;
+  }
   text(ctx,doubleThreat?'DOS HOSTILES PRIORITARIOS':'OBJETIVO PRIORITARIO',portraitCx,top+217,5.2,accent,'center',true,false);
   const threat=finalBoss?'MÁXIMO':floorBoss?'ALTO':subBoss?'ELEVADO':'MODERADO';
   text(ctx,'AMENAZA · '+threat,portraitCx,top+232,4.4,'#91a2a4','center',true,false);
@@ -3590,12 +3638,31 @@ function renderPausedUI(engine: GameEngine) {
     text(ctx,helper,box.x+box.w-12,box.y+21,4.05,on?accent:'#61757a','right',false,false);
   });
 
-  drawMenuCard(ctx,44,251,388,55,false,'#52666d','rgba(7,17,23,.95)');
-  drawSectionLabel(ctx,'RESUMEN RÁPIDO',58,266,'#8fa8a7');
-  text(ctx,'DIFICULTAD',62,284,4.5,'#61777c','left',false,false);text(ctx,difficultyLabel(engine),62,298,6.3,'#e6c56f','left',true,false);
-  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',188,284,4.5,'#61777c','left',false,false);text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',188,298,6.3,'#d8e1db','left',true,false);
-  text(ctx,'OBJETOS',310,284,4.5,'#61777c','left',false,false);text(ctx,String(engine.player.items.length),310,298,6.3,'#d8c57d','left',true,false);
-  text(ctx,engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,428,298,4.3,'#75898d','right',true,false);
+  drawMenuCard(ctx,44,247,388,61,false,'#52666d','rgba(7,17,23,.95)');
+  drawSectionLabel(ctx,'EQUIPO Y RESUMEN',58,261,'#8fa8a7');
+
+  // Mini loadout: la pausa permite reconocer la skin y el equipo de un vistazo.
+  ctx.save();ctx.translate(65,282);ctx.scale(1.35,1.35);
+  drawDuckSkin(ctx,-8,-8,mf,engine.equippedSkin,'down',false,false,false,false,false,true);ctx.restore();
+  const loadoutWeapons=engine.player.weapons;
+  loadoutWeapons.forEach((w,i)=>{
+    const ix=92+i*31,iy=271;
+    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(ix-3,iy-3,27,27);
+    ctx.strokeStyle=i===engine.player.activeWeapon?'#e6c56f':'rgba(111,137,140,.30)';ctx.strokeRect(ix-2.5,iy-2.5,26,26);
+    if(w)drawItemIcon(ctx,ix,iy,w.id,21);
+  });
+  if(engine.player.activeItem){
+    const ix=154,iy=271;
+    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(ix-3,iy-3,27,27);
+    ctx.strokeStyle=engine.player.activeItemCooldown<=0?'#78c99a':'rgba(111,137,140,.30)';ctx.strokeRect(ix-2.5,iy-2.5,26,26);
+    drawItemIcon(ctx,ix,iy,engine.player.activeItem,21);
+  }
+  ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(191,264,1,34);
+
+  text(ctx,'DIFICULTAD',204,276,4.2,'#61777c','left',false,false);text(ctx,difficultyLabel(engine),204,290,6.1,'#e6c56f','left',true,false);
+  text(ctx,engine.gameMode==='endless'?'RONDA':'PISO',280,276,4.2,'#61777c','left',false,false);text(ctx,engine.gameMode==='endless'?String(engine.endless.round):String(engine.map.floorIndex+1)+'/6',280,290,6.1,'#d8e1db','left',true,false);
+  text(ctx,'OBJETOS',344,276,4.2,'#61777c','left',false,false);text(ctx,String(engine.player.items.length),344,290,6.1,'#d8c57d','left',true,false);
+  text(ctx,engine.gameMode==='endless'?'PRESIÓN '+Math.round(engine.endless.pressure)+'%':'SEMILLA · '+engine.run.seed,424,299,4.05,'#75898d','right',true,false);
 }
 function renderRunInfoUI(engine:GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine),p=engine.player,r=engine.run,s2=engine.stats;
