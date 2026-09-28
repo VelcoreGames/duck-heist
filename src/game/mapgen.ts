@@ -793,12 +793,12 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     // Soportes secundarios siguen la arquitectura: pared/esquina, nunca ruido
     // aleatorio en el centro de circulación.
     const supportByFloor=[
-      [16,17,15], // lobby: plantas, agua, espera
-      [7,18,19],  // seguridad: alarmas/monitores/racks
-      [8,11,9],   // archivo: cajoneras/carros/cases
-      [14,15,16], // privado: impresora/silla/planta
-      [6,19,9],   // bóveda: lector/rack/case
-      [6,19,13],  // cámara: lector/rack/jaula
+      [16,17,15,18], // gran entrada: plantas, fuente, lounge, información
+      [8,14,16,19],  // administración: archivo, impresora, planta, servidor
+      [2,14,15,16],  // ejecutivo: arte, impresora, silla, escultura verde
+      [2,15,16,17],  // alta dirección: arte, club chair, escultura, fuente
+      [2,3,9,16,17], // tesorería: arte, dinero, oro, escultura, fuente
+      [2,3,8,13,16,17], // soberano: arte, diamantes, estatua y fuente
     ][floorTier];
     const supportSlots=[[2,2],[ROOM_WIDTH-3,2],[2,ROOM_HEIGHT-3],[ROOM_WIDTH-3,ROOM_HEIGHT-3]] as const;
     const occupied=(x:number,y:number)=>layout[y]?.[x]>=OBSTACLE_BASE;
