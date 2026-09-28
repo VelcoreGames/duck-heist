@@ -78,10 +78,20 @@ function drawGroundLootBase(
   ctx:CanvasRenderingContext2D,x:number,y:number,color:string,frame:number,strength=.18,radius=14,
 ){
   ctx.save();
-  ctx.globalAlpha=.24;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(x,y+9,radius*.72,3.2,0,0,Math.PI*2);ctx.fill();
   const pulse=.5+.5*Math.sin(frame*.075+x*.03+y*.02);
-  ctx.globalAlpha=strength*(.72+.28*pulse);ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y+6,radius,5.5,0,0,Math.PI*2);ctx.fill();
-  ctx.globalAlpha=strength*.82;ctx.strokeStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+6,radius+2+pulse*2,6.5+pulse,0,0,Math.PI*2);ctx.stroke();
+  // Sombra + plataforma luminosa. Ninguna línea termina en punta para que no
+  // vuelva a confundirse con flechas de interacción.
+  ctx.globalAlpha=.30;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(x,y+9,radius*.78,3.4,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=strength*(.70+.30*pulse);ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y+6,radius,5.5,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=strength*.88;ctx.strokeStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+6,radius+2+pulse*2,6.5+pulse,0,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=.28;ctx.strokeStyle=color;
+  const k=4,rx=radius+6,ry=10;
+  ctx.beginPath();
+  ctx.moveTo(x-rx,y+6-ry+k);ctx.lineTo(x-rx,y+6-ry);ctx.lineTo(x-rx+k,y+6-ry);
+  ctx.moveTo(x+rx-k,y+6-ry);ctx.lineTo(x+rx,y+6-ry);ctx.lineTo(x+rx,y+6-ry+k);
+  ctx.moveTo(x-rx,y+6+ry-k);ctx.lineTo(x-rx,y+6+ry);ctx.lineTo(x-rx+k,y+6+ry);
+  ctx.moveTo(x+rx-k,y+6+ry);ctx.lineTo(x+rx,y+6+ry);ctx.lineTo(x+rx,y+6+ry-k);
+  ctx.stroke();
   ctx.restore();
 }
 const menuFrame = (engine:GameEngine) => engine.settings.reduceMotion ? 0 : engine.frame;
@@ -923,6 +933,18 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha = 1; ctx.restore();
   }
   if (p.hp > 0) {
+    // Presencia del protagonista: sombra material + acento de la skin. La
+    // silueta sigue siendo la misma y no afecta la hitbox.
+    const skinVisual=getSkin(engine.equippedSkin);
+    ctx.save();
+    ctx.globalAlpha=.34;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(p.x+7,p.y+16,9.5,3.2,0,0,Math.PI*2);ctx.fill();
+    if(p.dashTimer>0||p.interactFlash>0){
+      const life=p.dashTimer>0?clamp(p.dashTimer/12,0,1):clamp((p.interactFlash??0)/12,0,1);
+      ctx.globalAlpha=.10+.16*life;ctx.strokeStyle=skinVisual.accent;ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(p.x+7,p.y+14,12+life*5,5+life*2,0,0,Math.PI*2);ctx.stroke();
+    }
+    ctx.restore();
+
     if(p.dashTimer>0){
       for(let i=4;i>=1;i--){
         ctx.save();
@@ -1361,6 +1383,21 @@ function drawPedestalFull(ctx: CanvasRenderingContext2D, ped: Pedestal, f: numbe
   drawPedestal(ctx,ped.x,ped.y+6,f,ped.taken,color);
   if(ped.taken) {ctx.restore();return;}
 
+  const isWeapon=!!WEAPONS[ped.itemId],isActive=!!ACTIVE_ITEMS[ped.itemId];
+  const displayColor=ITEMS[ped.itemId]?.cursed?'#b986d6':isWeapon?'#79c8ff':isActive?'#c995e6':color;
+  const cx=ped.x+12,cy=ped.y-10,pulse=.5+.5*Math.sin(f*.075+ped.x*.02);
+  // Vitrina limpia y simétrica alrededor del objeto.
+  ctx.save();
+  ctx.globalAlpha=.075+.035*pulse;ctx.fillStyle=displayColor;ctx.beginPath();ctx.arc(cx,cy,25,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.28+.12*pulse;ctx.strokeStyle=displayColor;ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(cx,ped.y+8,20+pulse*2,5+pulse,0,0,Math.PI*2);ctx.stroke();
+  const k=5,r=22;ctx.globalAlpha=.42;ctx.beginPath();
+  ctx.moveTo(cx-r,cy-r+k);ctx.lineTo(cx-r,cy-r);ctx.lineTo(cx-r+k,cy-r);
+  ctx.moveTo(cx+r-k,cy-r);ctx.lineTo(cx+r,cy-r);ctx.lineTo(cx+r,cy-r+k);
+  ctx.moveTo(cx-r,cy+r-k);ctx.lineTo(cx-r,cy+r);ctx.lineTo(cx-r+k,cy+r);
+  ctx.moveTo(cx+r-k,cy+r);ctx.lineTo(cx+r,cy+r);ctx.lineTo(cx+r,cy+r-k);ctx.stroke();
+  ctx.restore();
+
   // foco de luz para el botín del jefe
   if (ped.bossLoot) {
     const g = ctx.createRadialGradient(ped.x + 12, ped.y - 10, 4, ped.x + 12, ped.y - 10, 70);
@@ -1719,9 +1756,19 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.globalAlpha = 1;
   }
 
-  // sombra más marcada
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(e.x + 2, e.y + e.size - 2, e.size - 4, 3);
+  // Sombra/contacto por familia: mejora lectura de peso sin añadir HUD falso.
+  const enemyTech=e.type==='dron_policial'||e.type==='toaster_turret'||e.behavior==='turret'||e.behavior==='camera'||e.behavior==='atm';
+  const enemyBread=e.type==='rolling_bagel'||e.type==='evil_croissant'||e.type==='banker_chicken';
+  const enemyHeavy=e.type==='policia_antidisturbios'||e.type==='guard_goose'||e.behavior==='shielded';
+  const groundAccent=enemyTech?'#79c8d8':enemyBread?'#d8a566':enemyHeavy?'#9ba7ac':'#718b93';
+  ctx.save();
+  ctx.globalAlpha=e.isBoss?.38:.28;ctx.fillStyle='#020609';ctx.beginPath();
+  ctx.ellipse(e.x+e.size/2,e.y+e.size-1,e.size*(e.isBoss?.56:.46),e.isBoss?4:2.7,0,0,Math.PI*2);ctx.fill();
+  if(e.isBoss||e.elite){
+    ctx.globalAlpha=e.isBoss?.18:.09;ctx.strokeStyle=e.isBoss?'#e6c56f':groundAccent;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(e.x+e.size/2,e.y+e.size,e.size*(e.isBoss?.72:.58),e.isBoss?7:4.5,0,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.restore();
 
   if (e.isBoss) {
     const cx=e.x+e.size/2,cy=e.y+e.size/2;
@@ -1903,6 +1950,22 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     ctx.translate(cx,cy);
     ctx.scale(scale,Math.max(.9,1-wind*.025+phasePulse));
     ctx.translate(-cx,-cy);
+
+    // Presencia de jefe/subjefe: plataforma visual dependiente de fase.
+    const bossAccent=bossDef?.accent??'#e6c56f',bossSecondary=bossDef?.secondary??bossAccent;
+    ctx.save();
+    const phasePulse=.5+.5*Math.sin(f*.055+e.bossPhase);
+    ctx.globalAlpha=.07+.035*phasePulse;ctx.fillStyle=bossAccent;ctx.beginPath();
+    ctx.ellipse(cx,cy+e.size*.38,e.size*.72,e.size*.24,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.22+.08*phasePulse;ctx.strokeStyle=bossSecondary;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(cx,cy+e.size*.38,e.size*(.72+e.bossPhase*.035),e.size*(.24+e.bossPhase*.012),0,0,Math.PI*2);ctx.stroke();
+    const ticks=Math.min(8,4+(bossDef?.phases??1));
+    for(let i=0;i<ticks;i++){
+      const a=i/ticks*Math.PI*2,r=e.size*.80;
+      const tx=cx+Math.cos(a)*r,ty=cy+e.size*.38+Math.sin(a)*e.size*.29;
+      ctx.globalAlpha=.18;ctx.fillStyle=i<=e.bossPhase?bossAccent:'#405258';ctx.fillRect(Math.round(tx)-1,Math.round(ty)-1,2,2);
+    }
+    ctx.restore();
 
     // IMPORTANTE: no usar ctx.filter al recibir daño.
     // En Chrome, brightness/saturate fuerza una ruta de composición mucho más
