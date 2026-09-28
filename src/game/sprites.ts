@@ -3352,31 +3352,82 @@ export function drawDoor(
 function drawPropDock(
   ctx:Ctx,bx:number,by:number,family:number,tier:number,accent:string,frame:number,
 ){
-  const tech=[0,6,7,10,14,18,19].includes(family);
-  const organic=family===16||family===17;
-  const round=family===1||family===3||organic;
   const pulse=.5+.5*Math.sin(frame*.06+family*.7+tier);
+  const round=[1,3,16,17].includes(family);
+  const mobile=[11,15].includes(family);
+  const tall=[5,8,12,19].includes(family);
+  const consoleLike=[0,6,10,14,18].includes(family);
 
   ctx.save();
   ctx.globalAlpha=.34;ctx.fillStyle='#020609';
-  ctx.beginPath();ctx.ellipse(bx+16,by+29,round?14:15,round?4.2:4.8,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(bx+16,by+29,round?15:mobile?14:tall?13:16,round?4.4:3.8,0,0,Math.PI*2);
+  ctx.fill();
 
-  // Plataforma inferior: hace que cada prop se lea como maquinaria apoyada,
-  // no como un icono pegado encima del tile.
-  ctx.globalAlpha=.92;
+  // Base específica por familia. El prop ya no comparte el mismo pedestal.
   if(round){
-    ctx.fillStyle='#11181b';ctx.beginPath();ctx.ellipse(bx+16,by+27,14,4.5,0,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle=accent;ctx.globalAlpha=.28+.10*pulse;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(bx+16,by+27,12,3,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#10171a';ctx.beginPath();ctx.ellipse(bx+16,by+27,14,4.8,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=accent;ctx.globalAlpha=.30+.12*pulse;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(bx+16,by+27,11.5,2.8,0,0,Math.PI*2);ctx.stroke();
+  }else if(mobile){
+    rect(ctx,bx+5,by+25,22,3,'#141b1e');
+    ctx.fillStyle='#080d10';ctx.beginPath();ctx.arc(bx+9,by+29,2.5,0,Math.PI*2);ctx.arc(bx+23,by+29,2.5,0,Math.PI*2);ctx.fill();
+  }else if(tall){
+    rect(ctx,bx+6,by+26,20,4,'#10171a');rect(ctx,bx+8,by+26,16,1,'#3c4c52');
+    ctx.globalAlpha=.38;rect(ctx,bx+13,by+28,6,1,accent);
+  }else if(consoleLike){
+    rect(ctx,bx+2,by+25,28,5,'#0e1518');rect(ctx,bx+5,by+25,22,2,'#3b4b51');
+    ctx.globalAlpha=.44;rect(ctx,bx+7,by+27,18,1,accent);
   }else{
-    rect(ctx,bx+3,by+25,26,5,'#10171a');rect(ctx,bx+5,by+25,22,2,'#36444a');
-    ctx.globalAlpha=.42;rect(ctx,bx+8,by+26,8,1,accent);ctx.globalAlpha=1;
+    rect(ctx,bx+4,by+25,24,5,'#10171a');rect(ctx,bx+6,by+25,20,2,'#35444a');
+    ctx.globalAlpha=.36;rect(ctx,bx+10,by+27,12,1,accent);
   }
 
-  // Cableado discreto para equipo técnico.
-  if(tech){
-    ctx.globalAlpha=.28;ctx.strokeStyle=tier===1?'#4fb6d1':accent;ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(bx+16,by+29);ctx.lineTo(bx+16+(family%2?8:-8),by+31);ctx.lineTo(bx+16+(family%2?11:-11),by+31);ctx.stroke();
-    ctx.globalAlpha=.65+.25*pulse;ctx.fillStyle=tier===1?'#5ad0ed':accent;ctx.fillRect(bx+25,by+26,2,1);
+  // Cableado sólo en maquinaria; cambia lado por familia para romper repetición.
+  if([0,6,7,10,14,18,19].includes(family)){
+    ctx.globalAlpha=.30;ctx.strokeStyle=tier===1?'#50c4e2':accent;ctx.lineWidth=1;
+    const dir=family%2?1:-1;
+    ctx.beginPath();ctx.moveTo(bx+16,by+29);ctx.lineTo(bx+16+dir*8,by+31);ctx.lineTo(bx+16+dir*12,by+31);ctx.stroke();
+    ctx.globalAlpha=.62+.25*pulse;ctx.fillStyle=tier===1?'#60daf3':accent;ctx.fillRect(bx+(dir>0?27:3),by+27,2,1);
+  }
+  ctx.restore();
+}
+
+function drawTierPropAttachment(
+  ctx:Ctx,bx:number,by:number,family:number,tier:number,accent:string,light:string,detail:string,frame:number,
+){
+  const pulse=.5+.5*Math.sin(frame*.07+tier*1.7+family*.3);
+  ctx.save();
+  if(tier===0){
+    // Piso 1: utilitario, números/etiquetas y piezas expuestas.
+    ctx.globalAlpha=.44;rect(ctx,bx+4,by+7,7,2,'#6d7777');rect(ctx,bx+5,by+8,3,1,'#b29a58');
+  }else if(tier===1){
+    // Seguridad: cian, sensores y balizas.
+    ctx.globalAlpha=.38;rect(ctx,bx+2,by+11,2,11,'#2b6475');rect(ctx,bx+28,by+11,2,11,'#2b6475');
+    ctx.globalAlpha=.62+.25*pulse;px(ctx,bx+3,by+9,'#5ad6f2',2);px(ctx,bx+27,by+9,'#5ad6f2',2);
+  }else if(tier===2){
+    // Archivo/custodia: bronce y abrazaderas robustas.
+    ctx.globalAlpha=.50;rect(ctx,bx+3,by+6,8,2,accent);rect(ctx,bx+21,by+6,8,2,accent);
+    rect(ctx,bx+5,by+24,4,2,detail);rect(ctx,bx+23,by+24,4,2,detail);
+  }else if(tier===3){
+    // Ejecutivo: remates más amplios y acabado de lujo.
+    ctx.globalAlpha=.42;rect(ctx,bx+2,by+8,3,16,accent);rect(ctx,bx+27,by+8,3,16,accent);
+    ctx.globalAlpha=.38;rect(ctx,bx+8,by+5,16,1,light);
+  }else if(tier===4){
+    // Alta seguridad: blindaje lateral y warning lights.
+    ctx.globalAlpha=.72;rect(ctx,bx+1,by+10,4,15,'#1b252a');rect(ctx,bx+27,by+10,4,15,'#1b252a');
+    rect(ctx,bx+2,by+12,2,9,accent);rect(ctx,bx+28,by+12,2,9,accent);
+    ctx.globalAlpha=.55+.30*pulse;px(ctx,bx+2,by+8,'#ef655b',2);px(ctx,bx+28,by+8,'#ef655b',2);
+  }else{
+    // Cámara principal: marco dorado parcial y custodia soberana.
+    ctx.globalAlpha=.72;ctx.strokeStyle='#d6b04a';ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(bx+2,by+13);ctx.lineTo(bx+2,by+6);ctx.lineTo(bx+10,by+6);
+    ctx.moveTo(bx+22,by+6);ctx.lineTo(bx+30,by+6);ctx.lineTo(bx+30,by+13);
+    ctx.moveTo(bx+2,by+22);ctx.lineTo(bx+2,by+28);ctx.lineTo(bx+10,by+28);
+    ctx.moveTo(bx+22,by+28);ctx.lineTo(bx+30,by+28);ctx.lineTo(bx+30,by+22);
+    ctx.stroke();
+    ctx.globalAlpha=.55+.25*pulse;px(ctx,bx+16,by+5,'#f3d36d',2);
   }
   ctx.restore();
 }
@@ -3405,163 +3456,190 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
   const feet=()=>{rect(ctx,bx+6,by+27,5,2,'#171d20');rect(ctx,bx+21,by+27,5,2,'#171d20');};
 
   switch(family){
-    case 0: { // terminal de caja / ATM
-      rect(ctx,bx+2,by+9,28,18,dark);rect(ctx,bx+4,by+10,24,16,mid);
-      rect(ctx,bx+6,by+11,14,9,'#081318');
-      const screen=tier===1?'#0b3d51':tier>=4?'#17362f':'#263f46';
-      rect(ctx,bx+7,by+12,12,7,screen);
-      ctx.globalAlpha=.78;rect(ctx,bx+8,by+13,8,1,tier===1?'#58d7f4':'#9bd4cf');rect(ctx,bx+8,by+16,5,1,tier===1?'#58d7f4':accent);ctx.globalAlpha=1;
-      rect(ctx,bx+22,by+12,4,3,accent);rect(ctx,bx+22,by+17,4,5,'#172126');
-      rect(ctx,bx+5,by+8,22,2,detail);rect(ctx,bx+7,by+9,18,1,light);
-      ctx.globalAlpha=.58+.22*pulse;rect(ctx,bx+10,by+24,12,1,tier===1?'#55d5f3':'#efc45d');ctx.globalAlpha=1;
-      feet();break;
-    }
-    case 1: { // separador de fila
-      rect(ctx,bx+4,by+20,24,3,accent);rect(ctx,bx+5,by+23,3,5,mid);rect(ctx,bx+24,by+23,3,5,mid);
-      rect(ctx,bx+3,by+27,7,2,dark);rect(ctx,bx+22,by+27,7,2,dark);
-      px(ctx,bx+6,by+19,light,2);px(ctx,bx+24,by+19,light,2);break;
-    }
-    case 2: { // carrusel de documentos
-      rect(ctx,bx+5,by+8,22,20,dark);rect(ctx,bx+7,by+9,18,18,mid);
-      for(let yy=11;yy<=23;yy+=4){rect(ctx,bx+8,by+yy,16,2,detail);rect(ctx,bx+9,by+yy,14,1,light);rect(ctx,bx+9+(yy%3),by+yy+2,5,1,accent);}
-      rect(ctx,bx+14,by+5,4,4,accent);feet();break;
-    }
-    case 3: { // tote sellado
-      ctx.fillStyle=mid;ctx.beginPath();ctx.ellipse(bx+16,by+22,10,7,0,0,Math.PI*2);ctx.fill();
-      rect(ctx,bx+8,by+17,16,8,mid);rect(ctx,bx+11,by+14,10,4,dark);rect(ctx,bx+10,by+18,12,2,accent);
-      rect(ctx,bx+14,by+20,4,3,'#20282c');bolt(21,18);break;
-    }
-    case 4: { // caja de despacho / contenedor blindado
-      rect(ctx,bx+2,by+10,28,17,dark);rect(ctx,bx+4,by+12,24,13,mid);
-      rect(ctx,bx+5,by+13,22,2,detail);rect(ctx,bx+5,by+23,22,2,'#11181b');
-      stripe(16);rect(ctx,bx+11,by+18,10,5,'#171e22');rect(ctx,bx+14,by+19,4,2,light);
-      ctx.globalAlpha=.55+.25*pulse;rect(ctx,bx+6,by+11,3,2,accent);ctx.globalAlpha=1;
-      for(const p of [[4,11],[27,11],[4,24],[27,24]])bolt(p[0],p[1]);feet();break;
-    }
-    case 5: { // soporte reforzado
-      rect(ctx,bx+8,by+2,16,29,dark);rect(ctx,bx+10,by+3,12,27,mid);rect(ctx,bx+12,by+4,2,24,detail);
-      rect(ctx,bx+6,by+2,20,4,accent);rect(ctx,bx+5,by+27,22,4,dark);
-      if(reinforced){rect(ctx,bx+16,by+5,4,20,accent);}break;
-    }
-    case 6: { // estación de teclado / biométrico
-      rect(ctx,bx+4,by+8,24,19,dark);rect(ctx,bx+6,by+9,20,17,mid);
-      rect(ctx,bx+8,by+10,16,7,'#081419');
-      ctx.globalAlpha=.78;rect(ctx,bx+10,by+12,10,1,tier===1?'#59d2ef':accent);rect(ctx,bx+10,by+14,6,1,'#9ec8c7');ctx.globalAlpha=1;
-      for(let yy=19;yy<24;yy+=3)for(let xx=9;xx<24;xx+=4)px(ctx,bx+xx,by+yy,(xx+yy)%8?detail:accent,2);
-      ctx.globalAlpha=.65+.25*pulse;px(ctx,bx+24,by+11,tier===1?'#58d8f4':'#77dc9b',2);ctx.globalAlpha=1;
-      feet();break;
-    }
-    case 7: { // unidad de alarma
-      rect(ctx,bx+7,by+17,18,11,dark);rect(ctx,bx+9,by+18,14,8,mid);
-      rect(ctx,bx+11,by+19,4,4,tier===2?'#ef625c':accent);rect(ctx,bx+17,by+19,4,4,'#172126');
-      ctx.strokeStyle=light;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx+10,by+17);ctx.lineTo(bx+7,by+12);ctx.lineTo(bx+10,by+9);ctx.stroke();
+    case 0: { // ATM / terminal: alto, inclinado y con pantalla protagonista
+      rect(ctx,bx+5,by+4,22,23,dark);rect(ctx,bx+7,by+5,18,21,mid);
+      rect(ctx,bx+8,by+7,16,10,'#071318');rect(ctx,bx+9,by+8,14,8,tier===1?'#0d4154':'#173138');
+      ctx.globalAlpha=.82;rect(ctx,bx+10,by+10,9,1,tier===1?'#5bddf7':light);rect(ctx,bx+10,by+13,6,1,accent);ctx.globalAlpha=1;
+      rect(ctx,bx+8,by+18,16,2,detail);rect(ctx,bx+10,by+21,12,4,'#111a1e');
+      rect(ctx,bx+12,by+22,8,1,light);px(ctx,bx+22,by+19,pulse>.45?'#6ce09c':'#345e48',2);
       break;
     }
-    case 8: { // torre de cajones
-      rect(ctx,bx+4,by+6,24,22,dark);rect(ctx,bx+6,by+7,20,20,mid);
-      for(let yy=9;yy<=21;yy+=6){rect(ctx,bx+8,by+yy,16,5,detail);rect(ctx,bx+9,by+yy+1,14,1,light);rect(ctx,bx+13,by+yy+2,6,2,accent);}
-      feet();break;
-    }
-    case 9: { // hardcase de mensajero
-      rect(ctx,bx+6,by+17,20,11,dark);rect(ctx,bx+8,by+18,16,8,mid);
-      rect(ctx,bx+12,by+14,8,4,dark);rect(ctx,bx+14,by+13,4,2,light);
-      px(ctx,bx+10,by+19,accent,2);px(ctx,bx+20,by+19,accent,2);break;
-    }
-    case 10: { // contadora de billetes
-      rect(ctx,bx+5,by+18,22,10,dark);rect(ctx,bx+7,by+16,18,10,mid);
-      rect(ctx,bx+9,by+18,9,5,'#18272c');rect(ctx,bx+19,by+18,4,2,accent);
-      for(let n=0;n<3;n++)rect(ctx,bx+8+n*5,by+14-(n%2),5,3,'#718c68');
+    case 1: { // separador: postes altos + cinta visible y bases circulares
+      ctx.fillStyle=dark;ctx.beginPath();ctx.ellipse(bx+7,by+27,5,2.5,0,0,Math.PI*2);ctx.ellipse(bx+25,by+27,5,2.5,0,0,Math.PI*2);ctx.fill();
+      rect(ctx,bx+6,by+9,3,18,mid);rect(ctx,bx+24,by+9,3,18,mid);
+      rect(ctx,bx+5,by+8,5,3,light);rect(ctx,bx+23,by+8,5,3,light);
+      rect(ctx,bx+8,by+12,17,3,accent);rect(ctx,bx+9,by+13,15,1,'rgba(255,255,255,.22)');
       break;
     }
-    case 11: { // carro de archivo
-      rect(ctx,bx+5,by+11,21,15,dark);rect(ctx,bx+7,by+12,17,13,mid);
-      rect(ctx,bx+9,by+14,13,2,detail);rect(ctx,bx+10,by+14,11,1,light);rect(ctx,bx+9,by+19,13,4,'#273239');
-      rect(ctx,bx+25,by+8,3,16,accent);
-      ctx.fillStyle='#0d1214';ctx.beginPath();ctx.arc(bx+9,by+28,3,0,Math.PI*2);ctx.arc(bx+23,by+28,3,0,Math.PI*2);ctx.fill();break;
-    }
-    case 12: { // locker de evidencia
-      rect(ctx,bx+4,by+5,24,23,dark);rect(ctx,bx+6,by+6,20,21,mid);
-      for(let yy=8;yy<=20;yy+=6){rect(ctx,bx+8,by+yy,16,5,detail);rect(ctx,bx+9,by+yy+1,14,1,light);rect(ctx,bx+17,by+yy+2,4,1,accent);}
-      feet();break;
-    }
-    case 13: { // jaula de lingotes
-      rect(ctx,bx+3,by+8,26,20,dark);rect(ctx,bx+5,by+10,22,16,'#20292d');
-      for(let xx=7;xx<=24;xx+=5)rect(ctx,bx+xx,by+9,2,18,mid);
-      for(let yy=11;yy<=24;yy+=6)rect(ctx,bx+5,by+yy,22,2,mid);
-      rect(ctx,bx+10,by+19,12,5,'#9e8241');rect(ctx,bx+12,by+18,8,2,'#d5b66b');break;
-    }
-    case 14: { // impresora / multifunción
-      rect(ctx,bx+5,by+13,22,15,dark);rect(ctx,bx+7,by+14,18,12,mid);
-      rect(ctx,bx+9,by+9,14,6,detail);rect(ctx,bx+11,by+10,10,1,light);
-      rect(ctx,bx+10,by+19,12,4,'#20292d');px(ctx,bx+22,by+16,accent,2);break;
-    }
-    case 15: { // silla de oficina
-      rect(ctx,bx+11,by+11,10,10,mid);rect(ctx,bx+12,by+12,8,8,detail);rect(ctx,bx+13,by+13,6,1,light);
-      rect(ctx,bx+10,by+20,12,5,dark);rect(ctx,bx+15,by+24,2,4,mid);
-      rect(ctx,bx+9,by+28,14,2,dark);px(ctx,bx+8,by+29,light,2);px(ctx,bx+22,by+29,light,2);break;
-    }
-    case 16: { // jardinera interior premium
-      rect(ctx,bx+7,by+20,18,9,dark);rect(ctx,bx+9,by+21,14,6,mid);rect(ctx,bx+10,by+21,12,1,accent);
-      const leaf=tier>=4?'#5f9360':tier===1?'#4f8a70':'#6c9a63';
-      const leaf2=tier>=4?'#84b576':'#7eaa6d';
-      for(const [ox,oy,rot] of [[0,-2,.1],[-6,2,-.55],[6,2,.55],[-4,-6,-.25],[4,-7,.3],[0,-9,0]] as const){
-        ctx.fillStyle=(ox+oy)%2?leaf:leaf2;ctx.beginPath();ctx.ellipse(bx+16+ox,by+18+oy,4,8,rot,0,Math.PI*2);ctx.fill();
+    case 2: { // carrusel: silueta hexagonal/rotatoria con bandejas laterales
+      rect(ctx,bx+14,by+4,4,23,dark);rect(ctx,bx+15,by+5,2,21,accent);
+      for(const yy of [8,14,20]){
+        rect(ctx,bx+5,by+yy,22,4,mid);rect(ctx,bx+7,by+yy+1,18,2,detail);
+        rect(ctx,bx+3,by+yy+1,4,2,dark);rect(ctx,bx+25,by+yy+1,4,2,dark);
+        rect(ctx,bx+9+(yy%3),by+yy+1,6,1,light);
       }
-      ctx.globalAlpha=.30+.15*pulse;rect(ctx,bx+11,by+27,10,1,'#f0bd55');ctx.globalAlpha=1;
+      ctx.fillStyle=accent;ctx.beginPath();ctx.arc(bx+16,by+5,3,0,Math.PI*2);ctx.fill();
       break;
     }
-    case 17: { // dispensador / depósito luminoso
-      rect(ctx,bx+8,by+11,16,17,dark);rect(ctx,bx+10,by+13,12,14,mid);
-      const water=tier===1?'#61d6f5':'#8fd6e5';
-      ctx.fillStyle=water;ctx.globalAlpha=.65+.18*pulse;ctx.beginPath();ctx.ellipse(bx+16,by+7,8,9,0,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.42;ctx.fillStyle='#e4fbff';ctx.beginPath();ctx.ellipse(bx+14,by+4,2,4,-.3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      rect(ctx,bx+11,by+22,10,2,'#182328');px(ctx,bx+13,by+17,'#69bed2',2);px(ctx,bx+18,by+17,tier===1?'#f1c75c':accent,2);break;
+    case 3: { // tote: bolsa/cápsula redondeada con cierre superior
+      ctx.fillStyle=dark;ctx.beginPath();ctx.ellipse(bx+16,by+21,12,8,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=mid;ctx.beginPath();ctx.ellipse(bx+16,by+20,10,6,0,0,Math.PI*2);ctx.fill();
+      rect(ctx,bx+9,by+17,14,3,accent);rect(ctx,bx+11,by+13,10,5,dark);rect(ctx,bx+13,by+12,6,2,light);
+      rect(ctx,bx+13,by+20,6,4,'#172126');px(ctx,bx+21,by+18,light,2);
+      break;
     }
-    case 18: { // consola de vigilancia
-      rect(ctx,bx+2,by+10,28,17,dark);rect(ctx,bx+4,by+12,24,14,mid);
+    case 4: { // contenedor blindado: ancho, bajo, con esquinas cortadas
+      rect(ctx,bx+1,by+11,30,16,dark);rect(ctx,bx+3,by+13,26,12,mid);
+      rect(ctx,bx+1,by+14,4,8,detail);rect(ctx,bx+27,by+14,4,8,detail);
+      stripe(16);rect(ctx,bx+11,by+19,10,5,'#121a1e');rect(ctx,bx+14,by+20,4,2,light);
+      for(const p of [[4,12],[27,12],[4,24],[27,24]])bolt(p[0],p[1]);
+      break;
+    }
+    case 5: { // columna/soporte: gran silueta vertical con travesaños
+      rect(ctx,bx+9,by-3,14,34,dark);rect(ctx,bx+11,by-2,10,32,mid);
+      rect(ctx,bx+6,by+2,20,5,detail);rect(ctx,bx+7,by+3,18,2,accent);
+      rect(ctx,bx+6,by+23,20,5,detail);rect(ctx,bx+8,by+24,16,2,light);
+      rect(ctx,bx+14,by,4,28,tier>=4?accent:dark);
+      break;
+    }
+    case 6: { // biométrico: consola alta con pantalla inclinada y lector
+      rect(ctx,bx+6,by+7,20,20,dark);rect(ctx,bx+8,by+8,16,18,mid);
+      rect(ctx,bx+9,by+9,14,8,'#071419');rect(ctx,bx+10,by+10,12,6,tier===1?'#0f465b':'#18373d');
+      ctx.globalAlpha=.84;rect(ctx,bx+11,by+12,8,1,tier===1?'#60dcf3':accent);ctx.globalAlpha=1;
+      rect(ctx,bx+11,by+18,10,6,'#10181c');
+      for(let yy=19;yy<=22;yy+=3)for(let xx=12;xx<=19;xx+=3)px(ctx,bx+xx,by+yy,(xx+yy)%2?detail:accent,1);
+      ctx.globalAlpha=.65+.25*pulse;px(ctx,bx+24,by+11,tier===1?'#5bdbf4':'#76dc9b',2);ctx.globalAlpha=1;
+      break;
+    }
+    case 7: { // alarma: cuerpo compacto + antenas/beacon sobresaliente
+      rect(ctx,bx+8,by+15,17,12,dark);rect(ctx,bx+10,by+17,13,8,mid);
+      ctx.fillStyle=tier===1?'#df514b':accent;ctx.globalAlpha=.58+.35*pulse;ctx.beginPath();ctx.arc(bx+16,by+13,4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.strokeStyle=light;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(bx+11,by+15);ctx.lineTo(bx+6,by+8);ctx.moveTo(bx+21,by+15);ctx.lineTo(bx+26,by+8);ctx.stroke();
+      px(ctx,bx+5,by+7,light,2);px(ctx,bx+25,by+7,light,2);
+      break;
+    }
+    case 8: { // cajonera: torre asimétrica alta y claramente archivística
+      rect(ctx,bx+5,by+1,22,27,dark);rect(ctx,bx+7,by+3,18,24,mid);
+      for(let yy=5;yy<=21;yy+=6){
+        rect(ctx,bx+8,by+yy,16,5,detail);rect(ctx,bx+9,by+yy+1,14,1,light);rect(ctx,bx+18,by+yy+2,4,2,accent);
+      }
+      rect(ctx,bx+3,by+6,3,16,dark);rect(ctx,bx+26,by+10,3,12,dark);
+      break;
+    }
+    case 9: { // hardcase: maletín bajo con asa grande y cierres
+      rect(ctx,bx+4,by+16,24,12,dark);rect(ctx,bx+6,by+18,20,8,mid);
+      ctx.strokeStyle=light;ctx.lineWidth=2;ctx.strokeRect(bx+12,by+11,8,6);
+      rect(ctx,bx+7,by+19,4,2,accent);rect(ctx,bx+21,by+19,4,2,accent);
+      rect(ctx,bx+13,by+21,6,3,'#172126');
+      break;
+    }
+    case 10: { // contadora: cuerpo inclinado + bandeja de billetes sobresaliente
+      rect(ctx,bx+4,by+17,24,11,dark);rect(ctx,bx+6,by+15,20,11,mid);
+      rect(ctx,bx+8,by+17,10,6,'#101c20');rect(ctx,bx+19,by+17,5,3,accent);
+      for(let n=0;n<4;n++)rect(ctx,bx+5+n*5,by+11-(n%2),6,4,'#6f9169');
+      rect(ctx,bx+7,by+24,18,2,detail);
+      break;
+    }
+    case 11: { // carro archivo: ruedas y asa alta, silueta móvil
+      rect(ctx,bx+5,by+12,20,13,dark);rect(ctx,bx+7,by+13,16,11,mid);
+      rect(ctx,bx+9,by+15,12,2,light);rect(ctx,bx+9,by+19,12,4,'#263238');
+      rect(ctx,bx+25,by+5,3,19,accent);rect(ctx,bx+26,by+4,5,2,light);
+      ctx.fillStyle='#080d10';ctx.beginPath();ctx.arc(bx+9,by+28,3,0,Math.PI*2);ctx.arc(bx+23,by+28,3,0,Math.PI*2);ctx.fill();
+      break;
+    }
+    case 12: { // locker: módulo alto doble puerta
+      rect(ctx,bx+3,by,26,29,dark);rect(ctx,bx+5,by+2,22,25,mid);
+      rect(ctx,bx+15,by+3,2,23,dark);
+      for(const xx of [7,18]){
+        for(let yy=5;yy<=20;yy+=6){rect(ctx,bx+xx,by+yy,7,4,detail);rect(ctx,bx+xx+1,by+yy+1,5,1,light);}
+        px(ctx,bx+xx+5,by+23,accent,1);
+      }
+      break;
+    }
+    case 13: { // jaula valores: barras altas + lingotes claramente visibles
+      rect(ctx,bx+2,by+6,28,22,dark);
+      for(let xx=4;xx<=28;xx+=5)rect(ctx,bx+xx,by+7,2,20,mid);
+      for(let yy=8;yy<=25;yy+=6)rect(ctx,bx+3,by+yy,26,2,mid);
+      rect(ctx,bx+8,by+18,16,7,'#705d34');rect(ctx,bx+10,by+16,12,3,'#d1ad54');rect(ctx,bx+12,by+15,8,2,'#f2d177');
+      break;
+    }
+    case 14: { // impresora: bandejas apiladas + papel sobresaliente
+      rect(ctx,bx+4,by+12,24,16,dark);rect(ctx,bx+6,by+14,20,12,mid);
+      rect(ctx,bx+8,by+6,16,9,detail);rect(ctx,bx+10,by+8,12,5,'#151f23');
+      rect(ctx,bx+10,by+3,12,5,'#d8d8cf');rect(ctx,bx+11,by+4,10,1,'#8f9b98');
+      rect(ctx,bx+9,by+19,14,4,'#172126');ctx.globalAlpha=.7;px(ctx,bx+24,by+16,accent,2);ctx.globalAlpha=1;
+      break;
+    }
+    case 15: { // silla: respaldo alto, brazos, cinco apoyos
+      rect(ctx,bx+11,by+7,10,13,mid);rect(ctx,bx+12,by+8,8,11,detail);rect(ctx,bx+13,by+9,6,1,light);
+      rect(ctx,bx+9,by+19,14,6,dark);rect(ctx,bx+7,by+18,3,7,mid);rect(ctx,bx+22,by+18,3,7,mid);
+      rect(ctx,bx+15,by+24,2,4,mid);
+      ctx.strokeStyle=dark;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(bx+16,by+27);ctx.lineTo(bx+7,by+30);ctx.moveTo(bx+16,by+27);ctx.lineTo(bx+25,by+30);ctx.stroke();
+      px(ctx,bx+5,by+29,light,2);px(ctx,bx+25,by+29,light,2);
+      break;
+    }
+    case 16: { // jardinera: maceta ancha y follaje sobresale bastante
+      rect(ctx,bx+6,by+20,20,9,dark);rect(ctx,bx+8,by+21,16,6,mid);rect(ctx,bx+9,by+21,14,1,accent);
+      const leaf=tier>=4?'#548d59':tier===1?'#45856f':'#659861';
+      const leaf2=tier>=4?'#7ebd78':'#82b674';
+      for(const [ox,oy,rx,ry,rot] of [[0,-5,5,10,.05],[-7,-1,4,9,-.55],[7,-1,4,9,.55],[-5,-8,4,9,-.25],[5,-9,4,10,.28],[0,-12,4,9,0]] as const){
+        ctx.fillStyle=(ox+oy)%2?leaf:leaf2;ctx.beginPath();ctx.ellipse(bx+16+ox,by+18+oy,rx,ry,rot,0,Math.PI*2);ctx.fill();
+      }
+      break;
+    }
+    case 17: { // dispensador: depósito grande arriba + cuerpo estrecho
+      rect(ctx,bx+9,by+12,14,16,dark);rect(ctx,bx+11,by+14,10,13,mid);
+      const water=tier===1?'#61d9f7':'#8fd9e8';
+      ctx.fillStyle=water;ctx.globalAlpha=.68+.18*pulse;ctx.beginPath();ctx.ellipse(bx+16,by+4,9,11,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.45;ctx.fillStyle='#e9fcff';ctx.beginPath();ctx.ellipse(bx+13,by,2.5,5,-.35,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      rect(ctx,bx+11,by+20,10,3,'#152126');px(ctx,bx+13,by+17,'#69bed2',2);px(ctx,bx+18,by+17,accent,2);
+      break;
+    }
+    case 18: { // vigilancia: escritorio ancho + tres monitores elevados
+      rect(ctx,bx+2,by+17,28,11,dark);rect(ctx,bx+4,by+19,24,7,mid);
       for(let i=0;i<3;i++){
-        rect(ctx,bx+6+i*8,by+13,7,6,'#07151c');
-        rect(ctx,bx+7+i*8,by+14,5,4,tier===1?'#0f4458':'#1a343b');
-        ctx.globalAlpha=.8;rect(ctx,bx+8+i*8,by+15,3,1,i===1?accent:'#79b8c8');ctx.globalAlpha=1;
+        const mx=bx+3+i*9;
+        rect(ctx,mx,by+6+(i===1?-2:0),8,10,'#081216');
+        rect(ctx,mx+1,by+7+(i===1?-2:0),6,7,tier===1?'#0d455b':'#17343c');
+        ctx.globalAlpha=.80;rect(ctx,mx+2,by+9+(i===1?-2:0),4,1,i===1?accent:'#79bbcb');ctx.globalAlpha=1;
+        rect(ctx,mx+3,by+16,2,3,detail);
       }
-      rect(ctx,bx+8,by+22,16,3,detail);rect(ctx,bx+10,by+22,12,1,light);
-      ctx.globalAlpha=.55+.25*pulse;px(ctx,bx+26,by+11,tier===1?'#ff6258':accent,2);ctx.globalAlpha=1;feet();break;
+      rect(ctx,bx+9,by+21,14,2,light);ctx.globalAlpha=.6+.25*pulse;px(ctx,bx+27,by+18,tier===1?'#ff6159':accent,2);ctx.globalAlpha=1;
+      break;
     }
-    case 19: { // torre de servidor / data vault
-      rect(ctx,bx+6,by+2,20,27,dark);rect(ctx,bx+8,by+4,16,23,mid);
-      for(let yy=6;yy<=22;yy+=4){
-        rect(ctx,bx+10,by+yy,12,3,'#111d22');rect(ctx,bx+11,by+yy+1,9,1,'#28383e');
-        ctx.globalAlpha=.65+.25*Math.sin(frame*.12+yy);px(ctx,bx+11,by+yy+1,tier===1?'#58d4f1':accent,1);ctx.globalAlpha=1;
-        px(ctx,bx+20,by+yy+1,yy%8===0?'#ef5f58':detail,1);
+    case 19: { // servidor: rack muy alto, ventiladores y leds
+      rect(ctx,bx+5,by-4,22,34,dark);rect(ctx,bx+7,by-2,18,31,mid);
+      rect(ctx,bx+8,by,16,2,light);
+      for(let yy=3;yy<=23;yy+=5){
+        rect(ctx,bx+9,by+yy,14,4,'#101c21');rect(ctx,bx+10,by+yy+1,9,1,'#2e4046');
+        ctx.globalAlpha=.65+.28*Math.sin(frame*.12+yy);px(ctx,bx+10,by+yy+2,tier===1?'#5bd9f3':accent,1);ctx.globalAlpha=1;
+        px(ctx,bx+21,by+yy+2,yy%10===3?'#ef6159':detail,1);
       }
-      rect(ctx,bx+8,by+3,16,1,light);feet();break;
+      // dos ventiladores hacen que el rack se reconozca incluso sin color
+      for(const cy of [9,19]){
+        ctx.strokeStyle='#5a676a';ctx.lineWidth=1;ctx.beginPath();ctx.arc(bx+18,by+cy,3,0,Math.PI*2);ctx.stroke();px(ctx,bx+18,by+cy,'#11191c',1);
+      }
+      break;
     }
-    default: {
-      rect(ctx,bx+6,by+18,20,10,dark);rect(ctx,bx+9,by+16,14,4,mid);break;
-    }
+    default: { rect(ctx,bx+6,by+18,20,10,dark);break; }
   }
 
+  drawTierPropAttachment(ctx,bx,by,family,tier,accent,light,detail,frame);
+
+  // Acabado por nivel, sin envolver todos los props en el mismo rectángulo.
   if(premium){
-    // Los pisos altos muestran inversión real: placa, latón y remaches discretos.
-    ctx.globalAlpha=tier===3?.48:.62;ctx.fillStyle=accent;
-    ctx.fillRect(bx+22,by+7,5,2);px(ctx,bx+24,by+10,accent,1);
-    ctx.globalAlpha=1;
+    ctx.globalAlpha=.42;rect(ctx,bx+23,by+7,5,2,accent);px(ctx,bx+25,by+10,accent,1);ctx.globalAlpha=1;
   }
   if(reinforced){
-    ctx.globalAlpha=.48;ctx.strokeStyle=accent;ctx.lineWidth=1;
-    ctx.strokeRect(bx+3.5,by+6.5,25,22);ctx.globalAlpha=1;
+    ctx.globalAlpha=.36;rect(ctx,bx+2,by+24,5,2,accent);rect(ctx,bx+25,by+24,5,2,accent);ctx.globalAlpha=1;
   }
   if(elite){
-    // Piso 6: detalle de custodia soberana sin volver a usar bordes blancos.
-    ctx.globalAlpha=.72;ctx.fillStyle='#b99542';
-    px(ctx,bx+5,by+8,'#b99542',1);px(ctx,bx+26,by+8,'#b99542',1);
-    px(ctx,bx+5,by+25,'#b99542',1);px(ctx,bx+26,by+25,'#b99542',1);
-    ctx.globalAlpha=1;
+    ctx.globalAlpha=.65;px(ctx,bx+4,by+8,'#d9b54d',1);px(ctx,bx+27,by+8,'#d9b54d',1);ctx.globalAlpha=1;
   }
   if(basic){
-    ctx.globalAlpha=.42;ctx.strokeStyle='#1a2023';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(bx+8,by+10);ctx.lineTo(bx+13,by+16);ctx.lineTo(bx+10,by+22);ctx.stroke();
-    px(ctx,bx+24,by+24,'#20282b',2);ctx.globalAlpha=1;
+    ctx.globalAlpha=.24;rect(ctx,bx+5,by+26,6,1,'#6c6551');ctx.globalAlpha=1;
   }
 
   // Firma visual única por ID: pequeñas diferencias de placa/serial evitan
