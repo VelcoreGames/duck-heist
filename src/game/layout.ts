@@ -108,9 +108,9 @@ export const upgradeActionRect=(i:number):Rect=>{const r=upgradeRect(i);return{x
 export const ENDLESS_RESUME={x:85,y:150,w:310,h:42,gap:10,count:2};
 export const endlessResumeRect=(i:number):Rect=>({x:ENDLESS_RESUME.x,y:ENDLESS_RESUME.y+i*(ENDLESS_RESUME.h+ENDLESS_RESUME.gap),w:ENDLESS_RESUME.w,h:ENDLESS_RESUME.h});
 
-export const ENDLESS_REWARD={y:118,h:112,w:122,gap:12,startX:45};
+export const ENDLESS_REWARD={y:92,h:164,w:122,gap:12,startX:45};
 export function endlessRewardHit(x:number,y:number,count:number){for(let i=0;i<count;i++)if(inside(x,y,{x:ENDLESS_REWARD.startX+i*(ENDLESS_REWARD.w+ENDLESS_REWARD.gap),y:ENDLESS_REWARD.y,w:ENDLESS_REWARD.w,h:ENDLESS_REWARD.h}))return i;return -1;}
-export const ENDLESS_SECONDARY:Rect={x:120,y:280,w:240,h:28};
+export const ENDLESS_SECONDARY:Rect={x:120,y:272,w:240,h:28};
 
 export const END_ACTIONS={x:89,y:286,w:145,h:28,gap:12,count:2};
 export const endActionRect=(i:number):Rect=>({x:END_ACTIONS.x+i*(END_ACTIONS.w+END_ACTIONS.gap),y:END_ACTIONS.y,w:END_ACTIONS.w,h:END_ACTIONS.h});
