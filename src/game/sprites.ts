@@ -1,21 +1,31 @@
 // Pixel art sprite renderer using canvas
 // All sprites are drawn procedurally - no external assets needed
 
-import { TILE_SIZE } from './constants';
+import { TILE_SIZE, ART_SCALE, ART_PIXEL } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
 import type { BossPartState } from './types';
 
 type Ctx = CanvasRenderingContext2D;
 
+// Todas las figuras procedurales pueden colocarse ahora en una rejilla de
+// cuarto de píxel lógico. Con el backing canvas 4x cada paso equivale a un
+// píxel físico real y no altera ninguna coordenada de gameplay.
+const artSnap=(v:number)=>Math.round(v*ART_SCALE)/ART_SCALE;
+const artSize=(v:number)=>Math.max(ART_PIXEL,Math.round(v*ART_SCALE)/ART_SCALE);
 function px(ctx: Ctx, x: number, y: number, color: string, s: number = 1) {
   ctx.fillStyle = color;
-  ctx.fillRect(Math.floor(x), Math.floor(y), s, s);
+  ctx.fillRect(artSnap(x), artSnap(y), artSize(s), artSize(s));
 }
 
 function rect(ctx: Ctx, x: number, y: number, w: number, h: number, color: string) {
   ctx.fillStyle = color;
-  ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+  ctx.fillRect(artSnap(x), artSnap(y), artSize(w), artSize(h));
+}
+
+function microRect(ctx:Ctx,x:number,y:number,w:number,h:number,color:string){
+  ctx.fillStyle=color;
+  ctx.fillRect(artSnap(x),artSnap(y),artSize(w),artSize(h));
 }
 
 const DUCK_BODY = '#f9e547';
@@ -64,6 +74,8 @@ export function drawDuck(
     px(ctx, bx + 14, by + 7, '#000', 1); px(ctx, bx + 13, by + 8, '#000', 1);
     rect(ctx, bx + 4, by + 6, 2, 4, pal.beak);
     rect(ctx, bx + 8, by + 5, 2, 5, pal.beak);
+    microRect(ctx,bx+1.5,by+9.25,10.5,.25,'rgba(255,255,255,.16)');
+    microRect(ctx,bx+15.25,by+7.25,2,.5,'rgba(255,230,170,.32)');
     ctx.restore();
     return;
   }
@@ -185,6 +197,29 @@ export function drawDuck(
   if (dashing) {
     ctx.globalAlpha = 0.28;
     rect(ctx, bx + 2, by + 8, 12, 5, '#fff59d');
+  }
+
+  // Pasada de microdetalle 4x. Son trazos de 1–2 píxeles físicos que antes
+  // no cabían en el sprite 16x20: volumen de pico/pluma, pupila y costuras.
+  ctx.globalAlpha=Math.min(1,ctx.globalAlpha);
+  const microY=waddle*.25;
+  if(dir==='down'){
+    microRect(ctx,bx+5.25+hx,hy+2.25,1.25,.25,'rgba(255,255,255,.72)');
+    microRect(ctx,bx+9.25+hx,hy+2.25,1.25,.25,'rgba(255,255,255,.72)');
+    if(!blink){microRect(ctx,bx+6.25+hx,hy+2.5,.5,.5,'#050608');microRect(ctx,bx+10.25+hx,hy+2.5,.5,.5,'#050608');}
+    microRect(ctx,bx+6.5+hx,hy+5.25,3,.25,'rgba(255,224,160,.68)');
+    microRect(ctx,bx+6.75+hx,hy+6.5,2.5,.25,'rgba(92,45,16,.45)');
+  }else if(dir==='left'||dir==='right'){
+    const eyeX=dir==='left'?bx+5.25+hx:bx+9.75+hx;
+    if(!blink)microRect(ctx,eyeX,hy+2.4,.55,.55,'#050608');
+    const beakX=dir==='left'?bx-1.75+hx:bx+13+hx;
+    microRect(ctx,beakX,hy+4.25,3.75,.25,'rgba(255,224,160,.64)');
+  }
+  microRect(ctx,bx+4.25,by+7.25+waddle+microY,2.5,.25,'rgba(255,255,210,.34)');
+  microRect(ctx,bx+11.25,by+8.25+waddle+microY,.25,3,'rgba(255,255,255,.22)');
+  if(dir!=='up'){
+    microRect(ctx,bx+5.25,by+8+waddle,.25,4.5,'rgba(255,255,255,.12)');
+    microRect(ctx,bx+10.5,by+8+waddle,.25,4.5,'rgba(0,0,0,.24)');
   }
 
   ctx.restore();
