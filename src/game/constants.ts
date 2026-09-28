@@ -48,6 +48,14 @@ export const CANVAS_HEIGHT = ROOM_HEIGHT * TILE_SIZE; // 352
 export const UI_OFFSET_X = Math.floor((CANVAS_WIDTH - UI_BASE_WIDTH) / 2);
 export const SCALE = 2;
 
+/**
+ * Resolución artística interna del mundo. La lógica, hitboxes y coordenadas
+ * siguen usando la cuadrícula histórica; el canvas físico dispone de 4x más
+ * muestras por eje para sprites y efectos con detalle de 1/4 de píxel lógico.
+ */
+export const ART_SCALE = 4;
+export const ART_PIXEL = 1 / ART_SCALE;
+
 export const PLAYER_SPEED = 2.2;
 export const DASH_SPEED = 6;
 export const DASH_DURATION = 8;
