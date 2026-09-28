@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,damageObstacleTile,obstacleHpAt,GameState,SETTING_ROWS } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,FLOOR_PROP_NAMES,OBSTACLES_PER_FLOOR,ART_SCALE,ART_PIXEL,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,FLOOR_PROP_NAMES,OBSTACLES_PER_FLOOR,ART_SCALE,ART_PIXEL,FLOOR_THEMES,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -20,7 +20,7 @@ import { SPECIAL_ENEMIES, drawTacticalEnemy } from './tacticalSprites';
 import { coverVisibleCanvasRect,mainMenuRect,mainMenuHit,pauseRect,settingsRect,settingsMinusRect,settingsPlusRect,settingsActionRect,endActionRect,BACK_BUTTON,PRIMARY_BUTTON,inside } from './layout';
 import { drawVaultScene } from './titleScene';
 import { drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton } from './ui';
-import { drawRoomAtmosphere } from './roomArt';
+import { drawRoomAtmosphere, drawRichTile } from './roomArt';
 import { obstacleHitbox, obstacleCoverRect, obstacleOccludes, obstacleMaxHp, obstacleValue, obstacleFloorTier, OBSTACLE_DURABILITY, specialSolidRects, pedestalHitbox, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS } from './worldProps';
 import { bankKeyDropChance, specialRoomKeyCost, tryUnlockSpecialRoom } from './keyAccess';
 
@@ -41,6 +41,16 @@ export function runSelfChecks():CheckReport {
         assert(mainMenuHit(box.x+box.w/2,box.y+box.h/2,wide)===i,`menú ${i} no responde en layout ${wide?'ancho':'compacto'}`);
       }
     }
+  });
+  check('Todas las variantes de suelo y pared renderizan sin referencias inválidas',()=>{
+    const tileCanvas=document.createElement('canvas');
+    tileCanvas.width=32*15;tileCanvas.height=32*11;
+    const tileCtx=tileCanvas.getContext('2d')!;
+    FLOOR_THEMES.forEach((theme,floorIndex)=>{
+      for(let y=0;y<11;y++)for(let x=0;x<15;x++){
+        drawRichTile(tileCtx,x,y,y===0||x===0||x===14||y===10,theme,floorIndex,0,123+floorIndex*17,true);
+      }
+    });
   });
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d')!;
   const setup=()=>{
