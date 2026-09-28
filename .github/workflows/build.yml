@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/v122-roomart-runtime]
   pull_request:
     branches: [main]
 
