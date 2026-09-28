@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, perf/v0102-smart-hires-render]
+    branches: [main]
   pull_request:
     branches: [main]
 
