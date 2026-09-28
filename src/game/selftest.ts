@@ -333,6 +333,12 @@ export function runSelfChecks():CheckReport {
         drawObstacle(ctx,32+(kind%7)*36,40+Math.floor(kind/7)*44,kind,180,.2);
       }
     });
+    check('Las 20 familias de props y los 6 pisos recorren el nuevo renderer',()=>{
+      for(let tier=0;tier<6;tier++)for(let family=0;family<20;family++){
+        const kind=tier*20+family;
+        drawObstacle(ctx,64+family*2,64+tier*3,kind,240+tier*17,1);
+      }
+    });
     check('Props físicos especiales tienen colisión y botín de suelo no',()=>{
       const content:RoomContent={
         enemies:[],pickups:[{x:10,y:10,type:'crumb',value:1,lifetime:300}],
