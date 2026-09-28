@@ -210,6 +210,35 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
   }
   if(cin>0){
     r(c,320,79,28,3,cin<.58?(frame%8<4?'#f07763':'#572e32'):'#78c99a');
+
+    // Marco de infiltración sincronizado: al principio encajona la escena,
+    // luego se retira hacia los bordes para entregar el control al jugador.
+    const authorize=smooth01(Math.max(0,Math.min(1,(cin-.48)/.38)));
+    const gate=1-authorize;
+    const bar=Math.round(16*gate);
+    if(bar>0){
+      c.globalAlpha=.88;
+      r(c,0,0,480,bar,'#071117');r(c,0,352-bar,480,bar,'#071117');
+      r(c,0,bar,Math.round(12*gate),352-bar*2,'#071117');
+      r(c,480-Math.round(12*gate),bar,Math.round(12*gate),352-bar*2,'#071117');
+      c.globalAlpha=1;
+    }
+    c.save();
+    c.strokeStyle=cin<.62?'#b05a50':accent;c.lineWidth=1;c.globalAlpha=.22+.28*authorize;
+    const m=18+authorize*10,k=14;
+    c.beginPath();
+    c.moveTo(m,m+k);c.lineTo(m,m);c.lineTo(m+k,m);
+    c.moveTo(480-m-k,m);c.lineTo(480-m,m);c.lineTo(480-m,m+k);
+    c.moveTo(m,352-m-k);c.lineTo(m,352-m);c.lineTo(m+k,352-m);
+    c.moveTo(480-m-k,352-m);c.lineTo(480-m,352-m);c.lineTo(480-m,352-m-k);
+    c.stroke();
+    c.globalAlpha=.14+.20*authorize;c.fillStyle=accent;
+    for(let i=0;i<5;i++){
+      const online=authorize>i*.13;
+      c.globalAlpha=online?.34:.10;
+      r(c,190+i*22,326,14,2,online?accent:'#42575a');
+    }
+    c.restore();
   }else if(intro>0) r(c,320,79,28,3,frame%10<5?'#f07763':'#572e32');
   // Keypad and monitor mounted beside the vault.
   r(c,447,145,12,35,'#0d1d25');r(c,449,148,8,8,'#74a88b');
@@ -252,6 +281,14 @@ export function drawVaultScene(c:Ctx,frame:number,skin='robber',opening=0,mouseX
     c.fillStyle=spot;c.fillRect(duckX-42,duckY-30,84,72);
   }
 
+  if(cin>0){
+    c.save();
+    const readyRing=smooth01(Math.max(0,Math.min(1,(cin-.58)/.30)));
+    c.globalAlpha=.10+.15*readyRing;c.strokeStyle=accent;c.lineWidth=1;
+    c.beginPath();c.ellipse(duckX,duckY+18,18+readyRing*5,6+readyRing*2,0,0,Math.PI*2);c.stroke();
+    c.globalAlpha=.10*readyRing;c.fillStyle=accent;c.beginPath();c.ellipse(duckX,duckY+18,13,4,0,0,Math.PI*2);c.fill();
+    c.restore();
+  }
   c.save();c.translate(duckX,duckY+duckBob);c.scale(2.6*duckPulse,2.6*duckPulse);
   drawDuckSkin(c,-8,-8,frame,skin,duckDir,duckMoving,false,false,false);c.restore();
   const pigeonT=frame%1400;
