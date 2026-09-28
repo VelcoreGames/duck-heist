@@ -130,18 +130,18 @@ export interface FloorTheme {
 }
 
 export const FLOOR_THEMES: FloorTheme[] = [
-  // 1 · Gran vestíbulo: mármol azul pizarra, piedra tallada y latón satinado.
-  { floor: ['#26313a', '#2d3942', '#1c252d'], wall: ['#343f47', '#252f36'], trim: '#c6a866', glow: '#d8e5e4', deco: 'lobby' },
-  // 2 · Seguridad ejecutiva: granito azul-negro y acero cepillado.
-  { floor: ['#172631', '#1d2f3b', '#111c24'], wall: ['#243945', '#182832'], trim: '#8faeb7', glow: '#74b7d0', deco: 'security' },
-  // 3 · Archivo de valores: piedra cálida, nogal oscuro y bronce.
-  { floor: ['#302a24', '#393129', '#211d19'], wall: ['#403831', '#2d2823'], trim: '#b89562', glow: '#d9c49d', deco: 'storage' },
-  // 4 · Servicios privados: piedra borgoña, cobre y luz cálida controlada.
-  { floor: ['#342522', '#3d2c28', '#251b19'], wall: ['#49332f', '#322521'], trim: '#bd835c', glow: '#e6a46f', deco: 'bakery' },
-  // 5 · Alta seguridad: granito negro, titanio y latón.
-  { floor: ['#20252a', '#282e34', '#15191d'], wall: ['#353d43', '#252c31'], trim: '#c9ad62', glow: '#e7d083', deco: 'vault' },
-  // 6 · Cámara principal: mármol negro con incrustaciones de oro.
-  { floor: ['#29261f', '#342f25', '#191713'], wall: ['#474238', '#302c25'], trim: '#e6c56f', glow: '#ffe59a', deco: 'golden' },
+  // 1 · Vestíbulo tecnobancario: acero azul petróleo + luz cálida de recepción.
+  { floor: ['#1e2b34', '#273640', '#111a21'], wall: ['#2b3943', '#18242c'], trim: '#d1a652', glow: '#efc66a', deco: 'lobby' },
+  // 2 · Seguridad: metal azul-negro + señalización cian/roja.
+  { floor: ['#13242f', '#1b303c', '#0a151d'], wall: ['#213846', '#122630'], trim: '#79b9d2', glow: '#55c9f0', deco: 'security' },
+  // 3 · Archivo de valores: acero ahumado + bronce industrial.
+  { floor: ['#2a2926', '#35322d', '#171715'], wall: ['#3a3934', '#242421'], trim: '#bd9655', glow: '#e0b96f', deco: 'storage' },
+  // 4 · Servicios / panadería: grafito caliente + cobre/ámbar.
+  { floor: ['#302520', '#3a2d27', '#191310'], wall: ['#46352e', '#2a211d'], trim: '#c47d45', glow: '#f0a45e', deco: 'bakery' },
+  // 5 · Alta seguridad: titanio oscuro + señalización dorada.
+  { floor: ['#1b2328', '#252e33', '#0e1418'], wall: ['#303b42', '#1a242a'], trim: '#d0ae59', glow: '#f0cb6d', deco: 'vault' },
+  // 6 · Cámara principal: negro grafito + oro de alta custodia.
+  { floor: ['#24231e', '#302d24', '#11110f'], wall: ['#3d3a31', '#211f1a'], trim: '#e6bd4f', glow: '#ffd76d', deco: 'golden' },
 ];
 
 export enum RoomType {
