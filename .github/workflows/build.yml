@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,15 +22,10 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Publish dist
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-dist]')
-        run: |
-          if git diff --quiet -- dist; then
-            echo "dist is already current"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist
-          git commit -m "Publish Duck Heist v1.5.2 settings navigation fix [skip ci]"
-          git push
+      - name: Upload dist artifact
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[build-dist]')
+        uses: actions/upload-artifact@v4
+        with:
+          name: duck-heist-v1.5.2-dist
+          path: dist/
+          if-no-files-found: error
