@@ -2040,7 +2040,7 @@ function drawBossFactionCore(
       // portacargadores y radio
       for(let x=-10;x<=5;x+=5)rect(ctx,x,7,4,7,x%10?v.secondary:'#765c38');
       rect(ctx,-22,-8,5,16,'#283229');px(ctx,-21,-11,v.accent,3);
-      if(elite&&!luxuryOverride){rect(ctx,17,-8,5,17,'#303a31');rect(ctx,19,-12,3,5,v.secondary);}
+      if(elite){rect(ctx,17,-8,5,17,'#303a31');rect(ctx,19,-12,3,5,v.secondary);}
       break;
     }
     case 'finance': { // banquero / auditor
