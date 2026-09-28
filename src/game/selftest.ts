@@ -34,6 +34,14 @@ export function runSelfChecks():CheckReport {
     assert(ART_SCALE===4,'ART_SCALE debe permanecer en 4');
     assert(ART_PIXEL===.25,'cada microdetalle debe equivaler a 1/4 de píxel lógico');
   });
+  check('Hit-test del menú coincide con layout ancho y compacto',()=>{
+    for(const wide of [false,true]){
+      for(let i=0;i<8;i++){
+        const box=mainMenuRect(i,wide);
+        assert(mainMenuHit(box.x+box.w/2,box.y+box.h/2,wide)===i,`menú ${i} no responde en layout ${wide?'ancho':'compacto'}`);
+      }
+    }
+  });
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d')!;
   const setup=()=>{
     const e=createEngine(canvas,ctx,null);e.testing=true;e.metaLevels={};startGame(e);e.state=GameState.PLAYING;return e;
