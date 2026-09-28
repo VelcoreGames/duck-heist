@@ -4025,7 +4025,8 @@ function renderVictoryUI(engine: GameEngine) {
   const r=engine.run,s=engine.stats;
   drawMenuCard(ctx,34,74,150,188,true,'#78c99a','rgba(13,28,24,.96)');
   ctx.save();ctx.translate(109,112+Math.sin(engine.frame*.08)*1.5);ctx.scale(2.7,2.7);
-  drawDuck(ctx,-8,-8,engine.frame,'down',false,false,false);ctx.restore();
+  // La victoria muestra exactamente la skin con la que terminó el atraco.
+  drawDuckSkin(ctx,-8,-8,engine.frame,engine.equippedSkin,'down',false,false,false,false,false,true);ctx.restore();
   text(ctx,'BANCO DEL PAN',109,171,5.1,'#6f8a82','center',true,false);
   titleText(ctx,'LIMPIO',109,191,13,'#8bd3a4','center',false);
   text(ctx,'DIFICULTAD',109,218,4.8,'#5d7470','center',false,false);
