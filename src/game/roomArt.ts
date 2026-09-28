@@ -155,7 +155,7 @@ export function drawRichTile(
     }else if(variant===3){
       ctx.strokeStyle='rgba(225,232,230,.10)';ctx.strokeRect(px+9.5,py+10.5,13,10);
       r(ctx,px+12,py+13,7,1,metal);r(ctx,px+12,py+16,4,1,'rgba(210,220,220,.20)');
-    }else if(variant===4&&(north||side)){
+    }else if(variant===4){
       ctx.globalAlpha=.38;drawHazardBand(ctx,px+8,py+11,16,4,metal);ctx.globalAlpha=1;
     }
 
