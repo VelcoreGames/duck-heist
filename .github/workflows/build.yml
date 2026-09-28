@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/v150-luxury-bank-progression]
   pull_request:
     branches: [main]
 
