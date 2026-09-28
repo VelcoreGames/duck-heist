@@ -17,7 +17,6 @@ import {
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
   inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, CONTROL_RESET_CANCEL, CONTROL_RESET_ACCEPT, MAP_CLOSE, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
-  useWideMainMenu,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -597,7 +596,7 @@ export default function App() {
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
       const st=engine.state;
       if(st===GameState.MENU){
-        const i=mainMenuHit(p.x,p.y,useWideMainMenu());if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
+        const i=mainMenuHit(p.x,p.y,false);if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
       }else if(st===GameState.DIFFICULTY){
         // La dificultad cambia solo al hacer clic; el hover se dibuja aparte.
       }else if(st===GameState.ENDLESS_RESUME){
@@ -677,7 +676,7 @@ export default function App() {
       switch (engine.state) {
         case GameState.MENU: {
           setMusic('menu');
-          const i=mainMenuHit(x,y,useWideMainMenu());
+          const i=mainMenuHit(x,y,false);
           if(i>=0){engine.menuIndex=i;activateMenu();}
           break;
         }
