@@ -3349,24 +3349,55 @@ export function drawDoor(
   ctx.restore();
 }
 
+function drawPropDock(
+  ctx:Ctx,bx:number,by:number,family:number,tier:number,accent:string,frame:number,
+){
+  const tech=[0,6,7,10,14,18,19].includes(family);
+  const organic=family===16||family===17;
+  const round=family===1||family===3||organic;
+  const pulse=.5+.5*Math.sin(frame*.06+family*.7+tier);
+
+  ctx.save();
+  ctx.globalAlpha=.34;ctx.fillStyle='#020609';
+  ctx.beginPath();ctx.ellipse(bx+16,by+29,round?14:15,round?4.2:4.8,0,0,Math.PI*2);ctx.fill();
+
+  // Plataforma inferior: hace que cada prop se lea como maquinaria apoyada,
+  // no como un icono pegado encima del tile.
+  ctx.globalAlpha=.92;
+  if(round){
+    ctx.fillStyle='#11181b';ctx.beginPath();ctx.ellipse(bx+16,by+27,14,4.5,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=accent;ctx.globalAlpha=.28+.10*pulse;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(bx+16,by+27,12,3,0,0,Math.PI*2);ctx.stroke();
+  }else{
+    rect(ctx,bx+3,by+25,26,5,'#10171a');rect(ctx,bx+5,by+25,22,2,'#36444a');
+    ctx.globalAlpha=.42;rect(ctx,bx+8,by+26,8,1,accent);ctx.globalAlpha=1;
+  }
+
+  // Cableado discreto para equipo técnico.
+  if(tech){
+    ctx.globalAlpha=.28;ctx.strokeStyle=tier===1?'#4fb6d1':accent;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(bx+16,by+29);ctx.lineTo(bx+16+(family%2?8:-8),by+31);ctx.lineTo(bx+16+(family%2?11:-11),by+31);ctx.stroke();
+    ctx.globalAlpha=.65+.25*pulse;ctx.fillStyle=tier===1?'#5ad0ed':accent;ctx.fillRect(bx+25,by+26,2,1);
+  }
+  ctx.restore();
+}
+
 /** Obstáculos sólidos del banco */
 export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number, integrity = 1) {
   const bx=Math.floor(x),by=Math.floor(y),T=TILE_SIZE;
   const tier=Math.max(0,Math.min(5,Math.floor(kind/20))),family=((kind%20)+20)%20;
   // Cada piso tiene un lenguaje material propio: operativo, seguridad, custodia,
   // ejecutivo, bóveda y soberano. No son simples recolores del mismo set.
-  const accents=['#73898e','#6a94ad','#b48b50','#b88654','#6fa8a2','#d3ad4f'];
-  const darks=['#242d31','#202c34','#302b27','#30262a','#1e292b','#171b1f'];
-  const mids=['#4c5a5e','#4b6571','#6d6252','#6b5155','#506766','#5e5a4d'];
-  const lights=['#758589','#7693a3','#9f8b6a','#9f7d72','#7e9995','#a89669'];
-  const details=['#626f73','#627d8b','#88785d','#876a62','#667d7a','#8d7d59'];
+  const accents=['#d0a64e','#55bfe2','#bd9655','#c47b48','#d0ae59','#e6bd4f'];
+  const darks=['#172126','#13222b','#292722','#2b211d','#151e22','#101315'];
+  const mids=['#455861','#3b5966','#61594b','#60473f','#46595b','#5b5544'];
+  const lights=['#8fa1a6','#8eb6c8','#ad9a77','#aa8877','#8fa8a6','#c2ad72'];
+  const details=['#5b7079','#557c8e','#806f55','#815f52','#607c7a','#8c7c54'];
   const accent=accents[tier],dark=darks[tier],mid=mids[tier],light=lights[tier],detail=details[tier];
   const basic=tier===0,premium=tier>=3,reinforced=tier>=4,elite=tier===5;
   const pulse=.5+.5*Math.sin(frame*.055+kind*.37);
 
   ctx.save();
-  ctx.globalAlpha=.28;ctx.fillStyle='#020609';ctx.beginPath();
-  ctx.ellipse(bx+16,by+29,tier===1?13:12,3.5,0,0,Math.PI*2);ctx.fill();
+  drawPropDock(ctx,bx,by,family,tier,accent,frame);
   ctx.globalAlpha=1;
 
   const bolt=(px0:number,py0:number)=>px(ctx,bx+px0,by+py0,light,1);
@@ -3374,11 +3405,16 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
   const feet=()=>{rect(ctx,bx+6,by+27,5,2,'#171d20');rect(ctx,bx+21,by+27,5,2,'#171d20');};
 
   switch(family){
-    case 0: { // terminal de caja
-      rect(ctx,bx+3,by+11,26,17,dark);rect(ctx,bx+5,by+12,22,14,mid);
-      rect(ctx,bx+7,by+13,11,7,'#16252c');rect(ctx,bx+8,by+14,9,4,tier===2?'#55262b':'#29444d');
-      rect(ctx,bx+20,by+14,5,2,accent);rect(ctx,bx+20,by+18,5,5,'#20292d');
-      rect(ctx,bx+6,by+9,20,2,detail);rect(ctx,bx+8,by+10,16,1,light);feet();break;
+    case 0: { // terminal de caja / ATM
+      rect(ctx,bx+2,by+9,28,18,dark);rect(ctx,bx+4,by+10,24,16,mid);
+      rect(ctx,bx+6,by+11,14,9,'#081318');
+      const screen=tier===1?'#0b3d51':tier>=4?'#17362f':'#263f46';
+      rect(ctx,bx+7,by+12,12,7,screen);
+      ctx.globalAlpha=.78;rect(ctx,bx+8,by+13,8,1,tier===1?'#58d7f4':'#9bd4cf');rect(ctx,bx+8,by+16,5,1,tier===1?'#58d7f4':accent);ctx.globalAlpha=1;
+      rect(ctx,bx+22,by+12,4,3,accent);rect(ctx,bx+22,by+17,4,5,'#172126');
+      rect(ctx,bx+5,by+8,22,2,detail);rect(ctx,bx+7,by+9,18,1,light);
+      ctx.globalAlpha=.58+.22*pulse;rect(ctx,bx+10,by+24,12,1,tier===1?'#55d5f3':'#efc45d');ctx.globalAlpha=1;
+      feet();break;
     }
     case 1: { // separador de fila
       rect(ctx,bx+4,by+20,24,3,accent);rect(ctx,bx+5,by+23,3,5,mid);rect(ctx,bx+24,by+23,3,5,mid);
@@ -3395,20 +3431,24 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       rect(ctx,bx+8,by+17,16,8,mid);rect(ctx,bx+11,by+14,10,4,dark);rect(ctx,bx+10,by+18,12,2,accent);
       rect(ctx,bx+14,by+20,4,3,'#20282c');bolt(21,18);break;
     }
-    case 4: { // caja de despacho
-      rect(ctx,bx+3,by+12,26,16,dark);rect(ctx,bx+5,by+14,22,12,mid);
-      stripe(15);rect(ctx,bx+12,by+18,8,5,'#222b30');rect(ctx,bx+14,by+20,4,1,light);
-      for(const p of [[5,13],[25,13],[5,25],[25,25]])bolt(p[0],p[1]);feet();break;
+    case 4: { // caja de despacho / contenedor blindado
+      rect(ctx,bx+2,by+10,28,17,dark);rect(ctx,bx+4,by+12,24,13,mid);
+      rect(ctx,bx+5,by+13,22,2,detail);rect(ctx,bx+5,by+23,22,2,'#11181b');
+      stripe(16);rect(ctx,bx+11,by+18,10,5,'#171e22');rect(ctx,bx+14,by+19,4,2,light);
+      ctx.globalAlpha=.55+.25*pulse;rect(ctx,bx+6,by+11,3,2,accent);ctx.globalAlpha=1;
+      for(const p of [[4,11],[27,11],[4,24],[27,24]])bolt(p[0],p[1]);feet();break;
     }
     case 5: { // soporte reforzado
       rect(ctx,bx+8,by+2,16,29,dark);rect(ctx,bx+10,by+3,12,27,mid);rect(ctx,bx+12,by+4,2,24,detail);
       rect(ctx,bx+6,by+2,20,4,accent);rect(ctx,bx+5,by+27,22,4,dark);
       if(reinforced){rect(ctx,bx+16,by+5,4,20,accent);}break;
     }
-    case 6: { // estación de teclado de bóveda
-      rect(ctx,bx+5,by+10,22,18,dark);rect(ctx,bx+7,by+11,18,15,mid);
-      rect(ctx,bx+9,by+12,14,5,'#13272c');
-      for(let yy=19;yy<24;yy+=3)for(let xx=10;xx<23;xx+=4)px(ctx,bx+xx,by+yy,xx%8?accent:light,2);
+    case 6: { // estación de teclado / biométrico
+      rect(ctx,bx+4,by+8,24,19,dark);rect(ctx,bx+6,by+9,20,17,mid);
+      rect(ctx,bx+8,by+10,16,7,'#081419');
+      ctx.globalAlpha=.78;rect(ctx,bx+10,by+12,10,1,tier===1?'#59d2ef':accent);rect(ctx,bx+10,by+14,6,1,'#9ec8c7');ctx.globalAlpha=1;
+      for(let yy=19;yy<24;yy+=3)for(let xx=9;xx<24;xx+=4)px(ctx,bx+xx,by+yy,(xx+yy)%8?detail:accent,2);
+      ctx.globalAlpha=.65+.25*pulse;px(ctx,bx+24,by+11,tier===1?'#58d8f4':'#77dc9b',2);ctx.globalAlpha=1;
       feet();break;
     }
     case 7: { // unidad de alarma
@@ -3460,26 +3500,41 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
       rect(ctx,bx+10,by+20,12,5,dark);rect(ctx,bx+15,by+24,2,4,mid);
       rect(ctx,bx+9,by+28,14,2,dark);px(ctx,bx+8,by+29,light,2);px(ctx,bx+22,by+29,light,2);break;
     }
-    case 16: { // jardinera interior
-      rect(ctx,bx+9,by+21,14,8,dark);rect(ctx,bx+11,by+22,10,6,mid);
-      ctx.fillStyle=tier===2?'#596346':'#4f7653';
-      for(const [ox,oy] of [[0,0],[-5,3],[5,3],[-3,-4],[3,-5]]){ctx.beginPath();ctx.ellipse(bx+16+ox,by+17+oy,4,7,.3,0,Math.PI*2);ctx.fill();}
+    case 16: { // jardinera interior premium
+      rect(ctx,bx+7,by+20,18,9,dark);rect(ctx,bx+9,by+21,14,6,mid);rect(ctx,bx+10,by+21,12,1,accent);
+      const leaf=tier>=4?'#5f9360':tier===1?'#4f8a70':'#6c9a63';
+      const leaf2=tier>=4?'#84b576':'#7eaa6d';
+      for(const [ox,oy,rot] of [[0,-2,.1],[-6,2,-.55],[6,2,.55],[-4,-6,-.25],[4,-7,.3],[0,-9,0]] as const){
+        ctx.fillStyle=(ox+oy)%2?leaf:leaf2;ctx.beginPath();ctx.ellipse(bx+16+ox,by+18+oy,4,8,rot,0,Math.PI*2);ctx.fill();
+      }
+      ctx.globalAlpha=.30+.15*pulse;rect(ctx,bx+11,by+27,10,1,'#f0bd55');ctx.globalAlpha=1;
       break;
     }
-    case 17: { // dispensador de agua
-      rect(ctx,bx+9,by+12,14,17,dark);rect(ctx,bx+11,by+13,10,14,mid);
-      ctx.fillStyle='#89b9c7';ctx.globalAlpha=.75;ctx.beginPath();ctx.ellipse(bx+16,by+8,7,8,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      px(ctx,bx+14,by+17,'#6ea6b8',2);px(ctx,bx+18,by+17,tier===2?'#c95f58':accent,2);break;
+    case 17: { // dispensador / depósito luminoso
+      rect(ctx,bx+8,by+11,16,17,dark);rect(ctx,bx+10,by+13,12,14,mid);
+      const water=tier===1?'#61d6f5':'#8fd6e5';
+      ctx.fillStyle=water;ctx.globalAlpha=.65+.18*pulse;ctx.beginPath();ctx.ellipse(bx+16,by+7,8,9,0,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.42;ctx.fillStyle='#e4fbff';ctx.beginPath();ctx.ellipse(bx+14,by+4,2,4,-.3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      rect(ctx,bx+11,by+22,10,2,'#182328');px(ctx,bx+13,by+17,'#69bed2',2);px(ctx,bx+18,by+17,tier===1?'#f1c75c':accent,2);break;
     }
     case 18: { // consola de vigilancia
-      rect(ctx,bx+3,by+12,26,16,dark);rect(ctx,bx+5,by+14,22,12,mid);
-      for(let i=0;i<3;i++){rect(ctx,bx+7+i*7,by+15,6,5,'#14262d');px(ctx,bx+8+i*7,by+16,i===1?accent:'#648b96',2);}
-      rect(ctx,bx+9,by+22,14,2,detail);rect(ctx,bx+10,by+22,12,1,light);feet();break;
+      rect(ctx,bx+2,by+10,28,17,dark);rect(ctx,bx+4,by+12,24,14,mid);
+      for(let i=0;i<3;i++){
+        rect(ctx,bx+6+i*8,by+13,7,6,'#07151c');
+        rect(ctx,bx+7+i*8,by+14,5,4,tier===1?'#0f4458':'#1a343b');
+        ctx.globalAlpha=.8;rect(ctx,bx+8+i*8,by+15,3,1,i===1?accent:'#79b8c8');ctx.globalAlpha=1;
+      }
+      rect(ctx,bx+8,by+22,16,3,detail);rect(ctx,bx+10,by+22,12,1,light);
+      ctx.globalAlpha=.55+.25*pulse;px(ctx,bx+26,by+11,tier===1?'#ff6258':accent,2);ctx.globalAlpha=1;feet();break;
     }
-    case 19: { // torre de servidor
-      rect(ctx,bx+7,by+3,18,26,dark);rect(ctx,bx+9,by+5,14,22,mid);
-      for(let yy=7;yy<=22;yy+=4){rect(ctx,bx+11,by+yy,10,2,'#19252b');px(ctx,bx+12,by+yy,tier===2?'#e05e58':accent,1);px(ctx,bx+19,by+yy,detail,1);}
-      feet();break;
+    case 19: { // torre de servidor / data vault
+      rect(ctx,bx+6,by+2,20,27,dark);rect(ctx,bx+8,by+4,16,23,mid);
+      for(let yy=6;yy<=22;yy+=4){
+        rect(ctx,bx+10,by+yy,12,3,'#111d22');rect(ctx,bx+11,by+yy+1,9,1,'#28383e');
+        ctx.globalAlpha=.65+.25*Math.sin(frame*.12+yy);px(ctx,bx+11,by+yy+1,tier===1?'#58d4f1':accent,1);ctx.globalAlpha=1;
+        px(ctx,bx+20,by+yy+1,yy%8===0?'#ef5f58':detail,1);
+      }
+      rect(ctx,bx+8,by+3,16,1,light);feet();break;
     }
     default: {
       rect(ctx,bx+6,by+18,20,10,dark);rect(ctx,bx+9,by+16,14,4,mid);break;
