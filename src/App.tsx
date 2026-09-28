@@ -76,17 +76,25 @@ export default function App() {
     const displayW=Math.max(1,fullscreen?Math.round(availW):Math.floor(CANVAS_WIDTH*css));
     const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
     const dpr=Math.max(1,Math.min(2.25,window.devicePixelRatio||1));
-    return {displayW,displayH,css,ui:Math.max(1,Math.min(6,Math.ceil(css*dpr)))};
+    const physicalDensity=css*dpr;
+    // No renderizamos más píxeles físicos de los que la pantalla puede mostrar.
+    // En 1080p suele bastar 3x; en paneles HiDPI/1440p/4K conserva 4x.
+    const world=Math.max(2,Math.min(ART_SCALE,Math.ceil(physicalDensity)));
+    // 4x ya es más que suficiente para tipografía/HUD y evita canvases UI de
+    // más de seis millones de píxeles en monitores grandes.
+    const ui=Math.max(1,Math.min(4,Math.ceil(physicalDensity)));
+    return {displayW,displayH,css,ui,world};
   }, []);
 
   useEffect(() => {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    // El arte sigue autorado a 4x, pero el backing store puede bajar
-    // temporalmente si el navegador no sostiene 60 FPS. Gameplay y hitboxes
-    // continúan en las mismas coordenadas lógicas.
-    let worldRenderScale=ART_SCALE;
+    // El arte sigue autorado a 4x. El backing store arranca en la densidad
+    // útil para la pantalla actual y puede bajar temporalmente si no sostiene 60 FPS.
+    const initialSizing=computeScale();
+    let preferredWorldScale=initialSizing.world;
+    let worldRenderScale=preferredWorldScale;
     wc.width = CANVAS_WIDTH * worldRenderScale;
     wc.height = CANVAS_HEIGHT * worldRenderScale;
     const wctx = wc.getContext('2d', { alpha: false })!;
@@ -120,7 +128,12 @@ export default function App() {
     };
 
     const applySize = () => {
-      const {displayW,displayH,css,ui}=computeScale();
+      const {displayW,displayH,css,ui,world}=computeScale();
+      preferredWorldScale=world;
+      // Reducir por densidad visible es inmediato; subir se deja al monitor de
+      // rendimiento salvo en menús, donde no hay presión de combate.
+      if(worldRenderScale>preferredWorldScale)applyWorldRenderScale(preferredWorldScale);
+      else if(engine.state===GameState.MENU&&worldRenderScale<preferredWorldScale)applyWorldRenderScale(preferredWorldScale);
       const wrap=wrapRef.current;
       if(wrap){wrap.style.width=`${displayW}px`;wrap.style.height=`${displayH}px`;}
       for(const c of [wc,uc]) {c.style.width=`${displayW}px`;c.style.height=`${displayH}px`;c.style.imageRendering='pixelated';}
@@ -842,10 +855,10 @@ export default function App() {
         applyWorldRenderScale(worldRenderScale===4?3:2);
         upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+30000;
-      }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<ART_SCALE){
+      }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<preferredWorldScale){
         upgradeStableWindows++;
         if(upgradeStableWindows>=4){
-          applyWorldRenderScale(worldRenderScale+1);
+          applyWorldRenderScale(Math.min(preferredWorldScale,worldRenderScale+1));
           upgradeStableWindows=0;
           renderScaleCooldownUntil=ts+12000;
         }
@@ -971,10 +984,16 @@ export default function App() {
     });
   };
 
+  const ambientActive=!engineRef.current||[
+    GameState.MENU,GameState.DIFFICULTY,GameState.DAILY_BRIEF,GameState.HOW_TO_PLAY,
+    GameState.SETTINGS,GameState.CONTROLS,GameState.CAREER,GameState.WARDROBE,
+    GameState.UPGRADES,GameState.COLLECTION,GameState.CONFIRM,GameState.ENDLESS_RESUME,
+  ].includes(engineRef.current.state);
+
   return (
     <div className="duck-responsive-shell relative w-screen h-screen overflow-hidden text-[#c3cbd9] flex flex-col items-center justify-center select-none">
       {/* ambiente: monedas y migas flotando tras la consola */}
-      <Ambient />
+      <Ambient active={ambientActive} />
       <div ref={wrapRef} className="duck-responsive-stage relative z-10"
         style={{ width: CANVAS_WIDTH * 2, height: CANVAS_HEIGHT * 2, cursor }}>
         <canvas ref={worldRef} aria-hidden="true" className="absolute inset-0 h-full w-full"
@@ -1045,12 +1064,14 @@ function hintFor(engine: GameEngine): string {
 }
 
 /** Migas y monedas ambientales detrás de la consola */
-function Ambient() {
+function Ambient({active}:{active:boolean}) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
     const ctx = c.getContext('2d')!;
+    ctx.clearRect(0,0,c.width,c.height);
+    if(!active)return;
     let raf = 0;
     const bits = Array.from({ length: 70 }, () => ({
       x: Math.random(), y: Math.random(),
@@ -1060,10 +1081,13 @@ function Ambient() {
     const resize = () => { c.width = window.innerWidth; c.height = window.innerHeight; };
     resize();
     window.addEventListener('resize', resize);
-    let t = 0;
-    const tick = () => {
+    let t = 0,lastDraw=0;
+    const tick = (now:number) => {
       raf = requestAnimationFrame(tick);
-      t++;
+      // Fondo decorativo: 30 FPS es visualmente suficiente y deja GPU/CPU
+      // disponibles para el canvas del juego.
+      if(now-lastDraw<33)return;
+      lastDraw=now;t++;
       ctx.clearRect(0, 0, c.width, c.height);
       for (const b of bits) {
         b.y -= b.v;
@@ -1087,6 +1111,6 @@ function Ambient() {
     };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-  }, []);
+  }, [active]);
   return <canvas ref={ref} className="absolute inset-0 z-0 opacity-70" />;
 }
