@@ -44,25 +44,25 @@ interface ObstacleFamilyPhysics {
  */
 export const OBSTACLE_FAMILY_PHYSICS:ReadonlyArray<ObstacleFamilyPhysics>=[
   // footprint = contacto a nivel de suelo; projectile = volumen visible que recibe disparos.
-  {hp:18,material:'metal',      debris:'#5f7076',hitbox:{x:3,y:22,w:26,h:8}, projectile:{x:5,y:4,w:22,h:23},occludes:true }, // 0 terminal / ATM
-  {hp:10,material:'light',      debris:'#b48d3e',hitbox:{x:3,y:25,w:26,h:5}, projectile:{x:5,y:8,w:23,h:21},occludes:false}, // 1 queue gate
-  {hp:22,material:'metal',      debris:'#6f7d80',hitbox:{x:5,y:22,w:22,h:7}, projectile:{x:3,y:4,w:26,h:24},occludes:true }, // 2 carousel / display
-  {hp:9, material:'light',      debris:'#53686d',hitbox:{x:5,y:21,w:22,h:8}, projectile:{x:6,y:12,w:20,h:15},occludes:false}, // 3 tote / coffer
-  {hp:30,material:'reinforced', debris:'#69767a',hitbox:{x:2,y:19,w:28,h:10},projectile:{x:1,y:11,w:30,h:16},occludes:true }, // 4 crate / chest
+  {hp:18,material:'metal',      debris:'#5f7076',hitbox:{x:3,y:22,w:26,h:8}, projectile:{x:5,y:4,w:22,h:26},occludes:true }, // 0 terminal / ATM
+  {hp:10,material:'light',      debris:'#b48d3e',hitbox:{x:3,y:25,w:26,h:5}, projectile:{x:5,y:8,w:23,h:22},occludes:false}, // 1 queue gate
+  {hp:22,material:'metal',      debris:'#6f7d80',hitbox:{x:5,y:22,w:22,h:7}, projectile:{x:3,y:4,w:26,h:26},occludes:true }, // 2 carousel / display
+  {hp:9, material:'light',      debris:'#53686d',hitbox:{x:5,y:21,w:22,h:8}, projectile:{x:6,y:12,w:20,h:18},occludes:false}, // 3 tote / coffer
+  {hp:30,material:'reinforced', debris:'#69767a',hitbox:{x:2,y:19,w:28,h:10},projectile:{x:1,y:11,w:30,h:19},occludes:true }, // 4 crate / chest
   {hp:50,material:'structural', debris:'#a1abad',hitbox:{x:6,y:23,w:20,h:8}, projectile:{x:6,y:0,w:20,h:31},occludes:true }, // 5 column / support
-  {hp:26,material:'reinforced', debris:'#64747b',hitbox:{x:5,y:21,w:22,h:8}, projectile:{x:6,y:7,w:20,h:20},occludes:true }, // 6 access station
-  {hp:12,material:'light',      debris:'#56676e',hitbox:{x:7,y:21,w:18,h:8}, projectile:{x:5,y:7,w:22,h:20},occludes:false}, // 7 alarm unit
-  {hp:34,material:'reinforced', debris:'#77817f',hitbox:{x:4,y:21,w:24,h:8}, projectile:{x:3,y:1,w:26,h:27},occludes:true }, // 8 drawer stack
-  {hp:11,material:'light',      debris:'#4d5b60',hitbox:{x:4,y:22,w:24,h:7}, projectile:{x:4,y:11,w:24,h:17},occludes:false}, // 9 hard case
-  {hp:14,material:'metal',      debris:'#657277',hitbox:{x:4,y:22,w:24,h:7}, projectile:{x:4,y:10,w:24,h:18},occludes:false}, // 10 counter / lab
-  {hp:25,material:'metal',      debris:'#657479',hitbox:{x:4,y:21,w:24,h:9}, projectile:{x:5,y:4,w:26,h:25},occludes:true }, // 11 cart / trolley
-  {hp:32,material:'reinforced', debris:'#717c80',hitbox:{x:4,y:21,w:24,h:8}, projectile:{x:3,y:0,w:26,h:29},occludes:true }, // 12 locker / safe
-  {hp:46,material:'structural', debris:'#8a9697',hitbox:{x:2,y:19,w:28,h:10},projectile:{x:2,y:6,w:28,h:22},occludes:true }, // 13 cage
-  {hp:17,material:'metal',      debris:'#728085',hitbox:{x:4,y:22,w:24,h:7}, projectile:{x:4,y:3,w:24,h:25},occludes:true }, // 14 printer / press
+  {hp:26,material:'reinforced', debris:'#64747b',hitbox:{x:5,y:21,w:22,h:8}, projectile:{x:6,y:7,w:20,h:23},occludes:true }, // 6 access station
+  {hp:12,material:'light',      debris:'#56676e',hitbox:{x:7,y:21,w:18,h:8}, projectile:{x:5,y:7,w:22,h:22},occludes:false}, // 7 alarm unit
+  {hp:34,material:'reinforced', debris:'#77817f',hitbox:{x:4,y:21,w:24,h:8}, projectile:{x:3,y:1,w:26,h:29},occludes:true }, // 8 drawer stack
+  {hp:11,material:'light',      debris:'#4d5b60',hitbox:{x:4,y:22,w:24,h:7}, projectile:{x:4,y:11,w:24,h:19},occludes:false}, // 9 hard case
+  {hp:14,material:'metal',      debris:'#657277',hitbox:{x:4,y:22,w:24,h:7}, projectile:{x:4,y:10,w:24,h:20},occludes:false}, // 10 counter / lab
+  {hp:25,material:'metal',      debris:'#657479',hitbox:{x:4,y:21,w:24,h:9}, projectile:{x:5,y:4,w:26,h:26},occludes:true }, // 11 cart / trolley
+  {hp:32,material:'reinforced', debris:'#717c80',hitbox:{x:4,y:21,w:24,h:8}, projectile:{x:3,y:0,w:26,h:30},occludes:true }, // 12 locker / safe
+  {hp:46,material:'structural', debris:'#8a9697',hitbox:{x:2,y:19,w:28,h:10},projectile:{x:2,y:6,w:28,h:24},occludes:true }, // 13 cage
+  {hp:17,material:'metal',      debris:'#728085',hitbox:{x:4,y:22,w:24,h:7}, projectile:{x:4,y:3,w:24,h:27},occludes:true }, // 14 printer / press
   {hp:8, material:'light',      debris:'#5c666a',hitbox:{x:5,y:24,w:22,h:7}, projectile:{x:5,y:7,w:22,h:24},occludes:false}, // 15 chair
-  {hp:10,material:'light',      debris:'#617057',hitbox:{x:5,y:22,w:22,h:8}, projectile:{x:3,y:0,w:26,h:29},occludes:false}, // 16 planter
-  {hp:13,material:'light',      debris:'#7d969d',hitbox:{x:6,y:22,w:20,h:8}, projectile:{x:7,y:0,w:18,h:28},occludes:true }, // 17 water station
-  {hp:27,material:'metal',      debris:'#566d76',hitbox:{x:2,y:21,w:28,h:8}, projectile:{x:2,y:4,w:28,h:24},occludes:true }, // 18 surveillance console
+  {hp:10,material:'light',      debris:'#617057',hitbox:{x:5,y:22,w:22,h:8}, projectile:{x:3,y:0,w:26,h:30},occludes:false}, // 16 planter
+  {hp:13,material:'light',      debris:'#7d969d',hitbox:{x:6,y:22,w:20,h:8}, projectile:{x:7,y:0,w:18,h:30},occludes:true }, // 17 water station
+  {hp:27,material:'metal',      debris:'#566d76',hitbox:{x:2,y:21,w:28,h:8}, projectile:{x:2,y:4,w:28,h:26},occludes:true }, // 18 surveillance console
   {hp:38,material:'reinforced', debris:'#59666d',hitbox:{x:5,y:21,w:22,h:9}, projectile:{x:5,y:0,w:22,h:30},occludes:true }, // 19 server / data vault
 ];
 
