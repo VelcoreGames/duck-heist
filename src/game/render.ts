@@ -1,8 +1,8 @@
 // Renderizador en dos capas:
-//  · MUNDO  → canvas de 480x352 escalado con nearest-neighbour (pixel art puro)
+//  · MUNDO  → coordenadas lógicas clásicas con backing store 4x para microdetalle
 //  · UI     → canvas a resolución nativa con tipografía nítida
 import {
-  TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH, UI_OFFSET_X,
+  TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH, UI_OFFSET_X, ART_SCALE,
   HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
 } from './constants';
@@ -55,6 +55,7 @@ import { endlessStage } from './endless';
 import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import { obstacleHitbox, obstacleCoverRect, obstacleMaxHp, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal, EndlessRewardOption } from './types';
+import { GAME_VERSION_LABEL } from './version';
 
 const dist = (x1: number, y1: number, x2: number, y2: number) => Math.hypot(x2 - x1, y2 - y1);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -2821,6 +2822,7 @@ function renderMenuUI(engine: GameEngine,wide=false) {
   const center=wide?safe.x+safe.w/2:UI_BASE_WIDTH/2;
   const taglineY=wide?Math.min(336,safe.y+safe.h-18):329;
   text(ctx,T.tagline,center,taglineY,wide?7.65:7.5,'#dbc486','center',true,false);
+  text(ctx,`${GAME_VERSION_LABEL} · ART ${ART_SCALE}X`,wide?safe.x+safe.w-8:UI_BASE_WIDTH-8,taglineY,3.8,'#50666d','right',true,false);
 }
 function howToBindingLabel(raw:string,compact=false){
   const k=(raw??'').toLowerCase();
