@@ -443,6 +443,43 @@ function drawSkinDeathAccessory(
   }
 }
 
+function drawSkinMaterialPass(
+  ctx:Ctx,bx:number,by:number,frame:number,overlay:string,accent:string,trim:string,metal:string,
+  dir:DuckDir,moving:boolean,
+){
+  // Microdetalle 4x compartido: costuras, rebotes de luz y metal. Mantiene el
+  // diseño de cada skin, pero evita que ropa/accesorios se lean como bloques planos.
+  const front=dir==='down',back=dir==='up',side=dir==='left'||dir==='right';
+  const bob=moving?Math.round(Math.sin(frame*.38)):0;
+  ctx.save();ctx.translate(0,bob);
+  ctx.globalAlpha=.34;
+  if(!back){
+    microRect(ctx,bx+4.25,by+7.25,7.5,.25,'rgba(255,255,255,.34)');
+    microRect(ctx,bx+3.25,by+13.5,8.5,.25,'rgba(0,0,0,.28)');
+  }
+  if(front){
+    microRect(ctx,bx+5.25,by+8.25,.25,4.5,'rgba(255,255,255,.20)');
+    microRect(ctx,bx+10.5,by+8.25,.25,4.5,'rgba(0,0,0,.24)');
+  }else if(side){
+    const edge=dir==='left'?bx+3.25:bx+12.5;
+    microRect(ctx,edge,by+8.25,.25,4,'rgba(255,255,255,.24)');
+  }
+  ctx.globalAlpha=.58;
+  const glint=(frame+overlay.length*11)%72<8;
+  if(glint){
+    const gx=dir==='left'?bx+4.25:bx+11.25;
+    microRect(ctx,gx,by+9.25,.5,.5,metal);
+  }
+  // Firma cromática mínima por familia de skin.
+  ctx.globalAlpha=.48;
+  if(overlay==='ninja'||overlay==='pirate'||overlay==='robber')microRect(ctx,bx+4.5,by+6.25,7,.25,accent);
+  else if(overlay==='executive'||overlay==='fedora')microRect(ctx,bx+5.25,by+12.25,5.5,.25,trim);
+  else if(overlay==='gold'||overlay==='king')microRect(ctx,bx+3.75,by+6.5,8.5,.25,trim);
+  else if(overlay==='rose'||overlay==='undercover')microRect(ctx,bx+4.25,by+13.25,7.5,.25,accent);
+  else if(overlay==='chef'||overlay==='prison')microRect(ctx,bx+5,by+8.25,6,.25,trim);
+  ctx.restore();
+}
+
 /** Pato con skin cosmética completa: silueta + ropa + accesorios + estados. */
 export function drawDuckSkin(
   ctx: Ctx, x: number, y: number, frame: number,
@@ -574,6 +611,7 @@ export function drawDuckSkin(
       else if(left||right){rect(ctx,bx+(left?2:11),by+8,3,6,accent);}
       break;
   }
+  drawSkinMaterialPass(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving);
   ctx.restore();
 }
 
@@ -609,10 +647,17 @@ function enemyShadow(ctx:Ctx,cx:number,y:number,rx:number,alpha=.34){
 }
 function enemyEye(ctx:Ctx,x:number,y:number,alert=false){
   px(ctx,x,y,alert?'#ff574d':'#10151c',2);
-  if(alert){ctx.globalAlpha=.28;ctx.fillStyle='#ff574d';ctx.fillRect(x-2,y-2,6,6);ctx.globalAlpha=1;}
+  if(alert){
+    ctx.globalAlpha=.28;ctx.fillStyle='#ff574d';ctx.fillRect(x-2,y-2,6,6);ctx.globalAlpha=1;
+    microRect(ctx,x+.25,y+.25,.5,.5,'#fff1dc');
+  }else microRect(ctx,x+.25,y+.25,.5,.5,'rgba(220,238,240,.62)');
 }
 function metalEdge(ctx:Ctx,x:number,y:number,w:number,h:number,base:string,hi:string,lo:string){
   rect(ctx,x,y,w,h,base);rect(ctx,x+1,y+1,w-2,1,hi);rect(ctx,x+1,y+h-2,w-2,1,lo);
+  if(w>=5&&h>=4){
+    ctx.globalAlpha=.42;microRect(ctx,x+1.25,y+1.25,Math.max(.5,w-2.5),.25,'rgba(255,255,255,.44)');
+    microRect(ctx,x+w-1.5,y+1.5,.25,Math.max(.5,h-3),'rgba(0,0,0,.42)');ctx.globalAlpha=1;
+  }
 }
 function crownMark(ctx:Ctx,x:number,y:number,color='#e5bd45'){
   px(ctx,x,y+2,color,2);px(ctx,x+3,y,color,2);px(ctx,x+6,y+2,color,2);rect(ctx,x,y+4,8,2,color);
