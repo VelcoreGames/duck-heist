@@ -12,10 +12,29 @@ const snap=(v:number)=>Math.round(v*ART_SCALE)/ART_SCALE;
 const span=(v:number)=>Math.max(ART_PIXEL,Math.round(v*ART_SCALE)/ART_SCALE);
 const r=(c:Ctx,x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=color;c.fillRect(snap(x),snap(y),span(w),span(h));};
 const p=(c:Ctx,x:number,y:number,color:string,s=1)=>r(c,x,y,s,s,color);
-function shadow(c:Ctx,x:number,y:number,rx:number,a=.3){c.fillStyle=`rgba(0,0,0,${a})`;c.beginPath();c.ellipse(x,y,rx,Math.max(2,rx*.28),0,0,Math.PI*2);c.fill();}
+const micro=(c:Ctx,x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=color;c.fillRect(snap(x),snap(y),Math.max(ART_PIXEL,span(w)),Math.max(ART_PIXEL,span(h)));};
+function shadow(c:Ctx,x:number,y:number,rx:number,a=.3){
+  c.save();c.fillStyle=`rgba(0,0,0,${a})`;c.beginPath();c.ellipse(x,y,rx,Math.max(2,rx*.28),0,0,Math.PI*2);c.fill();
+  c.globalAlpha=.10;c.strokeStyle='#88a6aa';c.lineWidth=ART_PIXEL; c.beginPath();c.ellipse(x,y,rx+.75,Math.max(2,rx*.28)+.5,0,0,Math.PI*2);c.stroke();c.restore();
+}
 function glow(c:Ctx,x:number,y:number,color:string,radius:number,alpha=.22){c.save();c.globalAlpha=alpha;c.fillStyle=color;c.beginPath();c.arc(x,y,radius,0,Math.PI*2);c.fill();c.restore();}
-function crown(c:Ctx,x:number,y:number,color='#d8b449'){p(c,x,y+2,color,2);p(c,x+3,y,color,2);p(c,x+6,y+2,color,2);r(c,x,y+4,8,2,color);}
-function dangerEye(c:Ctx,x:number,y:number,on=true){p(c,x,y,on?'#ff5a52':'#18202a',2);if(on)glow(c,x+1,y+1,'#ff5a52',4,.18);}
+function crown(c:Ctx,x:number,y:number,color='#d8b449'){p(c,x,y+2,color,2);p(c,x+3,y,color,2);p(c,x+6,y+2,color,2);r(c,x,y+4,8,2,color);micro(c,x+.5,y+4.25,7,.25,'rgba(255,246,190,.55)');}
+function dangerEye(c:Ctx,x:number,y:number,on=true){
+  p(c,x,y,on?'#ff5a52':'#18202a',2);
+  micro(c,x+.25,y+.25,.5,.5,on?'#fff2df':'#b9d4d8');
+  if(on)glow(c,x+1,y+1,'#ff5a52',4,.18);
+}
+function tacticalMaterialPass(c:Ctx,bx:number,by:number,id:string,frame:number){
+  c.save();
+  const tech=id.includes('camera')||id.includes('torreta')||id.includes('robot')||id==='camara_movil';
+  const support=id.includes('medico'),command=id.includes('capitan');
+  const accent=tech?'#86bec8':support?'#77c5aa':command?'#e0bd58':'#7898a6';
+  c.globalAlpha=.40;
+  micro(c,bx+3.25,by+7.25,10.5,.25,'rgba(255,255,255,.28)');
+  micro(c,bx+4.25,by+15.5,9.5,.25,'rgba(0,0,0,.34)');
+  if((frame+id.length*13)%84<10){c.globalAlpha=.68;micro(c,bx+12.25,by+8.25,.5,.5,accent);}
+  c.restore();
+}
 
 export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number,hurt=false,angle=0,charge=0) {
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.13));
@@ -31,7 +50,7 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
     // visera/capucha rompe silueta
     r(c,-8,-7,12,2,'#263a4f');r(c,-6,-9,8,3,'#304b63');c.restore();
     if(charge>0){c.globalAlpha=.16+charge*.18;c.fillStyle='#ff5a52';c.beginPath();c.moveTo(bx+9,by+10);c.lineTo(bx-8,by+33);c.lineTo(bx+26,by+33);c.closePath();c.fill();}
-    c.restore();return;
+    tacticalMaterialPass(c,bx,by,id,frame);c.restore();return;
   }
 
   if(id==='torreta_banco'){
@@ -42,7 +61,7 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
     r(c,0,-3,16,6,'#26333d');r(c,11,-4,6,8,'#52616a');r(c,16,-2,4,4,'#ad5350');
     if(charge>0)glow(c,19,0,'#ff695c',4+charge*4,.25+charge*.2);
     c.restore();
-    r(c,bx+3,by+18,3,4,'#161d24');r(c,bx+15,by+18,3,4,'#161d24');c.restore();return;
+    r(c,bx+3,by+18,3,4,'#161d24');r(c,bx+15,by+18,3,4,'#161d24');tacticalMaterialPass(c,bx,by,id,frame);c.restore();return;
   }
 
   if(id==='robot_cajero'){
@@ -62,7 +81,7 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
       c.globalAlpha=.22+charge*.28;c.strokeStyle='#76c7a3';c.beginPath();c.arc(bx+11,by+12,12+charge*7,0,Math.PI*2);c.stroke();
       r(c,bx+6,by+15,Math.max(2,Math.round(10*charge)),2,'#f4d03f');c.globalAlpha=1;
     }
-    c.restore();return;
+    tacticalMaterialPass(c,bx,by,id,frame);c.restore();return;
   }
 
   if(id==='camara_movil'){
@@ -73,7 +92,7 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
     c.save();c.translate(bx+9,by+10);c.rotate(angle*.45);
     r(c,-7,-4,15,8,'#1a2a38');r(c,-5,-3,9,6,'#8ea2aa');r(c,4,-2,5,4,'#3a4b5c');dangerEye(c,6,-1,frame%36<24);c.restore();
     if(charge>0){c.globalAlpha=.12+charge*.2;c.fillStyle='#ff5a52';c.beginPath();c.moveTo(bx+9,by+12);c.lineTo(bx,by+29);c.lineTo(bx+18,by+29);c.closePath();c.fill();}
-    c.restore();return;
+    tacticalMaterialPass(c,bx,by,id,frame);c.restore();return;
   }
 
   if(id==='ganso_k9'){
@@ -83,7 +102,7 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
     r(c,bx+6,by+8+bob,7,4,'#586d7c');r(c,bx+5,by-3+bob,10,3,'#24313d');crown(c,bx+6,by-4+bob,'#d5b34b');
     r(c,bx+15,by+5+bob,5,3,'#6a7780');dangerEye(c,bx+12,by+3+bob,true);
     if(charge>.1){c.globalAlpha=.22+charge*.25;r(c,bx-2,by+7,24,14,'#ff5a52');c.globalAlpha=1;}
-    c.restore();return;
+    tacticalMaterialPass(c,bx,by,id,frame);c.restore();return;
   }
 
   // Las variantes aviares parten de un patrullero coherente y añaden una silueta de rol.
@@ -144,5 +163,6 @@ export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number
       c.globalAlpha=.55;c.strokeStyle='#ff8d73';c.beginPath();c.arc(bx+14,by+9+bob,9+charge*5,-1.1,.8);c.stroke();c.globalAlpha=1;
     }
   }
+  tacticalMaterialPass(c,bx,by,id,frame);
   c.restore();
 }
