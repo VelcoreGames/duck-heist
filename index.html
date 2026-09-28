@@ -10,35 +10,7 @@
       body { background: #0F172A; overflow: hidden; }
       @font-face { font-family: 'PixelFont'; src: local('Courier New'); }
     </style>
-    <script>
-    /* DH_V0_8_0_CANVAS_BADGE */
-    (() => {
-      const VERSION = 'v0.8.0';
-      const nativeRAF = window.requestAnimationFrame.bind(window);
-      const drawVersion = () => {
-        const canvas = document.querySelector('canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.globalAlpha = 0.92;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.font = '700 8px "Roboto", Arial, sans-serif';
-        ctx.fillStyle = '#00A8FF';
-        ctx.shadowColor = '#0F172A';
-        ctx.shadowBlur = 2;
-        ctx.fillText(VERSION, 10, 10);
-        ctx.restore();
-      };
-      window.requestAnimationFrame = (callback) => nativeRAF((time) => {
-        callback(time);
-        drawVersion();
-      });
-      window.addEventListener('load', () => nativeRAF(drawVersion), { once: true });
-    })();
-    </script>
+
   </head>
   <body>
     <div id="root"></div>
