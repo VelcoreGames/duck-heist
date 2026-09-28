@@ -17,6 +17,7 @@ import {
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
   inside, COLLECTION, COLLECTION_CAREER, CONTROLS_RESET, CONTROL_RESET_CANCEL, CONTROL_RESET_ACCEPT, MAP_CLOSE, legacyUiPoint, activeSwapHit, endlessRewardHit, endActionHit,
+  useWideMainMenu,
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
@@ -363,15 +364,9 @@ export default function App() {
         }
       }
 
-      // MAP no es mouse-only: M debe poder cerrarlo y WASD/flechas deben
-      // seguir navegando por los nodos mientras está abierto.
-      const mouseOnlyMenu = [
-        GameState.MENU,GameState.DAILY_BRIEF,GameState.DIFFICULTY,GameState.COLLECTION,GameState.CAREER,
-        GameState.HOW_TO_PLAY,GameState.WARDROBE,GameState.SETTINGS,GameState.CONTROLS,GameState.UPGRADES,GameState.ENDLESS_RESUME,
-        GameState.ENDLESS_REWARD,GameState.PAUSED,GameState.RUN_INFO,GameState.CONFIRM,GameState.GAME_OVER,GameState.VICTORY,
-      ].includes(engine.state);
-      if(mouseOnlyMenu)return;
-
+      // Todos los menús conservan navegación por teclado/gamepad además del
+      // mouse. El retorno mouse-only anterior dejaba inalcanzable el switch de
+      // MENU/DIFFICULTY/PAUSED y hacía que Enter/WASD parecieran congelados.
       if(k===engine.bindings.map && (engine.state===GameState.PLAYING||engine.state===GameState.PAUSED)) {if(engine.gameMode!=='endless')toggleFloorMap(engine);return;}
       if(engine.state===GameState.MAP) {
         if(k==='escape'||k===engine.bindings.map) closeFloorMap(engine);
@@ -602,7 +597,7 @@ export default function App() {
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
       const st=engine.state;
       if(st===GameState.MENU){
-        const i=mainMenuHit(p.x,p.y,false);if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
+        const i=mainMenuHit(p.x,p.y,useWideMainMenu());if(i>=0&&engine.menuIndex!==i){engine.menuIndex=i;softMove();}
       }else if(st===GameState.DIFFICULTY){
         // La dificultad cambia solo al hacer clic; el hover se dibuja aparte.
       }else if(st===GameState.ENDLESS_RESUME){
@@ -681,7 +676,8 @@ export default function App() {
       }
       switch (engine.state) {
         case GameState.MENU: {
-          setMusic('menu');const i=mainMenuHit(x,y,false);
+          setMusic('menu');
+          const i=mainMenuHit(x,y,useWideMainMenu());
           if(i>=0){engine.menuIndex=i;activateMenu();}
           break;
         }
