@@ -394,6 +394,32 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
       ctx.fillRect(x,y,i%2?1:2,1);
     }
   }
+  // Infraestructura perimetral visible: canaletas, balizas y luces de piso.
+  // Esto da la lectura industrial de la referencia sin invadir la zona de combate.
+  ctx.globalAlpha=.34;ctx.fillStyle='#071014';
+  ctx.fillRect(42,48,5,CANVAS_HEIGHT-96);
+  ctx.fillRect(CANVAS_WIDTH-47,48,5,CANVAS_HEIGHT-96);
+  ctx.fillRect(48,42,CANVAS_WIDTH-96,5);
+  ctx.fillRect(48,CANVAS_HEIGHT-47,CANVAS_WIDTH-96,5);
+
+  // Balizas laterales cálidas/cian según sector.
+  const sideGlow=deco==='security'?'#5ad2f2':
+    deco==='bakery'?'#f0a15b':
+    deco==='storage'?'#d5ad68':
+    deco==='vault'||deco==='golden'?'#f0c65a':'#edc35c';
+  for(const yy of [92,176,260]){
+    ctx.globalAlpha=.18;ctx.fillStyle=sideGlow;
+    ctx.fillRect(43,yy-11,3,22);ctx.fillRect(CANVAS_WIDTH-46,yy-11,3,22);
+    ctx.globalAlpha=.68;ctx.fillRect(44,yy-7,1,14);ctx.fillRect(CANVAS_WIDTH-45,yy-7,1,14);
+  }
+
+  // Carriles luminosos empotrados: cortos y horizontales para no parecer flechas.
+  ctx.globalAlpha=.16+.04*Math.sin(frame*.045);ctx.fillStyle=sideGlow;
+  for(const x of [86,170,254,338]){
+    ctx.fillRect(x,55,26,2);
+    ctx.fillRect(x,CANVAS_HEIGHT-57,26,2);
+  }
+  ctx.globalAlpha=1;
   ctx.restore();
 
   // Reflejo central tenue sobre el piso pulido.
@@ -428,15 +454,26 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
 }
 
 export function drawInnerWallShadow(ctx: CanvasRenderingContext2D) {
-  // Profundidad de muro + zócalo interior.
-  ctx.fillStyle='rgba(0,0,0,.24)';
-  ctx.fillRect(T,T,CANVAS_WIDTH-T*2,5);
-  ctx.fillRect(T,T,5,CANVAS_HEIGHT-T*2);
-  ctx.fillRect(CANVAS_WIDTH-T-5,T,5,CANVAS_HEIGHT-T*2);
-  ctx.fillStyle='rgba(255,255,255,.032)';
-  ctx.fillRect(T+5,T+5,CANVAS_WIDTH-T*2-10,1);
-  ctx.fillStyle='rgba(0,0,0,.16)';
-  ctx.fillRect(T+5,CANVAS_HEIGHT-T-5,CANVAS_WIDTH-T*2-10,4);
+  // Umbral físico entre muro y sala: zócalo grueso, sombra y filete de luz.
+  ctx.fillStyle='rgba(0,0,0,.36)';
+  ctx.fillRect(T,T,CANVAS_WIDTH-T*2,7);
+  ctx.fillRect(T,T,7,CANVAS_HEIGHT-T*2);
+  ctx.fillRect(CANVAS_WIDTH-T-7,T,7,CANVAS_HEIGHT-T*2);
+  ctx.fillRect(T,CANVAS_HEIGHT-T-6,CANVAS_WIDTH-T*2,6);
+
+  ctx.fillStyle='rgba(255,255,255,.045)';
+  ctx.fillRect(T+7,T+7,CANVAS_WIDTH-T*2-14,1);
+  ctx.fillRect(T+7,T+8,1,CANVAS_HEIGHT-T*2-16);
+  ctx.fillStyle='rgba(255,190,80,.045)';
+  ctx.fillRect(T+12,CANVAS_HEIGHT-T-7,CANVAS_WIDTH-T*2-24,1);
+
+  // Placas de anclaje en esquinas interiores.
+  ctx.fillStyle='rgba(6,10,12,.72)';
+  for(const [x,y] of [[T+5,T+5],[CANVAS_WIDTH-T-13,T+5],[T+5,CANVAS_HEIGHT-T-13],[CANVAS_WIDTH-T-13,CANVAS_HEIGHT-T-13]] as const){
+    ctx.fillRect(x,y,8,8);
+    ctx.fillStyle='rgba(214,177,87,.30)';ctx.fillRect(x+2,y+2,2,2);
+    ctx.fillStyle='rgba(6,10,12,.72)';
+  }
 }
 
 export { TILE_DOOR };
