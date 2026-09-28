@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/v0101-adaptive-render-performance]
   pull_request:
     branches: [main]
 
