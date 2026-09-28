@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/v092-endless-reward-cards]
   pull_request:
     branches: [main]
 
