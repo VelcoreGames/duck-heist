@@ -29,6 +29,7 @@ import { careerClick, careerTab } from './game/careerUI';
 import { SKINS } from './game/data';
 import { runSelfChecks, type CheckReport } from './game/selftest';
 import { refreshDailyRuntime } from './game/dailyChallenge';
+import { ART_SCALE } from './game/constants';
 
 
 export default function App() {
@@ -42,7 +43,7 @@ export default function App() {
   const [cursor, setCursor] = useState<'crosshair' | 'default' | 'pointer'>('pointer');
   const [audit,setAudit]=useState<CheckReport|null>(null);
 
-  /** Escala responsive exacta del release aprobado v0.4.3. */
+  /** Escala responsive del viewport; independiente de la resolución artística 4x. */
   const computeScale = useCallback(() => {
     const viewport=window.visualViewport;
     const fullscreen=!!document.fullscreenElement;
@@ -82,10 +83,13 @@ export default function App() {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    wc.width = CANVAS_WIDTH;
-    wc.height = CANVAS_HEIGHT;
+    // El mundo se rasteriza a 4x pero conserva coordenadas lógicas 1:1.
+    // Así ganamos detalle real sin modificar física, hitboxes ni layouts.
+    wc.width = CANVAS_WIDTH * ART_SCALE;
+    wc.height = CANVAS_HEIGHT * ART_SCALE;
     const wctx = wc.getContext('2d', { alpha: false })!;
     const uctx = uc.getContext('2d')!;
+    wctx.setTransform(ART_SCALE, 0, 0, ART_SCALE, 0, 0);
     wctx.imageSmoothingEnabled = false;
     if(new URLSearchParams(window.location.search).get('auditoria')==='1') {
       const report=runSelfChecks();setAudit(report);
@@ -850,7 +854,12 @@ export default function App() {
       engine.wardrobeScroll+=(engine.wardrobeScrollTarget-engine.wardrobeScroll)*.22;
 
       const wctx2 = engine.ctx;
-      wctx2.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      // Limpiamos en píxeles físicos y restauramos la matriz 4x antes de cada
+      // frame. Los draw calls continúan usando las coordenadas lógicas antiguas.
+      wctx2.setTransform(1, 0, 0, 1, 0, 0);
+      wctx2.clearRect(0, 0, wc.width, wc.height);
+      wctx2.setTransform(ART_SCALE, 0, 0, ART_SCALE, 0, 0);
+      wctx2.imageSmoothingEnabled = false;
       renderWorld(engine);
 
       const u = engine.ui;
