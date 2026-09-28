@@ -278,15 +278,16 @@ export function runSelfChecks():CheckReport {
       }
       assert(coverCount>=72,'hay muy pocos props altos que funcionen como cobertura visual');
     });
-    check('Los seis tiers comparten exactamente la misma huella física por familia',()=>{
-      for(let family=0;family<OBSTACLES_PER_FLOOR;family++){
-        const base=obstacleHitbox(family,0,0),body=obstacleProjectileHitbox(family,0,0);
-        for(let tier=1;tier<6;tier++){
-          const kind=tier*OBSTACLES_PER_FLOOR+family;
-          assert(JSON.stringify(obstacleHitbox(kind,0,0))===JSON.stringify(base),`tier alteró huella familia ${family}`);
-          assert(JSON.stringify(obstacleProjectileHitbox(kind,0,0))===JSON.stringify(body),`tier alteró cuerpo familia ${family}`);
-        }
+    check('Props de lujo usan huellas específicas sin salir del tile',()=>{
+      const luxuryKinds=[17,62,77,82,83,88,89,93,96,97,102,103,108,109,113,116,117,118];
+      for(const kind of luxuryKinds){
+        const foot=obstacleHitbox(kind,64,96),body=obstacleProjectileHitbox(kind,64,96);
+        assert(foot.x>=64&&foot.y>=96&&foot.x+foot.w<=96&&foot.y+foot.h<=128,`huella lujo fuera del tile ${OBSTACLES[kind]}`);
+        assert(body.x>=64&&body.y>=96&&body.x+body.w<=96&&body.y+body.h<=128,`cuerpo lujo fuera del tile ${OBSTACLES[kind]}`);
+        assert(body.x<=foot.x&&body.y<=foot.y&&body.x+body.w>=foot.x+foot.w&&body.y+body.h>=foot.y+foot.h,`cuerpo lujo no cubre huella ${OBSTACLES[kind]}`);
       }
+      assert(JSON.stringify(obstacleHitbox(93,0,0))!==JSON.stringify(obstacleHitbox(13,0,0)),'estatua de oro conserva huella genérica');
+      assert(JSON.stringify(obstacleHitbox(117,0,0))!==JSON.stringify(obstacleHitbox(17,0,0)),'fuente diamante conserva huella de lobby');
     });
     check('Props altos reciben proyectiles en el cuerpo aunque el pato sólo choque con la base',()=>{
       const family=19,kind=family;
@@ -335,6 +336,25 @@ export function runSelfChecks():CheckReport {
         for(let x=1;x<layout[0].length-1;x++)assert(layout[cy][x]<OBSTACLE_BASE,`${template} bloqueó corredor horizontal`);
         for(let y=1;y<layout.length-1;y++)assert(layout[y][cx]<OBSTACLE_BASE,`${template} bloqueó corredor vertical`);
       }
+    });
+    check('Progresión bancaria termina en oro y diamante con layouts propios',()=>{
+      const expected=[
+        ['bankLobby','tellerHall','waitingArea'],
+        ['adminOpenOffice','meetingWing','operationsOffice'],
+        ['executiveAdmin','recordsAndFinance','boardroomSupport'],
+        ['privateBanking','executiveSuite','directorBoardroom'],
+        ['goldTreasury','goldGallery','wealthVault'],
+        ['diamondVault','royalGallery','crownTreasury'],
+      ];
+      for(let floor=0;floor<6;floor++){
+        assert(JSON.stringify(BANK_ROOM_TEMPLATES_BY_FLOOR[floor])===JSON.stringify(expected[floor]),`progresión visual incorrecta en piso ${floor+1}`);
+      }
+      assert(OBSTACLES.includes('money_pile'),'falta pila de dinero');
+      assert(OBSTACLES.includes('gold_statue'),'falta estatua de oro');
+      assert(OBSTACLES.includes('gold_fountain'),'falta fuente de oro');
+      assert(OBSTACLES.includes('diamond_pile'),'falta pila de diamantes');
+      assert(OBSTACLES.includes('monumental_gold_statue'),'falta estatua monumental');
+      assert(OBSTACLES.includes('diamond_fountain'),'falta fuente de diamante');
     });
     check('Sala inicial también se amuebla como banco sin bloquear accesos',()=>{
       const room:MapRoom={gx:0,gy:0,type:RoomType.START,doors:['N','E','S'],visited:false,cleared:false,generated:false,layout:[],distance:0,floorIndex:0};
