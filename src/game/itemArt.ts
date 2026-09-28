@@ -1,6 +1,7 @@
 // Every icon is authored on a 24 x 24 pixel grid. The same atlas serves the
 // world, shop, tooltips, inventory and collection; there are no network assets.
 import { EXPANSION_ART } from './expansionArt';
+import { ART_SCALE } from './constants';
 type Pixel = string | undefined;
 export type IconPainter = (p: PixelPainter) => void;
 
@@ -235,27 +236,42 @@ export function getIconPixels(id: string) {
 }
 
 export function drawItemIcon(ctx: CanvasRenderingContext2D, x: number, y: number, id: string, size = 24, color = C.purple, silhouette = false) {
-  const key = `${id}:${silhouette}`;
+  const key = `${id}:${silhouette}:hires`;
   let canvas = cache.get(key);
   if (!canvas) {
-    canvas = document.createElement('canvas'); canvas.width = canvas.height = 24;
+    // El atlas lógico sigue siendo 24x24 para no reautorizar cientos de
+    // definiciones; cada celda se rasteriza en 4x4 píxeles físicos y recibe
+    // microbordes de 1 px físico. Resultado: mismo diseño, mucha más definición.
+    const S=ART_SCALE;
+    canvas = document.createElement('canvas'); canvas.width = canvas.height = 24*S;
     const c = canvas.getContext('2d');
     if (!c) return;
+    c.imageSmoothingEnabled=false;
     let pixels: Pixel[];
     try { pixels = getIconPixels(id); } catch { pixels = getIconPixels('mystery'); }
     if(!pixels.some(Boolean)) pixels=getIconPixels('mystery');
+    const at=(xx:number,yy:number)=>xx>=0&&yy>=0&&xx<24&&yy<24?pixels[yy*24+xx]:undefined;
+
+    // Outline conserva la contundencia del atlas antiguo, ahora a resolución 4x.
     for(let yy=0;yy<24;yy++) for(let xx=0;xx<24;xx++) {
-      if (!pixels[yy * 24 + xx]) continue;
-      c.fillStyle = '#101723'; c.fillRect(xx-1,yy-1,3,3);
+      if (!at(xx,yy)) continue;
+      c.fillStyle = '#101723';
+      c.fillRect((xx-1)*S,(yy-1)*S,3*S,3*S);
     }
-    pixels.forEach((pixel, index) => {
-      if (!pixel) return;
-      c.fillStyle = silhouette ? '#42465b' : pixel;
-      c.fillRect(index % 24, Math.floor(index / 24), 1, 1);
-    });
+    for(let yy=0;yy<24;yy++) for(let xx=0;xx<24;xx++) {
+      const pixel=at(xx,yy);if(!pixel)continue;
+      c.fillStyle=silhouette?'#42465b':pixel;
+      c.fillRect(xx*S,yy*S,S,S);
+      if(silhouette)continue;
+      // Bisel de un píxel físico: agrega material/volumen sin suavizar el pixel art.
+      if(!at(xx,yy-1)){c.fillStyle='rgba(255,255,255,.18)';c.fillRect(xx*S,yy*S,S,1);}
+      if(!at(xx-1,yy)){c.fillStyle='rgba(255,255,255,.09)';c.fillRect(xx*S,yy*S,1,S);}
+      if(!at(xx,yy+1)){c.fillStyle='rgba(0,0,0,.22)';c.fillRect(xx*S,(yy+1)*S-1,S,1);}
+      if(!at(xx+1,yy)){c.fillStyle='rgba(0,0,0,.13)';c.fillRect((xx+1)*S-1,yy*S,1,S);}
+    }
     if (!silhouette || ITEM_ART[id]) cache.set(key, canvas);
   }
   ctx.save(); ctx.imageSmoothingEnabled = false;
-  if (!ITEM_ART[id]) { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y + size - 1), size, 1); }
-  ctx.drawImage(canvas, Math.round(x), Math.round(y), size, size); ctx.restore();
+  if (!ITEM_ART[id]) { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y + size - .25), size, .25); }
+  ctx.drawImage(canvas, Math.round(x*ART_SCALE)/ART_SCALE, Math.round(y*ART_SCALE)/ART_SCALE, size, size); ctx.restore();
 }
