@@ -2040,7 +2040,7 @@ function drawBossFactionCore(
       // portacargadores y radio
       for(let x=-10;x<=5;x+=5)rect(ctx,x,7,4,7,x%10?v.secondary:'#765c38');
       rect(ctx,-22,-8,5,16,'#283229');px(ctx,-21,-11,v.accent,3);
-      if(elite){rect(ctx,17,-8,5,17,'#303a31');rect(ctx,19,-12,3,5,v.secondary);}
+      if(elite&&!luxuryOverride){rect(ctx,17,-8,5,17,'#303a31');rect(ctx,19,-12,3,5,v.secondary);}
       break;
     }
     case 'finance': { // banquero / auditor
@@ -3432,6 +3432,131 @@ function drawTierPropAttachment(
   ctx.restore();
 }
 
+function drawLuxuryPropOverride(
+  ctx:Ctx,bx:number,by:number,tier:number,family:number,frame:number,accent:string,dark:string,mid:string,light:string,
+){
+  const pulse=.5+.5*Math.sin(frame*.06+tier*1.9+family);
+  const gold=tier>=5?'#f4cf55':'#dfb741';
+  const diamond='#aeeeff';
+  const money='#6d9b63';
+
+  // Piso 4: arte y hospitality comienzan a dominar sobre lo puramente técnico.
+  if(tier===3&&family===2){ // pedestal de arte / escultura pequeña
+    rect(ctx,bx+8,by+20,16,9,'#463a31');rect(ctx,bx+10,by+18,12,3,'#c59b58');
+    ctx.fillStyle='#d8d0c2';ctx.beginPath();ctx.ellipse(bx+16,by+12,6,8,-.15,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#6b5a4d';ctx.beginPath();ctx.ellipse(bx+15,by+10,2,4,.35,0,Math.PI*2);ctx.fill();
+    rect(ctx,bx+14,by+17,4,3,'#a98b62');return true;
+  }
+  if(tier===3&&family===17){ // fuente interior de alta dirección
+    ctx.fillStyle='rgba(0,0,0,.30)';ctx.beginPath();ctx.ellipse(bx+16,by+27,15,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#8f887f';ctx.beginPath();ctx.ellipse(bx+16,by+22,14,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#b5ada0';ctx.beginPath();ctx.ellipse(bx+16,by+20,11,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#78c7d7';ctx.globalAlpha=.55+.15*pulse;ctx.beginPath();ctx.ellipse(bx+16,by+20,9,2.5,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.75;rect(ctx,bx+15,by+7,2,12,'#8ed9e7');
+    ctx.fillStyle='#8ed9e7';ctx.beginPath();ctx.arc(bx+16,by+8,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;return true;
+  }
+
+  // Piso 5: dinero, oro y arte de colección.
+  if(tier===4&&family===2){ // pintura con marco de oro sobre caballete
+    rect(ctx,bx+5,by+3,22,18,'#6f531f');rect(ctx,bx+6,by+4,20,16,gold);rect(ctx,bx+8,by+6,16,12,'#263547');
+    rect(ctx,bx+8,by+13,16,5,'#7c5532');ctx.globalAlpha=.75;rect(ctx,bx+11,by+8,8,1,'#e1c693');ctx.globalAlpha=1;
+    rect(ctx,bx+14,by+21,4,7,'#6a5537');rect(ctx,bx+8,by+28,16,2,'#463a2b');return true;
+  }
+  if(tier===4&&family===3){ // fajos de dinero
+    for(let i=0;i<4;i++){
+      const ox=6+(i%2)*10,oy=18-Math.floor(i/2)*7;
+      rect(ctx,bx+ox,by+oy,13,6,'#50734c');rect(ctx,bx+ox+1,by+oy+1,11,4,money);rect(ctx,bx+ox+5,by+oy,3,6,'#d2bd75');
+    }
+    return true;
+  }
+  if(tier===4&&family===8){ // pila grande de efectivo, asimétrica
+    for(let row=0;row<3;row++)for(let col=0;col<3-row;col++){
+      const ox=4+col*8+row*3,oy=24-row*6;
+      rect(ctx,bx+ox,by+oy,12,5,'#496b47');rect(ctx,bx+ox+1,by+oy+1,10,3,'#79a06d');rect(ctx,bx+ox+5,by+oy,2,5,'#d6bf75');
+    }
+    return true;
+  }
+  if(tier===4&&family===9){ // lingotes de oro
+    for(const [ox,oy,w] of [[4,22,13],[15,22,13],[9,16,14],[13,10,10]] as const){
+      rect(ctx,bx+ox,by+oy,w,6,'#9a7319');rect(ctx,bx+ox+1,by+oy+1,w-2,4,gold);rect(ctx,bx+ox+3,by+oy+1,Math.max(2,w-7),1,'#ffe17a');
+    }
+    return true;
+  }
+  if(tier===4&&family===13){ // estatua de oro tamaño grande
+    rect(ctx,bx+7,by+25,18,5,'#6c5423');rect(ctx,bx+9,by+23,14,3,gold);
+    ctx.fillStyle='#c99f2f';ctx.beginPath();ctx.ellipse(bx+16,by+11,6,8,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=gold;ctx.beginPath();ctx.arc(bx+16,by+5,4,0,Math.PI*2);ctx.fill();
+    rect(ctx,bx+12,by+15,3,9,gold);rect(ctx,bx+18,by+15,3,9,gold);
+    ctx.globalAlpha=.65;rect(ctx,bx+13,by+7,2,8,'#ffe789');ctx.globalAlpha=1;return true;
+  }
+  if(tier===4&&family===16){ // escultura abstracta de oro
+    rect(ctx,bx+8,by+25,16,5,'#39352d');
+    ctx.strokeStyle=gold;ctx.lineWidth=4;ctx.beginPath();ctx.arc(bx+16,by+14,8,Math.PI*.15,Math.PI*1.65);ctx.stroke();
+    ctx.lineWidth=2;ctx.strokeStyle='#ffe17a';ctx.beginPath();ctx.arc(bx+16,by+14,5,Math.PI*.7,Math.PI*2);ctx.stroke();return true;
+  }
+  if(tier===4&&family===17){ // fuente dorada
+    ctx.fillStyle='#5f4b25';ctx.beginPath();ctx.ellipse(bx+16,by+27,15,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=gold;ctx.beginPath();ctx.ellipse(bx+16,by+22,14,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#82cfe2';ctx.globalAlpha=.70;ctx.beginPath();ctx.ellipse(bx+16,by+21,10,3,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.65+.2*pulse;rect(ctx,bx+15,by+6,2,14,'#9de8f4');
+    ctx.fillStyle='#a9eef8';ctx.beginPath();ctx.arc(bx+16,by+7,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;return true;
+  }
+
+  // Piso 6: diamante + oro, objetos de escala y brillo extremos.
+  if(tier===5&&family===2){ // obra maestra con marco joya
+    rect(ctx,bx+3,by+2,26,20,'#7a5c19');rect(ctx,bx+4,by+3,24,18,gold);rect(ctx,bx+7,by+6,18,12,'#252f43');
+    rect(ctx,bx+7,by+13,18,5,'#67452d');ctx.fillStyle='#d8c6a3';ctx.beginPath();ctx.ellipse(bx+17,by+10,4,5,0,0,Math.PI*2);ctx.fill();
+    for(const [ox,oy] of [[4,3],[26,3],[4,19],[26,19]] as const){ctx.globalAlpha=.75+.2*pulse;rect(ctx,bx+ox,by+oy,2,2,diamond);}ctx.globalAlpha=1;
+    rect(ctx,bx+14,by+22,4,6,gold);return true;
+  }
+  if(tier===5&&(family===3||family===8)){ // pilas de diamantes, dos escalas
+    const count=family===8?11:7;
+    ctx.fillStyle='rgba(90,190,220,.16)';ctx.beginPath();ctx.ellipse(bx+16,by+26,family===8?14:11,4,0,0,Math.PI*2);ctx.fill();
+    for(let i=0;i<count;i++){
+      const ox=5+((i*7)%22),oy=23-((i*5)%13);
+      ctx.fillStyle=i%3===0?'#e9fdff':diamond;ctx.globalAlpha=.72+.2*Math.sin(frame*.08+i);
+      ctx.beginPath();ctx.moveTo(bx+ox,by+oy-4);ctx.lineTo(bx+ox+4,by+oy);ctx.lineTo(bx+ox,by+oy+4);ctx.lineTo(bx+ox-4,by+oy);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=.7;rect(ctx,bx+ox-1,by+oy-3,1,4,'#ffffff');
+    }
+    ctx.globalAlpha=1;return true;
+  }
+  if(tier===5&&family===9){ // estuches de diamante apilados
+    for(const [ox,oy] of [[4,20],[15,20],[9,13]] as const){
+      rect(ctx,bx+ox,by+oy,13,8,'#2e2528');rect(ctx,bx+ox+1,by+oy+1,11,6,'#5c3040');
+      ctx.fillStyle=diamond;ctx.beginPath();ctx.moveTo(bx+ox+6,by+oy+1);ctx.lineTo(bx+ox+9,by+oy+4);ctx.lineTo(bx+ox+6,by+oy+7);ctx.lineTo(bx+ox+3,by+oy+4);ctx.closePath();ctx.fill();
+    }
+    return true;
+  }
+  if(tier===5&&family===13){ // estatua monumental de oro
+    rect(ctx,bx+4,by+26,24,5,'#5e4719');rect(ctx,bx+7,by+23,18,4,gold);
+    ctx.fillStyle='#d9ad31';ctx.beginPath();ctx.ellipse(bx+16,by+11,7,9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=gold;ctx.beginPath();ctx.arc(bx+16,by+3,5,0,Math.PI*2);ctx.fill();
+    rect(ctx,bx+10,by+13,4,11,gold);rect(ctx,bx+19,by+13,4,11,gold);
+    ctx.globalAlpha=.76;rect(ctx,bx+12,by+5,2,10,'#ffe98a');rect(ctx,bx+19,by+8,2,7,'#ffe98a');ctx.globalAlpha=1;return true;
+  }
+  if(tier===5&&family===16){ // escultura de cristal/diamante
+    rect(ctx,bx+7,by+25,18,5,'#564822');
+    ctx.fillStyle=diamond;ctx.globalAlpha=.84+.12*pulse;ctx.beginPath();
+    ctx.moveTo(bx+16,by+1);ctx.lineTo(bx+26,by+15);ctx.lineTo(bx+20,by+25);ctx.lineTo(bx+11,by+23);ctx.lineTo(bx+6,by+13);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=.66;ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx+16,by+2);ctx.lineTo(bx+15,by+23);ctx.moveTo(bx+7,by+13);ctx.lineTo(bx+25,by+15);ctx.stroke();ctx.globalAlpha=1;return true;
+  }
+  if(tier===5&&family===17){ // fuente de diamante
+    ctx.fillStyle='#6c5520';ctx.beginPath();ctx.ellipse(bx+16,by+27,15,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=gold;ctx.beginPath();ctx.ellipse(bx+16,by+22,14,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#7ad9f2';ctx.globalAlpha=.78;ctx.beginPath();ctx.ellipse(bx+16,by+21,11,3,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.70+.2*pulse;rect(ctx,bx+15,by+5,2,15,'#b8f5ff');
+    ctx.fillStyle=diamond;ctx.beginPath();ctx.moveTo(bx+16,by+2);ctx.lineTo(bx+21,by+7);ctx.lineTo(bx+16,by+12);ctx.lineTo(bx+11,by+7);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;return true;
+  }
+  if(tier===5&&family===18){ // muro/galería coronada
+    rect(ctx,bx+1,by+8,30,20,'#11141a');rect(ctx,bx+3,by+10,26,16,'#2c2d32');
+    rect(ctx,bx+5,by+12,8,10,gold);rect(ctx,bx+6,by+13,6,8,'#3b2945');
+    rect(ctx,bx+19,by+12,8,10,gold);rect(ctx,bx+20,by+13,6,8,'#243c49');
+    ctx.globalAlpha=.85;rect(ctx,bx+15,by+11,2,12,diamond);ctx.globalAlpha=1;return true;
+  }
+  return false;
+}
+
 /** Obstáculos sólidos del banco */
 export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number, integrity = 1) {
   const bx=Math.floor(x),by=Math.floor(y),T=TILE_SIZE;
@@ -3448,14 +3573,15 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
   const pulse=.5+.5*Math.sin(frame*.055+kind*.37);
 
   ctx.save();
-  drawPropDock(ctx,bx,by,family,tier,accent,frame);
+  const luxuryOverride=drawLuxuryPropOverride(ctx,bx,by,tier,family,frame,accent,dark,mid,light);
+  if(!luxuryOverride)drawPropDock(ctx,bx,by,family,tier,accent,frame);
   ctx.globalAlpha=1;
 
   const bolt=(px0:number,py0:number)=>px(ctx,bx+px0,by+py0,light,1);
   const stripe=(yy:number)=>{rect(ctx,bx+5,by+yy,22,2,accent);rect(ctx,bx+7,by+yy,4,2,dark);rect(ctx,bx+17,by+yy,4,2,dark);};
   const feet=()=>{rect(ctx,bx+6,by+27,5,2,'#171d20');rect(ctx,bx+21,by+27,5,2,'#171d20');};
 
-  switch(family){
+  if(!luxuryOverride) switch(family){
     case 0: { // ATM / terminal: alto, inclinado y con pantalla protagonista
       rect(ctx,bx+5,by+4,22,23,dark);rect(ctx,bx+7,by+5,18,21,mid);
       rect(ctx,bx+8,by+7,16,10,'#071318');rect(ctx,bx+9,by+8,14,8,tier===1?'#0d4154':'#173138');
@@ -3626,19 +3752,19 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
     default: { rect(ctx,bx+6,by+18,20,10,dark);break; }
   }
 
-  drawTierPropAttachment(ctx,bx,by,family,tier,accent,light,detail,frame);
+  if(!luxuryOverride)drawTierPropAttachment(ctx,bx,by,family,tier,accent,light,detail,frame);
 
   // Acabado por nivel, sin envolver todos los props en el mismo rectángulo.
-  if(premium){
+  if(premium&&!luxuryOverride){
     ctx.globalAlpha=.42;rect(ctx,bx+23,by+7,5,2,accent);px(ctx,bx+25,by+10,accent,1);ctx.globalAlpha=1;
   }
-  if(reinforced){
+  if(reinforced&&!luxuryOverride){
     ctx.globalAlpha=.36;rect(ctx,bx+2,by+24,5,2,accent);rect(ctx,bx+25,by+24,5,2,accent);ctx.globalAlpha=1;
   }
   if(elite){
     ctx.globalAlpha=.65;px(ctx,bx+4,by+8,'#d9b54d',1);px(ctx,bx+27,by+8,'#d9b54d',1);ctx.globalAlpha=1;
   }
-  if(basic){
+  if(basic&&!luxuryOverride){
     ctx.globalAlpha=.24;rect(ctx,bx+5,by+26,6,1,'#6c6551');ctx.globalAlpha=1;
   }
 
