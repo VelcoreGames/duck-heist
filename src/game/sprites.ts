@@ -2855,6 +2855,56 @@ function drawBossPartStatus(ctx:Ctx,x:number,y:number,bossType:string,phase:numb
   ctx.restore();
 }
 
+function drawBossMaterialPassV5(
+  ctx:Ctx,bx:number,by:number,frame:number,phase:number,
+  visual:{accent:string;secondary:string;family:string;bob:number}|undefined,
+  floorBoss:boolean,subBoss:boolean,
+){
+  const accent=visual?.accent??'#e6c56f',secondary=visual?.secondary??'#8faeb7';
+  const family=visual?.family??'command';
+  ctx.save();
+  // Materiales por facción: pequeños acentos que se leen con el renderer 4x
+  // sin convertir jefes diferentes en recolores del mismo cuerpo.
+  const hi=family==='tech'||family==='vault'?'#c8f1f4':
+    family==='bakery'?'#ffe0ad':
+    family==='finance'||family==='wealth'?'#fff0a8':
+    family==='riot'||family==='war'?'#d5dde2':'#f2e5bd';
+  ctx.globalAlpha=.38;
+  microRect(ctx,bx+6.25,by+7.25,8.5,.25,hi);
+  microRect(ctx,bx+21.25,by+8.25,7.5,.25,'rgba(255,255,255,.25)');
+  microRect(ctx,bx+5.25,by+28.5,10,.25,'rgba(0,0,0,.36)');
+  microRect(ctx,bx+21,by+29.25,9,.25,'rgba(0,0,0,.30)');
+
+  if(family==='tech'||family==='vault'){
+    ctx.globalAlpha=.62;microRect(ctx,bx+8.25,by+13.25,3.5,.5,accent);microRect(ctx,bx+24.25,by+13.25,3.5,.5,secondary);
+    if(frame%72<10){microRect(ctx,bx+10.25,by+13.25,.5,.5,'#f2ffff');microRect(ctx,bx+26.25,by+13.25,.5,.5,'#f2ffff');}
+  }else if(family==='bakery'){
+    ctx.globalAlpha=.48;microRect(ctx,bx+8.25,by+18.25,4.5,.25,'#d98d54');microRect(ctx,bx+22.25,by+18.25,4.5,.25,'#d98d54');
+  }else if(family==='finance'||family==='wealth'){
+    ctx.globalAlpha=.56;microRect(ctx,bx+15.25,by+10.25,4.5,.25,accent);microRect(ctx,bx+17.25,by+10.5,.5,6,secondary);
+  }else if(family==='riot'||family==='war'){
+    ctx.globalAlpha=.46;microRect(ctx,bx+4.25,by+15.25,5.5,.25,hi);microRect(ctx,bx+26.25,by+15.25,5.5,.25,hi);
+  }else{
+    ctx.globalAlpha=.45;microRect(ctx,bx+8.25,by+12.25,5.5,.25,accent);microRect(ctx,bx+22.25,by+12.25,5.5,.25,secondary);
+  }
+
+  // Jefes de piso y subjefes ganan herrajes propios; las fases los activan.
+  if(floorBoss||subBoss){
+    ctx.globalAlpha=.55;
+    const bolts=[[5.5,5.5],[29.5,5.5],[5.5,29.5],[29.5,29.5]] as const;
+    for(let i=0;i<bolts.length;i++){
+      const [ox,oy]=bolts[i],col=i<=phase+1?accent:secondary;
+      microRect(ctx,bx+ox,by+oy,.5,.5,col);
+    }
+  }
+  if(phase>=1){
+    ctx.globalAlpha=.28+.12*Math.sin(frame*.12);
+    microRect(ctx,bx+3.25,by+4.25,.25,25,accent);
+    microRect(ctx,bx+32.5,by+4.25,.25,25,secondary);
+  }
+  ctx.restore();
+}
+
 export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame: number, hp: number, maxHp: number, hurt: boolean, phase = 0, telegraph = 0, parts?:BossPartState[], preparedAttack?:number, recovery=0, recoveryMax=0) {
   const visual=bossVisual(bossType);
   const bob=visual ? Math.sin(frame*.075 + bossType.length)*visual.bob : 0;
@@ -3109,6 +3159,7 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
   
   drawBossIdentity(ctx,bx,by,bossType,frame,phase,parts);
   drawBossPartStatus(ctx,bx,by,bossType,phase,telegraph,parts);
+  drawBossMaterialPassV5(ctx,bx,by,frame,phase,visual,floorBoss,subBoss);
 
   // El diseño escala visualmente con la dificultad de fase.
   if (phase >= 1) {
