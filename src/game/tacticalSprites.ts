@@ -1,4 +1,5 @@
 import { drawPoliciaPato, drawGuardGoose } from './sprites';
+import { ART_SCALE, ART_PIXEL } from './constants';
 
 type Ctx=CanvasRenderingContext2D;
 
@@ -7,7 +8,9 @@ export const SPECIAL_ENEMIES=new Set([
   'policia_granadero','policia_porra','torreta_banco','robot_cajero','camara_movil',
 ]);
 
-const r=(c:Ctx,x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);};
+const snap=(v:number)=>Math.round(v*ART_SCALE)/ART_SCALE;
+const span=(v:number)=>Math.max(ART_PIXEL,Math.round(v*ART_SCALE)/ART_SCALE);
+const r=(c:Ctx,x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=color;c.fillRect(snap(x),snap(y),span(w),span(h));};
 const p=(c:Ctx,x:number,y:number,color:string,s=1)=>r(c,x,y,s,s,color);
 function shadow(c:Ctx,x:number,y:number,rx:number,a=.3){c.fillStyle=`rgba(0,0,0,${a})`;c.beginPath();c.ellipse(x,y,rx,Math.max(2,rx*.28),0,0,Math.PI*2);c.fill();}
 function glow(c:Ctx,x:number,y:number,color:string,radius:number,alpha=.22){c.save();c.globalAlpha=alpha;c.fillStyle=color;c.beginPath();c.arc(x,y,radius,0,Math.PI*2);c.fill();c.restore();}
