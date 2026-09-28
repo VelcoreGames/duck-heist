@@ -6,7 +6,7 @@ import { normalizeProgress, permanentSnapshot } from './progress';
 import { createEngine,startGame,updateEngine,cycleWeapon,selectSwapSlot,confirmSwap,cancelSwap,confirmActiveSwap,enterRoom,damageEnemy,damagePlayer,handleActiveItem,handleDash,wardrobeAction,grantItem,shopPrice,changeAlert,rollItem,recycleNearestEndlessFloorItem,cleanupEndlessFloorDrops,beginEndlessFloorSweep,bossPartsFor,damageObstacleTile,obstacleHpAt,GameState,SETTING_ROWS } from './engine';
 import { setAudioTestMode,setVolumes } from './audio';
 import type { GameEngine, RoomContent } from './types';
-import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,FLOOR_PROP_NAMES,OBSTACLES_PER_FLOOR,type Dir } from './constants';
+import { RoomType,DIR_VECTORS,OPPOSITE,UI_BASE_WIDTH,CANVAS_HEIGHT,HEIST_INTRO_FRAMES,HEIST_INTRO_SKIP_AFTER,OBSTACLES,OBSTACLE_BASE,FLOOR_PROP_NAMES,OBSTACLES_PER_FLOOR,ART_SCALE,ART_PIXEL,type Dir } from './constants';
 import { visibleRoomKeys,knownPath,toggleFloorMap,openFloorMap,closeFloorMap,applyMapItemEffects,mapNodeLayout,mapHit,roomStatus,focusMapDestination } from './floorMap';
 import { EXPANSION_ITEMS } from './expansion';
 import { eligiblePassives,diverseRewards } from './loot';
@@ -30,6 +30,10 @@ export function runSelfChecks():CheckReport {
   const check=(name:string,fn:()=>void)=>{try {fn();report.passed++;}catch(error){report.failures.push(`${name}: ${String(error)}`);}};
   const assert=(ok:unknown,message:string)=>{if(!ok) throw new Error(message);};
   setAudioTestMode(true);
+  check('Resolución artística interna usa rejilla 4x sin alterar unidades lógicas',()=>{
+    assert(ART_SCALE===4,'ART_SCALE debe permanecer en 4');
+    assert(ART_PIXEL===.25,'cada microdetalle debe equivaler a 1/4 de píxel lógico');
+  });
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d')!;
   const setup=()=>{
     const e=createEngine(canvas,ctx,null);e.testing=true;e.metaLevels={};startGame(e);e.state=GameState.PLAYING;return e;
