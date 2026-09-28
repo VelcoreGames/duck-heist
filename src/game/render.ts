@@ -222,24 +222,122 @@ function drawVaultWings(ctx:CanvasRenderingContext2D,frame:number){
 // ===========================================================================
 // CAPA DE MUNDO
 // ===========================================================================
+function drawSpecialRoomIdentity(
+  ctx:CanvasRenderingContext2D,
+  room:ReturnType<typeof currentRoomOf>,
+  content:RoomContent,
+  f:number,
+){
+  const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2,pulse=.5+.5*Math.sin(f*.045);
+  ctx.save();
+  const ring=(color:string,rx:number,ry:number,alpha=.12)=>{
+    ctx.globalAlpha=alpha*(.82+.18*pulse);ctx.strokeStyle=color;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();
+  };
+  switch(room.type){
+    case RoomType.START:
+      ctx.globalAlpha=.075;ctx.fillStyle='#e6c56f';
+      ctx.fillRect(cx-70,cy-1,140,2);ctx.fillRect(cx-1,cy-46,2,92);
+      ring('#e6c56f',72,42,.11);
+      break;
+    case RoomType.ITEM:
+      ctx.globalAlpha=.08;ctx.fillStyle='#d8c57d';ctx.fillRect(cx-94,cy-44,188,88);
+      ring('#e6c56f',86,46,.18);ring('#79b9d2',66,34,.07);
+      break;
+    case RoomType.TREASURE:
+      ring('#e6c56f',88,50,.18);ring('#f3dda0',62,34,.10);
+      ctx.globalAlpha=.08;ctx.strokeStyle='#e6c56f';ctx.strokeRect(cx-102.5,cy-61.5,205,123);
+      break;
+    case RoomType.SHOP:
+    case RoomType.GUN_VAN:
+      ctx.globalAlpha=.07;ctx.fillStyle=room.type===RoomType.GUN_VAN?'#d28b52':'#78c99a';
+      ctx.fillRect(58,cy+51,CANVAS_WIDTH-116,2);
+      for(let x=92;x<CANVAS_WIDTH-70;x+=72)ctx.fillRect(x,cy+45,28,1);
+      break;
+    case RoomType.CHALLENGE:
+      ctx.globalAlpha=.14+.04*pulse;ctx.strokeStyle='#79b9d2';ctx.lineWidth=1;
+      ctx.strokeRect(62.5,58.5,CANVAS_WIDTH-125,CANVAS_HEIGHT-117);
+      ctx.globalAlpha=.06;ctx.fillRect(64,cy-1,CANVAS_WIDTH-128,2);
+      break;
+    case RoomType.MINIBOSS:
+      ring('#d88b58',82,50,.16);break;
+    case RoomType.SUBBOSS:
+      ring('#e07562',96,59,.18);ring('#e6c56f',72,42,.07);break;
+    case RoomType.BOSS:
+      ring('#d85d58',112,70,.20);ring('#e6c56f',86,52,.09);
+      ctx.globalAlpha=.07;ctx.strokeStyle='#d85d58';ctx.strokeRect(48.5,48.5,CANVAS_WIDTH-97,CANVAS_HEIGHT-97);
+      break;
+    case RoomType.SECRET:
+      ctx.translate(cx,cy);ctx.rotate(Math.PI/4);
+      ctx.globalAlpha=.12;ctx.strokeStyle='#b986d6';ctx.strokeRect(-45.5,-45.5,91,91);
+      ctx.globalAlpha=.05;ctx.fillStyle='#b986d6';ctx.fillRect(-1,-62,2,124);ctx.fillRect(-62,-1,124,2);
+      break;
+    case RoomType.EVENT:
+      ring('#bd91d5',78,45,.14);
+      ctx.globalAlpha=.06;ctx.fillStyle='#bd91d5';ctx.fillRect(cx-56,cy-1,112,2);
+      break;
+    case RoomType.CHOICE:
+      ctx.globalAlpha=.13;ctx.strokeStyle='#d8b46e';
+      for(const off of [-58,58]){ctx.beginPath();ctx.ellipse(cx+off,cy,34,22,0,0,Math.PI*2);ctx.stroke();}
+      ctx.globalAlpha=.06;ctx.fillStyle='#d8b46e';ctx.fillRect(cx-24,cy-1,48,2);
+      break;
+  }
+
+  // Las salas con loot reciben "zonas limpias": luz suave detrás de cada
+  // objeto para separarlo del fondo sin añadir símbolos que parezcan controles.
+  const lootPoints:{x:number;y:number;color:string}[]=[];
+  if(content.pedestal&&!content.pedestal.taken)lootPoints.push({x:content.pedestal.x+12,y:content.pedestal.y,color:'#e6c56f'});
+  for(const p of content.choices??[])if(!p.taken)lootPoints.push({x:p.x+12,y:p.y,color:'#d8c57d'});
+  for(const it of content.items)lootPoints.push({x:it.x+8,y:it.y+8,color:it.isWeapon?'#79c8ff':it.isActive?'#c995e6':'#d8c57d'});
+  for(const p of lootPoints.slice(0,8)){
+    const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,34);
+    g.addColorStop(0,p.color+'1f');g.addColorStop(1,p.color+'00');
+    ctx.fillStyle=g;ctx.globalAlpha=1;ctx.fillRect(p.x-36,p.y-36,72,72);
+  }
+  ctx.restore();
+}
+
 function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:number){
   if(engine.gameMode!=='endless')return;
   const e=engine.endless,alert=e.alert,pressure=e.pressure;
   const damageTier=e.round>=100?3:e.round>=50?2:e.round>=21?1:0;
   ctx.save();
 
-  // La arena no cambia de sala: envejece visualmente sobre el mismo piso.
+  // La arena envejece, pero las fracturas nunca deben confundirse con
+  // flechas/indicadores ni cruzar un objeto interactivo.
   if(damageTier>0){
-    const cracks=[[82,88],[142,258],[236,72],[324,244],[395,116],[108,190],[366,286]] as const;
+    const content=getContentOf(engine);
+    const protectedPoints:{x:number;y:number}[]=[];
+    if(content.pedestal)protectedPoints.push({x:content.pedestal.x+12,y:content.pedestal.y});
+    for(const p of content.choices??[])if(!p.taken)protectedPoints.push({x:p.x+12,y:p.y});
+    for(const it of content.items)protectedPoints.push({x:it.x+8,y:it.y+8});
+    for(const it of content.shopItems??[])if(!it.sold)protectedPoints.push({x:it.x,y:it.y});
+    if(content.chest)protectedPoints.push({x:content.chest.x+10,y:content.chest.y+8});
+    if(content.event)protectedPoints.push({x:content.event.x+8,y:content.event.y+8});
+    if(content.stairs)protectedPoints.push({x:content.stairs.x+16,y:content.stairs.y+14});
+    const safe=(x:number,y:number)=>protectedPoints.every(p=>Math.hypot(p.x-x,p.y-y)>44);
+
+    const fractures=[[82,88],[142,258],[236,72],[324,244],[395,116],[108,190],[366,286]] as const;
     ctx.strokeStyle=damageTier>=3?'#352d2e':'#4a4340';
     ctx.lineWidth=1;
-    ctx.globalAlpha=.085+damageTier*.025;
-    for(let i=0;i<Math.min(cracks.length,2+damageTier*2);i++){
-      const [x,y]=cracks[i],flip=i%2?1:-1;
-      ctx.beginPath();
-      ctx.moveTo(x-9,y-2);ctx.lineTo(x,y+3);ctx.lineTo(x+8,y-4);ctx.lineTo(x+13,y+3*flip);
-      ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x,y+3);ctx.lineTo(x-4,y+10);ctx.stroke();
+    ctx.globalAlpha=.075+damageTier*.022;
+    let shown=0;
+    for(let i=0;i<fractures.length&&shown<2+damageTier*2;i++){
+      const [x,y]=fractures[i];
+      if(!safe(x,y))continue;
+      // Grieta radial irregular: sin chevrón, punta o dirección dominante.
+      const base=(i*.83)%Math.PI;
+      for(let b=0;b<3;b++){
+        const a=base+b*Math.PI*.69+(b===1?.24:-.13);
+        const r1=5+(i+b)%4,r2=r1+5+((i*3+b)%4);
+        const mx=x+Math.cos(a)*r1,my=y+Math.sin(a)*r1;
+        const ex=x+Math.cos(a+.18*(b-1))*r2,ey=y+Math.sin(a+.18*(b-1))*r2;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(mx,my);ctx.lineTo(ex,ey);ctx.stroke();
+        if(b===0){
+          ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+Math.cos(a-1.15)*4,my+Math.sin(a-1.15)*4);ctx.stroke();
+        }
+      }
+      shown++;
     }
   }
   if(damageTier>=2){
@@ -385,6 +483,7 @@ export function renderWorld(engine: GameEngine) {
   ctx.translate(engine.shakeX, engine.shakeY);
 
   drawRoomFloor(ctx, room, content, f, engine.map.floorIndex);
+  drawSpecialRoomIdentity(ctx,room,content,f);
   if(room.modifier==='blackout') {
     ctx.fillStyle='rgba(2,10,18,.48)';ctx.fillRect(32,32,CANVAS_WIDTH-64,CANVAS_HEIGHT-64);
   }
