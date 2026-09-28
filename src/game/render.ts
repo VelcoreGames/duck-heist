@@ -728,7 +728,7 @@ export function renderWorld(engine: GameEngine) {
       const premium=p.type==='pan_dorado';
       drawGroundLootBase(ctx,p.x,p.y,premium?'#f4d03f':'#e98586',f,premium?.19:.10,premium?15:13);
       const bob=Math.round(Math.sin(f*.08+p.x*.02));
-      drawItemIcon(ctx,p.x-12,p.y-14+bob,p.type,24,premium?'#f4d03f':undefined);
+      drawItemIcon(ctx,p.x-14,p.y-17+bob,p.type,28,premium?'#f4d03f':undefined);
       ctx.globalAlpha*=premium?.55:.24;
       ctx.strokeStyle=premium?'#fff0a0':'#ffb6b2';ctx.lineWidth=1;
       ctx.beginPath();ctx.arc(p.x,p.y-2,premium?11:8,0,Math.PI*2);ctx.stroke();
@@ -761,11 +761,11 @@ export function renderWorld(engine: GameEngine) {
       g.addColorStop(0,categoryColor+'00');g.addColorStop(.55,categoryColor+'18');g.addColorStop(1,categoryColor+'00');
       ctx.fillStyle=g;ctx.fillRect(it.x+1,fy-beamH,14,beamH+24);
     }
-    drawItemIcon(ctx,it.x-4,fy-4,it.itemId,24,rarityColor);
+    drawItemIcon(ctx,it.x-7,fy-7,it.itemId,30,rarityColor);
     if(it.isWeapon){
-      ctx.globalAlpha=.58;ctx.strokeStyle='#8edcff';ctx.beginPath();ctx.moveTo(it.x+2,fy+20);ctx.lineTo(it.x+14,fy+20);ctx.stroke();ctx.globalAlpha=1;
+      ctx.globalAlpha=.58;ctx.strokeStyle='#8edcff';ctx.beginPath();ctx.moveTo(it.x-1,fy+24);ctx.lineTo(it.x+17,fy+24);ctx.stroke();ctx.globalAlpha=1;
     }else if(it.isActive){
-      ctx.globalAlpha=.62;ctx.strokeStyle='#d7a5ff';ctx.beginPath();ctx.arc(it.x+8,fy+8,14,Math.PI*.15,Math.PI*.85);ctx.stroke();ctx.globalAlpha=1;
+      ctx.globalAlpha=.62;ctx.strokeStyle='#d7a5ff';ctx.beginPath();ctx.arc(it.x+8,fy+8,17,Math.PI*.15,Math.PI*.85);ctx.stroke();ctx.globalAlpha=1;
     }
     if((def?.rarity??0)>=4&&f%26<8){
       ctx.fillStyle=categoryColor;ctx.globalAlpha=.75;
@@ -1029,7 +1029,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.translate(drawX+7,drawY+9+interact*3);
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
-    const gunSize=longGun?16:14;
+    const gunSize=longGun?19:17;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
     const postShot=clamp((cooldownNorm-.35)/.65,0,1);
