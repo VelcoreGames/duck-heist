@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/v130-floor-props-overhaul]
   pull_request:
     branches: [main]
 
