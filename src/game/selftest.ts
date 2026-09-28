@@ -303,8 +303,8 @@ export function runSelfChecks():CheckReport {
       for(let floor=0;floor<6;floor++){
         const room:MapRoom={gx:2,gy:-1,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,layout:[],distance:3,floorIndex:floor};
         generateRoomLayout(room,()=>.42);
-        assert(BANK_ROOM_TEMPLATES_BY_FLOOR[floor].includes(room.template as never),`piso ${floor+1} usó layout fuera de su zona bancaria: ${room.template}`);
-        assert(BANK_ROOM_TEMPLATES.includes(room.template as never),`layout ${room.template} no está registrado como bancario`);
+        assert((BANK_ROOM_TEMPLATES_BY_FLOOR[floor] as readonly string[]).includes(room.template??''),`piso ${floor+1} usó layout fuera de su zona bancaria: ${room.template}`);
+        assert((BANK_ROOM_TEMPLATES as readonly string[]).includes(room.template??''),`layout ${room.template} no está registrado como bancario`);
       }
     });
     check('Layouts bancarios conservan corredores de puerta y centro libres',()=>{
