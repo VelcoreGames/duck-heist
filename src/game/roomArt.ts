@@ -219,6 +219,17 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
     ctx.globalAlpha=.55;ctx.fillStyle=accent;ctx.fillRect(lx-9,38,18,2);
     ctx.globalAlpha=.18;ctx.fillStyle='#fff8dd';ctx.fillRect(lx-5,40,10,2);
     ctx.globalAlpha=1;
+
+    // El baño de pared ahora alcanza el mármol como una huella elíptica.
+    // Se mantiene extremadamente tenue para no competir con balas, loot o telegraphs.
+    ctx.save();
+    ctx.translate(lx,216);ctx.scale(1,.28);
+    const floorPool=ctx.createRadialGradient(0,0,4,0,0,74);
+    floorPool.addColorStop(0,'rgba(255,245,214,.055)');
+    floorPool.addColorStop(.42,'rgba(255,245,214,.022)');
+    floorPool.addColorStop(1,'rgba(255,245,214,0)');
+    ctx.fillStyle=floorPool;ctx.beginPath();ctx.arc(0,0,74,0,Math.PI*2);ctx.fill();
+    ctx.restore();
   }
 
   ctx.save();
@@ -229,6 +240,18 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
   ctx.strokeRect(43.5,43.5,CANVAS_WIDTH-87,CANVAS_HEIGHT-87);
   ctx.globalAlpha=deco==='golden'?.10:.055;
   ctx.strokeRect(49.5,49.5,CANVAS_WIDTH-99,CANVAS_HEIGHT-99);
+
+  // Marcas de sector integradas en las cuatro esquinas: arquitectura, no HUD.
+  // Cada ala del banco conserva su metal propio y gana una firma reconocible.
+  ctx.globalAlpha=.20;ctx.strokeStyle=accent;ctx.lineWidth=1;
+  const inset=58,len=13;
+  for(const [sx,sy,dx,dy] of [
+    [inset,inset,1,1],[CANVAS_WIDTH-inset,inset,-1,1],
+    [inset,CANVAS_HEIGHT-inset,1,-1],[CANVAS_WIDTH-inset,CANVAS_HEIGHT-inset,-1,-1],
+  ] as const){
+    ctx.beginPath();ctx.moveTo(sx+dx*len,sy);ctx.lineTo(sx,sy);ctx.lineTo(sx,sy+dy*len);ctx.stroke();
+    ctx.globalAlpha=.08;ctx.fillStyle=accent;ctx.fillRect(sx+dx*4-(dx<0?4:0),sy+dy*4-(dy<0?4:0),4,4);ctx.globalAlpha=.20;
+  }
 
   // Eje central pulido/incrustado según sector.
   if(deco==='lobby'){
@@ -276,6 +299,15 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
   ctx.restore();
 
   // Reflejo central tenue sobre el piso pulido.
+  // Un segundo brillo lateral muy fino rompe la simetría perfecta y da
+  // profundidad sin introducir decoración que se pueda confundir con pickups.
+  ctx.save();
+  ctx.globalAlpha=.032;ctx.fillStyle='#ffffff';
+  const drift=((frame*.018)%96);
+  ctx.fillRect(74+drift,66,1,CANVAS_HEIGHT-132);
+  ctx.globalAlpha=.016;ctx.fillRect(CANVAS_WIDTH-92-drift*.55,72,1,CANVAS_HEIGHT-144);
+  ctx.restore();
+
   const reflection=ctx.createLinearGradient(0,62,0,CANVAS_HEIGHT-56);
   reflection.addColorStop(0,'rgba(255,255,255,0)');
   reflection.addColorStop(.48,'rgba(255,255,255,.018)');
