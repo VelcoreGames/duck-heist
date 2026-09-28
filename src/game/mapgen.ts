@@ -333,10 +333,22 @@ function assignRandom(pool: MapRoom[], type: RoomType,random=Math.random) {
  *  0 = suelo, 1 = muro, 10+ = obstáculo sólido (índice en OBSTACLES)
  * Se reserva siempre un pasillo en cruz para que todas las puertas sean accesibles.
  */
+export const BANK_ROOM_TEMPLATES_BY_FLOOR=[
+  ['bankLobby','tellerHall','waitingArea'],
+  ['securityCheckpoint','surveillanceOps','secureLanes'],
+  ['archiveRows','custodyTransfer','recordCages'],
+  ['privateBanking','executivePods','cashOffice'],
+  ['vaultCheckpoint','safeDeposit','secureTransfer'],
+  ['sovereignVault','goldCages','coreSecurity'],
+] as const;
+
+export const BANK_ROOM_TEMPLATES=[...new Set(BANK_ROOM_TEMPLATES_BY_FLOOR.flat())];
+
 export const ROOM_TEMPLATES=['pillars','desks','vault','shelves','scatter','counters','open','islands','zigzag','corners',
   'deskMaze','tellerBooths','safeDiamond','twinLanes','loadingDocks','brokenOffice','horseshoes','crossCover',
   'checkerCover','centralPillars','outerShelves','staggeredSafes','splitIslands','diagonalBarricade',
-  'depositLockers','valueCarts','archiveCabinets','transferCases'];
+  'depositLockers','valueCarts','archiveCabinets','transferCases',
+  ...BANK_ROOM_TEMPLATES];
 
 export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTemplate?:string): number[][] {
   const rInt=(min:number,max:number)=>Math.floor(random()*(max-min+1))+min;
@@ -365,14 +377,24 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     return false;
   };
 
-  // Las salas especiales tienen decoración propia, sin obstáculos aleatorios
+  // Las salas especiales de recompensa conservan su composición dedicada.
+  // START sí recibe arquitectura bancaria ordenada para que el piso comience
+  // pareciendo una instalación real y no una arena vacía.
   if (room.type === RoomType.ITEM || room.type === RoomType.SHOP ||
-      room.type === RoomType.BOSS || room.type === RoomType.START ||
+      room.type === RoomType.BOSS ||
       room.type === RoomType.SECRET || room.type===RoomType.EVENT || room.type===RoomType.CHOICE) {
     return layout;
   }
 
-  const pattern=forcedTemplate ?? pick(ROOM_TEMPLATES);
+  const floorTier=Math.max(0,Math.min(5,room.floorIndex ?? 0));
+  const bankPool=BANK_ROOM_TEMPLATES_BY_FLOOR[floorTier];
+  const pattern=forcedTemplate ?? (
+    room.type===RoomType.START
+      ? bankPool[0]
+      : room.type===RoomType.SUBBOSS || room.type===RoomType.MINIBOSS
+        ? bankPool[2]
+        : pick([...bankPool])
+  );
   room.template=pattern;
   // Cada piso tiene 20 objetos propios. Las familias cambian de nombre,
   // acabado y valor con el piso; aquí sólo elegimos qué siluetas encajan mejor
@@ -385,7 +407,6 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     [5,6,8,12,13,18,19],        // piso 5 · bóveda
     [4,5,6,8,13,18,19],         // piso 6 · cámara soberana
   ];
-  const floorTier=Math.max(0,Math.min(5,room.floorIndex ?? 0));
   const prop=(family:number,tier=floorTier)=>
     OBSTACLE_BASE+Math.max(0,Math.min(5,tier))*OBSTACLES_PER_FLOOR+family;
   const obstacle=()=>prop(pick(familySets[floorTier]));
@@ -401,6 +422,167 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
   const lx=(x:number)=>x+Math.floor((ROOM_WIDTH-15)/2);
 
   switch (pattern) {
+    // ---------------------------------------------------------------------
+    // LAYOUTS BANCARIOS: los props forman estaciones y zonas funcionales.
+    // Siempre respetan la cruz de circulación central y los accesos a puertas.
+    // ---------------------------------------------------------------------
+    case 'bankLobby': {
+      // Recepción al norte, filas a los lados, espera/decoración en esquinas.
+      for(const x of [cx-4,cx-2,cx+2,cx+4]) place(x,2,prop(0));
+      for(const [x,y] of [[cx-5,3],[cx-5,4],[cx+5,3],[cx+5,4]]) place(x,y,prop(1));
+      place(2,2,prop(16)); place(ROOM_WIDTH-3,2,prop(16));
+      place(2,ROOM_HEIGHT-3,prop(15)); place(ROOM_WIDTH-3,ROOM_HEIGHT-3,prop(17));
+      break;
+    }
+    case 'tellerHall': {
+      // Cuatro módulos de caja alineados y corredores de fila enfrente.
+      for(const x of [cx-5,cx-2,cx+2,cx+5]){
+        place(x,2,prop(0));
+        place(x,3,prop(10));
+      }
+      for(const [x,y] of [[cx-5,7],[cx-5,8],[cx+5,7],[cx+5,8]]) place(x,y,prop(1));
+      place(2,7,prop(14)); place(ROOM_WIDTH-3,7,prop(14));
+      break;
+    }
+    case 'waitingArea': {
+      // Zona de espera ordenada: sillas por pares, plantas y servicios al muro.
+      for(const [x,y] of [[3,3],[4,3],[ROOM_WIDTH-5,3],[ROOM_WIDTH-4,3],
+                          [3,7],[4,7],[ROOM_WIDTH-5,7],[ROOM_WIDTH-4,7]]) place(x,y,prop(15));
+      place(2,2,prop(16)); place(ROOM_WIDTH-3,2,prop(16));
+      place(2,ROOM_HEIGHT-3,prop(17)); place(ROOM_WIDTH-3,ROOM_HEIGHT-3,prop(0));
+      break;
+    }
+    case 'securityCheckpoint': {
+      // Dos carriles de control, lectores y alarmas pegadas al perímetro.
+      for(const y of [2,3,7,8]){
+        place(cx-4,y,prop(6)); place(cx+4,y,prop(6));
+      }
+      for(const [x,y] of [[cx-5,3],[cx+5,3],[cx-5,7],[cx+5,7]]) place(x,y,prop(1));
+      place(2,2,prop(7)); place(ROOM_WIDTH-3,2,prop(7));
+      place(2,ROOM_HEIGHT-3,prop(18)); place(ROOM_WIDTH-3,ROOM_HEIGHT-3,prop(19));
+      break;
+    }
+    case 'surveillanceOps': {
+      // Videowall/operadores al norte y racks en extremos.
+      for(const x of [cx-5,cx-2,cx+2,cx+5]) place(x,2,prop(18));
+      for(const [x,y] of [[2,3],[2,7],[ROOM_WIDTH-3,3],[ROOM_WIDTH-3,7]]) place(x,y,prop(19));
+      place(cx-4,7,prop(6)); place(cx+4,7,prop(6));
+      place(cx-5,8,prop(7)); place(cx+5,8,prop(7));
+      break;
+    }
+    case 'secureLanes': {
+      // Carriles paralelos de control con infraestructura técnica.
+      for(let y=2;y<=8;y+=2){
+        place(cx-4,y,prop(y%4===0?7:6));
+        place(cx+4,y,prop(y%4===0?7:6));
+      }
+      place(2,2,prop(19)); place(ROOM_WIDTH-3,2,prop(19));
+      place(2,8,prop(18)); place(ROOM_WIDTH-3,8,prop(18));
+      break;
+    }
+    case 'archiveRows': {
+      // Filas de archivo contra muros; carros sólo en extremos de pasillo.
+      for(const x of [3,ROOM_WIDTH-4]) for(const y of [2,4,6,8]) place(x,y,prop(12));
+      place(4,2,prop(8)); place(ROOM_WIDTH-5,2,prop(8));
+      place(4,8,prop(11)); place(ROOM_WIDTH-5,8,prop(11));
+      break;
+    }
+    case 'custodyTransfer': {
+      // Zona de transferencia de valores: cases/containers agrupados en estaciones.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]){
+        place(x,y,prop(4));
+        place(x+(x<cx?1:-1),y,prop(9));
+      }
+      place(2,4,prop(11)); place(ROOM_WIDTH-3,6,prop(11));
+      place(2,7,prop(10)); place(ROOM_WIDTH-3,3,prop(10));
+      break;
+    }
+    case 'recordCages': {
+      // Jaulas y lockers simétricos, como zona de custodia documental.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]) place(x,y,prop(13));
+      for(const [x,y] of [[cx-4,3],[cx+4,3],[cx-4,7],[cx+4,7]]) place(x,y,prop(12));
+      place(2,2,prop(8)); place(ROOM_WIDTH-3,8,prop(8));
+      break;
+    }
+    case 'privateBanking': {
+      // Módulos de atención privados, impresoras y sillas enfrentadas.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]) place(x,y,prop(0));
+      for(const [x,y] of [[cx-4,3],[cx+4,3],[cx-4,7],[cx+4,7]]) place(x,y,prop(15));
+      place(2,3,prop(14)); place(ROOM_WIDTH-3,7,prop(14));
+      place(2,8,prop(16)); place(ROOM_WIDTH-3,2,prop(16));
+      break;
+    }
+    case 'executivePods': {
+      // Islas ejecutivas compactas, con vigilancia discreta en muro.
+      for(const [ox,oy] of [[cx-5,2],[cx+3,2],[cx-5,7],[cx+3,7]]){
+        place(ox,oy,prop(0)); place(ox+1,oy,prop(14)); place(ox,oy+1,prop(15));
+      }
+      place(2,5,prop(18)); place(ROOM_WIDTH-3,5,prop(18));
+      break;
+    }
+    case 'cashOffice': {
+      // Operación de efectivo: contadoras/impresoras alineadas y casos en perímetro.
+      for(const x of [cx-5,cx-2,cx+2,cx+5]){
+        place(x,2,prop(10));
+        place(x,8,prop(14));
+      }
+      place(2,3,prop(9)); place(2,7,prop(4));
+      place(ROOM_WIDTH-3,3,prop(4)); place(ROOM_WIDTH-3,7,prop(9));
+      break;
+    }
+    case 'vaultCheckpoint': {
+      // Control previo a bóveda: biométricos, servidores y columnas reforzadas.
+      for(const y of [2,8]){
+        place(cx-5,y,prop(6)); place(cx+5,y,prop(6));
+        place(cx-4,y,prop(5)); place(cx+4,y,prop(5));
+      }
+      place(2,3,prop(19)); place(ROOM_WIDTH-3,3,prop(19));
+      place(2,7,prop(7)); place(ROOM_WIDTH-3,7,prop(7));
+      break;
+    }
+    case 'safeDeposit': {
+      // Cajas/lockers formando bancos laterales, dejando eje central ceremonial.
+      for(const x of [3,ROOM_WIDTH-4]) for(const y of [2,4,6,8]) place(x,y,prop(y%4===0?13:8));
+      place(4,2,prop(6)); place(ROOM_WIDTH-5,8,prop(6));
+      place(4,8,prop(9)); place(ROOM_WIDTH-5,2,prop(9));
+      break;
+    }
+    case 'secureTransfer': {
+      // Transferencia blindada: contenedores y jaulas por parejas.
+      for(const [x,y] of [[cx-5,2],[cx+5,2],[cx-5,8],[cx+5,8]]){
+        place(x,y,prop(4));
+        place(x+(x<cx?1:-1),y,prop(13));
+      }
+      place(2,5,prop(11)); place(ROOM_WIDTH-3,5,prop(11));
+      place(3,3,prop(6)); place(ROOM_WIDTH-4,7,prop(6));
+      break;
+    }
+    case 'sovereignVault': {
+      // Cámara principal: perímetro de custodia y estaciones simétricas.
+      for(const [x,y] of [[3,2],[ROOM_WIDTH-4,2],[3,8],[ROOM_WIDTH-4,8]]) place(x,y,prop(13));
+      for(const [x,y] of [[5,2],[ROOM_WIDTH-6,2],[5,8],[ROOM_WIDTH-6,8]]) place(x,y,prop(4));
+      place(2,4,prop(6)); place(ROOM_WIDTH-3,4,prop(6));
+      place(2,6,prop(19)); place(ROOM_WIDTH-3,6,prop(19));
+      break;
+    }
+    case 'goldCages': {
+      // Custodia de valores: jaulas repetidas como arquitectura funcional.
+      for(const y of [2,4,6,8]){
+        place(3,y,prop(13)); place(ROOM_WIDTH-4,y,prop(13));
+      }
+      place(4,2,prop(8)); place(ROOM_WIDTH-5,2,prop(8));
+      place(4,8,prop(19)); place(ROOM_WIDTH-5,8,prop(19));
+      break;
+    }
+    case 'coreSecurity': {
+      // Núcleo de seguridad: racks y lectores al perímetro, cero clutter central.
+      for(const [x,y] of [[2,2],[2,8],[ROOM_WIDTH-3,2],[ROOM_WIDTH-3,8]]) place(x,y,prop(19));
+      for(const [x,y] of [[4,2],[4,8],[ROOM_WIDTH-5,2],[ROOM_WIDTH-5,8]]) place(x,y,prop(6));
+      place(3,4,prop(7)); place(ROOM_WIDTH-4,4,prop(7));
+      place(3,6,prop(5)); place(ROOM_WIDTH-4,6,prop(5));
+      break;
+    }
+
     case 'depositLockers':
       for(const x of [3,ROOM_WIDTH-4])for(let y=2;y<=ROOM_HEIGHT-3;y+=2)place(x,y,prop(8));
       break;
@@ -496,12 +678,32 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     }
     default: break;
   }
-  // Props sueltos de custodia: variedad bancaria sin saturar la sala.
-  if(random()<.72){
-    const looseFamilies=[3,9,10,14,15,16,17];
-    for(let i=0;i<rInt(1,3);i++){
-      place(rInt(2,ROOM_WIDTH-3),rInt(2,ROOM_HEIGHT-3),prop(pick(looseFamilies)));
+  const bankTemplate=BANK_ROOM_TEMPLATES.includes(pattern as typeof BANK_ROOM_TEMPLATES[number]);
+  if(bankTemplate){
+    // Soportes secundarios siguen la arquitectura: pared/esquina, nunca ruido
+    // aleatorio en el centro de circulación.
+    const supportByFloor=[
+      [16,17,15], // lobby: plantas, agua, espera
+      [7,18,19],  // seguridad: alarmas/monitores/racks
+      [8,11,9],   // archivo: cajoneras/carros/cases
+      [14,15,16], // privado: impresora/silla/planta
+      [6,19,9],   // bóveda: lector/rack/case
+      [6,19,13],  // cámara: lector/rack/jaula
+    ][floorTier];
+    const supportSlots=[[2,2],[ROOM_WIDTH-3,2],[2,ROOM_HEIGHT-3],[ROOM_WIDTH-3,ROOM_HEIGHT-3]] as const;
+    const occupied=(x:number,y:number)=>layout[y]?.[x]>=OBSTACLE_BASE;
+    let added=0;
+    for(let i=0;i<supportSlots.length&&added<2;i++){
+      const [x,y]=supportSlots[(i+Math.abs(room.gx*3+room.gy*5))%supportSlots.length];
+      if(!occupied(x,y)){
+        place(x,y,prop(supportByFloor[(i+room.distance)%supportByFloor.length]));
+        added++;
+      }
     }
+  }else if(random()<.38){
+    // Compatibilidad con plantillas históricas forzadas por pruebas/fixtures.
+    const looseFamilies=[3,9,10,14,15,16,17];
+    place(rInt(2,ROOM_WIDTH-3),rInt(2,ROOM_HEIGHT-3),prop(pick(looseFamilies)));
   }
 
   return layout;
