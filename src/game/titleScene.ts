@@ -1,7 +1,10 @@
 import { drawDuckSkin, drawSecurityPigeon, drawShopPigeon } from './sprites';
+import { ART_SCALE, ART_PIXEL } from './constants';
 
 type Ctx = CanvasRenderingContext2D;
-const r = (c:Ctx,x:number,y:number,w:number,h:number,color:string) => { c.fillStyle=color; c.fillRect(Math.round(x),Math.round(y),w,h); };
+const snap=(v:number)=>Math.round(v*ART_SCALE)/ART_SCALE;
+const span=(v:number)=>Math.max(ART_PIXEL,Math.round(v*ART_SCALE)/ART_SCALE);
+const r = (c:Ctx,x:number,y:number,w:number,h:number,color:string) => { c.fillStyle=color; c.fillRect(snap(x),snap(y),span(w),span(h)); };
 function disc(c:Ctx,x:number,y:number,radius:number,color:string) {
   c.fillStyle=color;
   for(let j=-radius;j<=radius;j+=2) {
