@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, feature/v0120-environment-overhaul]
+    branches: [main]
   pull_request:
     branches: [main]
 
