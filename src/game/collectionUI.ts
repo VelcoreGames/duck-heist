@@ -51,8 +51,23 @@ function known(e:GameEngine,entry:CatalogEntry) {
   return entry.category==='skins'?e.unlockedSkins.includes(entry.id):e.discovered[entry.category].includes(entry.id);
 }
 export function drawCatalogSprite(e:GameEngine,entry:CatalogEntry,x:number,y:number,size:number,unknown=false) {
-  const c=e.ui!;
-  if(entry.category==='items' || entry.category==='weapons') { drawItemIcon(c,x,y,unknown?'mystery':entry.id,size,RARITY_COLORS[entry.rarity],unknown);return; }
+  const c=e.ui!,accent=unknown?'#53686d':RARITY_COLORS[entry.rarity]??'#9abf9f';
+  // Cada ficha usa el mismo pedestal visual, sin flechas ni decals ambiguos.
+  // La colección ahora presenta items, enemigos, skins y jefes como piezas del archivo.
+  c.save();
+  const cx=x+size/2,cy=y+size/2,pulse=.5+.5*Math.sin(e.frame*.055+entry.id.length);
+  c.globalAlpha=unknown?.055:.07+.025*pulse;c.fillStyle=accent;c.beginPath();c.arc(cx,cy,size*.46,0,Math.PI*2);c.fill();
+  c.globalAlpha=unknown?.14:.25;c.strokeStyle=accent;c.lineWidth=1;
+  c.beginPath();c.ellipse(cx,y+size*.82,size*.37,size*.10,0,0,Math.PI*2);c.stroke();
+  const k=Math.max(3,Math.floor(size*.10)),r=size*.46;
+  c.globalAlpha=.30;c.beginPath();
+  c.moveTo(cx-r,cy-r+k);c.lineTo(cx-r,cy-r);c.lineTo(cx-r+k,cy-r);
+  c.moveTo(cx+r-k,cy-r);c.lineTo(cx+r,cy-r);c.lineTo(cx+r,cy-r+k);
+  c.moveTo(cx-r,cy+r-k);c.lineTo(cx-r,cy+r);c.lineTo(cx-r+k,cy+r);
+  c.moveTo(cx+r-k,cy+r);c.lineTo(cx+r,cy+r);c.lineTo(cx+r,cy+r-k);c.stroke();
+  c.restore();
+
+  if(entry.category==='items' || entry.category==='weapons') { drawItemIcon(c,x,y,unknown?'mystery':entry.id,size,accent,unknown);return; }
   if(entry.category==='synergies') {
     const def=SYNERGIES.find(s=>s.id===entry.id);
     if(unknown||!def){drawItemIcon(c,x,y,'mystery',size,'#9b7bb8',true);return;}
@@ -103,6 +118,11 @@ export function renderCollection(e:GameEngine) {
   const unlocked=selected?known(e,selected):false;
   drawMenuCard(c,30,89,156,217,true,'#9abf9f','rgba(8,20,26,.94)');
   drawSectionLabel(c,'FICHA ACTIVA',42,108,'#9abf9f');
+  // Ventana de inspección: retícula técnica muy tenue detrás de la pieza.
+  c.save();c.globalAlpha=.055;c.strokeStyle='#9abf9f';c.lineWidth=1;
+  for(let gx=48;gx<=168;gx+=20){c.beginPath();c.moveTo(gx,118);c.lineTo(gx,174);c.stroke();}
+  for(let gy=118;gy<=174;gy+=14){c.beginPath();c.moveTo(48,gy);c.lineTo(168,gy);c.stroke();}
+  c.restore();
   if(selected) drawCatalogSprite(e,selected,72,101,72,!unlocked);
   else drawItemIcon(c,72,101,'mystery',72,'#6c8285',true);
   wrappedText(c,selected?(unlocked?selected.name:'???'):'SIN RESULTADOS',42,188,132,11,14,2,'#f6dfa1',true);
