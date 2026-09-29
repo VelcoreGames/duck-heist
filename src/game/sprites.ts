@@ -894,7 +894,9 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
       break;
     }
     case 'sniper_baguette': {
-      rect(ctx, bx - 5, by - 1, 10, 2, '#e8c99b'); rect(ctx, bx - 4, by, 8, 1, '#a67c52');
+      ctx.globalAlpha=.28;rect(ctx,bx-10,by-1,8,2,'#c96f1f');ctx.globalAlpha=1;
+      rect(ctx,bx-5,by-1,10,2,'#ffb13b');rect(ctx,bx+3,by-1,3,2,'#ffd86a');
+      px(ctx,bx+4,by-1,'#fff4c6',1);
       break;
     }
     case 'plasma_bread': {
@@ -925,36 +927,36 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
       break;
     }
     case 'enemy_bullet': {
-      ctx.fillStyle = '#e74c3c';
-      ctx.beginPath();
-      ctx.arc(bx, by, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ff6b6b';
-      ctx.beginPath();
-      ctx.arc(bx, by, 1.5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle='rgba(255,145,36,.28)';
+      ctx.beginPath();ctx.arc(bx,by,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#ff9a2f';
+      ctx.beginPath();ctx.arc(bx,by,3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#ffd86a';
+      ctx.beginPath();ctx.arc(bx,by,1.5,0,Math.PI*2);ctx.fill();
+      px(ctx,bx,by,'#fff4c6',1);
       break;
     }
     case 'pistol': { // bala de policía
-      ctx.fillStyle = 'rgba(120,160,255,0.35)';
-      ctx.fillRect(bx - 4, by - 1, 8, 2);
-      rect(ctx, bx - 2, by - 2, 4, 4, '#dfe6ee');
-      rect(ctx, bx - 1, by - 1, 2, 2, '#7fb3d5');
+      ctx.fillStyle='rgba(255,145,36,.30)';
+      ctx.fillRect(bx-5,by-1,9,2);
+      rect(ctx,bx-2,by-2,4,4,'#ff9a2f');
+      rect(ctx,bx-1,by-1,2,2,'#ffd86a');
+      px(ctx,bx,by,'#fff4c6',1);
       break;
     }
     case 'buckshot': { // perdigón de escopeta
-      rect(ctx, bx - 2, by - 2, 4, 4, '#ffb74d');
-      rect(ctx, bx - 1, by - 1, 2, 2, '#fff3b0');
-      ctx.globalAlpha = 0.4;
-      rect(ctx, bx - 4, by - 1, 3, 2, '#ff9f43');
-      ctx.globalAlpha = 1;
+      rect(ctx,bx-2,by-2,4,4,'#ff9a2f');
+      rect(ctx,bx-1,by-1,2,2,'#ffd86a');
+      ctx.globalAlpha=.40;rect(ctx,bx-4,by-1,3,2,'#c96f1f');ctx.globalAlpha=1;
+      px(ctx,bx,by,'#fff4c6',1);
       break;
     }
     case 'drone_shot': { // láser del dron
-      ctx.fillStyle = 'rgba(255,59,48,0.3)';
-      ctx.fillRect(bx - 5, by - 2, 10, 4);
-      rect(ctx, bx - 3, by - 1, 6, 2, '#ff3b30');
-      rect(ctx, bx - 1, by - 1, 2, 2, '#ffd9d6');
+      ctx.fillStyle='rgba(255,145,36,.30)';
+      ctx.fillRect(bx-5,by-2,10,4);
+      rect(ctx,bx-3,by-1,6,2,'#ff9a2f');
+      rect(ctx,bx-1,by-1,2,2,'#ffd86a');
+      px(ctx,bx,by,'#fff4c6',1);
       break;
     }
     case 'briefcase': {
