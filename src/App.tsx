@@ -1032,8 +1032,7 @@ export default function App() {
           style={{ imageRendering: 'pixelated' }} />
         <canvas ref={uiRef} role="application" aria-label="Duck Heist. Usa WASD para moverte, flechas o clic izquierdo para disparar, clic derecho o Shift para esquivar, E para interactuar, M para el mapa y Escape para pausar, reanudar o volver." tabIndex={0} className="absolute inset-0 h-full w-full"
           style={{ imageRendering: 'auto',outline:'none' }} />
-        <div className="duck-responsive-frame duck-frame-near pointer-events-none absolute -inset-3 rounded-[2px] border border-[#2f3644]" />
-        <div className="duck-responsive-frame duck-frame-far pointer-events-none absolute -inset-6 rounded-[3px] border border-[#161c2a]" />
+
       </div>
       <div className="duck-responsive-footer relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
         <span className="duck-responsive-hint hidden text-[#6a817f] md:block">{hint}</span>
