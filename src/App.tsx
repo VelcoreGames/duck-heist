@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   createEngine, beginHeist, updateEngine, menuMove, buyUpgrade, saveSettings,restoreCurrentRoomMusic,
   restartCurrentMode, abandonCurrentRun, moveEndlessReward, confirmEndlessReward, recycleEndlessRewards, recycleNearestEndlessFloorItem,
-  resumeEndlessGame, clearEndlessCheckpoint, resumeHeistGame, clearHeistCheckpoint,
+  resumeEndlessGame, clearEndlessCheckpoint, resumeHeistGame, clearHeistCheckpoint, saveHeistCheckpoint,
   handleDash, handleActiveItem, cycleWeapon, confirmSwap, cancelSwap, confirmActiveSwap,
   selectSwapSlot, adjustSetting, SETTING_ROWS, wardrobeAction, ensureSkinVisible,selectEventOption,
   DIFFICULTY_MODES, selectDifficulty,
@@ -833,6 +833,15 @@ export default function App() {
     wc.addEventListener('contextmenu', onCtx);
     uc.addEventListener('contextmenu', onCtx);
 
+    // Guardado de emergencia: cambiar de pestaña, cerrar o recargar conserva
+    // la sala exacta de la run, no sólo el inicio del piso.
+    const flushHeist=()=>{
+      if(engine.gameMode==='heist'&&engine.heistCheckpointFloor>0) saveHeistCheckpoint(engine,false);
+    };
+    const onVisibility=()=>{if(document.hidden)flushHeist();};
+    window.addEventListener('beforeunload',flushHeist);
+    document.addEventListener('visibilitychange',onVisibility);
+
     // ------------------------------------------------------------------
     // BUCLE
     // ------------------------------------------------------------------
@@ -992,6 +1001,8 @@ export default function App() {
       uc.removeEventListener('mousedown', onDown);
       wc.removeEventListener('contextmenu', onCtx);
       uc.removeEventListener('contextmenu', onCtx);
+      window.removeEventListener('beforeunload',flushHeist);
+      document.removeEventListener('visibilitychange',onVisibility);
     };
   }, [computeScale]);
 
