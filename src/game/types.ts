@@ -525,7 +525,11 @@ export interface GameEngine {
   endlessCheckpointDifficulty:DifficultyMode|null;
   heistCheckpointFloor:number;
   heistCheckpointDifficulty:DifficultyMode|null;
+  heistCheckpointSeed:string;
   endlessResumeIndex:number;
+  /** Semilla opcional escrita por el jugador para repetir una run. Vacía = aleatoria. */
+  seedInput:string;
+  seedEditing:boolean;
   madUnlocked: boolean;
 
   menuIndex: number;
