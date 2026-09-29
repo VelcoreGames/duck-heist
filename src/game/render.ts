@@ -69,24 +69,6 @@ const BALLISTIC_PLAYER_PROJECTILES=new Set([
   'pistol_round','buckshot_player','smg_round','rifle_556','rifle_762','lmg_556',
   'magnum_round','suppressed_45','dmr_round','sniper_308','heavy_50','pdw_57','grenade_40mm',
 ]);
-const playerProjectileAccent=(type:string)=>{
-  switch(type){
-    case 'pistol_round': return '#ffd85f';
-    case 'smg_round': return '#ffad45';
-    case 'buckshot_player': return '#ffd17b';
-    case 'rifle_556': return '#65eaff';
-    case 'lmg_556': return '#9bf36b';
-    case 'pdw_57': return '#ff8ee5';
-    case 'rifle_762': return '#ff7a4d';
-    case 'dmr_round': return '#ffb65c';
-    case 'sniper_308': return '#ffe85f';
-    case 'magnum_round': return '#ff6b45';
-    case 'suppressed_45': return '#8be2ff';
-    case 'heavy_50': return '#ffc767';
-    case 'grenade_40mm': return '#ff8a36';
-    default: return '#fff0bd';
-  }
-};
 const smoothStep=(a:number,b:number,v:number)=>{
   const t=clamp((v-a)/(b-a),0,1);
   return t*t*(3-2*t);
@@ -900,10 +882,7 @@ export function renderWorld(engine: GameEngine) {
       const danger=p.type==='buckshot'?'#ffad58':p.type==='drone_shot'?'#ff544c':'#ff7368';
       ctx.globalAlpha=.13;ctx.fillStyle=danger;ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5:5.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     } else if(BALLISTIC_PLAYER_PROJECTILES.has(p.type)) {
-      const accent=playerProjectileAccent(p.type);
-      ctx.globalAlpha=.18;ctx.fillStyle='#071014';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?5.2:5.8,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.22;ctx.fillStyle=accent;ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?4.1:4.7,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=1;
+      ctx.globalAlpha=.09;ctx.fillStyle='#ffd86a';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?3.6:3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     }
 
     // Estela corta y orientada para leer velocidad/dirección sin blur ni filtros.
@@ -912,10 +891,10 @@ export function renderWorld(engine: GameEngine) {
       if(!directional)ctx.rotate(Math.atan2(p.vy,p.vx));
       const hostile=!p.friendly,trail=hostile
         ?(p.type==='drone_shot'?'#ff6058':p.type==='buckshot'?'#f1a45c':'#d86b58')
-        :playerProjectileAccent(p.type);
-      ctx.globalAlpha=hostile?.14:.24;ctx.fillStyle=trail;
-      ctx.fillRect(-Math.min(14,4+speed*1.65),-1,Math.min(11,3+speed),2);
-      ctx.globalAlpha=hostile?.07:.12;ctx.fillRect(-Math.min(20,7+speed*2.15),0,Math.min(9,2+speed*.8),1);
+        :'#e6a638';
+      ctx.globalAlpha=hostile?.14:.12;ctx.fillStyle=trail;
+      ctx.fillRect(-Math.min(12,3+speed*1.5),-1,Math.min(10,2+speed),2);
+      ctx.globalAlpha=hostile?.07:.06;ctx.fillRect(-Math.min(18,6+speed*2),0,Math.min(8,2+speed*.7),1);
       ctx.restore();
     }
 
