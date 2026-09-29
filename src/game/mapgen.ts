@@ -389,8 +389,9 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
 
   const floorTier=Math.max(0,Math.min(5,room.floorIndex ?? 0));
   const bankPool=BANK_ROOM_TEMPLATES_BY_FLOOR[floorTier];
+  const standardFirstFloorRoom=floorTier===0&&room.type===RoomType.COMBAT;
   const pattern=forcedTemplate ?? (
-    room.type===RoomType.START
+    standardFirstFloorRoom
       ? bankPool[0]
       : room.type===RoomType.SUBBOSS || room.type===RoomType.MINIBOSS
         ? bankPool[2]
