@@ -12,7 +12,7 @@ import {
 import { renderWorld, renderUI } from './game/render';
 import { initAudio, setMusic, enterPauseMusic, resumePauseMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
-  mainMenuHit, difficultyRect, DIFFICULTY_START, BACK_BUTTON, PRIMARY_BUTTON,
+  mainMenuHit, difficultyRect, DIFFICULTY_START, SEED_INPUT, SEED_RANDOM, BACK_BUTTON, PRIMARY_BUTTON,
   PAUSE_MENU, pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION, wardrobeHit, swapHit, SWAP_CANCEL,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect, ENDLESS_SECONDARY,
@@ -176,7 +176,7 @@ export default function App() {
 
     const inSwap = () => !!engine.swap;
     const moveDifficulty=(dir:number)=>{engine.difficultyIndex=(engine.difficultyIndex+dir+DIFFICULTY_MODES.length)%DIFFICULTY_MODES.length;playUiMove();force(n=>n+1);};
-    const activateDifficulty=()=>{if(selectDifficulty(engine,engine.difficultyIndex)){playUiSelect();beginHeist(engine);}};
+    const activateDifficulty=()=>{engine.seedEditing=false;if(selectDifficulty(engine,engine.difficultyIndex)){playUiSelect();beginHeist(engine);}};
 
     const activateMenu = () => {
       playUiSelect();
@@ -277,6 +277,26 @@ export default function App() {
       engine.lastInput=fromGamepad?'gamepad':'keyboard';
       initAudio();if(engine.state===GameState.MENU) setMusic('menu');
       const k = e.key.toLowerCase();
+
+      // Campo de seed integrado. Mientras está activo, las teclas escriben la
+      // semilla y no disparan atajos globales (F/fullscreen, WASD, etc.).
+      if(engine.state===GameState.DIFFICULTY&&engine.pendingMode==='heist'&&engine.seedEditing){
+        e.preventDefault();
+        if(k==='escape'||k==='enter'){
+          engine.seedEditing=false;playUiSelect();force(n=>n+1);return;
+        }
+        if(k==='backspace'){
+          engine.seedInput=engine.seedInput.slice(0,-1);force(n=>n+1);return;
+        }
+        if(!fromGamepad&&e.key.length===1){
+          const ch=e.key.toUpperCase();
+          if(/^[A-Z0-9_-]$/.test(ch)&&engine.seedInput.length<28){
+            engine.seedInput+=ch;playUiMove();force(n=>n+1);
+          }
+        }
+        return;
+      }
+
       // ESC mantiene su acción normal del juego. En fullscreen además arma
       // una salida: dos pulsaciones rápidas salen, una sola pausa/reanuda/vuelve.
       const fullscreenEscape = !fromGamepad && k === 'escape' && !!document.fullscreenElement;
@@ -414,7 +434,7 @@ export default function App() {
           if(up) moveDifficulty(-1);
           else if(down) moveDifficulty(1);
           else if(yes) activateDifficulty();
-          else if(k==='escape'){playUiBack();goTo(GameState.MENU);}
+          else if(k==='escape'){engine.seedEditing=false;playUiBack();goTo(GameState.MENU);}
           break;
         case GameState.HEIST_INTRO: {
           const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
@@ -706,9 +726,15 @@ export default function App() {
           break;
         }
         case GameState.DIFFICULTY: {
-          if(inside(x,y,BACK_BUTTON)){playUiBack();goTo(GameState.MENU);break;}
+          if(inside(x,y,BACK_BUTTON)){engine.seedEditing=false;playUiBack();goTo(GameState.MENU);break;}
+          if(engine.pendingMode==='heist'&&inside(x,y,SEED_INPUT)){
+            engine.seedEditing=true;playUiSelect();force(n=>n+1);break;
+          }
+          if(engine.pendingMode==='heist'&&inside(x,y,SEED_RANDOM)){
+            engine.seedInput='';engine.seedEditing=false;playUiSelect();force(n=>n+1);break;
+          }
           if(inside(x,y,DIFFICULTY_START)){activateDifficulty();break;}
-          for(let i=0;i<4;i++)if(inside(x,y,difficultyRect(i))){engine.difficultyIndex=i;playUiMove();force(n=>n+1);break;}
+          for(let i=0;i<4;i++)if(inside(x,y,difficultyRect(i))){engine.seedEditing=false;engine.difficultyIndex=i;playUiMove();force(n=>n+1);break;}
           break;
         }
         case GameState.COLLECTION:
