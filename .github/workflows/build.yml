@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,37 +22,3 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Publish dist through GitHub API
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-dist-api]')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          BASE_SHA="$GITHUB_SHA"
-          BASE_TREE="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$BASE_SHA" --jq .tree.sha)"
-          echo '[]' > /tmp/dist-tree.json
-
-          while IFS= read -r -d '' file; do
-            blob_sha="$(
-              base64 -w0 "$file" |
-              jq -Rs '{content: ., encoding: "base64"}' |
-              gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input - --jq .sha
-            )"
-            jq --arg path "$file" --arg sha "$blob_sha"               '. + [{path:$path,mode:"100644",type:"blob",sha:$sha}]'               /tmp/dist-tree.json > /tmp/dist-tree.next.json
-            mv /tmp/dist-tree.next.json /tmp/dist-tree.json
-          done < <(find dist -type f -print0)
-
-          TREE_SHA="$(
-            jq -n --arg base "$BASE_TREE" --slurpfile tree /tmp/dist-tree.json               '{base_tree:$base,tree:$tree[0]}' |
-            gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq .sha
-          )"
-
-          COMMIT_SHA="$(
-            jq -n               --arg message "Publish Duck Heist v1.5.4 orange-yellow projectile palette [skip ci]"               --arg tree "$TREE_SHA"               --arg parent "$BASE_SHA"               '{message:$message,tree:$tree,parents:[$parent]}' |
-            gh api --method POST "repos/$GITHUB_REPOSITORY/git/commits" --input - --jq .sha
-          )"
-
-          jq -n --arg sha "$COMMIT_SHA" '{sha:$sha,force:false}' |
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/main" --input -
-
-          echo "Published dist commit: $COMMIT_SHA"
