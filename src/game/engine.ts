@@ -21,7 +21,7 @@ import { getBuild, PASSIVE_RULES, ACTIVE_RULES, FOODS } from './itemRules';
 import { emptyDiscoveries, normalizeProgress, permanentSnapshot, DEFAULT_SETTINGS } from './progress';
 import { DEFAULT_BINDINGS } from './controls';
 import { loadCareer, recordRun, refreshContracts } from './career';
-import { seededRandom, gameRandom, setGameRandom, resetGameRandom } from './random';
+import { seededRandom, gameRandom, setGameRandom, setGameRandomSeed, gameRandomSnapshot, restoreGameRandom, resetGameRandom } from './random';
 import { dailyModifiers, dailyScore, ensureDailyProfile, finalizeDaily, loadDailyChallenge } from './dailyChallenge';
 import type { CollectionCategory } from './catalog';
 import { WARDROBE } from './layout';
@@ -681,6 +681,7 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
   let endlessCheckpointDifficulty:DifficultyMode|null=null;
   let heistCheckpointFloor=0;
   let heistCheckpointDifficulty:DifficultyMode|null=null;
+  let heistCheckpointSeed='';
   try {
     const saved = localStorage.getItem('duckheist_save');
     if (saved) {
@@ -709,9 +710,10 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     const heistCp=localStorage.getItem('duckheist_heist_checkpoint');
     if(heistCp){
       const parsed=JSON.parse(heistCp);
-      if(parsed?.version===1 && Number.isInteger(parsed?.floorIndex) && parsed.floorIndex>=0 && parsed.floorIndex<TOTAL_FLOORS && DIFFICULTY_MODES.includes(parsed.difficulty) && parsed?.player && parsed?.run){
+      if((parsed?.version===1||parsed?.version===2) && Number.isInteger(parsed?.floorIndex) && parsed.floorIndex>=0 && parsed.floorIndex<TOTAL_FLOORS && DIFFICULTY_MODES.includes(parsed.difficulty) && parsed?.player && parsed?.run){
         heistCheckpointFloor=parsed.floorIndex+1;
         heistCheckpointDifficulty=parsed.difficulty;
+        heistCheckpointSeed=typeof parsed.run.seed==='string'?parsed.run.seed:'';
       }
     }
   } catch { /* sin almacenamiento */ }
@@ -758,14 +760,20 @@ export function createEngine(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
     wardrobeScroll:0,wardrobeScrollTarget:0,tooltip:{key:'',since:0},
     difficulty:'normal',difficultyIndex:1,madUnlocked,
     gameMode:'heist',pendingMode:'heist',endless:emptyEndlessState(),endlessRecords,
-    endlessCheckpointRound,endlessCheckpointDifficulty,heistCheckpointFloor,heistCheckpointDifficulty,endlessResumeIndex:0,
+    endlessCheckpointRound,endlessCheckpointDifficulty,heistCheckpointFloor,heistCheckpointDifficulty,heistCheckpointSeed,endlessResumeIndex:0,
+    seedInput:'',seedEditing:false,
     menuIndex: 0, pauseIndex: 0, runInfoTab:0, confirmIndex:1, confirmKind:null, confirmReturnState:GameState.PAUSED, settingsIndex: 0, upgradeIndex: 0, wardrobeIndex: 0,
     scale: 2,
   };
 }
 
+export function normalizeRunSeed(value:string) {
+  return String(value??'').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,28);
+}
+
 function newRunStats(seedOverride?:string) {
-  const seed=seedOverride??`PAN-${Math.floor(random()*0xffffffff).toString(16).toUpperCase().padStart(8,'0')}`;
+  const normalized=normalizeRunSeed(seedOverride??'');
+  const seed=normalized||`PAN-${Math.floor(random()*0xffffffff).toString(16).toUpperCase().padStart(8,'0')}`;
   return { time: 0, bosses: 0, items: 0, weaponsFound: 1, dmgDealt: 0, dmgTaken: 0, floorReached: 1, goldenEarned: 0,seed,weaponIds:['quack_blaster'],itemIds:[],weaponStats:{} };
 }
 
@@ -807,17 +815,25 @@ export function startGame(engine: GameEngine) {
   resetGameRandom();activeDailyModifiers=[];
   clearHeistCheckpoint(engine);
   engine.gameMode='heist';engine.pendingMode='heist';engine.dailyResult=null;
+  engine.seedEditing=false;
   activeDifficulty=engine.difficulty;
   saveProgress(engine);
   nextEnemyId = 0;
   initAudio();
+
+  // Una seed escrita por el jugador controla mapa + RNG de toda la run.
+  // Con las mismas decisiones/acciones, repetir la seed reproduce la partida.
+  const requestedSeed=normalizeRunSeed(engine.seedInput);
+  engine.run=newRunStats(requestedSeed||undefined);
+  setGameRandomSeed(engine.run.seed+':run');
+  try { if(requestedSeed)localStorage.setItem('duckheist_last_seed',engine.run.seed); } catch { /* opcional */ }
+
   engine.player = createPlayer(engine.metaLevels);
   const difficulty=DIFFICULTIES[engine.difficulty];
   if(difficulty.startHearts>0) {engine.player.maxHp+=difficulty.startHearts;engine.player.hp+=difficulty.startHearts;}
   engine.tutorialRun=!engine.tutorial.started;
   engine.alert=0;engine.roomStreak=0;engine.seenRoomKeys=[];engine.offeredItems=[];engine.stainedFloor=-1;
   engine.tutorialHint=null;engine.pad={...engine.pad,moveX:0,moveY:0,shoot:false};
-  engine.run=newRunStats();
   engine.map = generateMap(0,engine.run.seed);
   if(!engine.tutorial.started) engine.tutorial.started=true;
   engine.contents = new Map();
@@ -1062,12 +1078,21 @@ function makeEndlessRewards(engine:GameEngine):EndlessRewardOption[] {
   return result.slice(0,3);
 }
 
-function saveHeistCheckpoint(engine:GameEngine) {
-  if(engine.gameMode!=='heist')return;
+function serializeProjectile(p:Projectile){
+  return {...p,hitEnemies:[...p.hitEnemies]};
+}
+
+function deserializeProjectile(raw:any):Projectile {
+  return {...raw,hitEnemies:new Set<number>(Array.isArray(raw?.hitEnemies)?raw.hitEnemies:[])};
+}
+
+function saveHeistCheckpoint(engine:GameEngine,syncCloud=true) {
+  if(engine.testing||engine.gameMode!=='heist')return;
   const floorIndex=engine.map.floorIndex;
   if(floorIndex<0||floorIndex>=TOTAL_FLOORS)return;
+
   const payload={
-    version:1,
+    version:2,
     floorIndex,
     difficulty:engine.difficulty,
     player:engine.player,
@@ -1079,12 +1104,46 @@ function saveHeistCheckpoint(engine:GameEngine) {
     knownSynergies:engine.knownSynergies,
     tutorialRun:engine.tutorialRun,
     bossIntroSeen:engine.bossIntroSeen,
+
+    // Estado exacto de la run: mapa, habitaciones ya generadas y sala actual.
+    map:{
+      floorIndex:engine.map.floorIndex,
+      startKey:engine.map.startKey,
+      itemRoomKey:engine.map.itemRoomKey,
+      bossKey:engine.map.bossKey,
+      rooms:[...engine.map.rooms.entries()],
+    },
+    contents:[...engine.contents.entries()],
+    currentKey:engine.currentKey,
+    seenRoomKeys:engine.seenRoomKeys,
+    stainedFloor:engine.stainedFloor,
+
+    // RNG serializable: continuar no crea otra variante de la misma seed.
+    rng:gameRandomSnapshot(),
+    nextEnemyId,
+
+    // Estado de combate suficiente para reanudar donde se dejó.
+    projectiles:engine.projectiles.map(serializeProjectile),
+    grenades:engine.grenades,
+    remoteBomb:engine.remoteBomb,
+    decoy:engine.decoy,
+    drone:engine.drone,
+    coffeeCrash:engine.coffeeCrash,
+    transition:engine.transition,
+    floorIntroTimer:engine.floorIntroTimer,
+    bossIntroTimer:engine.bossIntroTimer,
+    bossIntroName:engine.bossIntroName,
+    bossIntroSubtitle:engine.bossIntroSubtitle,
+    roomLabel:engine.roomLabel,
+    roomLabelTimer:engine.roomLabelTimer,
+    frame:engine.frame,
   };
   try {
     localStorage.setItem('duckheist_heist_checkpoint',JSON.stringify(payload));
     engine.heistCheckpointFloor=floorIndex+1;
     engine.heistCheckpointDifficulty=engine.difficulty;
-    notifyCloudSave();
+    engine.heistCheckpointSeed=engine.run.seed;
+    if(syncCloud)notifyCloudSave();
   } catch { /* sin almacenamiento */ }
 }
 
@@ -1092,6 +1151,57 @@ export function clearHeistCheckpoint(engine:GameEngine) {
   try {localStorage.removeItem('duckheist_heist_checkpoint');notifyCloudSave();} catch { /* sin almacenamiento */ }
   engine.heistCheckpointFloor=0;
   engine.heistCheckpointDifficulty=null;
+  engine.heistCheckpointSeed='';
+}
+
+function restoreSavedPlayer(engine:GameEngine,saved:any){
+  const basePlayer=createPlayer(engine.metaLevels);
+  const savedPlayer=(saved??{}) as Partial<GameEngine['player']>;
+  const savedWeapons=Array.isArray(savedPlayer.weapons)?savedPlayer.weapons:[];
+  engine.player={
+    ...basePlayer,
+    ...savedPlayer,
+    weapons:[0,1].map(i=>{
+      const id=(savedWeapons[i] as any)?.id;
+      return id&&WEAPONS[id]?{...WEAPONS[id]}:null;
+    }) as GameEngine['player']['weapons'],
+    items:Array.isArray(savedPlayer.items)?savedPlayer.items.filter((id:string)=>!!ITEMS[id]):[],
+    activeItem:savedPlayer.activeItem&&ACTIVE_ITEMS[savedPlayer.activeItem]?savedPlayer.activeItem:'emergency_quack',
+    dashHitIds:Array.isArray(savedPlayer.dashHitIds)?savedPlayer.dashHitIds:[],
+    vx:Number(savedPlayer.vx)||0,
+    vy:Number(savedPlayer.vy)||0,
+    moving:false,
+  };
+  if(!engine.player.weapons[0]&&!engine.player.weapons[1])engine.player.weapons[0]={...WEAPONS.quack_blaster};
+  if(!engine.player.weapons[engine.player.activeWeapon])engine.player.activeWeapon=engine.player.weapons[0]?0:1;
+}
+
+function restoreCommonHeistCheckpoint(engine:GameEngine,cp:any){
+  engine.difficulty=cp.difficulty;
+  engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(cp.difficulty));
+  activeDifficulty=engine.difficulty;
+  activeDailyModifiers=[];
+  engine.gameMode='heist';engine.pendingMode='heist';engine.dailyResult=null;
+  engine.seedEditing=false;engine.seedInput='';
+
+  restoreSavedPlayer(engine,cp.player);
+
+  const freshRun=newRunStats(cp.run.seed),savedRun=cp.run??{};
+  engine.run={...freshRun,...savedRun,
+    weaponIds:Array.isArray(savedRun.weaponIds)?savedRun.weaponIds:['quack_blaster'],
+    itemIds:Array.isArray(savedRun.itemIds)?savedRun.itemIds:[],
+    weaponStats:savedRun.weaponStats&&typeof savedRun.weaponStats==='object'?savedRun.weaponStats:{},
+  };
+  engine.stats=cp.stats??{breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
+  engine.alert=Number(cp.alert)||0;
+  engine.roomStreak=Number(cp.roomStreak)||0;
+  engine.offeredItems=Array.isArray(cp.offeredItems)?cp.offeredItems:[];
+  engine.knownSynergies=Array.isArray(cp.knownSynergies)?cp.knownSynergies:[];
+  engine.tutorialRun=cp.tutorialRun===true;
+  engine.bossIntroSeen=cp.bossIntroSeen&&typeof cp.bossIntroSeen==='object'?cp.bossIntroSeen:{};
+  engine.heistCheckpointFloor=cp.floorIndex+1;
+  engine.heistCheckpointDifficulty=engine.difficulty;
+  engine.heistCheckpointSeed=engine.run.seed;
 }
 
 export function resumeHeistGame(engine:GameEngine):boolean {
@@ -1099,48 +1209,62 @@ export function resumeHeistGame(engine:GameEngine):boolean {
     const raw=localStorage.getItem('duckheist_heist_checkpoint');
     if(!raw)return false;
     const cp=JSON.parse(raw);
-    if(cp?.version!==1||!Number.isInteger(cp?.floorIndex)||cp.floorIndex<0||cp.floorIndex>=TOTAL_FLOORS||!cp?.player||!cp?.run||!DIFFICULTY_MODES.includes(cp.difficulty))return false;
+    if((cp?.version!==1&&cp?.version!==2)||!Number.isInteger(cp?.floorIndex)||cp.floorIndex<0||cp.floorIndex>=TOTAL_FLOORS||!cp?.player||!cp?.run||!DIFFICULTY_MODES.includes(cp.difficulty))return false;
 
-    engine.difficulty=cp.difficulty;
-    engine.difficultyIndex=Math.max(0,DIFFICULTY_MODES.indexOf(cp.difficulty));
-    activeDifficulty=engine.difficulty;
-    activeDailyModifiers=[];
+    restoreCommonHeistCheckpoint(engine,cp);
+
+    if(cp.version===2&&cp.map&&Array.isArray(cp.map.rooms)&&Array.isArray(cp.contents)&&typeof cp.currentKey==='string'){
+      engine.map={
+        floorIndex:cp.map.floorIndex,
+        startKey:cp.map.startKey,
+        itemRoomKey:cp.map.itemRoomKey,
+        bossKey:cp.map.bossKey,
+        rooms:new Map(cp.map.rooms),
+      };
+      engine.contents=new Map(cp.contents);
+      engine.currentKey=engine.map.rooms.has(cp.currentKey)?cp.currentKey:engine.map.startKey;
+      engine.seenRoomKeys=Array.isArray(cp.seenRoomKeys)?cp.seenRoomKeys:[];
+      engine.stainedFloor=Number.isInteger(cp.stainedFloor)?cp.stainedFloor:-1;
+
+      restoreGameRandom(cp.rng);
+      if(!cp.rng)setGameRandomSeed(engine.run.seed+':run');
+      nextEnemyId=Number.isInteger(cp.nextEnemyId)?cp.nextEnemyId:Math.max(0,...[...engine.contents.values()].flatMap(c=>c.enemies.map(en=>en.id+1)));
+
+      engine.projectiles=Array.isArray(cp.projectiles)?cp.projectiles.map(deserializeProjectile):[];
+      engine.grenades=Array.isArray(cp.grenades)?cp.grenades:[];
+      engine.remoteBomb=cp.remoteBomb??null;
+      engine.decoy=cp.decoy??null;
+      engine.drone=cp.drone??null;
+      engine.coffeeCrash=Number(cp.coffeeCrash)||0;
+      engine.transition=cp.transition&&typeof cp.transition==='object'?cp.transition:{active:false,timer:0,total:22,dir:null,targetKey:null};
+      engine.floorIntroTimer=Number(cp.floorIntroTimer)||0;
+      engine.bossIntroTimer=Number(cp.bossIntroTimer)||0;
+      engine.bossIntroName=String(cp.bossIntroName??'');
+      engine.bossIntroSubtitle=String(cp.bossIntroSubtitle??'');
+      engine.roomLabel=String(cp.roomLabel??'ATRACO CONTINUADO');
+      engine.roomLabelTimer=Math.max(35,Number(cp.roomLabelTimer)||0);
+      engine.frame=Math.max(engine.frame,Number(cp.frame)||0);
+
+      engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];
+      engine.swap=null;engine.activeSwap=null;engine.pickupCard=null;engine.keys={};engine.mouseDown=false;
+      engine.restartHold=0;engine.bossDefeatTimer=0;engine.rewardDropTimer=0;engine.floorClearTimer=0;
+      engine.hitStop=0;engine.shakeIntensity=0;engine.runRecorded=false;engine.tooltip={key:'',since:0};
+      engine.pad={...engine.pad,moveX:0,moveY:0,shoot:false};
+
+      // Registra el contenido restaurado para colisión/cerraduras sin regenerarlo.
+      const content=getContent(engine,engine.currentKey);
+      engine.state=GameState.PLAYING;
+      setRoomMusic(engine,currentRoom(engine),content);
+      engine.onStateChange?.(engine.state);
+      saveHeistCheckpoint(engine);
+      return true;
+    }
+
+    // Compatibilidad con checkpoints v1: se reanuda desde el inicio del piso y
+    // se migra inmediatamente al formato exacto v2.
     resetGameRandom();
-    engine.gameMode='heist';engine.pendingMode='heist';engine.dailyResult=null;
-
-    const basePlayer=createPlayer(engine.metaLevels);
-    const savedPlayer=cp.player as Partial<GameEngine['player']>;
-    const savedWeapons=Array.isArray(savedPlayer.weapons)?savedPlayer.weapons:[];
-    engine.player={
-      ...basePlayer,
-      ...savedPlayer,
-      weapons:[0,1].map(i=>{
-        const id=savedWeapons[i]?.id;
-        return id&&WEAPONS[id]?{...WEAPONS[id]}:null;
-      }) as GameEngine['player']['weapons'],
-      items:Array.isArray(savedPlayer.items)?savedPlayer.items.filter((id:string)=>!!ITEMS[id]):[],
-      activeItem:savedPlayer.activeItem&&ACTIVE_ITEMS[savedPlayer.activeItem]?savedPlayer.activeItem:'emergency_quack',
-      dashHitIds:[],
-      vx:0,vy:0,moving:false,
-    };
-    if(!engine.player.weapons[0]&&!engine.player.weapons[1])engine.player.weapons[0]={...WEAPONS.quack_blaster};
-    if(!engine.player.weapons[engine.player.activeWeapon])engine.player.activeWeapon=engine.player.weapons[0]?0:1;
-
-    const freshRun=newRunStats(cp.run.seed),savedRun=cp.run??{};
-    engine.run={...freshRun,...savedRun,
-      weaponIds:Array.isArray(savedRun.weaponIds)?savedRun.weaponIds:['quack_blaster'],
-      itemIds:Array.isArray(savedRun.itemIds)?savedRun.itemIds:[],
-      weaponStats:savedRun.weaponStats&&typeof savedRun.weaponStats==='object'?savedRun.weaponStats:{},
-    };
-    engine.stats=cp.stats??{breadStolen:0,enemiesDefeated:0,roomsCleared:0,goldenCrumbs:0,floorsCleared:0};
-    engine.alert=Number(cp.alert)||0;
-    engine.roomStreak=Number(cp.roomStreak)||0;
-    engine.offeredItems=Array.isArray(cp.offeredItems)?cp.offeredItems:[];
-    engine.knownSynergies=Array.isArray(cp.knownSynergies)?cp.knownSynergies:[];
-    engine.tutorialRun=cp.tutorialRun===true;
-    engine.bossIntroSeen=cp.bossIntroSeen&&typeof cp.bossIntroSeen==='object'?cp.bossIntroSeen:{};
+    setGameRandomSeed(engine.run.seed+':run');
     engine.seenRoomKeys=[];engine.stainedFloor=-1;
-
     engine.map=generateMap(cp.floorIndex,engine.run.seed);
     engine.contents=new Map();engine.currentKey=engine.map.startKey;
     engine.projectiles=[];engine.particles=[];engine.damageNumbers=[];engine.deathEchoes=[];
@@ -1155,10 +1279,9 @@ export function resumeHeistGame(engine:GameEngine):boolean {
     engine.state=GameState.FLOOR_INTRO;
     engine.roomLabel='ATRACO CONTINUADO · PISO '+(cp.floorIndex+1);
     engine.roomLabelTimer=100;
-    engine.heistCheckpointFloor=cp.floorIndex+1;
-    engine.heistCheckpointDifficulty=engine.difficulty;
     setRoomMusic(engine,currentRoom(engine),getContent(engine));
     engine.onStateChange?.(engine.state);
+    saveHeistCheckpoint(engine);
     return true;
   } catch {return false;}
 }
@@ -1425,9 +1548,10 @@ export function restartCurrentMode(engine:GameEngine) {
 }
 
 export function abandonCurrentRun(engine:GameEngine) {
-  // En Atraco principal, salir al menú conserva el checkpoint del inicio del
-  // piso actual. La run sólo se registra al morir, ganar o reiniciarla.
+  // Atraco principal: volver al menú es "guardar y salir". Conservamos sala,
+  // enemigos, objetos, HP, equipo y estado del RNG de la misma partida.
   if(engine.gameMode==='heist'&&engine.heistCheckpointFloor>0){
+    saveHeistCheckpoint(engine);
     saveProgress(engine);
     return;
   }
@@ -1802,6 +1926,7 @@ export function enterRoom(engine: GameEngine, k: string, from: Dir | null) {
       engine.onStateChange?.(engine.state);
     }
   }
+  if(engine.gameMode==='heist')saveHeistCheckpoint(engine);
 }
 
 function roomLabelFor(room: MapRoom): string {
@@ -1913,6 +2038,7 @@ export function updateEngine(engine: GameEngine) {
   updateDangerEvent(engine);
   if(engine.state===GameState.MAP) return;
   engine.frame++;
+  if(engine.gameMode==='heist'&&engine.state===GameState.PLAYING&&engine.frame%240===0) saveHeistCheckpoint(engine,false);
   if(engine.state===GameState.HEIST_INTRO) {
     const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
 
