@@ -879,8 +879,7 @@ export function renderWorld(engine: GameEngine) {
     // Halo de peligro: muy tenue pero suficiente para que el fuego enemigo no
     // se pierda contra mármol, oro, reflejos o props de los pisos nuevos.
     if(!p.friendly){
-      const danger=p.type==='buckshot'?'#ffad58':p.type==='drone_shot'?'#ff544c':'#ff7368';
-      ctx.globalAlpha=.13;ctx.fillStyle=danger;ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5:5.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.globalAlpha=.13;ctx.fillStyle='#ff9a2f';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5:5.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     } else if(BALLISTIC_PLAYER_PROJECTILES.has(p.type)) {
       ctx.globalAlpha=.09;ctx.fillStyle='#ffd86a';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?3.6:3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     }
@@ -889,9 +888,7 @@ export function renderWorld(engine: GameEngine) {
     if(speed>1.8&&(directional||p.type==='coin_proj'||p.type==='toast'||p.type==='dough_ball')){
       ctx.save();
       if(!directional)ctx.rotate(Math.atan2(p.vy,p.vx));
-      const hostile=!p.friendly,trail=hostile
-        ?(p.type==='drone_shot'?'#ff6058':p.type==='buckshot'?'#f1a45c':'#d86b58')
-        :'#e6a638';
+      const hostile=!p.friendly,trail=hostile?'#e88928':'#e6a638';
       ctx.globalAlpha=hostile?.14:.12;ctx.fillStyle=trail;
       ctx.fillRect(-Math.min(12,3+speed*1.5),-1,Math.min(10,2+speed),2);
       ctx.globalAlpha=hostile?.07:.06;ctx.fillRect(-Math.min(18,6+speed*2),0,Math.min(8,2+speed*.7),1);
