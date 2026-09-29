@@ -481,38 +481,124 @@ function drawSkinDeathAccessory(
 
 function drawSkinMaterialPass(
   ctx:Ctx,bx:number,by:number,frame:number,overlay:string,accent:string,trim:string,metal:string,
-  dir:DuckDir,moving:boolean,
+  dir:DuckDir,moving:boolean,pal:DuckPaletteLike,
 ){
-  // Microdetalle 4x compartido: costuras, rebotes de luz y metal. Mantiene el
-  // diseño de cada skin, pero evita que ropa/accesorios se lean como bloques planos.
+  // Acabado compartido a resolución 4x: costuras, rebotes de luz y detalles
+  // propios de cada atuendo. Se usa en gameplay y en todos los previews UI.
   const front=dir==='down',back=dir==='up',side=dir==='left'||dir==='right';
   const bob=moving?Math.round(Math.sin(frame*.38)):0;
+  const hi=skinLight(pal.body,.42),lo=skinDark(pal.dark,.38);
+  const pulse=.5+.5*Math.sin(frame*.08);
+
   ctx.save();ctx.translate(0,bob);
-  ctx.globalAlpha=.34;
+
+  // Volumen común: borde de luz arriba/izquierda y oclusión abajo/derecha.
+  ctx.globalAlpha=.36;
   if(!back){
-    microRect(ctx,bx+4.25,by+7.25,7.5,.25,'rgba(255,255,255,.34)');
-    microRect(ctx,bx+3.25,by+13.5,8.5,.25,'rgba(0,0,0,.28)');
+    microRect(ctx,bx+4.25,by+7.25,7.5,.25,hi);
+    microRect(ctx,bx+3.25,by+13.5,8.5,.25,lo);
+  }else{
+    microRect(ctx,bx+4.25,by+6.25,7.5,.25,skinLight(pal.pack,.28));
+    microRect(ctx,bx+5.25,by+12.75,5.5,.25,skinDark(pal.pack,.36));
   }
   if(front){
-    microRect(ctx,bx+5.25,by+8.25,.25,4.5,'rgba(255,255,255,.20)');
-    microRect(ctx,bx+10.5,by+8.25,.25,4.5,'rgba(0,0,0,.24)');
+    microRect(ctx,bx+5.25,by+8.25,.25,4.5,'rgba(255,255,255,.22)');
+    microRect(ctx,bx+10.5,by+8.25,.25,4.5,'rgba(0,0,0,.28)');
   }else if(side){
     const edge=dir==='left'?bx+3.25:bx+12.5;
     microRect(ctx,edge,by+8.25,.25,4,'rgba(255,255,255,.24)');
   }
-  ctx.globalAlpha=.58;
-  const glint=(frame+overlay.length*11)%72<8;
-  if(glint){
-    const gx=dir==='left'?bx+4.25:bx+11.25;
-    microRect(ctx,gx,by+9.25,.5,.5,metal);
+
+  // Material y firma específica de cada skin.
+  ctx.globalAlpha=.72;
+  switch(overlay){
+    case 'robber':
+      microRect(ctx,bx+4.25,by-.75,7.5,.25,'rgba(255,255,255,.18)');
+      microRect(ctx,bx+4.5,by+6.25,7,.25,skinLight(accent,.28));
+      if(front){microRect(ctx,bx+7.25,by+8.25,.5,3.5,skinLight(metal,.35));px(ctx,bx+12,by+12,skinLight(metal,.30),1);}
+      break;
+    case 'fedora':
+      microRect(ctx,bx+1,by-.75,14,.25,'rgba(255,255,255,.15)');
+      microRect(ctx,bx+4.25,by-2.75,7.5,.25,skinLight(accent,.25));
+      if(front){
+        for(const x of [5.25,10.5])microRect(ctx,bx+x,by+8.25,.25,5,'rgba(255,255,255,.17)');
+        microRect(ctx,bx+7.25,by+8.25,1.5,.25,skinLight(accent,.32));
+      }
+      break;
+    case 'prison':
+      microRect(ctx,bx+3.25,by+8.25,9.5,.25,skinLight(trim,.18));
+      microRect(ctx,bx+3.25,by+11.25,9.5,.25,'rgba(0,0,0,.18)');
+      if(front){microRect(ctx,bx+4.25,by+9.25,2.5,.25,'rgba(255,255,255,.28)');px(ctx,bx+12,by+15,skinLight(metal,.25),1);}
+      break;
+    case 'chef':
+      for(const x of [5.25,7.75,10.25])microRect(ctx,bx+x,by-6.5,.25,4,'rgba(140,155,155,.22)');
+      microRect(ctx,bx+4.25,by+6.25,7.5,.25,skinLight(accent,.25));
+      if(front){for(const y of [9.25,12.25]){microRect(ctx,bx+6.25,by+y,.5,.5,skinLight(metal,.35));microRect(ctx,bx+9.25,by+y,.5,.5,skinLight(metal,.35));}}
+      break;
+    case 'executive':
+      if(front){
+        microRect(ctx,bx+5.25,by+7.5,2.25,.25,'rgba(255,255,255,.28)');
+        microRect(ctx,bx+8.5,by+7.5,2.25,.25,'rgba(255,255,255,.20)');
+        microRect(ctx,bx+7.5,by+8.25,.5,5,skinLight(accent,.20));
+      }
+      microRect(ctx,bx+(dir==='left'?.25:13.25),by+9.25,3.5,.25,'rgba(255,255,255,.15)');
+      if((frame%90)<10)microRect(ctx,bx+(dir==='left'?1.5:14.5),by+8.25,.5,.5,skinLight(metal,.50));
+      break;
+    case 'rose':
+      microRect(ctx,bx+4.25,by+8.25,7.5,.25,skinLight('#b64e87',.28));
+      if(!back){
+        ctx.globalAlpha=.42+.18*pulse;
+        microRect(ctx,bx+4.25,by+3.25,7.5,.5,skinLight(accent,.42));
+        ctx.globalAlpha=.72;
+      }
+      if(front){microRect(ctx,bx+7.5,by+9,.5,4.25,skinLight(metal,.25));}
+      break;
+    case 'ninja':
+      microRect(ctx,bx+3.25,by+3.25,9.5,.25,skinLight(accent,.18));
+      microRect(ctx,bx+4.25,by+13.25,7.5,.25,skinLight(trim,.22));
+      if(front){
+        microRect(ctx,bx+5.25,by+2.25,1.5,.25,'rgba(255,255,255,.45)');
+        microRect(ctx,bx+9.25,by+2.25,1.5,.25,'rgba(255,255,255,.45)');
+      }
+      break;
+    case 'undercover':
+      microRect(ctx,bx+4.25,by-2.25,7.5,.25,skinLight('#304e7a',.28));
+      microRect(ctx,bx+4.25,by+8.25,7.5,.25,'rgba(255,255,255,.20)');
+      if(front){px(ctx,bx+5,by+10,skinLight(accent,.35),1);microRect(ctx,bx+7.25,by-2,.5,.5,skinLight(accent,.45));}
+      if((frame%80)<12)px(ctx,bx+(dir==='left'?14:2),by+7,'#78d2ff',1);
+      break;
+    case 'pirate':
+      microRect(ctx,bx+1.25,by-3.25,13.5,.25,skinLight(trim,.20));
+      microRect(ctx,bx+3.25,by+7.25,9.5,.25,skinLight(accent,.25));
+      microRect(ctx,bx+3.25,by+12.25,9.5,.25,skinLight(metal,.16));
+      if(front)microRect(ctx,bx+7.25,by+12.25,1.5,.5,skinLight(metal,.42));
+      break;
+    case 'gold':
+      ctx.globalAlpha=.42+.25*pulse;
+      microRect(ctx,bx+2.25,by+7.25,3.5,.25,skinLight('#bd8b25',.45));
+      microRect(ctx,bx+10.25,by+7.25,3.5,.25,skinLight('#bd8b25',.45));
+      microRect(ctx,bx+4.25,by+2.25,7.5,.25,'rgba(255,255,255,.62)');
+      ctx.globalAlpha=.72;
+      if(front)microRect(ctx,bx+6.25,by+10.25,3.5,.25,skinLight(trim,.40));
+      break;
+    case 'king':
+      ctx.globalAlpha=.62+.18*pulse;
+      microRect(ctx,bx+3.25,by-3.75,9.5,.25,skinLight(metal,.42));
+      px(ctx,bx+5,by-2,'#ff7781',1);px(ctx,bx+9,by-2,'#7cc5ff',1);
+      ctx.globalAlpha=.72;
+      microRect(ctx,bx+2.25,by+6.25,11.5,.25,skinLight(trim,.32));
+      if(front){px(ctx,bx+4,by+7,'#19151b',1);px(ctx,bx+8,by+7,'#19151b',1);px(ctx,bx+12,by+7,'#19151b',1);}
+      break;
   }
-  // Firma cromática mínima por familia de skin.
-  ctx.globalAlpha=.48;
-  if(overlay==='ninja'||overlay==='pirate'||overlay==='robber')microRect(ctx,bx+4.5,by+6.25,7,.25,accent);
-  else if(overlay==='executive'||overlay==='fedora')microRect(ctx,bx+5.25,by+12.25,5.5,.25,trim);
-  else if(overlay==='gold'||overlay==='king')microRect(ctx,bx+3.75,by+6.5,8.5,.25,trim);
-  else if(overlay==='rose'||overlay==='undercover')microRect(ctx,bx+4.25,by+13.25,7.5,.25,accent);
-  else if(overlay==='chef'||overlay==='prison')microRect(ctx,bx+5,by+8.25,6,.25,trim);
+
+  // Glint metálico mínimo; no parpadea lo suficiente para distraer en combate.
+  const glint=(frame+overlay.length*11)%96<7;
+  if(glint){
+    ctx.globalAlpha=.58;
+    const gx=dir==='left'?bx+4.25:bx+11.25;
+    microRect(ctx,gx,by+9.25,.5,.5,skinLight(metal,.48));
+  }
+
   ctx.restore();
 }
 
@@ -647,7 +733,7 @@ export function drawDuckSkin(
       else if(left||right){rect(ctx,bx+(left?2:11),by+8,3,6,accent);}
       break;
   }
-  drawSkinMaterialPass(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving);
+  drawSkinMaterialPass(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving,pal);
   ctx.restore();
 }
 
