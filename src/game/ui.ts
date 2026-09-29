@@ -7,6 +7,21 @@ import { drawPixelLogo } from './titleScene';
 
 type Ctx = CanvasRenderingContext2D;
 
+function softPanelPath(ctx:Ctx,x:number,y:number,w:number,h:number,r=4){
+  const rr=Math.max(2,Math.min(r,Math.floor(Math.min(w,h)/3)));
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);
+  ctx.lineTo(x+w-rr,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+rr);
+  ctx.lineTo(x+w,y+h-rr);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+  ctx.lineTo(x+rr,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-rr);
+  ctx.lineTo(x,y+rr);
+  ctx.quadraticCurveTo(x,y,x+rr,y);
+  ctx.closePath();
+}
+
 export const FONT_TITLE = "'Bungee', 'Chakra Petch', monospace";
 export const FONT_UI = "'Chakra Petch', 'Trebuchet MS', sans-serif";
 
@@ -79,46 +94,40 @@ export function pixelText(ctx: Ctx, str: string, x: number, y: number, color = '
   ctx.restore();
 }
 
-/** Panel con marco pixel-art de doble borde */
+/** Panel limpio con borde suave y sin esquinas técnicas. */
 export function drawPanel(
   ctx: Ctx, x: number, y: number, w: number, h: number,
   fill = 'rgba(10,13,24,0.96)', border = '#f4d03f', accent = '#39414f',
 ) {
   ctx.save();
 
-  // Panel limpio y ortogonal: sin pestañas, recortes ni salientes.
-  ctx.fillStyle = 'rgba(0,0,0,0.56)';
-  ctx.fillRect(x + 3, y + 3, w, h);
+  // Sombra blanda: sustituye los marcos dobles/cuadrados.
+  ctx.fillStyle='rgba(0,0,0,.38)';
+  softPanelPath(ctx,x+2,y+3,w,h,5);ctx.fill();
 
-  ctx.fillStyle = fill;
-  ctx.fillRect(x, y, w, h);
+  softPanelPath(ctx,x,y,w,h,5);
+  ctx.fillStyle=fill;ctx.fill();
 
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.strokeStyle=accent;
+  ctx.globalAlpha=.52;
+  ctx.lineWidth=1;
+  ctx.stroke();
 
-  // Segundo marco totalmente contenido dentro del panel.
-  if (w > 18 && h > 18) {
-    ctx.strokeStyle = border;
-    ctx.globalAlpha = .46;
-    ctx.strokeRect(x + 4.5, y + 4.5, w - 9, h - 9);
-    ctx.globalAlpha = 1;
-  }
-
-  // Acento estructural lateral + cuatro esquinas técnicas.
-  ctx.fillStyle = border;
-  ctx.fillRect(x + 1, y + 1, 3, h - 2);
-
-  ctx.fillStyle = 'rgba(255,255,255,.035)';
-  ctx.fillRect(x + 8, y + 7, Math.max(0, w - 16), 1);
-  ctx.strokeStyle=border;ctx.globalAlpha=.62;ctx.lineWidth=1;
-  const k=Math.min(10,Math.max(5,Math.floor(Math.min(w,h)*.08)));
+  // Acento superior corto; no forma una "L" ni toca las esquinas.
+  ctx.globalAlpha=.72;
+  ctx.strokeStyle=border;
   ctx.beginPath();
-  ctx.moveTo(x+5,y+k);ctx.lineTo(x+5,y+5);ctx.lineTo(x+k,y+5);
-  ctx.moveTo(x+w-k,y+5);ctx.lineTo(x+w-5,y+5);ctx.lineTo(x+w-5,y+k);
-  ctx.moveTo(x+5,y+h-k);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+k,y+h-5);
-  ctx.moveTo(x+w-k,y+h-5);ctx.lineTo(x+w-5,y+h-5);ctx.lineTo(x+w-5,y+h-k);
-  ctx.stroke();ctx.globalAlpha=1;
+  ctx.moveTo(x+10,y+.5);
+  ctx.lineTo(x+Math.min(w-10,Math.max(36,w*.34)),y+.5);
+  ctx.stroke();
+
+  // Luz interior muy sutil.
+  ctx.globalAlpha=.06;
+  ctx.strokeStyle='#ffffff';
+  softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,3);
+  ctx.stroke();
+
+  ctx.globalAlpha=1;
   ctx.restore();
 }
 
@@ -200,42 +209,31 @@ export const MENU_THEME = {
   green:'#72c796',
 };
 
-/** Fondo común para pantallas de menú: oscurece el mundo sin borrar su contexto. */
+/** Fondo común para pantallas de menú: limpio, sin marco perimetral rígido. */
 export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_THEME.gold) {
   ctx.save();
   ctx.fillStyle=`rgba(3,8,12,${Math.min(.98,opacity+.04)})`;
   ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
 
-  // Retícula ortogonal de centro de operaciones. Se mantiene tenue para no
-  // competir con el texto, pero reemplaza el ambiente blando por estructura.
-  ctx.globalAlpha=.045;
+  // Retícula tenue, suficiente para mantener el lenguaje de centro de operaciones.
+  ctx.globalAlpha=.035;
   ctx.fillStyle=accent;
-  for(let x=20;x<UI_BASE_WIDTH-18;x+=40)ctx.fillRect(x,18,1,CANVAS_HEIGHT-36);
-  for(let y=18;y<CANVAS_HEIGHT-18;y+=32)ctx.fillRect(18,y,UI_BASE_WIDTH-36,1);
+  for(let x=24;x<UI_BASE_WIDTH-22;x+=48)ctx.fillRect(x,20,1,CANVAS_HEIGHT-40);
+  for(let y=22;y<CANVAS_HEIGHT-20;y+=40)ctx.fillRect(20,y,UI_BASE_WIDTH-40,1);
 
-  // Marco de pantalla: doble línea recta, sin viñetas redondeadas.
-  ctx.globalAlpha=1;
-  ctx.strokeStyle='rgba(116,154,159,.22)';
-  ctx.lineWidth=1;
-  ctx.strokeRect(14.5,10.5,UI_BASE_WIDTH-29,CANVAS_HEIGHT-21);
-  ctx.strokeStyle='rgba(116,154,159,.10)';
-  ctx.strokeRect(18.5,14.5,UI_BASE_WIDTH-37,CANVAS_HEIGHT-29);
-
+  // En lugar del doble borde exterior, sólo dos líneas flotantes cortas.
+  ctx.globalAlpha=.24;
   ctx.fillStyle=accent;
-  ctx.globalAlpha=.55;
-  ctx.fillRect(14,10,72,2);
-  ctx.fillRect(UI_BASE_WIDTH-86,10,72,2);
-  ctx.fillRect(14,CANVAS_HEIGHT-12,72,2);
-  ctx.fillRect(UI_BASE_WIDTH-86,CANVAS_HEIGHT-12,72,2);
+  ctx.fillRect(26,11,58,1);
+  ctx.fillRect(UI_BASE_WIDTH-84,CANVAS_HEIGHT-12,58,1);
 
-  // Barrido técnico muy discreto, limitado a una línea vertical.
-  const sweep=18+((frame*.55)%(UI_BASE_WIDTH-36));
-  ctx.globalAlpha=.045;
-  ctx.fillRect(sweep,14,1,CANVAS_HEIGHT-28);
+  const sweep=22+((frame*.48)%(UI_BASE_WIDTH-44));
+  ctx.globalAlpha=.03;
+  ctx.fillRect(sweep,18,1,CANVAS_HEIGHT-36);
   ctx.restore();
 }
 
-/** Encabezado tipo expediente bancario para todos los menús. */
+/** Encabezado común: placa suave, sin borde rectangular dominante. */
 export function drawMenuHeader(
   ctx:Ctx,title:string,subtitle:string,frame:number,
   accent=MENU_THEME.gold,eyebrow='EXPEDIENTE DEL ATRACO',
@@ -243,26 +241,21 @@ export function drawMenuHeader(
   ctx.save();
   const x=22,y=15,w=UI_BASE_WIDTH-44,h=46;
 
-  // Cabecera sólida y limpia: una sola placa con jerarquía izquierda/derecha.
-  ctx.fillStyle='rgba(0,0,0,.46)';
-  ctx.fillRect(x+2,y+2,w,h);
-  ctx.fillStyle='rgba(4,12,16,.98)';
-  ctx.fillRect(x,y,w,h);
-  ctx.fillStyle='rgba(12,28,34,.90)';
-  ctx.fillRect(x+4,y+4,w-8,h-8);
+  ctx.fillStyle='rgba(0,0,0,.34)';
+  softPanelPath(ctx,x+2,y+2,w,h,5);ctx.fill();
 
-  ctx.strokeStyle='rgba(126,166,169,.28)';
-  ctx.lineWidth=1;
-  ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  softPanelPath(ctx,x,y,w,h,5);
+  ctx.fillStyle='rgba(7,19,24,.96)';ctx.fill();
+  ctx.strokeStyle='rgba(126,166,169,.20)';
+  ctx.lineWidth=1;ctx.stroke();
 
   ctx.fillStyle=accent;
-  ctx.fillRect(x,y,4,h);
-  ctx.fillRect(x+4,y,66,2);
-  ctx.globalAlpha=.45;
-  ctx.fillRect(x+4,y+h-2,34,2);
+  ctx.globalAlpha=.78;
+  ctx.fillRect(x+10,y,56,2);
+  ctx.globalAlpha=.22;
+  ctx.fillRect(x+w-58,y+h-2,46,1);
   ctx.globalAlpha=1;
 
-  // Se elimina el antiguo cuadro decorativo: el texto respira mejor.
   text(ctx,eyebrow,x+16,y+14,5.0,accent,'left',true,false);
   const titleSize=title.length>22?11.7:title.length>17?13.0:14.7;
   ctx.save();
@@ -274,79 +267,60 @@ export function drawMenuHeader(
   text(ctx,'DH // VAULT OPS',x+w-14,y+14,4.0,'#587176','right',true,false);
   text(ctx,maxSub,x+w-14,y+35,4.9,MENU_THEME.muted,'right',false,false);
 
-  const pulse=.38+.22*Math.sin(frame*.08);
+  const pulse=.30+.16*Math.sin(frame*.08);
   ctx.globalAlpha=pulse;
   ctx.fillStyle=accent;
-  ctx.fillRect(x+w-50,y+19,36,2);
+  ctx.fillRect(x+w-48,y+20,34,1);
   ctx.globalAlpha=1;
 
-  // Estado operativo: tres módulos pequeños que sustituyen adornos ambiguos.
   for(let i=0;i<3;i++){
     ctx.fillStyle=i===Math.floor(frame/24)%3?accent:'#31494f';
-    ctx.globalAlpha=i===Math.floor(frame/24)%3?.82:.52;
-    ctx.fillRect(x+w-50+i*10,y+24,6,2);
+    ctx.globalAlpha=i===Math.floor(frame/24)%3?.72:.42;
+    ctx.beginPath();ctx.arc(x+w-44+i*10,y+25,1.5,0,Math.PI*2);ctx.fill();
   }
   ctx.globalAlpha=1;
   ctx.restore();
 }
 
-/** Tarjeta de menú coherente con bordes recortados y jerarquía fuerte. */
+/** Tarjeta de menú con borde suave y selección limpia. */
 export function drawMenuCard(
   ctx:Ctx,x:number,y:number,w:number,h:number,
   selected=false,accent=MENU_THEME.gold,fill='rgba(10,24,30,.96)',
 ) {
   ctx.save();
 
-  // Placa cuadrada con menos ruido: un marco principal y detalle interior
-  // sólo cuando el tamaño realmente lo permite.
-  ctx.fillStyle='rgba(0,0,0,.50)';
-  ctx.fillRect(x+2,y+2,w,h);
+  ctx.fillStyle='rgba(0,0,0,.32)';
+  softPanelPath(ctx,x+2,y+2,w,h,4);ctx.fill();
 
-  ctx.fillStyle='rgba(5,14,18,.84)';
-  ctx.fillRect(x,y,w,h);
-  ctx.fillStyle=fill;
-  ctx.fillRect(x,y,w,h);
+  softPanelPath(ctx,x,y,w,h,4);
+  ctx.fillStyle=fill;ctx.fill();
 
-  ctx.strokeStyle=selected?accent:MENU_THEME.line;
-  ctx.lineWidth=selected?2:1;
-  ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-
-  const showInner=(selected&&w>=88&&h>=30)||(w>=180&&h>=50);
-  if(showInner){
-    ctx.strokeStyle=selected?'rgba(255,255,255,.13)':'rgba(117,164,168,.08)';
-    ctx.lineWidth=1;
-    ctx.strokeRect(x+4.5,y+4.5,w-9,h-9);
-  }
-
-  ctx.fillStyle=selected?accent:MENU_THEME.steel2;
-  ctx.globalAlpha=selected?1:.52;
-  ctx.fillRect(x+1,y+1,selected?4:3,h-2);
-  ctx.globalAlpha=1;
-
-  // Esquinas técnicas y brillo superior compartidos por todos los menús.
-  // Refuerzan la identidad del juego sin convertir cada tarjeta en una caja distinta.
-  const corner=Math.min(8,Math.max(4,Math.floor(Math.min(w,h)*.16)));
-  ctx.strokeStyle=selected?accent:'rgba(126,166,169,.32)';
+  ctx.strokeStyle=selected?accent:'rgba(91,130,136,.34)';
+  ctx.globalAlpha=selected?.72:.68;
   ctx.lineWidth=1;
-  ctx.globalAlpha=selected?.92:.55;
-  ctx.beginPath();
-  ctx.moveTo(x+1,y+corner);ctx.lineTo(x+1,y+1);ctx.lineTo(x+corner,y+1);
-  ctx.moveTo(x+w-corner,y+1);ctx.lineTo(x+w-1,y+1);ctx.lineTo(x+w-1,y+corner);
-  ctx.moveTo(x+1,y+h-corner);ctx.lineTo(x+1,y+h-1);ctx.lineTo(x+corner,y+h-1);
-  ctx.moveTo(x+w-corner,y+h-1);ctx.lineTo(x+w-1,y+h-1);ctx.lineTo(x+w-1,y+h-corner);
   ctx.stroke();
-  ctx.globalAlpha=.12;ctx.fillStyle='#ffffff';ctx.fillRect(x+6,y+5,Math.max(0,w-12),1);
-  ctx.globalAlpha=1;
 
-  if(selected&&w>=70){
-    ctx.fillStyle=accent;
-    ctx.globalAlpha=.42;
-    ctx.fillRect(x+7,y+h-3,Math.min(58,w-14),1);
+  // Selección por luz interior + pequeña barra lateral separada del borde.
+  if(selected){
     ctx.globalAlpha=.08;
-    ctx.fillRect(x+5,y+5,w-10,Math.max(0,h-10));
-    ctx.globalAlpha=1;
+    ctx.fillStyle=accent;
+    softPanelPath(ctx,x+2,y+2,w-4,h-4,3);ctx.fill();
+
+    ctx.globalAlpha=.82;
+    ctx.fillStyle=accent;
+    ctx.fillRect(x+5,y+5,2,Math.max(0,h-10));
+    ctx.fillRect(x+11,y+3,Math.min(46,Math.max(0,w-22)),1);
+
+    ctx.globalAlpha=.10;
+    ctx.strokeStyle='#ffffff';
+    softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,3);ctx.stroke();
+  }else if(w>=120&&h>=36){
+    ctx.globalAlpha=.05;
+    ctx.strokeStyle='#ffffff';
+    softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,3);ctx.stroke();
   }
 
+  ctx.globalAlpha=1;
   ctx.restore();
 }
 
@@ -379,10 +353,7 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
     ctx.globalAlpha=.10;
     ctx.fillRect(x+5,y+4,w-10,h-8);
     ctx.globalAlpha=1;
-    ctx.fillRect(x+5,y+h-3,w-10,1);
-    // Indicadores laterales hacen evidente que es una acción, no sólo una tarjeta.
-    ctx.fillRect(x+8,y+h/2-1,7,2);
-    ctx.fillRect(x+w-15,y+h/2-1,7,2);
+    ctx.fillRect(x+12,y+h-3,Math.max(0,w-24),1);
   }
   text(ctx,label,x+w/2,y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
   ctx.restore();
@@ -392,13 +363,14 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
 export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.gold) {
   ctx.save();
   const x=22,y=CANVAS_HEIGHT-29,w=UI_BASE_WIDTH-44,h=19;
-  ctx.fillStyle='rgba(4,12,16,.96)';
-  ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle='rgba(116,154,159,.20)';
-  ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  ctx.fillStyle='rgba(4,12,16,.92)';
+  softPanelPath(ctx,x,y,w,h,4);ctx.fill();
+  ctx.strokeStyle='rgba(116,154,159,.16)';
+  ctx.lineWidth=1;ctx.stroke();
   ctx.fillStyle=accent;
-  ctx.fillRect(x,y,4,h);
-  ctx.fillRect(x+4,y,50,2);
+  ctx.globalAlpha=.64;
+  ctx.fillRect(x+10,y,44,1);
+  ctx.globalAlpha=1;
   text(ctx,left,x+12,y+13,5.7,'#91a7a5','left',true,false);
   if(right) text(ctx,right,x+w-10,y+13,5.7,accent,'right',true,false);
   ctx.restore();
