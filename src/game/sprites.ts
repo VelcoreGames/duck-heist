@@ -756,71 +756,75 @@ export function drawRollingBagel(ctx: Ctx, x: number, y: number, frame: number, 
 export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, frame: number) {
   const bx = Math.floor(x);
   const by = Math.floor(y);
+
+  const fireShot=(length:number,width=2,hot=true)=>{
+    const half=Math.max(1,Math.floor(width/2));
+    const flick=((frame+bx+by)&1)===0;
+
+    // Cola de fuego pixelada: naranja profundo -> naranja vivo -> ámbar.
+    ctx.globalAlpha=.16;
+    rect(ctx,bx-length-8,by-half-2,length+8,width+4,'#8f4518');
+    ctx.globalAlpha=.32;
+    rect(ctx,bx-length-7,by-half-1,length+7,width+2,'#e87620');
+    ctx.globalAlpha=.64;
+    rect(ctx,bx-length-4,by-half-1,length+4,width+2,'#f27f20');
+
+    // Lenguas de fuego irregulares para acercar la silueta a una llama.
+    ctx.globalAlpha=.86;
+    rect(ctx,bx-length-7,by-(flick?3:2),4,1,'#e87620');
+    rect(ctx,bx-length-5,by+(flick?2:3),3,1,'#f49a25');
+    rect(ctx,bx-length-3,by-(flick?2:3),3,1,'#f9b736');
+
+    // Cuerpo caliente.
+    ctx.globalAlpha=1;
+    rect(ctx,bx-Math.floor(length*.55),by-half,length,width,'#fca12d');
+    if(width>=3)rect(ctx,bx-Math.floor(length*.40),by-half+1,Math.max(3,length-3),Math.max(1,width-2),'#f9b736');
+    else rect(ctx,bx-Math.floor(length*.35),by,Math.max(3,length-3),1,'#f9b736');
+
+    // Núcleo amarillo y punta casi blanca.
+    rect(ctx,bx+Math.max(0,Math.floor(length*.12)),by-half,Math.max(2,Math.floor(length*.42)),width,'#fbd748');
+    rect(ctx,bx+Math.max(1,Math.floor(length*.34)),by-half,2,width,'#fde95b');
+    if(hot) px(ctx,bx+Math.max(1,Math.floor(length*.42)),by,'#fff7b8',1);
+
+    ctx.globalAlpha=1;
+  };
   
   switch (type) {
     case 'pistol_round':
     case 'smg_round':
+      fireShot(6,2);
+      break;
     case 'rifle_556':
     case 'lmg_556':
-    case 'pdw_57': {
-      const long=type==='rifle_556'||type==='lmg_556'?7:type==='pdw_57'?5:4;
-      ctx.globalAlpha=.28;
-      rect(ctx,bx-long-2,by-1,long+1,2,'#d98a2f');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-long/2,by-1,long,2,'#ffd86a');
-      px(ctx,bx+Math.floor(long/2)-1,by-1,'#fff4c6',1);
-      break;
-    }
     case 'rifle_762':
+      fireShot(9,2);
+      break;
+    case 'pdw_57':
+    case 'suppressed_45':
+      fireShot(7,2);
+      break;
     case 'dmr_round':
-    case 'sniper_308': {
-      const long=type==='sniper_308'?10:type==='dmr_round'?8:7;
-      ctx.globalAlpha=.24;
-      rect(ctx,bx-long-3,by-1,long+2,2,'#cf7e25');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-Math.floor(long/2),by-1,long,2,'#ffd86a');
-      rect(ctx,bx+Math.floor(long/2)-1,by-1,2,2,'#fff4c6');
+      fireShot(10,2);
       break;
-    }
-    case 'magnum_round': {
-      ctx.globalAlpha=.26;
-      rect(ctx,bx-8,by-1,7,2,'#cf7e25');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-3,by-2,6,4,'#ffd36a');
-      rect(ctx,bx+1,by-1,3,2,'#fff1be');
+    case 'sniper_308':
+      fireShot(12,3);
       break;
-    }
-    case 'suppressed_45': {
-      ctx.globalAlpha=.16;
-      rect(ctx,bx-6,by-1,5,2,'#c9832d');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-3,by-1,6,2,'#ffd36a');
-      px(ctx,bx+2,by-1,'#fff4c6',1);
+    case 'magnum_round':
+      fireShot(8,3);
       break;
-    }
-    case 'heavy_50': {
-      ctx.globalAlpha=.30;
-      rect(ctx,bx-13,by-2,11,3,'#cf7e25');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-6,by-2,12,4,'#ffd36a');
-      rect(ctx,bx+3,by-1,4,2,'#fff1be');
+    case 'heavy_50':
+      fireShot(14,4);
       break;
-    }
-    case 'buckshot_player': {
-      ctx.globalAlpha=.22;
-      rect(ctx,bx-4,by-1,3,2,'#c9832d');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-1,by-1,2,2,'#ffd36a');
-      px(ctx,bx,by-1,'#fff1cf',1);
+    case 'buckshot_player':
+      fireShot(4,2,false);
       break;
-    }
     case 'grenade_40mm': {
-      ctx.save(); ctx.translate(bx,by); ctx.rotate(frame*.05);
-      rect(ctx,-5,-3,10,6,'#b56a22');
-      rect(ctx,-3,-2,6,4,'#ffd36a');
-      rect(ctx,3,-2,3,4,'#2f3935');
-      px(ctx,-2,-2,'#fff1be',1);
-      ctx.restore();
+      ctx.save();ctx.translate(bx,by);ctx.rotate(frame*.05);
+      ctx.globalAlpha=.22;rect(ctx,-8,-5,16,10,'#8f4518');
+      ctx.globalAlpha=.48;rect(ctx,-7,-4,14,8,'#e87620');
+      ctx.globalAlpha=1;rect(ctx,-5,-3,10,6,'#fca12d');
+      rect(ctx,-3,-2,6,4,'#fbd748');rect(ctx,2,-2,3,4,'#fde95b');
+      px(ctx,3,0,'#fff7b8',1);ctx.restore();
       break;
     }
     case 'quack': case 'quack_power': {
@@ -894,9 +898,7 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
       break;
     }
     case 'sniper_baguette': {
-      ctx.globalAlpha=.28;rect(ctx,bx-10,by-1,8,2,'#c96f1f');ctx.globalAlpha=1;
-      rect(ctx,bx-5,by-1,10,2,'#ffb13b');rect(ctx,bx+3,by-1,3,2,'#ffd86a');
-      px(ctx,bx+4,by-1,'#fff4c6',1);
+      fireShot(12,3);
       break;
     }
     case 'plasma_bread': {
@@ -927,36 +929,19 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
       break;
     }
     case 'enemy_bullet': {
-      ctx.fillStyle='rgba(255,145,36,.28)';
-      ctx.beginPath();ctx.arc(bx,by,4,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#ff9a2f';
-      ctx.beginPath();ctx.arc(bx,by,3,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#ffd86a';
-      ctx.beginPath();ctx.arc(bx,by,1.5,0,Math.PI*2);ctx.fill();
-      px(ctx,bx,by,'#fff4c6',1);
+      fireShot(7,3);
       break;
     }
     case 'pistol': { // bala de policía
-      ctx.fillStyle='rgba(255,145,36,.30)';
-      ctx.fillRect(bx-5,by-1,9,2);
-      rect(ctx,bx-2,by-2,4,4,'#ff9a2f');
-      rect(ctx,bx-1,by-1,2,2,'#ffd86a');
-      px(ctx,bx,by,'#fff4c6',1);
+      fireShot(7,3);
       break;
     }
     case 'buckshot': { // perdigón de escopeta
-      rect(ctx,bx-2,by-2,4,4,'#ff9a2f');
-      rect(ctx,bx-1,by-1,2,2,'#ffd86a');
-      ctx.globalAlpha=.40;rect(ctx,bx-4,by-1,3,2,'#c96f1f');ctx.globalAlpha=1;
-      px(ctx,bx,by,'#fff4c6',1);
+      fireShot(4,2,false);
       break;
     }
-    case 'drone_shot': { // láser del dron
-      ctx.fillStyle='rgba(255,145,36,.30)';
-      ctx.fillRect(bx-5,by-2,10,4);
-      rect(ctx,bx-3,by-1,6,2,'#ff9a2f');
-      rect(ctx,bx-1,by-1,2,2,'#ffd86a');
-      px(ctx,bx,by,'#fff4c6',1);
+    case 'drone_shot': { // disparo del dron
+      fireShot(8,2);
       break;
     }
     case 'briefcase': {
