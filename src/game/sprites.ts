@@ -98,7 +98,9 @@ export function drawDuck(
   const by = Math.floor(y);
   const bodyLight=skinLight(pal.body,.34);
   const bodyRim=skinLight(pal.body,.20);
-  const outline=skinDark(pal.shade,.62);
+  // El contorno anterior formaba un perímetro oscuro que separaba demasiado
+  // al personaje del arte del juego. El borde ahora deriva del propio plumaje.
+  const outline=skinDark(pal.body,.22);
   const packLight=skinLight(pal.pack,.18);
   const beakLight=skinLight(pal.beak,.24);
 
@@ -108,12 +110,12 @@ export function drawDuck(
     ctx.fillStyle='rgba(0,0,0,.30)';
     ctx.beginPath();ctx.ellipse(bx+8,by+16,9,2.5,0,0,Math.PI*2);ctx.fill();
     // cuerpo compacto tumbado
-    rect(ctx,bx+1,by+10,14,6,outline);
     rect(ctx,bx+2,by+10,12,5,pal.body);
+    rect(ctx,bx+3,by+14,10,1,outline);
     rect(ctx,bx+3,by+13,10,2,pal.dark);
     // cabeza grande mantiene la identidad chibi incluso en game over
-    rect(ctx,bx+10,by+5,7,7,outline);
     rect(ctx,bx+11,by+6,6,5,pal.body);
+    rect(ctx,bx+12,by+10,5,1,outline);
     rect(ctx,bx+15,by+8,4,2,pal.beak);
     rect(ctx,bx+16,by+8,2,1,beakLight);
     px(ctx,bx+12,by+7,'#111318',1);px(ctx,bx+14,by+9,'#111318',1);
@@ -153,74 +155,84 @@ export function drawDuck(
     ctx.globalAlpha=.16;rect(ctx,bx+(step>0?2:11),by+17,3,1,'#e8d98f');ctx.globalAlpha=1;
   }
 
-  // Torso: más corto, ancho y redondeado.
-  rect(ctx,bx+2,by+7+waddle,12,9,outline);
-  rect(ctx,bx+1,by+9+waddle,14,5,outline);
+  // Torso de pato: forma ovalada/compacta sin una placa oscura alrededor.
   if(dir==='up'){
     rect(ctx,bx+3,by+8+waddle,10,7,pal.pack);
     rect(ctx,bx+4,by+9+waddle,8,2,packLight);
     rect(ctx,bx+6,by+12+waddle,4,2,pal.strap);
+    rect(ctx,bx+4,by+14+waddle,8,1,skinDark(pal.pack,.18));
   }else{
     rect(ctx,bx+3,by+8+waddle,10,7,pal.body);
     rect(ctx,bx+2,by+10+waddle,12,4,pal.body);
+    // Panza clara, clave para que la lectura sea inequívocamente de pato.
+    rect(ctx,bx+5,by+10+waddle,6,4,skinLight(pal.body,.18));
+    rect(ctx,bx+6,by+13+waddle,4,2,pal.dark);
     rect(ctx,bx+4,by+8+waddle,6,1,bodyLight);
     rect(ctx,bx+3,by+9+waddle,1,4,bodyRim);
-    rect(ctx,bx+12,by+10+waddle,1,4,pal.shade);
-    rect(ctx,bx+4,by+12+waddle,8,3,pal.dark);
+    rect(ctx,bx+12,by+10+waddle,1,3,outline);
     rect(ctx,bx+5,by+14+waddle,6,1,pal.shade);
   }
 
-  // Alas cortas y redondas, más expresivas al disparar.
-  const wingKick=shooting?2:dashing?1:moving&&Math.abs(step)>.55?1:0;
+  // Alas cortas con punta baja: rompen la silueta rectangular.
+  const wingKick=shooting?1:dashing?1:moving&&Math.abs(step)>.55?1:0;
   if(dir==='left'){
-    rect(ctx,bx+10+wingKick,by+10+waddle,4,3,pal.shade);
-    rect(ctx,bx+11+wingKick,by+10+waddle,2,1,bodyRim);
+    rect(ctx,bx+11+wingKick,by+10+waddle,3,3,pal.shade);
+    rect(ctx,bx+12+wingKick,by+12+waddle,2,2,pal.dark);
+    px(ctx,bx+12+wingKick,by+10+waddle,bodyRim,1);
   }else if(dir==='right'){
-    rect(ctx,bx+2-wingKick,by+10+waddle,4,3,pal.shade);
-    rect(ctx,bx+3-wingKick,by+10+waddle,2,1,bodyRim);
+    rect(ctx,bx+2-wingKick,by+10+waddle,3,3,pal.shade);
+    rect(ctx,bx+2-wingKick,by+12+waddle,2,2,pal.dark);
+    px(ctx,bx+3-wingKick,by+10+waddle,bodyRim,1);
   }else if(dir==='down'){
     rect(ctx,bx+1-wingKick,by+10+waddle,3,3,pal.shade);
+    px(ctx,bx+2-wingKick,by+13+waddle,pal.dark,1);
     rect(ctx,bx+12+wingKick,by+10+waddle,3,3,pal.shade);
+    px(ctx,bx+13+wingKick,by+13+waddle,pal.dark,1);
   }
 
   if(dir!=='up'){
-    rect(ctx,bx+5,by+9+waddle,1,5,pal.strap);
-    rect(ctx,bx+10,by+9+waddle,1,5,pal.strap);
+    // arnés fino: detalle, no un bloque que encierre el torso
+    microRect(ctx,bx+5.25,by+9+waddle,.5,4,pal.strap);
+    microRect(ctx,bx+10.25,by+9+waddle,.5,4,pal.strap);
   }
   if(dir==='left'){rect(ctx,bx+11,by+9+waddle,4,5,pal.pack);rect(ctx,bx+12,by+10+waddle,2,2,packLight);}
   if(dir==='right'){rect(ctx,bx+1,by+9+waddle,4,5,pal.pack);rect(ctx,bx+2,by+10+waddle,2,2,packLight);}
 
-  // Cabeza chibi: casi el ancho total del personaje.
+  // Cabeza chibi de pato: mejillas anchas, coronilla corta y borde del mismo plumaje.
   const hy=by+waddle;
   const hx=headNudge+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
-  rect(ctx,bx+2+hx,hy-1,12,9,outline);
-  rect(ctx,bx+1+hx,hy+1,14,6,outline);
-  rect(ctx,bx+3+hx,hy,10,8,pal.body);
-  rect(ctx,bx+2+hx,hy+2,12,5,pal.body);
+  rect(ctx,bx+4+hx,hy-1,8,1,outline);
+  rect(ctx,bx+3+hx,hy,10,1,pal.body);
+  rect(ctx,bx+2+hx,hy+1,12,6,pal.body);
+  rect(ctx,bx+3+hx,hy+7,10,1,pal.dark);
   rect(ctx,bx+4+hx,hy,7,1,bodyLight);
-  rect(ctx,bx+3+hx,hy+1,1,4,bodyRim);
-  rect(ctx,bx+12+hx,hy+2,1,4,pal.shade);
+  rect(ctx,bx+2+hx,hy+2,1,4,bodyRim);
+  rect(ctx,bx+13+hx,hy+2,1,4,outline);
 
-  // Antifaz más suave y ojos grandes con brillo.
+  // Antifaz de ladrón alrededor de los ojos, no una franja que cubra la cara.
   if(dir==='up'){
-    rect(ctx,bx+3+hx,hy+2,10,3,pal.mask);
-    rect(ctx,bx+5+hx,hy+6,6,2,pal.dark);
+    rect(ctx,bx+5+hx,hy+2,6,2,skinDark(pal.mask,.06));
+    rect(ctx,bx+6+hx,hy+6,4,1,pal.dark);
   }else if(dir==='down'){
-    rect(ctx,bx+2+hx,hy+2,12,3,pal.mask);
-    rect(ctx,bx+1+hx,hy+3,1,2,pal.mask);
-    rect(ctx,bx+14+hx,hy+3,1,2,pal.mask);
+    rect(ctx,bx+3+hx,hy+2,4,3,pal.mask);
+    rect(ctx,bx+9+hx,hy+2,4,3,pal.mask);
+    rect(ctx,bx+7+hx,hy+3,2,1,pal.mask);
     drawKawaiiFace(ctx,bx,hy,hx,dir,blink);
-    rect(ctx,bx+6+hx,hy+6,4,2,pal.beak);
-    rect(ctx,bx+6+hx,hy+6,3,1,beakLight);
-    rect(ctx,bx+7+hx,hy+7,3,1,pal.beakDark);
+    // Pico ancho y bajo: rasgo principal de pato.
+    rect(ctx,bx+5+hx,hy+5,6,3,pal.beak);
+    rect(ctx,bx+6+hx,hy+5,4,1,beakLight);
+    rect(ctx,bx+6+hx,hy+7,4,1,pal.beakDark);
+    px(ctx,bx+6+hx,hy+6,skinDark(pal.beak,.22),1);
+    px(ctx,bx+9+hx,hy+6,skinDark(pal.beak,.22),1);
   }else{
     const flip=dir==='left';
-    rect(ctx,bx+2+hx,hy+2,12,3,pal.mask);
+    const maskX=(flip?bx+3:bx+8)+hx;
+    rect(ctx,maskX,hy+2,5,3,pal.mask);
     drawKawaiiFace(ctx,bx,hy,hx,dir,blink);
-    const bxp=(flip?bx-1:bx+12)+hx;
-    rect(ctx,bxp,hy+5,5,2,pal.beak);
-    rect(ctx,bxp+(flip?1:0),hy+5,3,1,beakLight);
-    rect(ctx,bxp+(flip?0:1),hy+6,4,1,pal.beakDark);
+    const bxp=(flip?bx-3:bx+12)+hx;
+    rect(ctx,bxp,hy+5,7,3,pal.beak);
+    rect(ctx,bxp+(flip?1:0),hy+5,5,1,beakLight);
+    rect(ctx,bxp+(flip?0:2),hy+7,4,1,pal.beakDark);
   }
 
   // Mejillas kawaii sutiles, visibles incluso con skins oscuras.
@@ -255,10 +267,10 @@ export function drawDuck(
       microRect(ctx,bx+5.25+hx,hy+2.25,.25,.25,'#ffffff');
       microRect(ctx,bx+9.25+hx,hy+2.25,.25,.25,'#ffffff');
     }
-    microRect(ctx,bx+6.5+hx,hy+6.25,3,.25,'rgba(255,224,160,.72)');
+    microRect(ctx,bx+5.75+hx,hy+5.25,4.5,.25,'rgba(255,224,160,.72)');
   }else if(dir==='left'||dir==='right'){
-    const beakX=dir==='left'?bx-.75+hx:bx+12.25+hx;
-    microRect(ctx,beakX,hy+5.25,3.5,.25,'rgba(255,224,160,.66)');
+    const beakX=dir==='left'?bx-2.25+hx:bx+12.25+hx;
+    microRect(ctx,beakX,hy+5.25,5.25,.25,'rgba(255,224,160,.66)');
   }
   microRect(ctx,bx+4.25,by+8.25+waddle+microY,2.5,.25,'rgba(255,255,210,.30)');
   microRect(ctx,bx+11.25,by+9.25+waddle+microY,.25,3,'rgba(255,255,255,.20)');
@@ -645,8 +657,8 @@ export function drawDuckSkin(
     case 'robber':
       // Beanie bajo + pañuelo + arnés de herramientas: identidad del héroe base.
       rect(ctx,bx+4,by-3,8,3,'#20242a');rect(ctx,bx+3,by,10,1,'#11151a');
-      rect(ctx,bx+3,by+6,10,2,accent);
-      if(front){rect(ctx,bx+7,by+7,2,5,'#34231f');px(ctx,bx+7,by+10,metal,2);rect(ctx,bx+11,by+11,3,3,'#4a3024');px(ctx,bx+12,by+12,metal,1);}
+      rect(ctx,bx+4,by+8,8,1,accent);
+      if(front){microRect(ctx,bx+7.25,by+9,.5,4,'#34231f');px(ctx,bx+7,by+11,metal,1);rect(ctx,bx+11,by+12,2,2,'#4a3024');px(ctx,bx+12,by+12,metal,1);}
       else if(back){rect(ctx,bx+5,by+7,1,6,trim);rect(ctx,bx+10,by+7,1,6,trim);px(ctx,bx+7,by+9,metal,2);}
       else {rect(ctx,bx+(left?11:2),by+8,3,5,'#4a3024');px(ctx,bx+(left?12:3),by+9,metal,1);}
       break;
