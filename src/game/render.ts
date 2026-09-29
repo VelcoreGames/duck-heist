@@ -2813,7 +2813,6 @@ function drawHUD(engine: GameEngine) {
   }else{
     text(ctx,`PISO ${engine.map.floorIndex+1} / ${TOTAL_FLOORS}`,CANVAS_WIDTH/2,13,5.3,modeAccent,'center',true,false);
     text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],CANVAS_WIDTH/2,23,4.7,'#9bb0aa','center',true,false);
-    drawMinimap(engine);
   }
 
   // Recursos: panel compacto inspirado en caja de seguridad bancaria.
@@ -2824,6 +2823,13 @@ function drawHUD(engine: GameEngine) {
   ];
   if(engine.gameMode!=='endless')resourceRows.push({kind:'key',label:'LLAVES',value:String(p.bankKeys),accent:'#d2ad52',flash:p.keyFlash>0});
   drawResourceHud(ctx,economyX,4,economyW,resourceRows,engine.frame);
+
+  // El mapa ocupa su propia columna debajo de los recursos. Nunca comparte
+  // espacio con monedas/llaves ni invade el loadout inferior.
+  if(engine.gameMode!=='endless'){
+    const resourceH=resourceRows.length*17+6;
+    drawMinimap(engine,4+resourceH+8);
+  }
 
   drawBossBar(engine);
 
@@ -2885,10 +2891,13 @@ function drawHUD(engine: GameEngine) {
   text(ctx,engine.lastInput==='gamepad'?'B · ESQUIVE':'ESQUIVE',CANVAS_WIDTH/2,CANVAS_HEIGHT-4,4.8,dashReady?'#83d8a6':'#6d7d82','center',dashFlash,false);
 
   if(p.items.length){
-    const n=Math.min(p.items.length,8),w=n*14+8;
-    hudPlate(ctx,safeLeft+5,CANVAS_HEIGHT-51,w,15,'#6d8589',.43);
-    for(let i=0;i<n;i++)drawItemIcon(ctx,safeLeft+9+i*14,CANVAS_HEIGHT-49,p.items[i],12);
-    if(p.items.length>8)text(ctx,`+${p.items.length-8}`,safeLeft+11+n*14,CANVAS_HEIGHT-39,5.2,'#e6c56f','left',true,false);
+    const maxShown=10,n=Math.min(p.items.length,maxShown);
+    const w=Math.min(slotW*2+5,n*14+30);
+    const x=safeLeft+5,y=baseY-20;
+    hudPlate(ctx,x,y,w,16,'#6d8589',.46);
+    text(ctx,'OBJ',x+7,y+11,3.8,'#73888d','left',true,false);
+    for(let i=0;i<n;i++)drawItemIcon(ctx,x+25+i*14,y+2,p.items[i],12);
+    if(p.items.length>maxShown)text(ctx,`+${p.items.length-maxShown}`,x+w-5,y+11,4.6,'#e6c56f','right',true,false);
   }
 
   renderDangerEventHUD(engine);
@@ -2919,7 +2928,7 @@ function drawBossBar(engine: GameEngine) {
   const phase=Math.max(0,boss.bossPhase);
   const safe=visibleCanvasRect(18);
   const w=isFloorBoss?Math.min(330,safe.w-40):isSubBoss?Math.min(278,safe.w-54):Math.min(214,safe.w-70);
-  const x=safe.x+(safe.w-w)/2,y=isFloorBoss?50:isSubBoss?51:52;
+  const x=safe.x+(safe.w-w)/2,y=isFloorBoss?35:isSubBoss?36:37;
   const accent=isFloorBoss?(phase>=2?'#ff5d58':phase===1?'#ef8c63':'#e6a16f'):isSubBoss?(phase>=1?'#ef7667':'#d99a68'):(phase>=1?'#ffd861':'#c9a84d');
   const tier=isFloorBoss?'JEFE DE PISO':isSubBoss?'SUBJEFE':'MINIJEFE';
   const phaseText=isFloorBoss?`F${phase+1}/3`:isSubBoss?`F${phase+1}/2`:(phase>=1?'ENRAGE':'');
@@ -2972,41 +2981,61 @@ function drawBossBar(engine: GameEngine) {
   }
   if(engine.gameMode==='endless'&&boss.mutation)text(ctx,`MUTACIÓN · ${boss.mutation}`,x+10,y+18,3.8,boss.mutation==='TORMENTA'?'#8ecfff':boss.mutation==='BLINDADO'?'#b6c3ce':'#f2a66f','left',true,false);
 }
-function drawMinimap(engine: GameEngine) {
+function drawMinimap(engine: GameEngine, topY=68) {
   const ctx = engine.ui!;
   const visible=visibleRoomKeys(engine);
   const rooms=[...visible].map(id=>engine.map.rooms.get(id)!);
   if (!rooms.length) return;
-  const cell = 9, gap = 3;
-  const minX = Math.min(...rooms.map(r => r.gx)), maxX = Math.max(...rooms.map(r => r.gx));
-  const minY = Math.min(...rooms.map(r => r.gy)), maxY = Math.max(...rooms.map(r => r.gy));
-  const w = (maxX - minX + 1) * (cell + gap) + 10;
-  const h = (maxY - minY + 1) * (cell + gap) + 10;
+
+  const minX=Math.min(...rooms.map(r=>r.gx)),maxX=Math.max(...rooms.map(r=>r.gx));
+  const minY=Math.min(...rooms.map(r=>r.gy)),maxY=Math.max(...rooms.map(r=>r.gy));
+  const cols=maxX-minX+1,rows=maxY-minY+1;
+
+  // El minimapa se comprime si la run se extiende. Antes crecía sin límite y
+  // terminaba montándose sobre inventario/recursos en layouts compactos.
+  const maxPanelW=136,maxPanelH=112;
+  const gridMaxW=maxPanelW-12,gridMaxH=maxPanelH-28;
+  const step=Math.max(5,Math.min(12,Math.floor(gridMaxW/Math.max(1,cols)),Math.floor(gridMaxH/Math.max(1,rows))));
+  const cell=Math.max(4,step-2);
+  const gap=step-cell;
+  const gridW=cols*step-gap,gridH=rows*step-gap;
+  const w=gridW+12,h=gridH+28;
+
   const safe=visibleCanvasRect(6);
-  const ox = safe.x + safe.w - w, oy = 50;
+  const ox=safe.x+safe.w-w;
+  const maxBottom=CANVAS_HEIGHT-70;
+  const oy=Math.max(34,Math.min(topY,maxBottom-h));
 
-  drawPanel(ctx, ox, oy, w, h, 'rgba(4,6,12,0.72)', '#2f3644');
+  hudPlate(ctx,ox,oy,w,h,'#79b9d2',.66);
+  text(ctx,'MAPA',ox+7,oy+10,4.2,'#78999e','left',true,false);
+  text(ctx,actionPrompt(engine,'map'),ox+w-7,oy+10,4.3,'#96b9bd','right',true,false);
 
-  for (const r of rooms) {
-    const x = ox + 5 + (r.gx - minX) * (cell + gap);
-    const y = oy + 5 + (r.gy - minY) * (cell + gap);
-    const cur = `${r.gx},${r.gy}` === engine.currentKey;
-    // conexiones
-    ctx.fillStyle = 'rgba(180,190,210,0.4)';
-    for (const d of r.doors) {
-      const v = DIR_VECTORS[d];
-      if(!visible.has(`${r.gx+v.x},${r.gy+v.y}`)) continue;
-      ctx.fillRect(x + cell / 2 + v.x * 4, y + cell / 2 + v.y * 4, 2, 2);
+  const gx0=ox+6,gy0=oy+15;
+  for (const room of rooms) {
+    const x=gx0+(room.gx-minX)*step;
+    const y=gy0+(room.gy-minY)*step;
+    const cur=`${room.gx},${room.gy}`===engine.currentKey;
+
+    ctx.fillStyle='rgba(180,190,210,.34)';
+    for (const d of room.doors) {
+      const v=DIR_VECTORS[d];
+      if(!visible.has(`${room.gx+v.x},${room.gy+v.y}`))continue;
+      const cx=x+cell/2,cy=y+cell/2;
+      if(v.x!==0)ctx.fillRect(cx+(v.x>0?cell/2:-gap-1),cy,Math.max(2,gap+2),1);
+      else ctx.fillRect(cx,cy+(v.y>0?cell/2:-gap-1),1,Math.max(2,gap+2));
     }
-    ctx.fillStyle=r.visited&&r.cleared?'#182b33':'#223e48';ctx.fillRect(x,y,cell,cell);
-    drawRoomSymbol(ctx,r,x+cell/2,y+cell/2,7,!!engine.contents.get(`${r.gx},${r.gy}`)?.stairs);
-    if (cur) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x - 1.5, y - 1.5, cell + 3, cell + 3);
+
+    ctx.fillStyle=room.visited&&room.cleared?'#182b33':'#223e48';
+    ctx.fillRect(x,y,cell,cell);
+    drawRoomSymbol(ctx,room,x+cell/2,y+cell/2,Math.max(4,cell-2),!!engine.contents.get(`${room.gx},${room.gy}`)?.stairs);
+    if(cur){
+      ctx.strokeStyle='#f3f7f7';ctx.lineWidth=1;
+      ctx.strokeRect(x-1,y-1,cell+2,cell+2);
     }
   }
-  text(ctx,`${actionPrompt(engine,'map')} · MAPA`,ox+w/2,oy+h+9,6.5,'#96b9bd','center',true);
+
+  text(ctx,`${rooms.length} SALAS`,ox+7,oy+h-5,3.8,'#667f84','left',true,false);
+  text(ctx,'M · ABRIR',ox+w-7,oy+h-5,3.8,'#769aa0','right',true,false);
 }
 
 // ---------------------------------------------------------------------------
