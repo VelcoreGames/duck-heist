@@ -40,6 +40,32 @@ function mixHex(color:string,target:string,amount:number){
 const skinLight=(c:string,a=.34)=>mixHex(c,'#fff8df',a);
 const skinDark=(c:string,a=.48)=>mixHex(c,'#070b0f',a);
 
+function drawKawaiiFace(ctx:Ctx,bx:number,hy:number,hx:number,dir:DuckDir,blink:boolean){
+  const eye='#111318',eyeHi='#fffdf3',blush='rgba(255,126,159,.52)';
+  if(dir==='down'){
+    if(blink){
+      rect(ctx,bx+4+hx,hy+3,3,1,eye);rect(ctx,bx+9+hx,hy+3,3,1,eye);
+    }else{
+      rect(ctx,bx+4+hx,hy+2,3,3,'#f7fbff');rect(ctx,bx+9+hx,hy+2,3,3,'#f7fbff');
+      rect(ctx,bx+5+hx,hy+2,2,2,eye);rect(ctx,bx+9+hx,hy+2,2,2,eye);
+      px(ctx,bx+5+hx,hy+2,eyeHi,1);px(ctx,bx+9+hx,hy+2,eyeHi,1);
+    }
+    microRect(ctx,bx+3.25+hx,hy+5.1,1.5,.5,blush);
+    microRect(ctx,bx+11.25+hx,hy+5.1,1.5,.5,blush);
+  }else if(dir==='left'||dir==='right'){
+    const ex=dir==='left'?bx+4+hx:bx+9+hx;
+    if(blink)rect(ctx,ex,hy+3,3,1,eye);
+    else{
+      rect(ctx,ex,hy+2,3,3,'#f7fbff');
+      rect(ctx,ex+(dir==='left'?0:1),hy+2,2,2,eye);
+      px(ctx,ex+(dir==='left'?0:1),hy+2,eyeHi,1);
+    }
+    microRect(ctx,dir==='left'?bx+3.1+hx:bx+12.15+hx,hy+5.1,1.25,.5,blush);
+  }else{
+    rect(ctx,bx+5+hx,hy+3,2,1,eye);rect(ctx,bx+9+hx,hy+3,2,1,eye);
+  }
+}
+
 const DUCK_BODY = '#f9e547';
 const DUCK_DARK = '#e0c31c';
 const DUCK_SHADE = '#c9ae13';
@@ -79,20 +105,22 @@ export function drawDuck(
   ctx.save();
 
   if (dead) {
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath();
-    ctx.ellipse(bx + 8, by + 15, 9, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    rect(ctx, bx + 1, by + 9, 14, 6, pal.body);
-    rect(ctx, bx + 2, by + 12, 12, 3, pal.shade);
-    rect(ctx, bx + 12, by + 6, 4, 4, pal.body);
-    rect(ctx, bx + 15, by + 7, 3, 2, pal.beak);
-    px(ctx, bx + 13, by + 7, '#000', 1); px(ctx, bx + 14, by + 8, '#000', 1);
-    px(ctx, bx + 14, by + 7, '#000', 1); px(ctx, bx + 13, by + 8, '#000', 1);
-    rect(ctx, bx + 4, by + 6, 2, 4, pal.beak);
-    rect(ctx, bx + 8, by + 5, 2, 5, pal.beak);
-    microRect(ctx,bx+1.5,by+9.25,10.5,.25,'rgba(255,255,255,.16)');
-    microRect(ctx,bx+15.25,by+7.25,2,.5,'rgba(255,230,170,.32)');
+    ctx.fillStyle='rgba(0,0,0,.30)';
+    ctx.beginPath();ctx.ellipse(bx+8,by+16,9,2.5,0,0,Math.PI*2);ctx.fill();
+    // cuerpo compacto tumbado
+    rect(ctx,bx+1,by+10,14,6,outline);
+    rect(ctx,bx+2,by+10,12,5,pal.body);
+    rect(ctx,bx+3,by+13,10,2,pal.dark);
+    // cabeza grande mantiene la identidad chibi incluso en game over
+    rect(ctx,bx+10,by+5,7,7,outline);
+    rect(ctx,bx+11,by+6,6,5,pal.body);
+    rect(ctx,bx+15,by+8,4,2,pal.beak);
+    rect(ctx,bx+16,by+8,2,1,beakLight);
+    px(ctx,bx+12,by+7,'#111318',1);px(ctx,bx+14,by+9,'#111318',1);
+    px(ctx,bx+14,by+7,'#111318',1);px(ctx,bx+12,by+9,'#111318',1);
+    // patitas hacia arriba
+    rect(ctx,bx+4,by+7,2,4,pal.beak);rect(ctx,bx+9,by+6,2,5,pal.beak);
+    microRect(ctx,bx+2.5,by+10.25,8.5,.25,'rgba(255,255,255,.18)');
     ctx.restore();
     return;
   }
@@ -110,116 +138,97 @@ export function drawDuck(
   const idleLook=!aiming&&!moving&&!dashing&&!shooting&&frame%260>205&&frame%260<250;
   const headNudge=idleLook?(frame%260<228?-1:1):0;
 
-  ctx.fillStyle = 'rgba(0,0,0,0.32)';
-  ctx.fillRect(bx + 2, by + 16, 12, 3);
-  ctx.fillRect(bx + 3, by + 19, 10, 1);
+  // Chibi/kawaii: cabeza dominante, torso compacto, pies pequeños y silueta redonda.
+  ctx.fillStyle='rgba(0,0,0,.25)';
+  ctx.beginPath();ctx.ellipse(bx+8,by+17,7.5,2.1,0,0,Math.PI*2);ctx.fill();
 
   const footA=moving?(step>0?1:-1):0;
   const footLift=moving&&Math.abs(step)>.55?1:0;
   const fyA=by+15-footLift*(step>0?1:0),fyB=by+15-footLift*(step<0?1:0);
-  rect(ctx,bx+2-footA,fyA-1,5,4,outline);
-  rect(ctx,bx+9+footA,fyB-1,5,4,outline);
-  rect(ctx,bx+3-footA,fyA,3,3,pal.beak);
-  rect(ctx,bx+3-footA,fyA,2,1,beakLight);
-  rect(ctx,bx+2-footA,fyA+2,5,1,pal.beakDark);
-  rect(ctx,bx+10+footA,fyB,3,3,pal.beak);
-  rect(ctx,bx+10+footA,fyB,2,1,beakLight);
-  rect(ctx,bx+9+footA,fyB+2,5,1,pal.beakDark);
+  rect(ctx,bx+3-footA,fyA,3,2,pal.beak);
+  rect(ctx,bx+3-footA,fyA+1,3,1,pal.beakDark);
+  rect(ctx,bx+10+footA,fyB,3,2,pal.beak);
+  rect(ctx,bx+10+footA,fyB+1,3,1,pal.beakDark);
   if(moving&&Math.abs(step)>.72){
-    ctx.globalAlpha=.20;rect(ctx,bx+(step>0?1:12),by+18,3,1,'#e8d98f');ctx.globalAlpha=1;
+    ctx.globalAlpha=.16;rect(ctx,bx+(step>0?2:11),by+17,3,1,'#e8d98f');ctx.globalAlpha=1;
   }
 
-  // Contorno común para todas las skins. Se pinta debajo del material real y
-  // mejora la lectura del personaje sobre pisos claros, efectos y UI pequeña.
-  rect(ctx,bx+2,by+5+waddle,12,11,outline);
-  rect(ctx,bx+1,by+8+waddle,14,6,outline);
-
-  if (dir === 'up') {
-    rect(ctx, bx + 3, by + 5, 10, 9, pal.pack);
-    rect(ctx, bx + 4, by + 6, 8, 3, packLight);
-    rect(ctx, bx + 6, by + 10, 4, 2, pal.strap);
+  // Torso: más corto, ancho y redondeado.
+  rect(ctx,bx+2,by+7+waddle,12,9,outline);
+  rect(ctx,bx+1,by+9+waddle,14,5,outline);
+  if(dir==='up'){
+    rect(ctx,bx+3,by+8+waddle,10,7,pal.pack);
+    rect(ctx,bx+4,by+9+waddle,8,2,packLight);
+    rect(ctx,bx+6,by+12+waddle,4,2,pal.strap);
+  }else{
+    rect(ctx,bx+3,by+8+waddle,10,7,pal.body);
+    rect(ctx,bx+2,by+10+waddle,12,4,pal.body);
+    rect(ctx,bx+4,by+8+waddle,6,1,bodyLight);
+    rect(ctx,bx+3,by+9+waddle,1,4,bodyRim);
+    rect(ctx,bx+12,by+10+waddle,1,4,pal.shade);
+    rect(ctx,bx+4,by+12+waddle,8,3,pal.dark);
+    rect(ctx,bx+5,by+14+waddle,6,1,pal.shade);
   }
 
-  rect(ctx, bx + 3, by + 6 + waddle, 10, 9, pal.body);
-  rect(ctx, bx + 2, by + 8 + waddle, 12, 5, pal.body);
-  rect(ctx, bx + 3, by + 12 + waddle, 10, 3, pal.dark);
-  rect(ctx,bx+4,by+14+waddle,8,1,pal.shade);
-  rect(ctx,bx+4,by+6+waddle,6,1,bodyLight);
-  rect(ctx,bx+3,by+8+waddle,1,4,bodyRim);
-  rect(ctx,bx+12,by+9+waddle,1,4,pal.shade);
-  if(moving){
-    const tail=step>0?1:0;
-    if(dir==='left')rect(ctx,bx+13+tail,by+11+waddle,3,2,pal.shade);
-    else if(dir==='right')rect(ctx,bx-tail,by+11+waddle,3,2,pal.shade);
-    else rect(ctx,bx+6+(step>0?1:-1),by+14+waddle,4,2,pal.shade);
-  }
-  rect(ctx, bx + 4, by + 7 + waddle, 3, 1, bodyLight);
-  rect(ctx, bx + 11, by + 8 + waddle, 1, 4, 'rgba(255,255,255,.18)');
-
-  // Ala expresiva: acompaña disparo, dash y caminata sin cambiar la silueta base.
-  const wingKick = shooting ? 2 : dashing ? 1 : moving && Math.abs(step) > .55 ? 1 : 0;
-  if (dir === 'left') {
-    rect(ctx, bx + 10 + wingKick, by + 9 + waddle, 4, 3, pal.shade);
-    if (shooting) px(ctx, bx + 13 + wingKick, by + 8 + waddle, bodyLight, 1);
-  } else if (dir === 'right') {
-    rect(ctx, bx + 2 - wingKick, by + 9 + waddle, 4, 3, pal.shade);
-    if (shooting) px(ctx, bx + 2 - wingKick, by + 8 + waddle, bodyLight, 1);
-  } else if (dir === 'down' && shooting) {
-    rect(ctx, bx + 1, by + 10 + waddle, 3, 2, pal.shade);
-    rect(ctx, bx + 12, by + 10 + waddle, 3, 2, pal.shade);
+  // Alas cortas y redondas, más expresivas al disparar.
+  const wingKick=shooting?2:dashing?1:moving&&Math.abs(step)>.55?1:0;
+  if(dir==='left'){
+    rect(ctx,bx+10+wingKick,by+10+waddle,4,3,pal.shade);
+    rect(ctx,bx+11+wingKick,by+10+waddle,2,1,bodyRim);
+  }else if(dir==='right'){
+    rect(ctx,bx+2-wingKick,by+10+waddle,4,3,pal.shade);
+    rect(ctx,bx+3-wingKick,by+10+waddle,2,1,bodyRim);
+  }else if(dir==='down'){
+    rect(ctx,bx+1-wingKick,by+10+waddle,3,3,pal.shade);
+    rect(ctx,bx+12+wingKick,by+10+waddle,3,3,pal.shade);
   }
 
-  if (dir !== 'up') {
-    rect(ctx, bx + 5, by + 7 + waddle, 1, 6, pal.strap);
-    rect(ctx, bx + 10, by + 7 + waddle, 1, 6, pal.strap);
+  if(dir!=='up'){
+    rect(ctx,bx+5,by+9+waddle,1,5,pal.strap);
+    rect(ctx,bx+10,by+9+waddle,1,5,pal.strap);
   }
-  if (dir === 'left') { rect(ctx, bx + 11, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 12, by + 8 + waddle, 2, 2, packLight); }
-  if (dir === 'right') { rect(ctx, bx + 1, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 2, by + 8 + waddle, 2, 2, packLight); }
+  if(dir==='left'){rect(ctx,bx+11,by+9+waddle,4,5,pal.pack);rect(ctx,bx+12,by+10+waddle,2,2,packLight);}
+  if(dir==='right'){rect(ctx,bx+1,by+9+waddle,4,5,pal.pack);rect(ctx,bx+2,by+10+waddle,2,2,packLight);}
 
-  const hy=by+2+waddle;
+  // Cabeza chibi: casi el ancho total del personaje.
+  const hy=by+waddle;
   const hx=headNudge+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
-  rect(ctx,bx+3+hx,hy-1,10,8,outline);
-  rect(ctx,bx+2+hx,hy,12,6,outline);
-  rect(ctx,bx+4+hx,hy,8,6,pal.body);
-  rect(ctx,bx+3+hx,hy+1,10,4,pal.body);
-  rect(ctx,bx+4+hx,hy,6,1,bodyLight);
-  rect(ctx,bx+3+hx,hy+1,1,3,bodyRim);
+  rect(ctx,bx+2+hx,hy-1,12,9,outline);
+  rect(ctx,bx+1+hx,hy+1,14,6,outline);
+  rect(ctx,bx+3+hx,hy,10,8,pal.body);
+  rect(ctx,bx+2+hx,hy+2,12,5,pal.body);
+  rect(ctx,bx+4+hx,hy,7,1,bodyLight);
+  rect(ctx,bx+3+hx,hy+1,1,4,bodyRim);
+  rect(ctx,bx+12+hx,hy+2,1,4,pal.shade);
 
-  if (dir === 'up') {
-    rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
-    rect(ctx,bx+5+hx,hy+4,6,2,pal.dark);
-    rect(ctx, bx + 6, by + 13 + waddle, 4, 3, pal.shade);
-  } else if (dir === 'down') {
-    rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
-    rect(ctx,bx+2+hx,hy+1,1,2,pal.mask);
-    rect(ctx,bx+13+hx,hy+1,1,2,pal.mask);
-    if (!blink) {
-      rect(ctx,bx+5+hx,hy+2,2,2,'#fff');
-      rect(ctx,bx+9+hx,hy+2,2,2,'#fff');
-      px(ctx,bx+6+hx,hy+2,'#0a0a0a',1);
-      px(ctx,bx+10+hx,hy+2,'#0a0a0a',1);
-    } else {
-      rect(ctx,bx+5+hx,hy+3,2,1,'#0a0a0a');
-      rect(ctx,bx+9+hx,hy+3,2,1,'#0a0a0a');
-    }
-    rect(ctx,bx+6+hx,hy+5,4,2,pal.beak);
-    rect(ctx,bx+6+hx,hy+5,3,1,beakLight);
-    rect(ctx,bx+6+hx,hy+6,4,1,pal.beakDark);
-  } else {
-    const flip = dir === 'left';
-    const fx=(v:number)=>(flip?bx+15-v:bx+v)+hx;
-    rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
-    if (!blink) {
-      rect(ctx, fx(9), hy + 2, 2, 2, '#fff');
-      px(ctx, fx(10), hy + 2, '#0a0a0a', 1);
-    } else {
-      rect(ctx, fx(9), hy + 3, 2, 1, '#0a0a0a');
-    }
-    const bxp=(flip?bx-2:bx+12)+hx;
-    rect(ctx, bxp, hy + 4, 5, 2, pal.beak);
-    rect(ctx, bxp + (flip ? 1 : 0), hy + 4, 3, 1, beakLight);
-    rect(ctx, bxp + (flip ? 0 : 1), hy + 6, 4, 1, pal.beakDark);
-    rect(ctx, flip ? bx + 12 : bx + 1, by + 9 + waddle, 3, 3, pal.shade);
+  // Antifaz más suave y ojos grandes con brillo.
+  if(dir==='up'){
+    rect(ctx,bx+3+hx,hy+2,10,3,pal.mask);
+    rect(ctx,bx+5+hx,hy+6,6,2,pal.dark);
+  }else if(dir==='down'){
+    rect(ctx,bx+2+hx,hy+2,12,3,pal.mask);
+    rect(ctx,bx+1+hx,hy+3,1,2,pal.mask);
+    rect(ctx,bx+14+hx,hy+3,1,2,pal.mask);
+    drawKawaiiFace(ctx,bx,hy,hx,dir,blink);
+    rect(ctx,bx+6+hx,hy+6,4,2,pal.beak);
+    rect(ctx,bx+6+hx,hy+6,3,1,beakLight);
+    rect(ctx,bx+7+hx,hy+7,3,1,pal.beakDark);
+  }else{
+    const flip=dir==='left';
+    rect(ctx,bx+2+hx,hy+2,12,3,pal.mask);
+    drawKawaiiFace(ctx,bx,hy,hx,dir,blink);
+    const bxp=(flip?bx-1:bx+12)+hx;
+    rect(ctx,bxp,hy+5,5,2,pal.beak);
+    rect(ctx,bxp+(flip?1:0),hy+5,3,1,beakLight);
+    rect(ctx,bxp+(flip?0:1),hy+6,4,1,pal.beakDark);
+  }
+
+  // Mejillas kawaii sutiles, visibles incluso con skins oscuras.
+  if(dir!=='up'){
+    ctx.globalAlpha=.42;
+    microRect(ctx,bx+3.25+hx,hy+5.25,1.25,.5,'#ff8fae');
+    microRect(ctx,bx+11.5+hx,hy+5.25,1.25,.5,'#ff8fae');
+    ctx.globalAlpha=1;
   }
 
   if (shooting) {
@@ -240,22 +249,22 @@ export function drawDuck(
   ctx.globalAlpha=Math.min(1,ctx.globalAlpha);
   const microY=waddle*.25;
   if(dir==='down'){
-    microRect(ctx,bx+5.25+hx,hy+2.25,1.25,.25,'rgba(255,255,255,.72)');
-    microRect(ctx,bx+9.25+hx,hy+2.25,1.25,.25,'rgba(255,255,255,.72)');
-    if(!blink){microRect(ctx,bx+6.25+hx,hy+2.5,.5,.5,'#050608');microRect(ctx,bx+10.25+hx,hy+2.5,.5,.5,'#050608');}
-    microRect(ctx,bx+6.5+hx,hy+5.25,3,.25,'rgba(255,224,160,.68)');
-    microRect(ctx,bx+6.75+hx,hy+6.5,2.5,.25,'rgba(92,45,16,.45)');
+    if(!blink){
+      microRect(ctx,bx+5.25+hx,hy+2.25,.5,.5,'#050608');
+      microRect(ctx,bx+9.25+hx,hy+2.25,.5,.5,'#050608');
+      microRect(ctx,bx+5.25+hx,hy+2.25,.25,.25,'#ffffff');
+      microRect(ctx,bx+9.25+hx,hy+2.25,.25,.25,'#ffffff');
+    }
+    microRect(ctx,bx+6.5+hx,hy+6.25,3,.25,'rgba(255,224,160,.72)');
   }else if(dir==='left'||dir==='right'){
-    const eyeX=dir==='left'?bx+5.25+hx:bx+9.75+hx;
-    if(!blink)microRect(ctx,eyeX,hy+2.4,.55,.55,'#050608');
-    const beakX=dir==='left'?bx-1.75+hx:bx+13+hx;
-    microRect(ctx,beakX,hy+4.25,3.75,.25,'rgba(255,224,160,.64)');
+    const beakX=dir==='left'?bx-.75+hx:bx+12.25+hx;
+    microRect(ctx,beakX,hy+5.25,3.5,.25,'rgba(255,224,160,.66)');
   }
-  microRect(ctx,bx+4.25,by+7.25+waddle+microY,2.5,.25,'rgba(255,255,210,.34)');
-  microRect(ctx,bx+11.25,by+8.25+waddle+microY,.25,3,'rgba(255,255,255,.22)');
+  microRect(ctx,bx+4.25,by+8.25+waddle+microY,2.5,.25,'rgba(255,255,210,.30)');
+  microRect(ctx,bx+11.25,by+9.25+waddle+microY,.25,3,'rgba(255,255,255,.20)');
   if(dir!=='up'){
-    microRect(ctx,bx+5.25,by+8+waddle,.25,4.5,'rgba(255,255,255,.12)');
-    microRect(ctx,bx+10.5,by+8+waddle,.25,4.5,'rgba(0,0,0,.24)');
+    microRect(ctx,bx+5.25,by+9+waddle,.25,4,'rgba(255,255,255,.10)');
+    microRect(ctx,bx+10.5,by+9+waddle,.25,4,'rgba(0,0,0,.22)');
   }
 
   ctx.restore();
@@ -599,6 +608,13 @@ function drawSkinMaterialPass(
     microRect(ctx,gx,by+9.25,.5,.5,skinLight(metal,.48));
   }
 
+  // Acabado kawaii universal: brillo suave en cabeza y pequeña luz de mejilla.
+  ctx.globalAlpha=.28;
+  microRect(ctx,bx+4.25,by+.25,6.5,.25,'rgba(255,255,255,.52)');
+  if(!back){
+    microRect(ctx,bx+3.25,by+5.15,1.25,.5,'rgba(255,141,174,.58)');
+    microRect(ctx,bx+11.5,by+5.15,1.25,.5,'rgba(255,141,174,.58)');
+  }
   ctx.restore();
 }
 
@@ -628,7 +644,7 @@ export function drawDuckSkin(
   switch (overlay) {
     case 'robber':
       // Beanie bajo + pañuelo + arnés de herramientas: identidad del héroe base.
-      rect(ctx,bx+4,by-1,8,2,'#20242a');rect(ctx,bx+3,by+1,10,1,'#11151a');
+      rect(ctx,bx+4,by-3,8,3,'#20242a');rect(ctx,bx+3,by,10,1,'#11151a');
       rect(ctx,bx+3,by+6,10,2,accent);
       if(front){rect(ctx,bx+7,by+7,2,5,'#34231f');px(ctx,bx+7,by+10,metal,2);rect(ctx,bx+11,by+11,3,3,'#4a3024');px(ctx,bx+12,by+12,metal,1);}
       else if(back){rect(ctx,bx+5,by+7,1,6,trim);rect(ctx,bx+10,by+7,1,6,trim);px(ctx,bx+7,by+9,metal,2);}
@@ -637,7 +653,7 @@ export function drawDuckSkin(
 
     case 'fedora':
       // Fedora más ancho, cinta vino, traje a rayas y cadena real.
-      rect(ctx,bx,by-1,16,2,'#111219');rect(ctx,bx+3,by-5,10,5,'#20212a');
+      rect(ctx,bx,by-3,16,2,'#111219');rect(ctx,bx+3,by-7,10,5,'#20212a');
       rect(ctx,bx+4,by-2,8,1,accent);px(ctx,bx+11,by-2,metal,1);
       if(!back){
         rect(ctx,bx+3,by+7,10,7,'#242630');
@@ -658,7 +674,7 @@ export function drawDuckSkin(
 
     case 'chef':
       // Toque alto, chaqueta cruzada, botones y pañuelo de cocina.
-      rect(ctx,bx+2,by-2,12,3,'#e2e5e3');rect(ctx,bx+3,by-7,10,6,'#faf7ee');
+      rect(ctx,bx+2,by-4,12,3,'#e2e5e3');rect(ctx,bx+3,by-9,10,6,'#faf7ee');
       rect(ctx,bx+5,by-9,6,3,'#ffffff');rect(ctx,bx+4,by-6,2,4,'#d8dddc');rect(ctx,bx+9,by-6,2,4,'#d8dddc');
       rect(ctx,bx+4,by+6,8,2,accent);
       if(!back){rect(ctx,bx+3,by+8,10,7,trim);rect(ctx,bx+7,by+8,1,6,'#d1d7d6');}
@@ -689,7 +705,7 @@ export function drawDuckSkin(
 
     case 'ninja':
       // Capucha segmentada, única ventana de ojos y vendas de antebrazo.
-      rect(ctx,bx+3,by-1,10,3,'#0e1116');rect(ctx,bx+2,by+1,12,4,'#141820');
+      rect(ctx,bx+3,by-3,10,3,'#0e1116');rect(ctx,bx+2,by-1,12,5,'#141820');
       rect(ctx,bx+3,by+3,10,2,accent);
       if(front){rect(ctx,bx+4,by+2,8,2,'#090b0f');rect(ctx,bx+5,by+2,2,1,'#e8eceb');rect(ctx,bx+9,by+2,2,1,'#e8eceb');}
       rect(ctx,bx+3,by+9,3,1,trim);rect(ctx,bx+10,by+9,3,1,trim);
@@ -698,7 +714,7 @@ export function drawDuckSkin(
 
     case 'undercover':
       // Gorra de policía, placa, gabardina y el bigote imposible.
-      rect(ctx,bx+2,by-1,12,3,'#304e7a');rect(ctx,bx+4,by-3,8,3,'#203653');rect(ctx,bx+5,by-1,6,1,trim);px(ctx,bx+7,by-2,accent,2);
+      rect(ctx,bx+2,by-3,12,3,'#304e7a');rect(ctx,bx+4,by-5,8,3,'#203653');rect(ctx,bx+5,by-1,6,1,trim);px(ctx,bx+7,by-2,accent,2);
       rect(ctx,bx+3,by+7,10,8,'#354b6a');rect(ctx,bx+4,by+8,8,1,'#55749b');
       if(front){px(ctx,bx+5,by+10,accent,2);rect(ctx,bx+5,by+7,6,1,metal);rect(ctx,bx+4,by+7,3,2,'#17191f');rect(ctx,bx+9,by+7,3,2,'#17191f');}
       else if(left||right){rect(ctx,bx+(left?3:10),by+6,4,2,'#17191f');}
@@ -707,7 +723,7 @@ export function drawDuckSkin(
 
     case 'pirate':
       // Tricornio asimétrico, parche, pañuelo, sash y herraje de latón.
-      rect(ctx,bx,by-3,16,3,'#1d181a');rect(ctx,bx+3,by-6,10,4,'#2a2225');rect(ctx,bx-1,by-4,4,3,'#1d181a');rect(ctx,bx+13,by-4,4,3,'#1d181a');
+      rect(ctx,bx,by-5,16,3,'#1d181a');rect(ctx,bx+3,by-8,10,4,'#2a2225');rect(ctx,bx-1,by-4,4,3,'#1d181a');rect(ctx,bx+13,by-4,4,3,'#1d181a');
       px(ctx,bx+7,by-3,trim,2);px(ctx,bx+8,by-4,trim,1);
       rect(ctx,bx+3,by+7,10,2,accent);rect(ctx,bx+3,by+12,10,2,'#3b261d');px(ctx,bx+7,by+12,metal,2);
       if(front){rect(ctx,bx+4,by+3,3,3,'#07080b');rect(ctx,bx+3,by+2,6,1,'#07080b');}
@@ -726,7 +742,7 @@ export function drawDuckSkin(
 
     case 'king':
       // Corona alta y capa visible también de frente: el cosmético final domina la silueta.
-      rect(ctx,bx+3,by-4,10,4,metal);rect(ctx,bx+3,by-7,2,4,metal);rect(ctx,bx+7,by-8,2,5,trim);rect(ctx,bx+11,by-7,2,4,metal);
+      rect(ctx,bx+3,by-6,10,4,metal);rect(ctx,bx+3,by-9,2,4,metal);rect(ctx,bx+7,by-10,2,5,trim);rect(ctx,bx+11,by-9,2,4,metal);
       px(ctx,bx+5,by-2,'#d84d5b',2);px(ctx,bx+9,by-2,'#4f9dd8',2);
       rect(ctx,bx+2,by+6,12,3,trim);px(ctx,bx+4,by+7,'#171318',1);px(ctx,bx+8,by+7,'#171318',1);px(ctx,bx+12,by+7,'#171318',1);
       if(front){rect(ctx,bx+6,by+9,4,4,accent);px(ctx,bx+7,by+10,metal,2);}
