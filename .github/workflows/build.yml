@@ -51,7 +51,7 @@ jobs:
           )"
 
           COMMIT_SHA="$(
-            jq -n               --arg message "Publish Duck Heist v1.5.6 styled light gray floor [skip ci]"               --arg tree "$TREE_SHA"               --arg parent "$BASE_SHA"               '{message:$message,tree:$tree,parents:[$parent]}' |
+            jq -n               --arg message "Publish Duck Heist v1.5.7 cool gray premium floor [skip ci]"               --arg tree "$TREE_SHA"               --arg parent "$BASE_SHA"               '{message:$message,tree:$tree,parents:[$parent]}' |
             gh api --method POST "repos/$GITHUB_REPOSITORY/git/commits" --input - --jq .sha
           )"
 
