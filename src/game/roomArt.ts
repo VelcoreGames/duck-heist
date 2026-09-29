@@ -57,26 +57,28 @@ function drawLuxuryFloorDetail(
   const tier=floorTierFromDeco(theme.deco),metal=decoMetal(theme.deco),variant=h%7;
 
   if(tier===0){
-    // Entrada: piedra gris clara pulida con textura mineral discreta.
-    // Evitamos el blanco plano: cada losa tiene volumen, junta y variación suave.
-    const coolEdge=h%2===0?'#aeb5ba':'#b7bdc1';
-    ctx.globalAlpha=.22;r(ctx,px+2,py+2,T-4,1,'#eef1f2');ctx.globalAlpha=1;
-    ctx.globalAlpha=.18;r(ctx,px+2,py+T-3,T-4,1,'#858d93');ctx.globalAlpha=1;
+    // Entrada: losas grandes de piedra gris perla. El acabado es frío y mate
+    // para que el amarillo/naranja de los disparos tenga contraste inmediato.
+    const vein=h%2===0?'#76828c':'#858f98';
 
-    // Microtextura tipo piedra/terrazzo: determinista, sin ruido animado.
-    ctx.globalAlpha=.20;
-    for(const [ox,oy] of [[7,8],[18,6],[12,19],[24,22]] as const){
-      const tone=(ox+oy+h)%3===0?'#f0f2f3':(ox+oy+h)%2===0?'#aeb5ba':'#bcc2c6';
-      r(ctx,px+ox,py+oy,(h+ox)%3===0?2:1,1,tone);
+    // Bisel interior muy suave: da volumen sin convertir el suelo en una cuadrícula brillante.
+    ctx.globalAlpha=.18;r(ctx,px+3,py+3,T-6,1,'#d7dde1');ctx.globalAlpha=1;
+    ctx.globalAlpha=.22;r(ctx,px+3,py+T-4,T-6,1,'#707b84');ctx.globalAlpha=1;
+
+    // Textura mineral fría y escasa.
+    ctx.globalAlpha=.22;
+    for(const [ox,oy] of [[7,9],[20,7],[13,21]] as const){
+      const tone=(ox+oy+h)%2===0?'#8f9aa3':'#c0c7cc';
+      r(ctx,px+ox,py+oy,(h+ox)%4===0?2:1,1,tone);
     }
     ctx.globalAlpha=1;
 
-    // Vetado muy tenue: suficiente para dar material sin competir con gameplay.
-    if(variant===0||variant===3||variant===5) drawMarbleVein(ctx,px,py,h,coolEdge,.08);
+    // Veta corta y fría, nunca blanca ni amarilla.
+    if(variant===0||variant===4) drawMarbleVein(ctx,px,py,h,vein,.10);
 
-    // Inserto metálico ocasional para mantener la lectura de banco premium.
-    if(h%5===0){
-      ctx.globalAlpha=.26;r(ctx,px+24,py+24,3,1,metal);r(ctx,px+26,py+22,1,3,metal);ctx.globalAlpha=1;
+    // Latón mínimo para conservar identidad bancaria sin competir con las balas.
+    if(h%7===0){
+      ctx.globalAlpha=.20;r(ctx,px+25,py+24,2,1,metal);ctx.globalAlpha=1;
     }
   }else if(tier===1){
     // Administración: piedra/terrazzo con inserto champagne y notas de roble.
@@ -211,10 +213,18 @@ export function drawRichTile(
   const macro=((Math.floor(x/2)+Math.floor(y/2))&1);
   r(ctx,px,py,T,T,macro?theme.floor[1]:theme.floor[0]);
 
-  const seam=tier<=1?1:tier<=3?1.25:1.5;
-  ctx.globalAlpha=.34;
-  r(ctx,px,py,seam,T,theme.floor[2]);r(ctx,px,py,T,seam,theme.floor[2]);
-  ctx.globalAlpha=1;
+  if(tier===0){
+    // El lobby usa placas 2x2 visuales: menos líneas, más masa gris y mejor lectura.
+    if(x%2===0){ctx.globalAlpha=.42;r(ctx,px,py,1,T,theme.floor[2]);ctx.globalAlpha=1;}
+    if(y%2===0){ctx.globalAlpha=.42;r(ctx,px,py,T,1,theme.floor[2]);ctx.globalAlpha=1;}
+    if(x%2===1){ctx.globalAlpha=.08;r(ctx,px,py,1,T,'#d8dde1');ctx.globalAlpha=1;}
+    if(y%2===1){ctx.globalAlpha=.08;r(ctx,px,py,T,1,'#d8dde1');ctx.globalAlpha=1;}
+  }else{
+    const seam=tier<=1?1:tier<=3?1.25:1.5;
+    ctx.globalAlpha=.34;
+    r(ctx,px,py,seam,T,theme.floor[2]);r(ctx,px,py,T,seam,theme.floor[2]);
+    ctx.globalAlpha=1;
+  }
 
   // Baldosas más grandes en pisos caros.
   if(tier>=3){
@@ -222,8 +232,8 @@ export function drawRichTile(
     if(y%2===0){ctx.globalAlpha=.22;r(ctx,px,py+1,T,1,metal);ctx.globalAlpha=1;}
   }
 
-  r(ctx,px+2,py+2,T-4,1,tier===0?'rgba(236,240,242,.12)':tier>=4?'rgba(255,255,255,.065)':'rgba(255,255,255,.09)');
-  r(ctx,px+2,py+T-3,T-4,1,tier===0?'rgba(62,72,80,.10)':'rgba(0,0,0,.12)');
+  r(ctx,px+2,py+2,T-4,1,tier===0?'rgba(215,221,225,.10)':tier>=4?'rgba(255,255,255,.065)':'rgba(255,255,255,.09)');
+  r(ctx,px+2,py+T-3,T-4,1,tier===0?'rgba(54,64,72,.14)':'rgba(0,0,0,.12)');
   drawLuxuryFloorDetail(ctx,px,py,h,theme,frame);
 
   // Inlays que crecen en riqueza conforme subes.
