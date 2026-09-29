@@ -633,6 +633,35 @@ function pointBlocked(room: MapRoom, px:number, py:number, flying=false):boolean
   return false;
 }
 
+const DOOR_PASSAGE_HALF_SPAN=24;
+
+function openDoorPassageForBox(
+  room:MapRoom,tx:number,ty:number,bx:number,by:number,bw:number,bh:number,
+){
+  if(!room.cleared)return false;
+  const content=collisionContent.get(room);
+  const cx=bx+bw/2,cy=by+bh/2;
+
+  for(const d of room.doors){
+    const door=DOOR_TILE[d];
+
+    // Una bóveda secreta no revelada cambia su tile central a pared; nunca
+    // debe beneficiarse de la apertura visual más ancha.
+    if(room.layout[door.y]?.[door.x]!==TILE_DOOR)continue;
+    if(content?.keyDoorLocks?.[d])continue;
+
+    const doorX=door.x*TILE_SIZE+TILE_SIZE/2;
+    const doorY=door.y*TILE_SIZE+TILE_SIZE/2;
+
+    // El arte de las puertas ocupa más que un único tile. La colisión antigua
+    // sólo dejaba 32px físicos, aunque visualmente la abertura era bastante
+    // mayor. Abrimos únicamente el tramo del muro que coincide con el vano.
+    if((d==='W'||d==='E')&&tx===door.x&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN)return true;
+    if((d==='N'||d==='S')&&ty===door.y&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)return true;
+  }
+  return false;
+}
+
 function boxBlocked(room: MapRoom, x: number, y: number, w: number, h: number, flying = false): boolean {
   const bx=x+2,by=y+2,bw=Math.max(1,w-4),bh=Math.max(1,h-4);
   const minTx=Math.floor(bx/TILE_SIZE),maxTx=Math.floor((bx+bw-1)/TILE_SIZE);
@@ -640,7 +669,10 @@ function boxBlocked(room: MapRoom, x: number, y: number, w: number, h: number, f
   for(let ty=minTy;ty<=maxTy;ty++)for(let tx=minTx;tx<=maxTx;tx++){
     if(tx<0||ty<0||tx>=ROOM_WIDTH||ty>=ROOM_HEIGHT)return true;
     const t=room.layout[ty][tx];
-    if(t===TILE_WALL)return true;
+    if(t===TILE_WALL){
+      if(openDoorPassageForBox(room,tx,ty,bx,by,bw,bh))continue;
+      return true;
+    }
     if(t===TILE_DOOR){
       if(!room.cleared)return true;
       const content=collisionContent.get(room);
@@ -2766,10 +2798,10 @@ export function updateEngine(engine: GameEngine) {
       }
 
       const inDoor=
-        (d==='N'&&cy<TILE_SIZE*.75&&Math.abs(cx-doorX)<12)||
-        (d==='S'&&cy>CANVAS_HEIGHT-TILE_SIZE*.75&&Math.abs(cx-doorX)<12)||
-        (d==='W'&&cx<TILE_SIZE*.75&&Math.abs(cy-doorY)<12)||
-        (d==='E'&&cx>CANVAS_WIDTH-TILE_SIZE*.75&&Math.abs(cy-doorY)<12);
+        (d==='N'&&cy<TILE_SIZE*.82&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)||
+        (d==='S'&&cy>CANVAS_HEIGHT-TILE_SIZE*.82&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)||
+        (d==='W'&&cx<TILE_SIZE*.82&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN)||
+        (d==='E'&&cx>CANVAS_WIDTH-TILE_SIZE*.82&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN);
       if(inDoor&&room.layout[t.y][t.x]===TILE_DOOR){
         engine.transition={active:true,timer:0,total:22,dir:d,targetKey};
         break;
