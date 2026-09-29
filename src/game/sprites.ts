@@ -28,6 +28,18 @@ function microRect(ctx:Ctx,x:number,y:number,w:number,h:number,color:string){
   ctx.fillRect(artSnap(x),artSnap(y),artSize(w),artSize(h));
 }
 
+function mixHex(color:string,target:string,amount:number){
+  const parse=(v:string)=>{
+    const h=v.replace('#','');
+    if(h.length!==6)return [255,255,255];
+    return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+  };
+  const a=parse(color),b=parse(target),t=Math.max(0,Math.min(1,amount));
+  return '#'+a.map((v,i)=>Math.round(v+(b[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+const skinLight=(c:string,a=.34)=>mixHex(c,'#fff8df',a);
+const skinDark=(c:string,a=.48)=>mixHex(c,'#070b0f',a);
+
 const DUCK_BODY = '#f9e547';
 const DUCK_DARK = '#e0c31c';
 const DUCK_SHADE = '#c9ae13';
@@ -58,6 +70,11 @@ export function drawDuck(
 ) {
   const bx = Math.floor(x);
   const by = Math.floor(y);
+  const bodyLight=skinLight(pal.body,.34);
+  const bodyRim=skinLight(pal.body,.20);
+  const outline=skinDark(pal.shade,.62);
+  const packLight=skinLight(pal.pack,.18);
+  const beakLight=skinLight(pal.beak,.24);
 
   ctx.save();
 
@@ -99,17 +116,27 @@ export function drawDuck(
 
   const footA=moving?(step>0?1:-1):0;
   const footLift=moving&&Math.abs(step)>.55?1:0;
-  rect(ctx,bx+3-footA,by+15-footLift*(step>0?1:0),3,3,pal.beak);
-  rect(ctx,bx+2-footA,by+17-footLift*(step>0?1:0),5,1,pal.beakDark);
-  rect(ctx,bx+10+footA,by+15-footLift*(step<0?1:0),3,3,pal.beak);
-  rect(ctx,bx+9+footA,by+17-footLift*(step<0?1:0),5,1,pal.beakDark);
+  const fyA=by+15-footLift*(step>0?1:0),fyB=by+15-footLift*(step<0?1:0);
+  rect(ctx,bx+2-footA,fyA-1,5,4,outline);
+  rect(ctx,bx+9+footA,fyB-1,5,4,outline);
+  rect(ctx,bx+3-footA,fyA,3,3,pal.beak);
+  rect(ctx,bx+3-footA,fyA,2,1,beakLight);
+  rect(ctx,bx+2-footA,fyA+2,5,1,pal.beakDark);
+  rect(ctx,bx+10+footA,fyB,3,3,pal.beak);
+  rect(ctx,bx+10+footA,fyB,2,1,beakLight);
+  rect(ctx,bx+9+footA,fyB+2,5,1,pal.beakDark);
   if(moving&&Math.abs(step)>.72){
     ctx.globalAlpha=.20;rect(ctx,bx+(step>0?1:12),by+18,3,1,'#e8d98f');ctx.globalAlpha=1;
   }
 
+  // Contorno común para todas las skins. Se pinta debajo del material real y
+  // mejora la lectura del personaje sobre pisos claros, efectos y UI pequeña.
+  rect(ctx,bx+2,by+5+waddle,12,11,outline);
+  rect(ctx,bx+1,by+8+waddle,14,6,outline);
+
   if (dir === 'up') {
     rect(ctx, bx + 3, by + 5, 10, 9, pal.pack);
-    rect(ctx, bx + 4, by + 6, 8, 3, '#4a3b34');
+    rect(ctx, bx + 4, by + 6, 8, 3, packLight);
     rect(ctx, bx + 6, by + 10, 4, 2, pal.strap);
   }
 
@@ -117,23 +144,26 @@ export function drawDuck(
   rect(ctx, bx + 2, by + 8 + waddle, 12, 5, pal.body);
   rect(ctx, bx + 3, by + 12 + waddle, 10, 3, pal.dark);
   rect(ctx,bx+4,by+14+waddle,8,1,pal.shade);
+  rect(ctx,bx+4,by+6+waddle,6,1,bodyLight);
+  rect(ctx,bx+3,by+8+waddle,1,4,bodyRim);
+  rect(ctx,bx+12,by+9+waddle,1,4,pal.shade);
   if(moving){
     const tail=step>0?1:0;
     if(dir==='left')rect(ctx,bx+13+tail,by+11+waddle,3,2,pal.shade);
     else if(dir==='right')rect(ctx,bx-tail,by+11+waddle,3,2,pal.shade);
     else rect(ctx,bx+6+(step>0?1:-1),by+14+waddle,4,2,pal.shade);
   }
-  rect(ctx, bx + 4, by + 7 + waddle, 3, 1, '#fff59d');
+  rect(ctx, bx + 4, by + 7 + waddle, 3, 1, bodyLight);
   rect(ctx, bx + 11, by + 8 + waddle, 1, 4, 'rgba(255,255,255,.18)');
 
   // Ala expresiva: acompaña disparo, dash y caminata sin cambiar la silueta base.
   const wingKick = shooting ? 2 : dashing ? 1 : moving && Math.abs(step) > .55 ? 1 : 0;
   if (dir === 'left') {
     rect(ctx, bx + 10 + wingKick, by + 9 + waddle, 4, 3, pal.shade);
-    if (shooting) px(ctx, bx + 13 + wingKick, by + 8 + waddle, '#fff59d', 1);
+    if (shooting) px(ctx, bx + 13 + wingKick, by + 8 + waddle, bodyLight, 1);
   } else if (dir === 'right') {
     rect(ctx, bx + 2 - wingKick, by + 9 + waddle, 4, 3, pal.shade);
-    if (shooting) px(ctx, bx + 2 - wingKick, by + 8 + waddle, '#fff59d', 1);
+    if (shooting) px(ctx, bx + 2 - wingKick, by + 8 + waddle, bodyLight, 1);
   } else if (dir === 'down' && shooting) {
     rect(ctx, bx + 1, by + 10 + waddle, 3, 2, pal.shade);
     rect(ctx, bx + 12, by + 10 + waddle, 3, 2, pal.shade);
@@ -143,13 +173,17 @@ export function drawDuck(
     rect(ctx, bx + 5, by + 7 + waddle, 1, 6, pal.strap);
     rect(ctx, bx + 10, by + 7 + waddle, 1, 6, pal.strap);
   }
-  if (dir === 'left') { rect(ctx, bx + 11, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 12, by + 8 + waddle, 2, 2, '#4a3b34'); }
-  if (dir === 'right') { rect(ctx, bx + 1, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 2, by + 8 + waddle, 2, 2, '#4a3b34'); }
+  if (dir === 'left') { rect(ctx, bx + 11, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 12, by + 8 + waddle, 2, 2, packLight); }
+  if (dir === 'right') { rect(ctx, bx + 1, by + 7 + waddle, 4, 6, pal.pack); rect(ctx, bx + 2, by + 8 + waddle, 2, 2, packLight); }
 
   const hy=by+2+waddle;
   const hx=headNudge+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
+  rect(ctx,bx+3+hx,hy-1,10,8,outline);
+  rect(ctx,bx+2+hx,hy,12,6,outline);
   rect(ctx,bx+4+hx,hy,8,6,pal.body);
   rect(ctx,bx+3+hx,hy+1,10,4,pal.body);
+  rect(ctx,bx+4+hx,hy,6,1,bodyLight);
+  rect(ctx,bx+3+hx,hy+1,1,3,bodyRim);
 
   if (dir === 'up') {
     rect(ctx,bx+3+hx,hy+1,10,3,pal.mask);
@@ -169,6 +203,7 @@ export function drawDuck(
       rect(ctx,bx+9+hx,hy+3,2,1,'#0a0a0a');
     }
     rect(ctx,bx+6+hx,hy+5,4,2,pal.beak);
+    rect(ctx,bx+6+hx,hy+5,3,1,beakLight);
     rect(ctx,bx+6+hx,hy+6,4,1,pal.beakDark);
   } else {
     const flip = dir === 'left';
@@ -182,6 +217,7 @@ export function drawDuck(
     }
     const bxp=(flip?bx-2:bx+12)+hx;
     rect(ctx, bxp, hy + 4, 5, 2, pal.beak);
+    rect(ctx, bxp + (flip ? 1 : 0), hy + 4, 3, 1, beakLight);
     rect(ctx, bxp + (flip ? 0 : 1), hy + 6, 4, 1, pal.beakDark);
     rect(ctx, flip ? bx + 12 : bx + 1, by + 9 + waddle, 3, 3, pal.shade);
   }
@@ -196,7 +232,7 @@ export function drawDuck(
 
   if (dashing) {
     ctx.globalAlpha = 0.28;
-    rect(ctx, bx + 2, by + 8, 12, 5, '#fff59d');
+    rect(ctx, bx + 2, by + 8, 12, 5, bodyLight);
   }
 
   // Pasada de microdetalle 4x. Son trazos de 1–2 píxeles físicos que antes
@@ -851,7 +887,7 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
     case 'rubber_duck': {
       ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(bx - 3, by + 3, 7, 2);
       rect(ctx, bx - 3, by - 2, 7, 5, '#f9e547'); rect(ctx, bx + 2, by - 1, 4, 2, '#e67e22');
-      px(ctx, bx - 1, by - 1, '#0a0a0a', 1); px(ctx, bx, by + 1, '#fff59d', 1);
+      px(ctx, bx - 1, by - 1, '#0a0a0a', 1); px(ctx, bx, by + 1, bodyLight, 1);
       break;
     }
     case 'feather': {
