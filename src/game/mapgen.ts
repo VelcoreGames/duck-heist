@@ -377,10 +377,11 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
     return false;
   };
 
-  // Las salas especiales de recompensa conservan su composición dedicada.
-  // START sí recibe arquitectura bancaria ordenada para que el piso comience
-  // pareciendo una instalación real y no una arena vacía.
-  if (room.type === RoomType.ITEM || room.type === RoomType.SHOP ||
+  // Las salas iniciales deben permanecer completamente despejadas:
+  // sólo suelo, muros y puertas. Esto aplica a cada piso y también a Sin Fin.
+  // Las salas especiales de recompensa conservan igualmente su composición dedicada.
+  if (room.type === RoomType.START ||
+      room.type === RoomType.ITEM || room.type === RoomType.SHOP ||
       room.type === RoomType.BOSS ||
       room.type === RoomType.SECRET || room.type===RoomType.EVENT || room.type===RoomType.CHOICE) {
     return layout;
