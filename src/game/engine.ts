@@ -1086,7 +1086,7 @@ function deserializeProjectile(raw:any):Projectile {
   return {...raw,hitEnemies:new Set<number>(Array.isArray(raw?.hitEnemies)?raw.hitEnemies:[])};
 }
 
-function saveHeistCheckpoint(engine:GameEngine,syncCloud=true) {
+export function saveHeistCheckpoint(engine:GameEngine,syncCloud=true) {
   if(engine.testing||engine.gameMode!=='heist')return;
   const floorIndex=engine.map.floorIndex;
   if(floorIndex<0||floorIndex>=TOTAL_FLOORS)return;
