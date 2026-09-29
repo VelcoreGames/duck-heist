@@ -29,7 +29,7 @@ import { wrappedText } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
-  mainMenuRect, visibleCanvasRect, useWideMainMenu, legacyUiTransform, difficultyRect, DIFFICULTY_START, BACK_BUTTON,
+  mainMenuRect, visibleCanvasRect, useWideMainMenu, legacyUiTransform, difficultyRect, DIFFICULTY_START, SEED_INPUT, SEED_RANDOM, BACK_BUTTON,
   pauseRect, CONFIRM_RECTS, WARDROBE, WARDROBE_ACTION,
   settingsRect, settingsMinusRect, settingsPlusRect, settingsActionRect,
   upgradeRect, upgradeActionRect, endlessResumeRect,
@@ -3057,6 +3057,17 @@ function renderDifficultyUI(engine:GameEngine) {
     wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,box.x+14,box.y+53,box.w-28,5.1,6.2,2,locked?'#8a6870':'#9cafaf');
     text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?'CLIC PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected||hover?color:'#60747b','right',true,false);
   });
+  if(engine.pendingMode==='heist'){
+    const active=engine.seedEditing,hover=inside(engine.mouseX,engine.mouseY,SEED_INPUT);
+    drawMenuCard(ctx,SEED_INPUT.x,SEED_INPUT.y,SEED_INPUT.w,SEED_INPUT.h,active||hover,active?'#ff9f43':'#667b80',active?'rgba(43,28,18,.98)':'rgba(8,20,26,.94)');
+    text(ctx,'SEED',SEED_INPUT.x+10,SEED_INPUT.y+11,4.4,active?'#ffb766':'#73888d','left',true,false);
+    const shown=engine.seedInput||(active?'ESCRIBE UNA SEED':'ALEATORIA');
+    text(ctx,shown+(active&&Math.floor(engine.frame/24)%2===0?'_':''),SEED_INPUT.x+10,SEED_INPUT.y+22,6.1,engine.seedInput?'#f2dfaa':'#829397','left',true,false);
+    drawMouseButton(ctx,'ALEATORIA',SEED_RANDOM.x,SEED_RANDOM.y,SEED_RANDOM.w,SEED_RANDOM.h,inside(engine.mouseX,engine.mouseY,SEED_RANDOM),'#78c99a');
+  }else{
+    drawMenuCard(ctx,46,270,388,28,false,'#526970','rgba(8,20,26,.9)');
+    text(ctx,'SIN FIN usa su propia secuencia de rondas.',240,287,5.1,'#7f9296','center',false,false);
+  }
   drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),accent);
   const locked=engine.difficulty==='mad'&&!engine.madUnlocked;
   drawMouseButton(ctx,engine.pendingMode==='endless'?'INICIAR SIN FIN':'INICIAR ATRACO',DIFFICULTY_START.x,DIFFICULTY_START.y,DIFFICULTY_START.w,DIFFICULTY_START.h,inside(engine.mouseX,engine.mouseY,DIFFICULTY_START),accent,false,locked);
@@ -3949,8 +3960,8 @@ function renderEndlessResumeUI(engine:GameEngine) {
     text(ctx,i===0?'RETOMAR CHECKPOINT':'REEMPLAZAR GUARDADO',box.x+box.w-14,box.y+25,4.4,on?accent:'#64787c','right',true,false);
   });
   drawMenuCard(ctx,92,260,296,38,false,'#4e656c','rgba(7,18,24,.94)');
-  text(ctx,heist?'El guardado se actualiza al comenzar cada piso.':'El guardado se actualiza entre rondas.',240,276,5.6,'#93a4a3','center',false,false);
-  text(ctx,heist?'Continuar vuelve al inicio del piso guardado.':'Empezar de nuevo pedirá confirmación.',240,289,4.9,'#6f8387','center',false,false);
+  text(ctx,heist?'GUARDADO EXACTO · '+(engine.heistCheckpointSeed||'SEED DESCONOCIDA'):'El guardado se actualiza entre rondas.',240,276,5.3,heist?'#d8c27b':'#93a4a3','center',true,false);
+  text(ctx,heist?'Continúa en la misma sala, con el mismo estado de la run.':'Empezar de nuevo pedirá confirmación.',240,289,4.8,'#6f8387','center',false,false);
   drawMouseButton(ctx,'← VOLVER',BACK_BUTTON.x,BACK_BUTTON.y,BACK_BUTTON.w,BACK_BUTTON.h,inside(engine.mouseX,engine.mouseY,BACK_BUTTON),accent);
 }
 
