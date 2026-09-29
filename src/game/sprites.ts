@@ -757,55 +757,66 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
   const bx = Math.floor(x);
   const by = Math.floor(y);
   
+  const playerRound=(length:number,core:string,tip:string,glow:string,width=2)=>{
+    const h=Math.max(2,width);
+    // Silueta oscura exterior + halo saturado + núcleo casi blanco. Este
+    // contraste triple mantiene la bala legible sobre pisos claros u oscuros.
+    ctx.globalAlpha=.92;
+    rect(ctx,bx-length-4,by-Math.ceil(h/2)-2,length+8,h+4,'#071014');
+    ctx.globalAlpha=.42;
+    rect(ctx,bx-length-2,by-Math.ceil(h/2)-1,length+5,h+2,glow);
+    ctx.globalAlpha=1;
+    rect(ctx,bx-Math.floor(length/2),by-Math.floor(h/2),length,h,core);
+    rect(ctx,bx+Math.max(0,Math.floor(length/2)-1),by-Math.floor(h/2),2,h,tip);
+    px(ctx,bx+Math.max(0,Math.floor(length/2)),by,'#ffffff',1);
+  };
+
   switch (type) {
     case 'pistol_round':
+      playerRound(6,'#ffd85f','#fff8d8','#ffb52f',2);
+      break;
     case 'smg_round':
+      playerRound(6,'#ffb347','#fff1c2','#ff7a2c',2);
+      break;
     case 'rifle_556':
+      playerRound(9,'#65eaff','#eaffff','#21bfff',2);
+      break;
     case 'lmg_556':
-    case 'pdw_57': {
-      const long=type==='rifle_556'||type==='lmg_556'?7:type==='pdw_57'?5:4;
-      const core=type==='pdw_57'?'#d8eef0':'#f1e1b8';
-      ctx.globalAlpha=.28;
-      rect(ctx,bx-long-2,by-1,long+1,2,type==='smg_round'?'#c9a45d':'#d8c06c');
-      ctx.globalAlpha=1;
-      rect(ctx,bx-long/2,by-1,long,2,core);
-      px(ctx,bx+Math.floor(long/2)-1,by-1,'#fff7dc',1);
+      playerRound(9,'#9bf36b','#efffdc','#55d13b',2);
       break;
-    }
+    case 'pdw_57':
+      playerRound(7,'#ff8ee5','#fff0fb','#f04acb',2);
+      break;
     case 'rifle_762':
+      playerRound(9,'#ff8b55','#fff0e4','#ff4f2f',2);
+      break;
     case 'dmr_round':
-    case 'sniper_308': {
-      const long=type==='sniper_308'?10:type==='dmr_round'?8:7;
-      ctx.globalAlpha=.24;rect(ctx,bx-long-3,by-1,long+2,2,'#c68f47');ctx.globalAlpha=1;
-      rect(ctx,bx-Math.floor(long/2),by-1,long,2,type==='sniper_308'?'#f1e4c3':'#d7c49d');
-      rect(ctx,bx+Math.floor(long/2)-1,by-1,2,2,'#fff4d4');
+      playerRound(10,'#ffb65c','#fff5df','#ff812d',2);
       break;
-    }
-    case 'magnum_round': {
-      ctx.globalAlpha=.26;rect(ctx,bx-8,by-1,7,2,'#d7a348');ctx.globalAlpha=1;
-      rect(ctx,bx-3,by-2,6,4,'#d8c49f');rect(ctx,bx+1,by-1,3,2,'#fff0c6');
+    case 'sniper_308':
+      playerRound(12,'#ffe85f','#fffde2','#ffc400',3);
       break;
-    }
-    case 'suppressed_45': {
-      ctx.globalAlpha=.16;rect(ctx,bx-6,by-1,5,2,'#8fa2a7');ctx.globalAlpha=1;
-      rect(ctx,bx-3,by-1,6,2,'#bdc9c8');px(ctx,bx+2,by-1,'#eaf0e9',1);
+    case 'magnum_round':
+      playerRound(8,'#ff7b50','#fff0dd','#ff3f2f',3);
       break;
-    }
-    case 'heavy_50': {
-      ctx.globalAlpha=.30;rect(ctx,bx-13,by-2,11,3,'#c6873f');ctx.globalAlpha=1;
-      rect(ctx,bx-6,by-2,12,4,'#d8c4a0');rect(ctx,bx+3,by-1,4,2,'#fff0c6');
+    case 'suppressed_45':
+      playerRound(7,'#8be2ff','#f2fdff','#31bfff',2);
       break;
-    }
-    case 'buckshot_player': {
-      // Perdigón individual: pequeño, brillante y claramente separado de una bala.
-      ctx.globalAlpha=.22;rect(ctx,bx-4,by-1,3,2,'#b98d58');ctx.globalAlpha=1;
-      rect(ctx,bx-1,by-1,2,2,'#d8c49f');px(ctx,bx,by-1,'#fff1cf',1);
+    case 'heavy_50':
+      playerRound(14,'#ffc767','#fff8e8','#ff8d24',4);
       break;
-    }
+    case 'buckshot_player':
+      // Cada perdigón conserva tamaño corto, pero gana un borde oscuro y un
+      // núcleo ámbar/blanco para que el abanico completo sea visible.
+      playerRound(4,'#ffd17b','#fff8e4','#ff9f43',2);
+      break;
     case 'grenade_40mm': {
       ctx.save();ctx.translate(bx,by);ctx.rotate(frame*.05);
-      rect(ctx,-5,-3,10,6,'#647455');rect(ctx,-3,-2,6,4,'#87966d');
-      rect(ctx,3,-2,3,4,'#2f3935');px(ctx,-2,-2,'#d4c76f',1);ctx.restore();
+      ctx.globalAlpha=.92;rect(ctx,-8,-5,16,10,'#071014');
+      ctx.globalAlpha=.52;rect(ctx,-7,-4,14,8,'#ff7a32');
+      ctx.globalAlpha=1;rect(ctx,-5,-3,10,6,'#ffc95a');
+      rect(ctx,-3,-2,6,4,'#fff0b2');rect(ctx,3,-2,3,4,'#2f3935');
+      px(ctx,-2,-2,'#ffffff',1);ctx.restore();
       break;
     }
     case 'quack': case 'quack_power': {
