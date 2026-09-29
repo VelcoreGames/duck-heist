@@ -3442,18 +3442,14 @@ function renderWardrobeUI(engine: GameEngine) {
   drawMenuCard(ctx,pvx,pvy,pw,ph,true,'#79b9d2','rgba(8,20,27,.96)');
   drawSectionLabel(ctx,'VISTA PREVIA',pvx+12,pvy+18,'#79b9d2');
 
-  // Escaparate iluminado del pato
-  ctx.fillStyle = 'rgba(244,208,63,0.06)';
-  ctx.fillRect(pvx + 8, pvy + 8, pw - 16, 120);
-  ctx.strokeStyle = '#39414f';
-  ctx.strokeRect(pvx + 8, pvy + 8, pw - 16, 120);
-
-  // Luz cenital sobre el pato
-  const g = ctx.createRadialGradient(pvx + pw / 2, pvy + 36, 4, pvx + pw / 2, pvy + 54, 58);
-  g.addColorStop(0, 'rgba(255,240,150,0.22)');
-  g.addColorStop(1, 'rgba(255,240,150,0)');
+  // Preview integrado en el mismo tono del panel: sin "isla" de otro color
+  // ni rectángulo alrededor del personaje.
+  const g = ctx.createRadialGradient(pvx + pw / 2, pvy + 54, 4, pvx + pw / 2, pvy + 62, 62);
+  g.addColorStop(0, 'rgba(121,185,210,0.09)');
+  g.addColorStop(.55, 'rgba(121,185,210,0.035)');
+  g.addColorStop(1, 'rgba(121,185,210,0)');
   ctx.fillStyle = g;
-  ctx.fillRect(pvx + 8, pvy + 8, pw - 16, 120);
+  ctx.fillRect(pvx + 10, pvy + 10, pw - 20, 116);
 
   ctx.save();
   ctx.translate(pvx + pw / 2, pvy + 77+Math.round(Math.sin(engine.frame*.04)));
@@ -3509,8 +3505,8 @@ function renderWardrobeUI(engine: GameEngine) {
   const maxScroll=Math.max(0,totalRows*(cellH+WARDROBE.gap)-WARDROBE.gap-WARDROBE.h);
   const scroll=engine.wardrobeScroll;
 
-  // Marco de la cuadrícula
-  drawMenuCard(ctx,gridX-5,gridY-4,WARDROBE.w+4,WARDROBE.h+8,false,'#486671','rgba(7,18,24,.94)');
+  // La cuadrícula comparte fondo con el menú; sin un perímetro contrastante extra.
+  drawMenuCard(ctx,gridX-5,gridY-4,WARDROBE.w+4,WARDROBE.h+8,false,'#334c53','rgba(7,18,24,.88)');
 
   // Scrollbar sutil
   if (maxScroll>0) {
