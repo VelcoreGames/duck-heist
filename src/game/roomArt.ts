@@ -57,10 +57,27 @@ function drawLuxuryFloorDetail(
   const tier=floorTierFromDeco(theme.deco),metal=decoMetal(theme.deco),variant=h%7;
 
   if(tier===0){
-    // Entrada: losas grandes de piedra clara y juntas limpias.
-    if(variant===0||variant===4) drawMarbleVein(ctx,px,py,h,'#7f7a70',.10);
-    ctx.globalAlpha=.22;r(ctx,px+3,py+3,T-6,1,'#f3eee1');ctx.globalAlpha=1;
-    if(h%5===0){ctx.globalAlpha=.34;r(ctx,px+25,py+25,2,2,metal);ctx.globalAlpha=1;}
+    // Entrada: piedra gris clara pulida con textura mineral discreta.
+    // Evitamos el blanco plano: cada losa tiene volumen, junta y variación suave.
+    const coolEdge=h%2===0?'#aeb5ba':'#b7bdc1';
+    ctx.globalAlpha=.22;r(ctx,px+2,py+2,T-4,1,'#eef1f2');ctx.globalAlpha=1;
+    ctx.globalAlpha=.18;r(ctx,px+2,py+T-3,T-4,1,'#858d93');ctx.globalAlpha=1;
+
+    // Microtextura tipo piedra/terrazzo: determinista, sin ruido animado.
+    ctx.globalAlpha=.20;
+    for(const [ox,oy] of [[7,8],[18,6],[12,19],[24,22]] as const){
+      const tone=(ox+oy+h)%3===0?'#f0f2f3':(ox+oy+h)%2===0?'#aeb5ba':'#bcc2c6';
+      r(ctx,px+ox,py+oy,(h+ox)%3===0?2:1,1,tone);
+    }
+    ctx.globalAlpha=1;
+
+    // Vetado muy tenue: suficiente para dar material sin competir con gameplay.
+    if(variant===0||variant===3||variant===5) drawMarbleVein(ctx,px,py,h,coolEdge,.08);
+
+    // Inserto metálico ocasional para mantener la lectura de banco premium.
+    if(h%5===0){
+      ctx.globalAlpha=.26;r(ctx,px+24,py+24,3,1,metal);r(ctx,px+26,py+22,1,3,metal);ctx.globalAlpha=1;
+    }
   }else if(tier===1){
     // Administración: piedra/terrazzo con inserto champagne y notas de roble.
     if(variant<3){
@@ -205,8 +222,8 @@ export function drawRichTile(
     if(y%2===0){ctx.globalAlpha=.22;r(ctx,px,py+1,T,1,metal);ctx.globalAlpha=1;}
   }
 
-  r(ctx,px+2,py+2,T-4,1,tier>=4?'rgba(255,255,255,.065)':'rgba(255,255,255,.09)');
-  r(ctx,px+2,py+T-3,T-4,1,'rgba(0,0,0,.12)');
+  r(ctx,px+2,py+2,T-4,1,tier===0?'rgba(236,240,242,.12)':tier>=4?'rgba(255,255,255,.065)':'rgba(255,255,255,.09)');
+  r(ctx,px+2,py+T-3,T-4,1,tier===0?'rgba(62,72,80,.10)':'rgba(0,0,0,.12)');
   drawLuxuryFloorDetail(ctx,px,py,h,theme,frame);
 
   // Inlays que crecen en riqueza conforme subes.
