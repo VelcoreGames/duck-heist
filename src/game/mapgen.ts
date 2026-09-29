@@ -810,6 +810,40 @@ export function generateRoomLayout(room: MapRoom,random=Math.random,forcedTempla
         added++;
       }
     }
+
+    // Las salas ahora pueden crecer de 15 hasta 41 columnas. Los primeros
+    // layouts bancarios estaban pensados para el ancho viejo y en monitores
+    // anchos dejaban grandes superficies vacías. Rellenamos sólo las franjas
+    // laterales, conservando intacta la cruz de circulación y el centro.
+    if(ROOM_WIDTH>19){
+      const outerLeft=4,outerRight=ROOM_WIDTH-5;
+      const innerGap=Math.max(6,Math.floor((ROOM_WIDTH-15)/4)+5);
+      const leftInner=Math.max(4,cx-innerGap),rightInner=Math.min(ROOM_WIDTH-5,cx+innerGap);
+      const family=(offset:number)=>supportByFloor[Math.abs(offset+room.distance)%supportByFloor.length];
+
+      for(const [x,y,off] of [
+        [outerLeft,2,0],[outerRight,2,1],
+        [outerLeft,ROOM_HEIGHT-3,2],[outerRight,ROOM_HEIGHT-3,3],
+        [leftInner,3,1],[rightInner,3,2],
+        [leftInner,ROOM_HEIGHT-4,3],[rightInner,ROOM_HEIGHT-4,0],
+      ] as const){
+        if(!occupied(x,y))place(x,y,prop(family(off)));
+      }
+
+      // El lobby inicial necesita zonas de espera/atención repartidas por el
+      // ancho real del cuarto, no sólo cuatro objetos alrededor del centro.
+      if(room.type===RoomType.START){
+        const spread=Math.max(7,Math.min(12,Math.floor(ROOM_WIDTH*.24)));
+        for(const [x,y,id] of [
+          [cx-spread,cy-2,15],[cx+spread,cy-2,15],
+          [cx-spread,cy+2,1],[cx+spread,cy+2,1],
+          [cx-spread-3,cy-2,16],[cx+spread+3,cy-2,16],
+          [cx-spread-3,cy+2,17],[cx+spread+3,cy+2,18],
+        ] as const){
+          if(!occupied(x,y))place(x,y,prop(id));
+        }
+      }
+    }
   }else if(random()<.38){
     // Compatibilidad con plantillas históricas forzadas por pruebas/fixtures.
     const looseFamilies=[3,9,10,14,15,16,17];
