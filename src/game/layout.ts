@@ -73,6 +73,8 @@ export function mainMenuHit(x:number,y:number,wide=false){for(let i=0;i<MAIN_MEN
 
 export const DIFFICULTY_GRID={x:46,y:82,w:186,h:78,gapX:14,gapY:12,cols:2,count:4};
 export const difficultyRect=(i:number):Rect=>({x:DIFFICULTY_GRID.x+(i%2)*(DIFFICULTY_GRID.w+DIFFICULTY_GRID.gapX),y:DIFFICULTY_GRID.y+Math.floor(i/2)*(DIFFICULTY_GRID.h+DIFFICULTY_GRID.gapY),w:DIFFICULTY_GRID.w,h:DIFFICULTY_GRID.h});
+export const SEED_INPUT:Rect={x:46,y:270,w:274,h:28};
+export const SEED_RANDOM:Rect={x:328,y:270,w:106,h:28};
 export const DIFFICULTY_START:Rect={x:306,y:318,w:128,h:22};
 
 export const PAUSE_MENU={x:44,y:74,w:188,h:34,gapX:12,gapY:8,cols:2,count:7,fullW:388};
