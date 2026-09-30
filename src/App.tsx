@@ -43,7 +43,7 @@ export default function App() {
   const [cursor, setCursor] = useState<'crosshair' | 'default' | 'pointer'>('pointer');
   const [audit,setAudit]=useState<CheckReport|null>(null);
 
-  /** Escala responsive del viewport; independiente de la resolución artística 4x. */
+  /** Escala responsive del viewport; independiente de la resolución artística 6x. */
   const computeScale = useCallback(() => {
     const viewport=window.visualViewport;
     const fullscreen=!!document.fullscreenElement;
@@ -77,11 +77,12 @@ export default function App() {
     const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
     const dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
     const physicalDensity=css*dpr;
-    // Pase HD: en escritorio priorizamos detalle visual y partimos de 4x.
-    // El monitor de rendimiento aún puede reducirlo si el equipo no sostiene 60 FPS.
+    // Pase HD real: en escritorio intentamos 5–6x para que la subrejilla de
+    // personaje de 1/2 píxel lógico conserve sus celdas individuales.
+    // El monitor de rendimiento puede bajar sólo cuando el hardware lo exige.
     const desktopDetail=vw>=900&&vh>=520;
-    const detailBoost=desktopDetail?1.35:1.15;
-    const minWorld=desktopDetail?4:3;
+    const detailBoost=desktopDetail?1.60:1.28;
+    const minWorld=desktopDetail?5:3;
     const world=Math.max(minWorld,Math.min(ART_SCALE,Math.ceil(physicalDensity*detailBoost)));
     // El HUD sigue separado del mundo para no inflar innecesariamente su backing store.
     const ui=Math.max(2,Math.min(4,Math.ceil(physicalDensity)));
@@ -92,7 +93,7 @@ export default function App() {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    // El arte está autorado a 5x. En escritorio intentamos conservar 4–5x
+    // El arte está autorado a 6x. En escritorio intentamos conservar 5–6x
     // y bajamos sólo si el monitor de rendimiento detecta presión real.
     const initialSizing=computeScale();
     let preferredWorldScale=initialSizing.world;
@@ -877,14 +878,14 @@ export default function App() {
       const average=perfElapsed/perfFrames;
       perfElapsed=0;perfFrames=0;
 
-      // Bajar resolución es rápido y prioriza respuesta. El nuevo arte intenta
-      // conservar 4–5x y sólo cae a 3x/2x cuando la carga lo exige.
-      if(average>24.5&&worldRenderScale>2){
-        applyWorldRenderScale(2);
+      // Conservamos la lectura HD del sprite siempre que sea posible.
+      // Sólo caemos a 3x en una sobrecarga seria; la bajada normal es escalonada.
+      if(average>29&&worldRenderScale>3){
+        applyWorldRenderScale(3);
         upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+45000;
-      }else if(average>20.25&&worldRenderScale>3){
-        applyWorldRenderScale(Math.max(3,worldRenderScale-1));
+      }else if(average>21.25&&worldRenderScale>4){
+        applyWorldRenderScale(Math.max(4,worldRenderScale-1));
         upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+30000;
       }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<preferredWorldScale){
