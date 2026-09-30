@@ -236,12 +236,13 @@ export function getIconPixels(id: string) {
 }
 
 export function drawItemIcon(ctx: CanvasRenderingContext2D, x: number, y: number, id: string, size = 24, color = C.purple, silhouette = false) {
-  const key = `${id}:${silhouette}:hires`;
+  const key = `${id}:${silhouette}:hires:${ART_SCALE}x`;
   let canvas = cache.get(key);
   if (!canvas) {
     // El atlas lógico sigue siendo 24x24 para no reautorizar cientos de
-    // definiciones; cada celda se rasteriza en 4x4 píxeles físicos y recibe
-    // microbordes de 1 px físico. Resultado: mismo diseño, mucha más definición.
+    // definiciones; cada celda se rasteriza en la rejilla HD actual y recibe
+    // microbordes + microtextura física. Resultado: silueta original con mayor
+    // densidad de píxel y mejor lectura de materiales.
     const S=ART_SCALE;
     canvas = document.createElement('canvas'); canvas.width = canvas.height = 24*S;
     const c = canvas.getContext('2d');
@@ -268,6 +269,16 @@ export function drawItemIcon(ctx: CanvasRenderingContext2D, x: number, y: number
       if(!at(xx-1,yy)){c.fillStyle='rgba(255,255,255,.09)';c.fillRect(xx*S,yy*S,1,S);}
       if(!at(xx,yy+1)){c.fillStyle='rgba(0,0,0,.22)';c.fillRect(xx*S,(yy+1)*S-1,S,1);}
       if(!at(xx+1,yy)){c.fillStyle='rgba(0,0,0,.13)';c.fillRect((xx+1)*S-1,yy*S,1,S);}
+
+      // Microtextura de 1 px físico dentro de celdas amplias. No cambia la
+      // silueta del icono, sólo evita que cada bloque de color se sienta plano.
+      if(S>=5){
+        const grain=(xx*17+yy*31+id.length*7)%11;
+        if(grain===0||grain===5){
+          c.fillStyle=grain===0?'rgba(255,255,255,.16)':'rgba(0,0,0,.14)';
+          c.fillRect(xx*S+(grain===0?S-2:1),yy*S+(grain===0?1:S-2),1,1);
+        }
+      }
     }
     if (!silhouette || ITEM_ART[id]) cache.set(key, canvas);
   }
