@@ -131,7 +131,7 @@ export interface FloorTheme {
 
 export const FLOOR_THEMES: FloorTheme[] = [
   // 1 · Gran entrada: piedra gris perla fría, juntas grafito y latón discreto.
-  { floor: ['#aeb7bf', '#a3adb6', '#77828c'], wall: ['#b6bec4', '#9ea8af'], trim: '#92784a', glow: '#cdd5da', deco: 'lobby' },
+  { floor: ['#9eabb4', '#929fa8', '#687782'], wall: ['#8c9aa4', '#74838d'], trim: '#9a7d49', glow: '#d7e0e5', deco: 'lobby' },
   // 2 · Administración: piedra gris cálida, roble claro y metal champagne.
   { floor: ['#aaa79f', '#98958d', '#706f6a'], wall: ['#b7afa4', '#8f887f'], trim: '#a99269', glow: '#e0d0b3', deco: 'security' },
   // 3 · Administración ejecutiva: piedra humo, nogal y bronce.
