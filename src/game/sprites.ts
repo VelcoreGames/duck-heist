@@ -28,6 +28,18 @@ function microRect(ctx:Ctx,x:number,y:number,w:number,h:number,color:string){
   ctx.fillRect(artSnap(x),artSnap(y),artSize(w),artSize(h));
 }
 
+/**
+ * Rejilla HD de personaje: 1 unidad = 1/2 píxel lógico.
+ * Con ART_SCALE 6 cada unidad se convierte en 3 píxeles físicos exactos.
+ * Permite sprites de ~36x44 celdas artísticas sin modificar hitboxes.
+ */
+function hdRect(ctx:Ctx,bx:number,by:number,x:number,y:number,w:number,h:number,color:string){
+  microRect(ctx,bx+x*.5,by+y*.5,w*.5,h*.5,color);
+}
+function hdPx(ctx:Ctx,bx:number,by:number,x:number,y:number,color:string,s=1){
+  hdRect(ctx,bx,by,x,y,s,s,color);
+}
+
 function mixHex(color:string,target:string,amount:number){
   const parse=(v:string)=>{
     const h=v.replace('#','');
@@ -95,209 +107,263 @@ export function drawDuck(
   shooting = false, dead = false, pal: DuckPaletteLike = DEFAULT_DUCK, aiming = false,
 ) {
   const bx=Math.floor(x),by=Math.floor(y);
-  const hi=skinLight(pal.body,.28),rim=skinLight(pal.body,.14),shade=skinDark(pal.body,.22);
-  const deep=skinDark(pal.body,.38),beakHi=skinLight(pal.beak,.22);
+  const bodyHi=skinLight(pal.body,.30),bodyMid=skinLight(pal.body,.13);
+  const bodyLo=skinDark(pal.body,.16),bodyDeep=skinDark(pal.body,.34);
+  const outline=skinDark(pal.body,.76),beakHi=skinLight(pal.beak,.24);
   const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait):(!shooting&&!dashing&&Math.sin(frame*.055)>.78?1:0);
+  const bob=moving?Math.round(gait*.65):(!shooting&&!dashing&&Math.sin(frame*.055)>.80?.5:0);
   const blink=(frame%210)<6;
   const look=!aiming&&!moving&&!shooting&&!dashing&&frame%300>238&&frame%300<276
     ?(frame%300<257?-1:1):0;
 
   ctx.save();
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
-  if(dashing)ctx.globalAlpha=.80;
+  if(dashing)ctx.globalAlpha=.82;
 
   if(dead){
-    enemyShadow(ctx,bx+8,by+17,8,.28);
-    rect(ctx,bx+1,by+11,13,4,pal.dark);
-    rect(ctx,bx+2,by+9,12,5,pal.body);
-    rect(ctx,bx+10,by+6,7,5,pal.body);
-    rect(ctx,bx+14,by+8,5,2,pal.beak);
-    rect(ctx,bx+15,by+8,3,1,beakHi);
-    px(ctx,bx+12,by+7,'#12151a',1);px(ctx,bx+14,by+9,'#12151a',1);
-    px(ctx,bx+14,by+7,'#12151a',1);px(ctx,bx+12,by+9,'#12151a',1);
-    rect(ctx,bx+3,by+7,3,3,pal.beak);rect(ctx,bx+8,by+6,3,4,pal.beak);
+    enemyShadow(ctx,bx+8,by+18,10,.30);
+    // Cuerpo caído HD, mantiene el mismo centro de gameplay.
+    hdRect(ctx,bx,by,2,25,30,7,outline);
+    hdRect(ctx,bx,by,4,22,26,8,pal.body);
+    hdRect(ctx,bx,by,20,16,15,7,outline);
+    hdRect(ctx,bx,by,21,17,13,6,pal.body);
+    hdRect(ctx,bx,by,31,20,8,4,pal.beak);
+    hdRect(ctx,bx,by,32,20,6,1,beakHi);
+    hdPx(ctx,bx,by,25,18,'#11151b',2);hdPx(ctx,bx,by,29,22,'#11151b',2);
+    hdPx(ctx,bx,by,29,18,'#11151b',2);hdPx(ctx,bx,by,25,22,'#11151b',2);
     ctx.restore();return;
   }
 
-  enemyShadow(ctx,bx+8,by+18,8.8,dashing?.18:.30);
+  enemyShadow(ctx,bx+8,by+19,10.5,dashing?.19:.31);
 
-  // Contorno pixelado grueso y plumaje esponjado inspirado en la referencia.
-  // Aumenta la cantidad de celdas VISIBLES del sprite sin tocar la hitbox.
-  const outline=skinDark(pal.body,.66);
-  rect(ctx,bx+3,by-3+bob,10,1,outline);
-  rect(ctx,bx+1,by-2+bob,14,2,outline);
-  rect(ctx,bx,by+bob,16,7,outline);
-  rect(ctx,bx-1,by+7+bob,18,7,outline);
-  rect(ctx,bx,by+14+bob,16,3,outline);
-  rect(ctx,bx+2,by+17+bob,12,2,outline);
-  // Puntas de pluma laterales / inferiores: sin pelo, sólo plumaje.
-  rect(ctx,bx-2,by+8+bob,3,3,outline);
-  rect(ctx,bx-2,by+13+bob,3,2,outline);
-  rect(ctx,bx+15,by+8+bob,3,3,outline);
-  rect(ctx,bx+15,by+13+bob,3,2,outline);
-  rect(ctx,bx+2,by+18+bob,3,2,outline);
-  rect(ctx,bx+6,by+18+bob,3,2,outline);
-  rect(ctx,bx+11,by+18+bob,3,2,outline);
+  const hb=by+bob;
+  const hx=look*.5+(shooting?(dir==='left'?-.5:dir==='right'?.5:0):0);
 
-  // Pies pequeños pero separados: la silueta deja de parecer un bloque amarillo.
-  const stride=moving?(gait>0?1:-1):0;
-  const lift=moving&&Math.abs(gait)>.55?1:0;
-  const leftY=by+15-(lift&&gait>0?1:0),rightY=by+15-(lift&&gait<0?1:0);
-  rect(ctx,bx+3-stride,leftY,4,2,pal.beak);
-  rect(ctx,bx+10+stride,rightY,4,2,pal.beak);
-  rect(ctx,bx+4-stride,leftY+1,3,1,pal.beakDark);
-  rect(ctx,bx+10+stride,rightY+1,3,1,pal.beakDark);
+  // Pies: 10–12 celdas HD por pie, con talón, punta y brillo.
+  const stride=moving?(gait>0?2:-2):0;
+  const lift=moving&&Math.abs(gait)>.55?2:0;
+  const leftLift=lift&&gait>0?2:0,rightLift=lift&&gait<0?2:0;
+  hdRect(ctx,bx,hb,7-stride,34-leftLift,10,4,pal.beakDark);
+  hdRect(ctx,bx,hb,8-stride,33-leftLift,9,4,pal.beak);
+  hdRect(ctx,bx,hb,10-stride,33-leftLift,5,1,beakHi);
+  hdRect(ctx,bx,hb,21+stride,34-rightLift,10,4,pal.beakDark);
+  hdRect(ctx,bx,hb,21+stride,33-rightLift,9,4,pal.beak);
+  hdRect(ctx,bx,hb,22+stride,33-rightLift,5,1,beakHi);
 
-  // Torso en forma de pera con hombros estrechos y base redondeada.
+  // Silueta principal esponjada. La referencia usa un personaje de muchas
+  // celdas pequeñas; aquí son ~36x42 celdas de 1/2 píxel lógico.
   if(dir==='up'){
-    // Espalda mullida con borde de plumas visible.
-    rect(ctx,bx+2,by+6+bob,12,9,pal.body);
-    rect(ctx,bx+1,by+9+bob,14,6,pal.body);
-    rect(ctx,bx+3,by+15+bob,10,3,pal.body);
-    rect(ctx,bx+4,by+7+bob,8,8,pal.pack);
-    rect(ctx,bx+3,by+9+bob,10,5,pal.pack);
-    rect(ctx,bx+5,by+8+bob,6,2,skinLight(pal.pack,.16));
-    rect(ctx,bx+6,by+11+bob,4,3,pal.strap);
-    rect(ctx,bx+4,by+14+bob,8,1,skinDark(pal.pack,.18));
-  }else{
-    // Cuerpo redondo/esponjado: más cercano al lenguaje visual de la referencia.
-    rect(ctx,bx+2,by+6+bob,12,3,pal.body);
-    rect(ctx,bx+1,by+8+bob,14,7,pal.body);
-    rect(ctx,bx,by+11+bob,16,4,pal.body);
-    rect(ctx,bx+2,by+15+bob,12,3,pal.body);
-    // plumas escalonadas del borde
-    rect(ctx,bx-1,by+9+bob,2,2,pal.body);
-    rect(ctx,bx-1,by+13+bob,2,2,pal.body);
-    rect(ctx,bx+15,by+9+bob,2,2,pal.body);
-    rect(ctx,bx+15,by+13+bob,2,2,pal.body);
-    rect(ctx,bx+3,by+17+bob,2,2,pal.body);
-    rect(ctx,bx+7,by+18+bob,2,1,pal.body);
-    rect(ctx,bx+11,by+17+bob,2,2,pal.body);
+    // Contorno espalda/cabeza.
+    hdRect(ctx,bx,hb,8,-7,20,2,outline);
+    hdRect(ctx,bx,hb,4,-5,28,4,outline);
+    hdRect(ctx,bx,hb,2,-1,32,10,outline);
+    hdRect(ctx,bx,hb,0,7,36,16,outline);
+    hdRect(ctx,bx,hb,2,23,32,10,outline);
+    hdRect(ctx,bx,hb,5,31,26,5,outline);
+    // picos de pluma
+    for(const [px0,py0] of [[0,9],[-2,14],[-1,20],[34,10],[35,16],[34,22],[4,31],[10,34],[24,34],[30,31]]) {
+      hdRect(ctx,bx,hb,px0,py0,4,4,outline);
+    }
 
-    // volumen y mechones del pecho (plumas, no pelo)
-    rect(ctx,bx+3,by+8+bob,10,2,hi);
-    rect(ctx,bx+4,by+10+bob,8,4,skinLight(pal.body,.18));
-    rect(ctx,bx+5,by+14+bob,6,2,pal.dark);
-    rect(ctx,bx+6,by+16+bob,4,1,pal.shade);
-    microRect(ctx,bx+2.2,by+9.4+bob,.6,4.2,rim);
-    microRect(ctx,bx+13.2,by+10+bob,.6,3.8,deep);
+    hdRect(ctx,bx,hb,8,-5,20,3,pal.body);
+    hdRect(ctx,bx,hb,5,-2,26,8,pal.body);
+    hdRect(ctx,bx,hb,3,5,30,15,pal.body);
+    hdRect(ctx,bx,hb,2,14,32,10,pal.body);
+    hdRect(ctx,bx,hb,5,23,26,9,pal.body);
 
-    // pequeñas marcas de pluma del pecho como en la referencia.
-    ctx.globalAlpha=.66;
-    microRect(ctx,bx+5.2,by+11.2+bob,1.0,.4,pal.dark);
-    microRect(ctx,bx+6.2,by+11.6+bob,.8,.4,pal.dark);
-    microRect(ctx,bx+8.8,by+13.4+bob,1.2,.4,pal.dark);
-    microRect(ctx,bx+9.8,by+13.0+bob,.6,.4,pal.dark);
-    microRect(ctx,bx+4.4,by+15.1+bob,.8,.4,pal.shade);
+    // Mochila amplia y detallada.
+    hdRect(ctx,bx,hb,8,10,20,18,skinDark(pal.pack,.30));
+    hdRect(ctx,bx,hb,9,9,18,18,pal.pack);
+    hdRect(ctx,bx,hb,11,11,14,5,skinLight(pal.pack,.18));
+    hdRect(ctx,bx,hb,12,17,12,7,skinDark(pal.pack,.10));
+    hdRect(ctx,bx,hb,16,18,4,5,pal.strap);
+    hdRect(ctx,bx,hb,10,25,16,2,skinDark(pal.pack,.28));
+    hdRect(ctx,bx,hb,10,10,2,14,pal.strap);
+    hdRect(ctx,bx,hb,24,10,2,14,pal.strap);
+    hdPx(ctx,bx,hb,12,12,skinLight(pal.pack,.40),1);
+    hdPx(ctx,bx,hb,23,23,skinDark(pal.pack,.48),1);
+
+    // plumas traseras visibles alrededor de la mochila
+    hdRect(ctx,bx,hb,4,7,5,4,bodyHi);
+    hdRect(ctx,bx,hb,28,8,4,5,bodyLo);
+    hdRect(ctx,bx,hb,4,27,6,2,bodyLo);
+    hdRect(ctx,bx,hb,26,28,5,2,bodyDeep);
+  } else {
+    // OUTLINE escalonado — define la silueta como en una sprite sheet dedicada.
+    hdRect(ctx,bx,hb,9,-8,18,2,outline);
+    hdRect(ctx,bx,hb,5,-6,26,3,outline);
+    hdRect(ctx,bx,hb,2,-3,32,6,outline);
+    hdRect(ctx,bx,hb,0,2,36,12,outline);
+    hdRect(ctx,bx,hb,-2,12,40,14,outline);
+    hdRect(ctx,bx,hb,0,25,36,7,outline);
+    hdRect(ctx,bx,hb,4,31,28,5,outline);
+
+    // Puntas de plumaje exterior — no son pelo.
+    const tufts:[[number,number],[number,number],[number,number],[number,number],[number,number],[number,number],[number,number],[number,number],[number,number],[number,number]]=[
+      [-3,9],[-4,16],[-2,24],[36,9],[38,16],[36,24],[3,29],[8,34],[26,34],[31,29],
+    ];
+    for(const [tx,ty] of tufts)hdRect(ctx,bx,hb,tx,ty,5,4,outline);
+
+    // Cuerpo crema interior.
+    hdRect(ctx,bx,hb,9,-6,18,3,pal.body);
+    hdRect(ctx,bx,hb,6,-4,24,5,pal.body);
+    hdRect(ctx,bx,hb,3,0,30,10,pal.body);
+    hdRect(ctx,bx,hb,1,8,34,15,pal.body);
+    hdRect(ctx,bx,hb,0,16,36,9,pal.body);
+    hdRect(ctx,bx,hb,3,24,30,7,pal.body);
+    hdRect(ctx,bx,hb,7,30,22,4,pal.body);
+
+    // Volumen principal con bandas sutiles.
+    hdRect(ctx,bx,hb,7,-3,20,2,bodyHi);
+    hdRect(ctx,bx,hb,4,2,7,8,bodyHi);
+    hdRect(ctx,bx,hb,4,9,5,11,bodyMid);
+    hdRect(ctx,bx,hb,7,23,22,5,bodyMid);
+    hdRect(ctx,bx,hb,10,28,16,3,bodyLo);
+    hdRect(ctx,bx,hb,28,3,4,16,bodyLo);
+    hdRect(ctx,bx,hb,30,14,4,9,bodyDeep);
+
+    // Alas separadas, formadas por escalones y puntas de pluma.
+    const wingOut=shooting?4:dashing?3:(moving&&Math.abs(gait)>.55?2:0);
+    if(dir==='down'){
+      hdRect(ctx,bx,hb,-2-wingOut,14,8,12,outline);
+      hdRect(ctx,bx,hb,1-wingOut,14,7,10,pal.dark);
+      hdRect(ctx,bx,hb,0-wingOut,21,4,5,pal.dark);
+      hdRect(ctx,bx,hb,30+wingOut,14,8,12,outline);
+      hdRect(ctx,bx,hb,28+wingOut,14,7,10,pal.dark);
+      hdRect(ctx,bx,hb,33+wingOut,21,4,5,pal.dark);
+      hdRect(ctx,bx,hb,2-wingOut,15,4,2,rim);
+      hdRect(ctx,bx,hb,30+wingOut,15,3,2,bodyHi);
+    }else if(dir==='left'){
+      hdRect(ctx,bx,hb,27+wingOut,13,10,13,outline);
+      hdRect(ctx,bx,hb,28+wingOut,14,8,10,pal.dark);
+      hdRect(ctx,bx,hb,32+wingOut,22,5,5,pal.shade);
+    }else if(dir==='right'){
+      hdRect(ctx,bx,hb,-1-wingOut,13,10,13,outline);
+      hdRect(ctx,bx,hb,0-wingOut,14,8,10,pal.dark);
+      hdRect(ctx,bx,hb,-1-wingOut,22,5,5,pal.shade);
+    }
+
+    // Pecho con textura de plumas: muchas celdas pequeñas, no manchas grandes.
+    ctx.globalAlpha=.78;
+    const featherMarks=[
+      [8,17,4,1],[12,18,3,1],[17,16,4,1],[22,18,3,1],[26,17,3,1],
+      [10,22,3,1],[15,23,4,1],[21,22,4,1],[25,24,3,1],
+      [7,27,4,1],[13,28,3,1],[19,27,4,1],[24,29,3,1],
+    ];
+    for(let i=0;i<featherMarks.length;i++){
+      const [fx,fy,fw,fh]=featherMarks[i];
+      hdRect(ctx,bx,hb,fx,fy,fw,fh,i%3===0?bodyLo:i%3===1?bodyHi:pal.dark);
+    }
     ctx.globalAlpha=1;
   }
 
-  // Alas separadas del torso; reaccionan al movimiento y al disparo.
-  const wing=Math.max(0,shooting?2:dashing?2:(moving&&Math.abs(gait)>.55?1:0));
-  if(dir==='down'){
-    rect(ctx,bx+1-wing,by+9+bob,3,4,pal.dark);
-    rect(ctx,bx+12+wing,by+9+bob,3,4,pal.dark);
-    px(ctx,bx+2-wing,by+9+bob,rim,1);px(ctx,bx+13+wing,by+9+bob,rim,1);
-  }else if(dir==='left'){
-    rect(ctx,bx+11+wing,by+9+bob,4,4,pal.dark);
-    rect(ctx,bx+12+wing,by+12+bob,2,2,pal.shade);
-  }else if(dir==='right'){
-    rect(ctx,bx+1-wing,by+9+bob,4,4,pal.dark);
-    rect(ctx,bx+1-wing,by+12+bob,2,2,pal.shade);
+  // Cabeza/frente. En perfiles se adelanta ligeramente para dar pico y gafas.
+  const faceShift=dir==='left'?-2:dir==='right'?2:0;
+  const fhx=hx*2+faceShift;
+  if(dir==='up'){
+    // espalda de cabeza limpia, sólo plumas.
+    hdRect(ctx,bx,hb,9+fhx,-7,18,3,pal.body);
+    hdRect(ctx,bx,hb,6+fhx,-4,24,5,pal.body);
+    hdRect(ctx,bx,hb,7+fhx,1,22,4,bodyLo);
+    hdRect(ctx,bx,hb,11+fhx,4,14,2,pal.dark);
+  } else if(dir==='down'){
+    // Gafas/antifaz grande como la referencia, sin pelo ni gorro.
+    hdRect(ctx,bx,hb,4+fhx,1,12,10,pal.mask);
+    hdRect(ctx,bx,hb,20+fhx,1,12,10,pal.mask);
+    hdRect(ctx,bx,hb,15+fhx,4,6,3,pal.mask);
+    // montura superior y patillas
+    hdRect(ctx,bx,hb,5+fhx,0,10,2,skinLight(pal.mask,.18));
+    hdRect(ctx,bx,hb,21+fhx,0,10,2,skinLight(pal.mask,.18));
+    hdRect(ctx,bx,hb,2+fhx,3,3,4,pal.mask);
+    hdRect(ctx,bx,hb,31+fhx,3,3,4,pal.mask);
+
+    // lentes claros con reflejos y pupila.
+    hdRect(ctx,bx,hb,6+fhx,3,8,6,'#cbd4d3');
+    hdRect(ctx,bx,hb,22+fhx,3,8,6,'#cbd4d3');
+    hdRect(ctx,bx,hb,7+fhx,4,6,4,'#edf2ed');
+    hdRect(ctx,bx,hb,23+fhx,4,6,4,'#edf2ed');
+    if(blink){
+      hdRect(ctx,bx,hb,7+fhx,6,6,1,'#3b4148');
+      hdRect(ctx,bx,hb,23+fhx,6,6,1,'#3b4148');
+    }else{
+      hdRect(ctx,bx,hb,9+fhx,5,3,3,'#11151b');
+      hdRect(ctx,bx,hb,24+fhx,5,3,3,'#11151b');
+      hdPx(ctx,bx,hb,9+fhx,5,'#ffffff',1);
+      hdPx(ctx,bx,hb,24+fhx,5,'#ffffff',1);
+    }
+    hdRect(ctx,bx,hb,6+fhx,3,5,1,'rgba(255,255,255,.55)');
+    hdRect(ctx,bx,hb,22+fhx,3,5,1,'rgba(255,255,255,.55)');
+    hdPx(ctx,bx,hb,13+fhx,8,'#67727a',1);
+    hdPx(ctx,bx,hb,29+fhx,8,'#67727a',1);
+
+    // Pico ancho y estratificado, con dos tonos y narinas.
+    hdRect(ctx,bx,hb,11+fhx,9,14,2,pal.beakDark);
+    hdRect(ctx,bx,hb,9+fhx,11,18,5,pal.beak);
+    hdRect(ctx,bx,hb,11+fhx,10,14,2,beakHi);
+    hdRect(ctx,bx,hb,12+fhx,15,12,2,pal.beakDark);
+    hdPx(ctx,bx,hb,14+fhx,12,skinDark(pal.beak,.32),1);
+    hdPx(ctx,bx,hb,21+fhx,12,skinDark(pal.beak,.32),1);
+    hdRect(ctx,bx,hb,13+fhx,11,8,1,'rgba(255,255,255,.24)');
+  } else {
+    const left=dir==='left';
+    const baseX=left?0:17;
+    // una lente grande, montura visible de perfil.
+    hdRect(ctx,bx,hb,baseX+fhx,1,15,10,pal.mask);
+    hdRect(ctx,bx,hb,baseX+2+fhx,3,10,6,'#d5ddda');
+    hdRect(ctx,bx,hb,baseX+3+fhx,4,8,4,'#eef2ee');
+    if(blink)hdRect(ctx,bx,hb,baseX+3+fhx,6,8,1,'#40464c');
+    else{
+      const ex=left?baseX+3:baseX+8;
+      hdRect(ctx,bx,hb,ex+fhx,5,3,3,'#11151b');
+      hdPx(ctx,bx,hb,ex+fhx,5,'#ffffff',1);
+    }
+    hdRect(ctx,bx,hb,baseX+2+fhx,3,5,1,'rgba(255,255,255,.50)');
+
+    // pico de perfil.
+    const px0=left?-12:31;
+    hdRect(ctx,bx,hb,px0+fhx,9,14,6,pal.beakDark);
+    hdRect(ctx,bx,hb,px0+(left?1:0)+fhx,8,13,5,pal.beak);
+    hdRect(ctx,bx,hb,px0+(left?2:1)+fhx,8,9,1,beakHi);
+    hdPx(ctx,bx,hb,px0+(left?8:4)+fhx,10,skinDark(pal.beak,.30),1);
   }
 
-  // Arnés táctico discreto: mantiene la fantasía de atraco sin tapar el plumaje.
+  // Arnés/tirantes finos; se leen como accesorio, no reemplazan plumaje.
   if(dir!=='up'){
-    microRect(ctx,bx+5.25,by+8+bob,.5,5,pal.strap);
-    microRect(ctx,bx+10.25,by+8+bob,.5,5,pal.strap);
-    rect(ctx,bx+7,by+11+bob,2,2,skinDark(pal.pack,.12));
-    px(ctx,bx+7,by+11+bob,skinLight(pal.pack,.28),1);
+    ctx.globalAlpha=.86;
+    hdRect(ctx,bx,hb,11,16,2,12,pal.strap);
+    hdRect(ctx,bx,hb,23,16,2,12,pal.strap);
+    hdRect(ctx,bx,hb,16,22,4,4,skinDark(pal.pack,.08));
+    hdPx(ctx,bx,hb,17,22,skinLight(pal.pack,.34),1);
+    ctx.globalAlpha=1;
   }
   if(dir==='left'){
-    rect(ctx,bx+11,by+8+bob,4,6,pal.pack);rect(ctx,bx+12,by+9+bob,2,2,skinLight(pal.pack,.18));
+    hdRect(ctx,bx,hb,25,17,9,12,skinDark(pal.pack,.30));
+    hdRect(ctx,bx,hb,26,18,7,10,pal.pack);
   }else if(dir==='right'){
-    rect(ctx,bx+1,by+8+bob,4,6,pal.pack);rect(ctx,bx+2,by+9+bob,2,2,skinLight(pal.pack,.18));
+    hdRect(ctx,bx,hb,2,17,9,12,skinDark(pal.pack,.30));
+    hdRect(ctx,bx,hb,3,18,7,10,pal.pack);
   }
 
-  // Cabeza redondeada y compacta, sin pelo. El detalle viene de plumas,
-  // máscara/gafas de ladrón y contorno escalonado.
-  const hy=by+bob,hx=look+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
-  rect(ctx,bx+4+hx,hy-3,8,1,pal.body);
-  rect(ctx,bx+2+hx,hy-2,12,2,pal.body);
-  rect(ctx,bx+1+hx,hy,14,5,pal.body);
-  rect(ctx,bx+2+hx,hy+5,12,3,pal.body);
-  rect(ctx,bx+4+hx,hy+8,8,1,pal.dark);
-  rect(ctx,bx+4+hx,hy-1,7,1,hi);
-  microRect(ctx,bx+1.2+hx,hy+1,.6,4,rim);
-  microRect(ctx,bx+14.2+hx,hy+1,.6,4,deep);
-  microRect(ctx,bx+3.2+hx,hy+.2,.8,.2,'rgba(255,255,255,.30)');
-  microRect(ctx,bx+11.6+hx,hy+5.6,.6,.2,'rgba(0,0,0,.18)');
-
-  // Antifaz del atracador: más fino, con ojos pequeños y decididos.
-  if(dir==='up'){
-    rect(ctx,bx+5+hx,hy+2,6,2,pal.mask);
-    rect(ctx,bx+6+hx,hy+6,4,1,pal.dark);
-  }else if(dir==='down'){
-    // Antifaz tipo gafas gruesas: toma la lectura visual de la referencia sin
-    // copiar el pelo. Dos lentes grandes, puente y brillos separados.
-    rect(ctx,bx+2+hx,hy+1,5,4,pal.mask);
-    rect(ctx,bx+9+hx,hy+1,5,4,pal.mask);
-    rect(ctx,bx+6+hx,hy+2,4,1,pal.mask);
-    rect(ctx,bx+3+hx,hy+2,3,2,'#dbe2df');
-    rect(ctx,bx+10+hx,hy+2,3,2,'#dbe2df');
-    if(blink){
-      rect(ctx,bx+3+hx,hy+3,3,1,'#3b4148');rect(ctx,bx+10+hx,hy+3,3,1,'#3b4148');
-    }else{
-      px(ctx,bx+4+hx,hy+2,'#101319',1);px(ctx,bx+11+hx,hy+2,'#101319',1);
-      microRect(ctx,bx+3.4+hx,hy+2.2,.6,.4,'#ffffff');
-      microRect(ctx,bx+10.4+hx,hy+2.2,.6,.4,'#ffffff');
-    }
-    microRect(ctx,bx+2.2+hx,hy+1.2,3.8,.2,'rgba(255,255,255,.35)');
-    microRect(ctx,bx+9.2+hx,hy+1.2,3.8,.2,'rgba(255,255,255,.35)');
-    rect(ctx,bx+5+hx,hy+5,6,3,pal.beak);
-    rect(ctx,bx+6+hx,hy+5,4,1,beakHi);
-    rect(ctx,bx+6+hx,hy+7,4,1,pal.beakDark);
-    microRect(ctx,bx+7+hx,hy+6,.4,.4,skinDark(pal.beak,.25));
-    microRect(ctx,bx+9+hx,hy+6,.4,.4,skinDark(pal.beak,.25));
-  }else{
-    const faceX=(dir==='left'?bx+3:bx+8)+hx;
-    rect(ctx,faceX,hy+2,5,3,pal.mask);
-    const eyeX=(dir==='left'?bx+4:bx+10)+hx;
-    if(blink)rect(ctx,eyeX,hy+3,2,1,'#f5f7f3');
-    else{rect(ctx,eyeX,hy+3,2,2,'#f5f7f3');px(ctx,eyeX+(dir==='left'?0:1),hy+3,'#101319',1);}
-    const beakX=(dir==='left'?bx-3:bx+12)+hx;
-    rect(ctx,beakX,hy+5,7,3,pal.beak);
-    rect(ctx,beakX+(dir==='left'?1:0),hy+5,5,1,beakHi);
-    rect(ctx,beakX+(dir==='left'?0:2),hy+7,4,1,pal.beakDark);
+  // Microdetalles de pluma y costura de escala subpíxel lógico.
+  ctx.globalAlpha=.68;
+  const microMarks=[[7,2],[28,5],[5,18],[30,21],[9,26],[27,27],[13,31],[22,30]];
+  for(let i=0;i<microMarks.length;i++){
+    const [mx,my]=microMarks[i];
+    hdPx(ctx,bx,hb,mx,my,i%2?bodyDeep:bodyHi,1);
   }
-
-  // Microdetalle 5x: pequeñas plumas, costuras y reflejos de 1–2 píxeles
-  // físicos para que el protagonista gane densidad sin cambiar su hitbox.
-  ctx.globalAlpha=.72;
-  if(dir!=='up'){
-    microRect(ctx,bx+5.2,by+9.2+bob,.4,.2,skinLight(pal.body,.38));
-    microRect(ctx,bx+6.8,by+12.6+bob,.6,.2,skinDark(pal.body,.12));
-    microRect(ctx,bx+9.6,by+10.4+bob,.2,.8,'rgba(255,255,255,.18)');
-    microRect(ctx,bx+11.4,by+12.2+bob,.4,.2,skinDark(pal.body,.28));
-  }else{
-    microRect(ctx,bx+5.2,by+9.2+bob,.4,.2,skinLight(pal.pack,.26));
-    microRect(ctx,bx+9.8,by+12.6+bob,.6,.2,skinDark(pal.pack,.20));
-  }
-  microRect(ctx,bx+4.4+hx,hy+.2,.8,.2,'rgba(255,255,255,.22)');
-  microRect(ctx,bx+11.8+hx,hy+5.6,.4,.2,'rgba(0,0,0,.18)');
   ctx.globalAlpha=1;
 
   if(shooting){
-    ctx.globalAlpha=.92;
-    const mx=dir==='left'?bx-3:dir==='right'?bx+18:bx+8;
-    const my=dir==='up'?by:dir==='down'?by+18:by+9;
-    rect(ctx,mx-2,my-2,4,4,'#fff3c4');rect(ctx,mx-1,my-1,2,2,'#f4b63f');
+    const mx=dir==='left'?bx-7:dir==='right'?bx+23:bx+8;
+    const my=dir==='up'?hb-2:dir==='down'?hb+20:hb+9;
+    ctx.globalAlpha=.94;
+    microRect(ctx,mx-2,my-2,4,4,'#fff3c4');
+    microRect(ctx,mx-1,my-1,2,2,'#f4b63f');
     ctx.globalAlpha=1;
   }
   if(dashing){
-    ctx.globalAlpha=.14;rect(ctx,bx-2,by+6,20,9,hi);
-    ctx.globalAlpha=.36;rect(ctx,bx+(dir==='right'?-5:dir==='left'?15:2),by+8,5,1,'#fff2ad');
+    ctx.globalAlpha=.12;microRect(ctx,bx-4,hb+4,24,12,bodyHi);
+    ctx.globalAlpha=.34;microRect(ctx,bx+(dir==='right'?-7:dir==='left'?17:1),hb+8,7,.5,'#fff2ad');
     ctx.globalAlpha=1;
   }
 
