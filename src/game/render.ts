@@ -1024,7 +1024,9 @@ export function renderWorld(engine: GameEngine) {
     ctx.translate(drawX+7,drawY+9+interact*1.5);
     ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
     if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
-    const heroScale=1.12;
+    // La referencia visual usa personajes de ~1 baldosa de alto, no miniaturas.
+    // Sólo escala representación; la hitbox permanece intacta.
+    const heroScale=1.44;
     ctx.scale(sx*(1+interact*.025)*heroScale,sy*(1-interact*.045)*heroScale);
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,aimDir,p.moving,
       p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true);
@@ -1051,7 +1053,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.translate(drawX+7,drawY+9+interact*3);
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
-    const gunSize=longGun?19:17;
+    const gunSize=longGun?24:21;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
     const postShot=clamp((cooldownNorm-.35)/.65,0,1);
@@ -2167,14 +2169,14 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    const tacticalScale=e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.14:1.10;
+    const tacticalScale=e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.32:1.26;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*tacticalScale,p.sy*tacticalScale);ctx.translate(-cx,-cy);
     drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
     ctx.restore();
     drawEnemyRoleAccent(ctx,e,f);
   } else {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    const regularScale=e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.14:e.type==='dron_policial'||e.type==='rolling_bagel'?1.08:1.10;
+    const regularScale=e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.34:e.type==='dron_policial'||e.type==='rolling_bagel'?1.22:1.28;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*regularScale,p.sy*regularScale);ctx.translate(-cx,-cy);
     switch (e.type) {
       case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;
