@@ -50,10 +50,10 @@ export const SCALE = 2;
 
 /**
  * Resolución artística interna del mundo. La lógica, hitboxes y coordenadas
- * siguen usando la cuadrícula histórica; el canvas físico dispone de 4x más
- * muestras por eje para sprites y efectos con detalle de 1/4 de píxel lógico.
+ * siguen usando la cuadrícula histórica; el arte ahora se autoriza sobre una
+ * rejilla 5x para permitir microdetalle de 1/5 de píxel lógico sin tocar físicas.
  */
-export const ART_SCALE = 4;
+export const ART_SCALE = 5;
 export const ART_PIXEL = 1 / ART_SCALE;
 
 export const PLAYER_SPEED = 2.2;
