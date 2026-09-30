@@ -254,6 +254,13 @@ export function drawDuck(
       const [fx,fy,fw,fh]=featherMarks[i];
       hdRect(ctx,bx,hb,fx,fy,fw,fh,i%3===0?bodyLo:i%3===1?bodyHi:pal.dark);
     }
+    // Marca central de plumas característica del protagonista.
+    hdRect(ctx,bx,hb,15,19,5,1,bodyLo);
+    hdRect(ctx,bx,hb,14,20,2,3,bodyLo);
+    hdRect(ctx,bx,hb,16,22,5,1,bodyLo);
+    hdRect(ctx,bx,hb,20,21,2,3,bodyLo);
+    hdRect(ctx,bx,hb,17,24,5,1,bodyLo);
+    hdRect(ctx,bx,hb,13,26,4,1,bodyHi);
     ctx.globalAlpha=1;
   }
 
@@ -267,36 +274,23 @@ export function drawDuck(
     hdRect(ctx,bx,hb,7+fhx,1,22,4,bodyLo);
     hdRect(ctx,bx,hb,11+fhx,4,14,2,pal.dark);
   } else if(dir==='down'){
-    // Gafas/antifaz grande como la referencia, sin pelo ni gorro.
-    hdRect(ctx,bx,hb,4+fhx,1,12,10,pal.mask);
-    hdRect(ctx,bx,hb,20+fhx,1,12,10,pal.mask);
-    hdRect(ctx,bx,hb,15+fhx,4,6,3,pal.mask);
-    // montura superior y patillas
-    hdRect(ctx,bx,hb,5+fhx,0,10,2,skinLight(pal.mask,.18));
-    hdRect(ctx,bx,hb,21+fhx,0,10,2,skinLight(pal.mask,.18));
-    hdRect(ctx,bx,hb,2+fhx,3,3,4,pal.mask);
-    hdRect(ctx,bx,hb,31+fhx,3,3,4,pal.mask);
-
-    // lentes claros con reflejos y pupila.
-    hdRect(ctx,bx,hb,6+fhx,3,8,6,'#cbd4d3');
-    hdRect(ctx,bx,hb,22+fhx,3,8,6,'#cbd4d3');
-    hdRect(ctx,bx,hb,7+fhx,4,6,4,'#edf2ed');
-    hdRect(ctx,bx,hb,23+fhx,4,6,4,'#edf2ed');
+    // Rostro abierto del pato protagonista: sin lentes, antifaz, pelo ni gorro.
+    // Ojos simples y oscuros como en la referencia, con una pequeña ceja de pluma.
+    hdRect(ctx,bx,hb,8+fhx,2,4,6,'#171717');
+    hdRect(ctx,bx,hb,24+fhx,2,4,6,'#171717');
     if(blink){
-      hdRect(ctx,bx,hb,7+fhx,6,6,1,'#3b4148');
-      hdRect(ctx,bx,hb,23+fhx,6,6,1,'#3b4148');
+      hdRect(ctx,bx,hb,8+fhx,6,4,1,bodyDeep);
+      hdRect(ctx,bx,hb,24+fhx,6,4,1,bodyDeep);
     }else{
-      hdRect(ctx,bx,hb,9+fhx,5,3,3,'#11151b');
-      hdRect(ctx,bx,hb,24+fhx,5,3,3,'#11151b');
-      hdPx(ctx,bx,hb,9+fhx,5,'#ffffff',1);
-      hdPx(ctx,bx,hb,24+fhx,5,'#ffffff',1);
+      hdPx(ctx,bx,hb,9+fhx,3,'#fff8df',1);
+      hdPx(ctx,bx,hb,25+fhx,3,'#fff8df',1);
     }
-    hdRect(ctx,bx,hb,6+fhx,3,5,1,'rgba(255,255,255,.55)');
-    hdRect(ctx,bx,hb,22+fhx,3,5,1,'rgba(255,255,255,.55)');
-    hdPx(ctx,bx,hb,13+fhx,8,'#67727a',1);
-    hdPx(ctx,bx,hb,29+fhx,8,'#67727a',1);
+    hdRect(ctx,bx,hb,7+fhx,0,6,1,bodyLo);
+    hdRect(ctx,bx,hb,23+fhx,0,6,1,bodyLo);
+    hdRect(ctx,bx,hb,5+fhx,8,4,2,bodyMid);
+    hdRect(ctx,bx,hb,27+fhx,8,4,2,bodyMid);
 
-    // Pico ancho y estratificado, con dos tonos y narinas.
+    // Pico ancho, suave y expresivo.
     hdRect(ctx,bx,hb,11+fhx,9,14,2,pal.beakDark);
     hdRect(ctx,bx,hb,9+fhx,11,18,5,pal.beak);
     hdRect(ctx,bx,hb,11+fhx,10,14,2,beakHi);
@@ -307,17 +301,15 @@ export function drawDuck(
   } else {
     const left=dir==='left';
     const baseX=left?0:17;
-    // una lente grande, montura visible de perfil.
-    hdRect(ctx,bx,hb,baseX+fhx,1,15,10,pal.mask);
-    hdRect(ctx,bx,hb,baseX+2+fhx,3,10,6,'#d5ddda');
-    hdRect(ctx,bx,hb,baseX+3+fhx,4,8,4,'#eef2ee');
-    if(blink)hdRect(ctx,bx,hb,baseX+3+fhx,6,8,1,'#40464c');
-    else{
-      const ex=left?baseX+3:baseX+8;
-      hdRect(ctx,bx,hb,ex+fhx,5,3,3,'#11151b');
-      hdPx(ctx,bx,hb,ex+fhx,5,'#ffffff',1);
+    // Perfil limpio: ojo pequeño, ceja de pluma y mejilla visible.
+    const ex=left?baseX+6:baseX+7;
+    if(blink) hdRect(ctx,bx,hb,ex+fhx,6,4,1,bodyDeep);
+    else {
+      hdRect(ctx,bx,hb,ex+fhx,4,4,5,'#171717');
+      hdPx(ctx,bx,hb,ex+(left?0:1)+fhx,5,'#fff8df',1);
     }
-    hdRect(ctx,bx,hb,baseX+2+fhx,3,5,1,'rgba(255,255,255,.50)');
+    hdRect(ctx,bx,hb,ex-1+fhx,2,6,1,bodyLo);
+    hdRect(ctx,bx,hb,baseX+3+fhx,9,7,2,bodyMid);
 
     // pico de perfil.
     const px0=left?-12:31;

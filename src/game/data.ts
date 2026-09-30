@@ -668,7 +668,7 @@ export const DEFAULT_PALETTE: DuckPalette = {
 export const SKINS: DuckSkin[] = [
   {
     id: 'robber', name: 'PATO LADRÓN',
-    description: 'El icono del atraco: antifaz, pañuelo rojo, arnés de herramientas y bolsa compacta.',
+    description: 'El icono del atraco: plumaje crema, pañuelo rojo, arnés de herramientas y bolsa compacta.',
     cost: 0, palette: DEFAULT_PALETTE, overlay: 'robber',
     accent: '#c9473b', trim: '#ead77c', metal: '#aeb8b8',
   },
