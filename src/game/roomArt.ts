@@ -381,6 +381,41 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
 
   ctx.save();
 
+  // Capa de profundidad arquitectónica. El lobby anterior quedaba demasiado
+  // plano y lavado; esta banda separa techo, pared y zona jugable sin añadir
+  // ningún collider ni cambiar la lógica de las salas.
+  const topShade=ctx.createLinearGradient(0,32,0,126);
+  topShade.addColorStop(0,tier===0?'rgba(24,36,43,.28)':tier<=2?'rgba(16,24,29,.20)':'rgba(7,10,13,.18)');
+  topShade.addColorStop(.58,tier===0?'rgba(45,59,67,.10)':'rgba(20,24,25,.07)');
+  topShade.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=topShade;ctx.fillRect(T,32,CANVAS_WIDTH-T*2,104);
+
+  // Cornisas y montantes: dan escala al banco y rompen grandes superficies
+  // vacías, especialmente en la entrada del piso 1.
+  ctx.globalAlpha=tier===0?.34:.20;ctx.fillStyle=tier===0?'#52616b':accent;
+  ctx.fillRect(T+8,61,CANVAS_WIDTH-T*2-16,2);
+  ctx.globalAlpha=tier===0?.20:.13;
+  const bayStep=tier===0?96:112;
+  for(let x=T+32;x<CANVAS_WIDTH-T-18;x+=bayStep){
+    ctx.fillRect(x,47,2,66);
+    ctx.globalAlpha=tier===0?.08:.06;ctx.fillStyle='#eef4f3';ctx.fillRect(x+2,49,1,62);
+    ctx.globalAlpha=tier===0?.20:.13;ctx.fillStyle=tier===0?'#52616b':accent;
+  }
+
+  if(tier===0){
+    // Placa institucional central: aporta una firma visual clara al Banco del Pan
+    // sin usar texto grande que compita con el HUD.
+    const cx=CANVAS_WIDTH/2,py=70;
+    ctx.globalAlpha=.58;ctx.fillStyle='#31414a';ctx.fillRect(cx-35,py-10,70,22);
+    ctx.globalAlpha=.78;ctx.strokeStyle='#a48750';ctx.lineWidth=1;ctx.strokeRect(cx-34.5,py-9.5,69,21);
+    ctx.globalAlpha=.24;ctx.fillStyle='#e6d7b0';ctx.fillRect(cx-27,py-3,54,1);
+    ctx.globalAlpha=.86;ctx.fillStyle='#c4a35f';
+    ctx.fillRect(cx-8,py-5,16,3);ctx.fillRect(cx-10,py-2,20,8);
+    ctx.fillStyle='#31414a';ctx.fillRect(cx-5,py,10,4);
+    ctx.globalAlpha=.28;ctx.fillStyle='#e8d8ad';ctx.fillRect(cx-18,py+8,36,1);
+    ctx.globalAlpha=1;
+  }
+
   // Marco arquitectónico interior. Cada nivel sube la cantidad de metal noble.
   ctx.globalAlpha=.10+tier*.035;ctx.strokeStyle=accent;ctx.lineWidth=tier>=4?2:1;
   ctx.strokeRect(43.5,43.5,CANVAS_WIDTH-87,CANVAS_HEIGHT-87);
@@ -463,6 +498,15 @@ export function drawRoomAtmosphere(ctx: CanvasRenderingContext2D, deco: string, 
   reflection.addColorStop(.55,'rgba(255,255,255,'+(tier>=4?'.050':'.026')+')');
   reflection.addColorStop(1,'rgba(255,255,255,0)');
   ctx.fillStyle=reflection;ctx.fillRect(54,54,CANVAS_WIDTH-108,CANVAS_HEIGHT-108);
+
+  // Oclusión ambiental suave en el zócalo y esquinas. Aumenta la lectura de
+  // profundidad sin oscurecer al jugador ni los proyectiles.
+  const edgeShade=ctx.createLinearGradient(0,T,0,CANVAS_HEIGHT-T);
+  edgeShade.addColorStop(0,'rgba(0,0,0,.12)');
+  edgeShade.addColorStop(.18,'rgba(0,0,0,0)');
+  edgeShade.addColorStop(.82,'rgba(0,0,0,0)');
+  edgeShade.addColorStop(1,'rgba(0,0,0,.15)');
+  ctx.fillStyle=edgeShade;ctx.fillRect(T,T,CANVAS_WIDTH-T*2,CANVAS_HEIGHT-T*2);
 
   const vignette=ctx.createRadialGradient(CANVAS_WIDTH/2,CANVAS_HEIGHT/2,126,CANVAS_WIDTH/2,CANVAS_HEIGHT/2,Math.max(CANVAS_WIDTH,CANVAS_HEIGHT)*.72);
   vignette.addColorStop(0,'rgba(0,0,0,0)');
