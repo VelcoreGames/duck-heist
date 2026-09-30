@@ -77,13 +77,13 @@ export default function App() {
     const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
     const dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
     const physicalDensity=css*dpr;
-    // Pase HD real: en escritorio intentamos 5–6x para que la subrejilla de
-    // personaje de 1/2 píxel lógico conserve sus celdas individuales.
-    // El monitor de rendimiento puede bajar sólo cuando el hardware lo exige.
+    // El arte sigue AUTORADO en 6x, pero el mundo se rasteriza a 4x en
+    // escritorio. La subrejilla de 1/2 píxel del personaje sigue cayendo en
+    // píxeles físicos enteros (2 px por celda) y el coste por frame baja mucho.
     const desktopDetail=vw>=900&&vh>=520;
-    const detailBoost=desktopDetail?1.60:1.28;
-    const minWorld=desktopDetail?5:3;
-    const world=Math.max(minWorld,Math.min(ART_SCALE,Math.ceil(physicalDensity*detailBoost)));
+    const detailBoost=desktopDetail?1.18:1.08;
+    const preferred=desktopDetail?4:3;
+    const world=Math.max(3,Math.min(preferred,Math.ceil(physicalDensity*detailBoost)));
     // El HUD sigue separado del mundo para no inflar innecesariamente su backing store.
     const ui=Math.max(2,Math.min(4,Math.ceil(physicalDensity)));
     return {displayW,displayH,css,ui,world};
@@ -93,8 +93,8 @@ export default function App() {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    // El arte está autorado a 6x. En escritorio intentamos conservar 5–6x
-    // y bajamos sólo si el monitor de rendimiento detecta presión real.
+    // El arte permanece autorado a 6x, pero la rasterización normal es 4x.
+    // Esto conserva el detalle visible y evita canvases gigantes por frame.
     const initialSizing=computeScale();
     let preferredWorldScale=initialSizing.world;
     let worldRenderScale=preferredWorldScale;
@@ -878,22 +878,19 @@ export default function App() {
       const average=perfElapsed/perfFrames;
       perfElapsed=0;perfFrames=0;
 
-      // Conservamos la lectura HD del sprite siempre que sea posible.
-      // Sólo caemos a 3x en una sobrecarga seria; la bajada normal es escalonada.
-      if(average>29&&worldRenderScale>3){
+      // 4x es el punto de equilibrio: mantiene la subrejilla HD nítida.
+      // Si el frame time cae, baja pronto a 3x; para volver a subir exige
+      // varios intervalos estables y así evita tirones por oscilación.
+      if(average>20.5&&worldRenderScale>3){
         applyWorldRenderScale(3);
         upgradeStableWindows=0;
-        renderScaleCooldownUntil=ts+45000;
-      }else if(average>21.25&&worldRenderScale>4){
-        applyWorldRenderScale(Math.max(4,worldRenderScale-1));
-        upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+30000;
-      }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<preferredWorldScale){
+      }else if(ts>=renderScaleCooldownUntil&&average<16.8&&worldRenderScale<preferredWorldScale){
         upgradeStableWindows++;
-        if(upgradeStableWindows>=4){
+        if(upgradeStableWindows>=5){
           applyWorldRenderScale(Math.min(preferredWorldScale,worldRenderScale+1));
           upgradeStableWindows=0;
-          renderScaleCooldownUntil=ts+12000;
+          renderScaleCooldownUntil=ts+15000;
         }
       }else{
         upgradeStableWindows=0;
