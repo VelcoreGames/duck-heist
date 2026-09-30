@@ -231,7 +231,7 @@ export function drawDuck(
       hdRect(ctx,bx,hb,30+wingOut,14,8,12,outline);
       hdRect(ctx,bx,hb,28+wingOut,14,7,10,pal.dark);
       hdRect(ctx,bx,hb,33+wingOut,21,4,5,pal.dark);
-      hdRect(ctx,bx,hb,2-wingOut,15,4,2,rim);
+      hdRect(ctx,bx,hb,2-wingOut,15,4,2,bodyHi);
       hdRect(ctx,bx,hb,30+wingOut,15,3,2,bodyHi);
     }else if(dir==='left'){
       hdRect(ctx,bx,hb,27+wingOut,13,10,13,outline);
