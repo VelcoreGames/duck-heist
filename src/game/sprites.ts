@@ -219,6 +219,22 @@ export function drawDuck(
     rect(ctx,beakX+(dir==='left'?0:2),hy+7,4,1,pal.beakDark);
   }
 
+  // Microdetalle 5x: pequeñas plumas, costuras y reflejos de 1–2 píxeles
+  // físicos para que el protagonista gane densidad sin cambiar su hitbox.
+  ctx.globalAlpha=.72;
+  if(dir!=='up'){
+    microRect(ctx,bx+5.2,by+9.2+bob,.4,.2,skinLight(pal.body,.38));
+    microRect(ctx,bx+6.8,by+12.6+bob,.6,.2,skinDark(pal.body,.12));
+    microRect(ctx,bx+9.6,by+10.4+bob,.2,.8,'rgba(255,255,255,.18)');
+    microRect(ctx,bx+11.4,by+12.2+bob,.4,.2,skinDark(pal.body,.28));
+  }else{
+    microRect(ctx,bx+5.2,by+9.2+bob,.4,.2,skinLight(pal.pack,.26));
+    microRect(ctx,bx+9.8,by+12.6+bob,.6,.2,skinDark(pal.pack,.20));
+  }
+  microRect(ctx,bx+4.4+hx,hy+.2,.8,.2,'rgba(255,255,255,.22)');
+  microRect(ctx,bx+11.8+hx,hy+5.6,.4,.2,'rgba(0,0,0,.18)');
+  ctx.globalAlpha=1;
+
   if(shooting){
     ctx.globalAlpha=.92;
     const mx=dir==='left'?bx-3:dir==='right'?bx+18:bx+8;
@@ -758,8 +774,13 @@ function enemyEye(ctx:Ctx,x:number,y:number,alert=false){
 function metalEdge(ctx:Ctx,x:number,y:number,w:number,h:number,base:string,hi:string,lo:string){
   rect(ctx,x,y,w,h,base);rect(ctx,x+1,y+1,w-2,1,hi);rect(ctx,x+1,y+h-2,w-2,1,lo);
   if(w>=5&&h>=4){
-    ctx.globalAlpha=.42;microRect(ctx,x+1.25,y+1.25,Math.max(.5,w-2.5),.25,'rgba(255,255,255,.44)');
-    microRect(ctx,x+w-1.5,y+1.5,.25,Math.max(.5,h-3),'rgba(0,0,0,.42)');ctx.globalAlpha=1;
+    ctx.globalAlpha=.42;microRect(ctx,x+1.2,y+1.2,Math.max(.6,w-2.4),.2,'rgba(255,255,255,.44)');
+    microRect(ctx,x+w-1.4,y+1.4,.2,Math.max(.6,h-2.8),'rgba(0,0,0,.42)');
+    if(w>=8){
+      microRect(ctx,x+1.4,y+h-1.8,.4,.4,'rgba(218,230,233,.55)');
+      microRect(ctx,x+w-1.8,y+h-1.8,.4,.4,'rgba(16,23,28,.62)');
+    }
+    ctx.globalAlpha=1;
   }
 }
 function crownMark(ctx:Ctx,x:number,y:number,color='#e5bd45'){
@@ -3996,7 +4017,11 @@ function enemyFeatherHead(ctx:Ctx,x:number,y:number,w=9,h=7){
   rect(ctx,x+1,y,w-2,h,'#e9e7df');
   rect(ctx,x,y+2,w,h-3,'#e9e7df');
   rect(ctx,x+2,y+1,w-4,1,'#f8f5ec');
-  microRect(ctx,x+w-1.5,y+3,.5,2,'#b7b3aa');
+  microRect(ctx,x+w-1.4,y+3,.4,2,'#b7b3aa');
+  // Microplumas de 1–2 píxeles físicos sobre la nueva rejilla 5x.
+  microRect(ctx,x+2.2,y+2.2,.6,.2,'rgba(255,255,255,.62)');
+  microRect(ctx,x+4.8,y+1.4,.4,.2,'rgba(255,255,255,.42)');
+  microRect(ctx,x+w-3.2,y+h-1.2,.6,.2,'rgba(120,118,112,.34)');
 }
 
 /** POLICÍA PATO — patrullero base, ahora con silueta más orgánica y uniforme premium. */
