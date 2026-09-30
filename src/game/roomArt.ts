@@ -51,6 +51,31 @@ function drawMarbleVein(ctx:CanvasRenderingContext2D,px:number,py:number,h:numbe
   ctx.restore();
 }
 
+function drawMicroMaterialDetail(
+  ctx:CanvasRenderingContext2D,px:number,py:number,h:number,tier:number,wall=false,
+){
+  // Detalle a resolución física 5x: puntos, vetas y pequeñas imperfecciones
+  // de 1–2 píxeles físicos. Mantiene el pixel art pero elimina superficies
+  // excesivamente grandes de un solo color.
+  const count=(wall?4:7)+tier;
+  const light=tier>=4?'#f4d56f':tier>=2?'#e7dbc6':'#dbe4e6';
+  const dark=tier>=4?'#090b0e':tier>=2?'#51473e':'#56636b';
+  ctx.save();
+  for(let i=0;i<count;i++){
+    const seed=(h+i*97+(wall?41:13))>>>0;
+    const ox=3+(seed%26);
+    const oy=3+((seed>>>5)%26);
+    const bright=((seed>>>10)&1)===0;
+    ctx.globalAlpha=bright?.07+tier*.008:.055+tier*.006;
+    r(ctx,px+ox,py+oy,ART_PIXEL*(bright?2:1),ART_PIXEL*(1+((seed>>>12)&1)),bright?light:dark);
+    if(!wall&&((seed>>>14)%5===0)){
+      ctx.globalAlpha=.045+tier*.006;
+      r(ctx,px+ox+ART_PIXEL*2,py+oy,ART_PIXEL*3,ART_PIXEL,dark);
+    }
+  }
+  ctx.restore();
+}
+
 function drawLuxuryFloorDetail(
   ctx:CanvasRenderingContext2D,px:number,py:number,h:number,theme:FloorTheme,frame:number,
 ){
@@ -204,6 +229,7 @@ export function drawRichTile(
     if(tier>=3&&h%5===0){
       ctx.globalAlpha=.16;r(ctx,px+7,py+7,18,14,'#ffffff');ctx.globalAlpha=1;
     }
+    drawMicroMaterialDetail(ctx,px,py,h,tier,true);
     if(wallProps)drawWallProp(ctx,px,py,theme.deco,h,frame,y===0,x===0||x===ROOM_WIDTH-1);
     return;
   }
@@ -235,6 +261,7 @@ export function drawRichTile(
   r(ctx,px+2,py+2,T-4,1,tier===0?'rgba(215,221,225,.10)':tier>=4?'rgba(255,255,255,.065)':'rgba(255,255,255,.09)');
   r(ctx,px+2,py+T-3,T-4,1,tier===0?'rgba(54,64,72,.14)':'rgba(0,0,0,.12)');
   drawLuxuryFloorDetail(ctx,px,py,h,theme,frame);
+  drawMicroMaterialDetail(ctx,px,py,h,tier,false);
 
   // Inlays que crecen en riqueza conforme subes.
   if(tier===0&&x%4===0&&y%3===0){
