@@ -4150,35 +4150,104 @@ function enemyFeatherHead(ctx:Ctx,x:number,y:number,w=9,h=7){
 
 /** POLICÍA PATO — patrullero base, ahora con silueta más orgánica y uniforme premium. */
 export function drawPoliciaPato(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
-  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.18));
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.18)*.6);
   const faceRight=dirX>=0;
+  const feather='#ece9df',featherHi='#fbf8ef',featherLo='#c7c5bd';
+  const outline='#111922',navy='#243e55',navyHi='#456a82',navyLo='#162837';
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
-  enemyShadow(ctx,bx+8,by+19,7.5,.32);
+  enemyShadow(ctx,bx+8,by+20,10,.34);
 
-  // Cola + cuerpo ovalado.
-  rect(ctx,bx,by+10+bob,4,5,'#c9c5bc');
-  rect(ctx,bx+3,by+8+bob,10,8,'#ece9df');
-  rect(ctx,bx+2,by+11+bob,12,5,POL_BLUE);
-  rect(ctx,bx+4,by+10+bob,8,6,POL_BLUE_D);
-  rect(ctx,bx+3,by+11+bob,2,4,'#456987');
-  policeBadge(ctx,bx+7,by+11+bob);
+  // Pies / postura.
+  hdRect(ctx,bx,by,7,35,10,4,'#9b4c1d');hdRect(ctx,bx,by,8,34,9,4,'#e47b27');
+  hdRect(ctx,bx,by,21,35,10,4,'#9b4c1d');hdRect(ctx,bx,by,21,34,9,4,'#e47b27');
+  hdRect(ctx,bx,by,10,34,5,1,'#ffb65d');hdRect(ctx,bx,by,22,34,5,1,'#ffb65d');
 
-  enemyFeatherHead(ctx,bx+4,by+2+bob,9,7);
-  enemyEye(ctx,bx+(faceRight?10:5),by+4+bob,true);
-  const beakX=faceRight?bx+12:bx-3;
-  rect(ctx,beakX,by+6+bob,6,2,'#ed8c2b');rect(ctx,beakX+(faceRight?1:0),by+6+bob,4,1,'#ffbd62');
-  policeCap(ctx,bx+2,by+bob,12);
+  // Contorno plumoso del cuerpo, tamaño comparable al protagonista.
+  hdRect(ctx,bx,by,6,8+bob,26,4,outline);
+  hdRect(ctx,bx,by,2,11+bob,34,15,outline);
+  hdRect(ctx,bx,by,0,20+bob,38,10,outline);
+  hdRect(ctx,bx,by,3,29+bob,32,6,outline);
+  for(const [tx,ty] of [[-2,18],[0,26],[35,17],[36,25],[5,31],[29,31]])hdRect(ctx,bx,by,tx,ty+bob,5,4,outline);
 
-  // SMG compacta con culata y brillo de metal.
-  const gx=faceRight?bx+11:bx-7;
-  rect(ctx,gx,by+11+bob,10,3,'#1c2730');
-  rect(ctx,gx+(faceRight?4:2),by+10+bob,6,2,'#435968');
-  rect(ctx,gx+(faceRight?7:0),by+13+bob,3,2,'#20282f');
-  px(ctx,faceRight?gx+10:gx-1,by+11+bob,'#9bc5d0',1);
+  // Plumaje visible sobre uniforme.
+  hdRect(ctx,bx,by,7,9+bob,24,6,feather);
+  hdRect(ctx,bx,by,4,13+bob,30,8,feather);
+  hdRect(ctx,bx,by,3,19+bob,32,5,feather);
+  hdRect(ctx,bx,by,6,11+bob,10,3,featherHi);
+  hdRect(ctx,bx,by,28,14+bob,5,8,featherLo);
 
-  rect(ctx,bx+1,by+12+bob,2,4,'#3e5665');
-  rect(ctx,bx+4,by+16,3,3,'#e67f28');rect(ctx,bx+10,by+16,3,3,'#e67f28');
-  rect(ctx,bx+4,by+18,4,1,'#6d4b2d');rect(ctx,bx+10,by+18,4,1,'#6d4b2d');
+  // Uniforme con paneles y costuras finas.
+  hdRect(ctx,bx,by,3,21+bob,32,11,navyLo);
+  hdRect(ctx,bx,by,5,20+bob,28,10,navy);
+  hdRect(ctx,bx,by,7,21+bob,8,8,navyHi);
+  hdRect(ctx,bx,by,22,21+bob,8,8,POL_BLUE_D);
+  hdRect(ctx,bx,by,16,21+bob,5,9,'#111b25');
+  hdRect(ctx,bx,by,5,29+bob,28,2,'#0f1c26');
+  hdRect(ctx,bx,by,6,22+bob,2,7,'#6f91a2');
+  hdRect(ctx,bx,by,29,22+bob,2,6,'#0a131b');
+  policeBadge(ctx,bx+7,by+12+bob);
+  hdPx(ctx,bx,by,18,23+bob,POL_GOLD,2);
+
+  // Alas/mangas.
+  hdRect(ctx,bx,by,-1,22+bob,7,8,'#314a5c');
+  hdRect(ctx,bx,by,31,22+bob,7,8,'#314a5c');
+  hdRect(ctx,bx,by,0,23+bob,4,3,'#708896');
+  hdRect(ctx,bx,by,33,23+bob,4,3,'#708896');
+
+  // Cabeza de pato guardia, sin bloque grande.
+  hdRect(ctx,bx,by,10,-3+bob,18,2,outline);
+  hdRect(ctx,bx,by,6,-1+bob,26,4,outline);
+  hdRect(ctx,bx,by,4,2+bob,30,9,outline);
+  hdRect(ctx,bx,by,7,9+bob,24,4,outline);
+  hdRect(ctx,bx,by,10,-1+bob,18,2,feather);
+  hdRect(ctx,bx,by,7,1+bob,24,4,feather);
+  hdRect(ctx,bx,by,6,4+bob,26,6,feather);
+  hdRect(ctx,bx,by,8,9+bob,22,2,featherLo);
+  hdRect(ctx,bx,by,8,2+bob,8,2,featherHi);
+
+  // Gorra policial HD.
+  hdRect(ctx,bx,by,6,-7+bob,25,3,'#0d1720');
+  hdRect(ctx,bx,by,9,-11+bob,19,5,navy);
+  hdRect(ctx,bx,by,11,-10+bob,15,2,navyHi);
+  hdRect(ctx,bx,by,25,-6+bob,9,2,'#0a1016');
+  hdRect(ctx,bx,by,16,-10+bob,5,4,POL_GOLD);
+  hdPx(ctx,bx,by,18,-9+bob,'#fff0a1',1);
+
+  // Ojo y pico de perfil.
+  const eyeX=faceRight?25:10;
+  hdRect(ctx,bx,by,eyeX,4+bob,4,4,'#11161d');
+  hdRect(ctx,bx,by,eyeX+(faceRight?0:2),4+bob,2,2,'#f6f7f1');
+  hdPx(ctx,bx,by,eyeX+(faceRight?1:2),5+bob,'#9fd5df',1);
+  const beakX=faceRight?30:-7;
+  hdRect(ctx,bx,by,beakX,8+bob,14,5,'#b95b19');
+  hdRect(ctx,bx,by,beakX+(faceRight?1:0),7+bob,13,5,'#ea8728');
+  hdRect(ctx,bx,by,beakX+(faceRight?3:1),7+bob,8,1,'#ffbd67');
+  hdPx(ctx,bx,by,beakX+(faceRight?5:8),9+bob,'#8c4218',1);
+
+  // SMG más rico en píxeles: receptor, cargador, mira, cañón y reflejos.
+  const gx=faceRight?bx+12:bx-9;
+  ctx.save();ctx.translate(gx,by+13+bob);
+  if(!faceRight){ctx.translate(18,0);ctx.scale(-1,1);}
+  microRect(ctx,0,0,13,3,'#111a22');
+  microRect(ctx,2,-1,8,3,'#354a58');
+  microRect(ctx,5,-2,4,1,'#8ca4ad');
+  microRect(ctx,10,-.5,5,2,'#202b34');
+  microRect(ctx,14,0,4,1,'#6f8790');
+  microRect(ctx,6,2,3,4,'#1a232a');
+  microRect(ctx,1,2,4,2,'#4b3428');
+  microRect(ctx,3,-1,.5,.5,'#d3e1e3');
+  ctx.restore();
+
+  // Microtextura de plumas y tela.
+  ctx.globalAlpha=.62;
+  hdPx(ctx,bx,by,9,6+bob,'#ffffff',1);
+  hdPx(ctx,bx,by,29,7+bob,'#b8b6af',1);
+  hdRect(ctx,bx,by,10,17+bob,4,1,'#d9d7d0');
+  hdRect(ctx,bx,by,25,18+bob,3,1,'#aaa8a2');
+  hdRect(ctx,bx,by,10,25+bob,5,1,'#7896a5');
+  hdRect(ctx,bx,by,23,27+bob,4,1,'#0d1822');
+  ctx.globalAlpha=1;
+
   ctx.restore();ctx.globalAlpha=1;
 }
 
