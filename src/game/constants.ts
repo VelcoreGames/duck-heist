@@ -51,9 +51,10 @@ export const SCALE = 2;
 /**
  * Resolución artística interna del mundo. La lógica, hitboxes y coordenadas
  * siguen usando la cuadrícula histórica; el arte ahora se autoriza sobre una
- * rejilla 5x para permitir microdetalle de 1/5 de píxel lógico sin tocar físicas.
+ * rejilla 6x. Esto permite una subrejilla limpia de 1/2 píxel lógico (3 píxeles
+ * físicos por celda) para sprites con mucha más densidad sin tocar físicas.
  */
-export const ART_SCALE = 5;
+export const ART_SCALE = 6;
 export const ART_PIXEL = 1 / ART_SCALE;
 
 export const PLAYER_SPEED = 2.2;
