@@ -120,7 +120,25 @@ export function drawDuck(
     ctx.restore();return;
   }
 
-  enemyShadow(ctx,bx+8,by+18,7.5,dashing?.18:.27);
+  enemyShadow(ctx,bx+8,by+18,8.8,dashing?.18:.30);
+
+  // Contorno pixelado grueso y plumaje esponjado inspirado en la referencia.
+  // Aumenta la cantidad de celdas VISIBLES del sprite sin tocar la hitbox.
+  const outline=skinDark(pal.body,.66);
+  rect(ctx,bx+3,by-3+bob,10,1,outline);
+  rect(ctx,bx+1,by-2+bob,14,2,outline);
+  rect(ctx,bx,by+bob,16,7,outline);
+  rect(ctx,bx-1,by+7+bob,18,7,outline);
+  rect(ctx,bx,by+14+bob,16,3,outline);
+  rect(ctx,bx+2,by+17+bob,12,2,outline);
+  // Puntas de pluma laterales / inferiores: sin pelo, sólo plumaje.
+  rect(ctx,bx-2,by+8+bob,3,3,outline);
+  rect(ctx,bx-2,by+13+bob,3,2,outline);
+  rect(ctx,bx+15,by+8+bob,3,3,outline);
+  rect(ctx,bx+15,by+13+bob,3,2,outline);
+  rect(ctx,bx+2,by+18+bob,3,2,outline);
+  rect(ctx,bx+6,by+18+bob,3,2,outline);
+  rect(ctx,bx+11,by+18+bob,3,2,outline);
 
   // Pies pequeños pero separados: la silueta deja de parecer un bloque amarillo.
   const stride=moving?(gait>0?1:-1):0;
@@ -133,20 +151,46 @@ export function drawDuck(
 
   // Torso en forma de pera con hombros estrechos y base redondeada.
   if(dir==='up'){
+    // Espalda mullida con borde de plumas visible.
+    rect(ctx,bx+2,by+6+bob,12,9,pal.body);
+    rect(ctx,bx+1,by+9+bob,14,6,pal.body);
+    rect(ctx,bx+3,by+15+bob,10,3,pal.body);
     rect(ctx,bx+4,by+7+bob,8,8,pal.pack);
     rect(ctx,bx+3,by+9+bob,10,5,pal.pack);
     rect(ctx,bx+5,by+8+bob,6,2,skinLight(pal.pack,.16));
     rect(ctx,bx+6,by+11+bob,4,3,pal.strap);
     rect(ctx,bx+4,by+14+bob,8,1,skinDark(pal.pack,.18));
   }else{
-    rect(ctx,bx+4,by+7+bob,8,8,pal.body);
-    rect(ctx,bx+3,by+9+bob,10,5,pal.body);
-    rect(ctx,bx+2,by+11+bob,12,3,pal.body);
-    rect(ctx,bx+5,by+9+bob,6,4,hi);
-    rect(ctx,bx+4,by+13+bob,8,2,pal.dark);
-    rect(ctx,bx+5,by+14+bob,6,1,pal.shade);
-    microRect(ctx,bx+3.25,by+9.25+bob,.5,3.5,rim);
-    microRect(ctx,bx+12.25,by+10+bob,.5,3,deep);
+    // Cuerpo redondo/esponjado: más cercano al lenguaje visual de la referencia.
+    rect(ctx,bx+2,by+6+bob,12,3,pal.body);
+    rect(ctx,bx+1,by+8+bob,14,7,pal.body);
+    rect(ctx,bx,by+11+bob,16,4,pal.body);
+    rect(ctx,bx+2,by+15+bob,12,3,pal.body);
+    // plumas escalonadas del borde
+    rect(ctx,bx-1,by+9+bob,2,2,pal.body);
+    rect(ctx,bx-1,by+13+bob,2,2,pal.body);
+    rect(ctx,bx+15,by+9+bob,2,2,pal.body);
+    rect(ctx,bx+15,by+13+bob,2,2,pal.body);
+    rect(ctx,bx+3,by+17+bob,2,2,pal.body);
+    rect(ctx,bx+7,by+18+bob,2,1,pal.body);
+    rect(ctx,bx+11,by+17+bob,2,2,pal.body);
+
+    // volumen y mechones del pecho (plumas, no pelo)
+    rect(ctx,bx+3,by+8+bob,10,2,hi);
+    rect(ctx,bx+4,by+10+bob,8,4,skinLight(pal.body,.18));
+    rect(ctx,bx+5,by+14+bob,6,2,pal.dark);
+    rect(ctx,bx+6,by+16+bob,4,1,pal.shade);
+    microRect(ctx,bx+2.2,by+9.4+bob,.6,4.2,rim);
+    microRect(ctx,bx+13.2,by+10+bob,.6,3.8,deep);
+
+    // pequeñas marcas de pluma del pecho como en la referencia.
+    ctx.globalAlpha=.66;
+    microRect(ctx,bx+5.2,by+11.2+bob,1.0,.4,pal.dark);
+    microRect(ctx,bx+6.2,by+11.6+bob,.8,.4,pal.dark);
+    microRect(ctx,bx+8.8,by+13.4+bob,1.2,.4,pal.dark);
+    microRect(ctx,bx+9.8,by+13.0+bob,.6,.4,pal.dark);
+    microRect(ctx,bx+4.4,by+15.1+bob,.8,.4,pal.shade);
+    ctx.globalAlpha=1;
   }
 
   // Alas separadas del torso; reaccionan al movimiento y al disparo.
@@ -176,37 +220,46 @@ export function drawDuck(
     rect(ctx,bx+1,by+8+bob,4,6,pal.pack);rect(ctx,bx+2,by+9+bob,2,2,skinLight(pal.pack,.18));
   }
 
-  // Cabeza menos cuadrada: coronilla corta, mejillas recortadas y mandíbula visual.
+  // Cabeza redondeada y compacta, sin pelo. El detalle viene de plumas,
+  // máscara/gafas de ladrón y contorno escalonado.
   const hy=by+bob,hx=look+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
-  rect(ctx,bx+5+hx,hy-2,6,1,shade);
-  rect(ctx,bx+3+hx,hy-1,10,2,pal.body);
-  rect(ctx,bx+2+hx,hy+1,12,4,pal.body);
-  rect(ctx,bx+3+hx,hy+5,10,2,pal.body);
-  rect(ctx,bx+4+hx,hy+7,8,1,pal.dark);
-  rect(ctx,bx+4+hx,hy,6,1,hi);
-  microRect(ctx,bx+2.25+hx,hy+2,.5,3,rim);
-  microRect(ctx,bx+13.25+hx,hy+2,.5,3,deep);
+  rect(ctx,bx+4+hx,hy-3,8,1,pal.body);
+  rect(ctx,bx+2+hx,hy-2,12,2,pal.body);
+  rect(ctx,bx+1+hx,hy,14,5,pal.body);
+  rect(ctx,bx+2+hx,hy+5,12,3,pal.body);
+  rect(ctx,bx+4+hx,hy+8,8,1,pal.dark);
+  rect(ctx,bx+4+hx,hy-1,7,1,hi);
+  microRect(ctx,bx+1.2+hx,hy+1,.6,4,rim);
+  microRect(ctx,bx+14.2+hx,hy+1,.6,4,deep);
+  microRect(ctx,bx+3.2+hx,hy+.2,.8,.2,'rgba(255,255,255,.30)');
+  microRect(ctx,bx+11.6+hx,hy+5.6,.6,.2,'rgba(0,0,0,.18)');
 
   // Antifaz del atracador: más fino, con ojos pequeños y decididos.
   if(dir==='up'){
     rect(ctx,bx+5+hx,hy+2,6,2,pal.mask);
     rect(ctx,bx+6+hx,hy+6,4,1,pal.dark);
   }else if(dir==='down'){
-    rect(ctx,bx+3+hx,hy+2,10,3,pal.mask);
-    rect(ctx,bx+7+hx,hy+3,2,1,skinDark(pal.mask,.15));
+    // Antifaz tipo gafas gruesas: toma la lectura visual de la referencia sin
+    // copiar el pelo. Dos lentes grandes, puente y brillos separados.
+    rect(ctx,bx+2+hx,hy+1,5,4,pal.mask);
+    rect(ctx,bx+9+hx,hy+1,5,4,pal.mask);
+    rect(ctx,bx+6+hx,hy+2,4,1,pal.mask);
+    rect(ctx,bx+3+hx,hy+2,3,2,'#dbe2df');
+    rect(ctx,bx+10+hx,hy+2,3,2,'#dbe2df');
     if(blink){
-      rect(ctx,bx+4+hx,hy+3,3,1,'#e8edf0');rect(ctx,bx+9+hx,hy+3,3,1,'#e8edf0');
+      rect(ctx,bx+3+hx,hy+3,3,1,'#3b4148');rect(ctx,bx+10+hx,hy+3,3,1,'#3b4148');
     }else{
-      rect(ctx,bx+4+hx,hy+3,3,2,'#f5f7f3');rect(ctx,bx+9+hx,hy+3,3,2,'#f5f7f3');
-      px(ctx,bx+5+hx,hy+3,'#101319',1);px(ctx,bx+10+hx,hy+3,'#101319',1);
-      microRect(ctx,bx+5.25+hx,hy+3.25,.5,.5,'#ffffff');
-      microRect(ctx,bx+10.25+hx,hy+3.25,.5,.5,'#ffffff');
+      px(ctx,bx+4+hx,hy+2,'#101319',1);px(ctx,bx+11+hx,hy+2,'#101319',1);
+      microRect(ctx,bx+3.4+hx,hy+2.2,.6,.4,'#ffffff');
+      microRect(ctx,bx+10.4+hx,hy+2.2,.6,.4,'#ffffff');
     }
+    microRect(ctx,bx+2.2+hx,hy+1.2,3.8,.2,'rgba(255,255,255,.35)');
+    microRect(ctx,bx+9.2+hx,hy+1.2,3.8,.2,'rgba(255,255,255,.35)');
     rect(ctx,bx+5+hx,hy+5,6,3,pal.beak);
     rect(ctx,bx+6+hx,hy+5,4,1,beakHi);
     rect(ctx,bx+6+hx,hy+7,4,1,pal.beakDark);
-    microRect(ctx,bx+7+hx,hy+6,.5,.5,skinDark(pal.beak,.25));
-    microRect(ctx,bx+9+hx,hy+6,.5,.5,skinDark(pal.beak,.25));
+    microRect(ctx,bx+7+hx,hy+6,.4,.4,skinDark(pal.beak,.25));
+    microRect(ctx,bx+9+hx,hy+6,.4,.4,skinDark(pal.beak,.25));
   }else{
     const faceX=(dir==='left'?bx+3:bx+8)+hx;
     rect(ctx,faceX,hy+2,5,3,pal.mask);
@@ -624,12 +677,17 @@ export function drawDuckSkin(
   ctx.save();ctx.translate(0,overlayBob);
   switch (overlay) {
     case 'robber':
-      // Beanie bajo + pañuelo + arnés de herramientas: identidad del héroe base.
-      rect(ctx,bx+4,by-3,8,3,'#20242a');rect(ctx,bx+3,by,10,1,'#11151a');
-      rect(ctx,bx+4,by+8,8,1,accent);
-      if(front){microRect(ctx,bx+7.25,by+9,.5,4,'#34231f');px(ctx,bx+7,by+11,metal,1);rect(ctx,bx+11,by+12,2,2,'#4a3024');px(ctx,bx+12,by+12,metal,1);}
-      else if(back){rect(ctx,bx+5,by+7,1,6,trim);rect(ctx,bx+10,by+7,1,6,trim);px(ctx,bx+7,by+9,metal,2);}
-      else {rect(ctx,bx+(left?11:2),by+8,3,5,'#4a3024');px(ctx,bx+(left?12:3),by+9,metal,1);}
+      // Sin pelo ni gorro: plumaje limpio, antifaz tipo gafas y pañuelo de atracador.
+      rect(ctx,bx+3,by+8,10,2,accent);
+      rect(ctx,bx+4,by+9,8,1,skinLight(accent,.18));
+      if(front){
+        microRect(ctx,bx+7.2,by+9.8,.6,5,'#34231f');
+        px(ctx,bx+7,by+12,metal,1);
+        rect(ctx,bx+11,by+12,3,3,'#4a3024');px(ctx,bx+12,by+12,metal,1);
+        microRect(ctx,bx+4.2,by+10.2,.4,3,'rgba(255,255,255,.14)');
+      }
+      else if(back){rect(ctx,bx+4,by+7,2,7,trim);rect(ctx,bx+10,by+7,2,7,trim);px(ctx,bx+7,by+10,metal,2);}
+      else {rect(ctx,bx+(left?11:1),by+8,4,6,'#4a3024');px(ctx,bx+(left?12:2),by+9,metal,1);}
       break;
 
     case 'fedora':
