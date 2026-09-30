@@ -75,14 +75,16 @@ export default function App() {
       : Math.max(.2,Math.min(widthScale,heightScale,maxScale));
     const displayW=Math.max(1,fullscreen?Math.round(availW):Math.floor(CANVAS_WIDTH*css));
     const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
-    const dpr=Math.max(1,Math.min(2.25,window.devicePixelRatio||1));
+    const dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
     const physicalDensity=css*dpr;
-    // No renderizamos más píxeles físicos de los que la pantalla puede mostrar.
-    // En 1080p suele bastar 3x; en paneles HiDPI/1440p/4K conserva 4x.
-    const world=Math.max(2,Math.min(ART_SCALE,Math.ceil(physicalDensity)));
-    // 4x ya es más que suficiente para tipografía/HUD y evita canvases UI de
-    // más de seis millones de píxeles en monitores grandes.
-    const ui=Math.max(1,Math.min(4,Math.ceil(physicalDensity)));
+    // Pase HD: en escritorio priorizamos detalle visual y partimos de 4x.
+    // El monitor de rendimiento aún puede reducirlo si el equipo no sostiene 60 FPS.
+    const desktopDetail=vw>=900&&vh>=520;
+    const detailBoost=desktopDetail?1.35:1.15;
+    const minWorld=desktopDetail?4:3;
+    const world=Math.max(minWorld,Math.min(ART_SCALE,Math.ceil(physicalDensity*detailBoost)));
+    // El HUD sigue separado del mundo para no inflar innecesariamente su backing store.
+    const ui=Math.max(2,Math.min(4,Math.ceil(physicalDensity)));
     return {displayW,displayH,css,ui,world};
   }, []);
 
@@ -90,8 +92,8 @@ export default function App() {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    // El arte sigue autorado a 4x. El backing store arranca en la densidad
-    // útil para la pantalla actual y puede bajar temporalmente si no sostiene 60 FPS.
+    // El arte está autorado a 5x. En escritorio intentamos conservar 4–5x
+    // y bajamos sólo si el monitor de rendimiento detecta presión real.
     const initialSizing=computeScale();
     let preferredWorldScale=initialSizing.world;
     let worldRenderScale=preferredWorldScale;
@@ -875,14 +877,14 @@ export default function App() {
       const average=perfElapsed/perfFrames;
       perfElapsed=0;perfFrames=0;
 
-      // Bajar resolución es rápido y prioriza respuesta. Subir requiere varios
-      // segundos estables para evitar oscilaciones durante combates pesados.
-      if(average>22.5&&worldRenderScale>2){
+      // Bajar resolución es rápido y prioriza respuesta. El nuevo arte intenta
+      // conservar 4–5x y sólo cae a 3x/2x cuando la carga lo exige.
+      if(average>24.5&&worldRenderScale>2){
         applyWorldRenderScale(2);
         upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+45000;
-      }else if(average>19.25&&worldRenderScale>2){
-        applyWorldRenderScale(worldRenderScale===4?3:2);
+      }else if(average>20.25&&worldRenderScale>3){
+        applyWorldRenderScale(Math.max(3,worldRenderScale-1));
         upgradeStableWindows=0;
         renderScaleCooldownUntil=ts+30000;
       }else if(ts>=renderScaleCooldownUntil&&average<17.15&&worldRenderScale<preferredWorldScale){
