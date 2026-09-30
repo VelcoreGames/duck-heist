@@ -1037,7 +1037,9 @@ export function renderWorld(engine: GameEngine) {
     if(heavyStance||longGun||interact>0){
       const equippedVisual=getSkin(engine.equippedSkin);
       const hand=equippedVisual.palette.body,handShade=equippedVisual.palette.shade;
-      ctx.save();ctx.translate(drawX+7,drawY+9);ctx.rotate(p.facingAngle);
+      ctx.save();
+      const handPerpX=Math.cos(p.facingAngle-Math.PI/2),handPerpY=Math.sin(p.facingAngle-Math.PI/2);
+      ctx.translate(drawX+7+handPerpX*3.2,drawY+11+handPerpY*3.2);ctx.rotate(p.facingAngle);
       ctx.globalAlpha=interact>0?.86:(p.shootFlash>0?.9:.72);
       ctx.fillStyle=hand;
       ctx.fillRect(1,-2,interact>0?6:4,3);
@@ -1050,10 +1052,19 @@ export function renderWorld(engine: GameEngine) {
     // El arma equipada ahora se ve físicamente en las manos del pato. Cada ID
     // usa el nuevo arte balístico del atlas y rota con la dirección de apuntado.
     ctx.save();
-    ctx.translate(drawX+7,drawY+9+interact*3);
+    // El arma sale desde el ala derecha del pato y se adelanta en la dirección
+    // de apuntado. Así sigue siendo legible sin tapar ojos, pico ni pecho.
+    const weaponPerpX=Math.cos(p.facingAngle-Math.PI/2);
+    const weaponPerpY=Math.sin(p.facingAngle-Math.PI/2);
+    const weaponForwardX=Math.cos(p.facingAngle);
+    const weaponForwardY=Math.sin(p.facingAngle);
+    ctx.translate(
+      drawX+7+weaponPerpX*4.2+weaponForwardX*2.6,
+      drawY+11+interact*3+weaponPerpY*4.2+weaponForwardY*2.6,
+    );
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
-    const gunSize=longGun?24:21;
+    const gunSize=longGun?18:16;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
     const postShot=clamp((cooldownNorm-.35)/.65,0,1);

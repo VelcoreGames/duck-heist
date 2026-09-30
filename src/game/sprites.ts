@@ -101,6 +101,170 @@ const DEFAULT_DUCK: DuckPaletteLike = {
  * Pato criminal con animación completa.
  * dir: dirección · moving: waddle · hurt/dashing/dead: estados · pal: colores de skin
  */
+function drawReferenceDuckFront(
+  ctx:Ctx,bx:number,by:number,frame:number,moving:boolean,hurt:boolean,dashing:boolean,shooting:boolean,pal:DuckPaletteLike,
+){
+  const gait=moving?Math.sin(frame*.38):0;
+  const bob=moving?Math.round(gait*.55):(!shooting&&!dashing&&Math.sin(frame*.055)>.80?.5:0);
+  const hb=by+bob;
+  const outline='#171816';
+  const cream=pal.body;
+  const creamHi=skinLight(cream,.16);
+  const creamHi2=skinLight(cream,.27);
+  const creamLo=skinDark(cream,.12);
+  const creamDeep=skinDark(cream,.22);
+  const featherWarm='#e9ad72';
+  const featherWarmHi='#f4c99b';
+  const beak=pal.beak;
+  const beakHi=skinLight(beak,.22);
+  const beakLo=pal.beakDark;
+  const blink=(frame%210)<6;
+
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
+  if(dashing)ctx.globalAlpha=.82;
+
+  enemyShadow(ctx,bx+9,by+20,10.5,dashing?.18:.31);
+
+  // Pies compactos con punta triangular visual.
+  const stride=moving?(gait>0?2:-2):0;
+  const lift=moving&&Math.abs(gait)>.55?2:0;
+  hdRect(ctx,bx,hb,8-stride,38-(lift&&gait>0?2:0),9,4,outline);
+  hdRect(ctx,bx,hb,9-stride,37-(lift&&gait>0?2:0),8,4,beak);
+  hdRect(ctx,bx,hb,11-stride,37-(lift&&gait>0?2:0),4,1,beakHi);
+  hdRect(ctx,bx,hb,23+stride,38-(lift&&gait<0?2:0),9,4,outline);
+  hdRect(ctx,bx,hb,23+stride,37-(lift&&gait<0?2:0),8,4,beak);
+  hdRect(ctx,bx,hb,24+stride,37-(lift&&gait<0?2:0),4,1,beakHi);
+
+  // ===== SILUETA =====
+  // Cabeza mucho más grande que el torso, asimétrica y llena de mechones de PLUMA.
+  hdRect(ctx,bx,hb,15,-11,9,3,outline);
+  hdRect(ctx,bx,hb,10,-9,19,3,outline);
+  hdRect(ctx,bx,hb,6,-7,27,4,outline);
+  hdRect(ctx,bx,hb,3,-4,33,5,outline);
+  hdRect(ctx,bx,hb,0,0,39,7,outline);
+  hdRect(ctx,bx,hb,-2,6,43,8,outline);
+  hdRect(ctx,bx,hb,0,13,39,7,outline);
+  hdRect(ctx,bx,hb,3,19,34,5,outline);
+  hdRect(ctx,bx,hb,7,23,27,4,outline);
+  // Puntas exteriores, siguiendo la referencia.
+  for(const [x,y,w,h] of [
+    [12,-12,5,3],[22,-13,5,4],[29,-8,5,4],[34,-3,5,4],
+    [-2,2,5,4],[-4,9,5,4],[-2,15,5,4],[35,5,6,4],[37,12,5,4],[33,18,5,4],
+    [4,20,5,5],[29,21,5,5],
+  ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
+
+  // Torso separado y más pequeño que la cabeza.
+  hdRect(ctx,bx,hb,8,21,24,4,outline);
+  hdRect(ctx,bx,hb,5,24,30,8,outline);
+  hdRect(ctx,bx,hb,3,31,34,6,outline);
+  hdRect(ctx,bx,hb,6,36,28,4,outline);
+  for(const [x,y,w,h] of [
+    [2,27,5,5],[0,32,5,4],[35,27,5,5],[36,32,5,4],
+    [5,35,5,5],[12,37,5,4],[25,37,5,4],[31,35,5,5],
+  ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
+
+  // ===== RELLENO CABEZA =====
+  hdRect(ctx,bx,hb,15,-9,9,3,cream);
+  hdRect(ctx,bx,hb,10,-7,19,4,cream);
+  hdRect(ctx,bx,hb,7,-4,25,5,cream);
+  hdRect(ctx,bx,hb,4,0,31,7,cream);
+  hdRect(ctx,bx,hb,2,6,35,8,cream);
+  hdRect(ctx,bx,hb,3,13,33,7,cream);
+  hdRect(ctx,bx,hb,6,19,28,5,cream);
+  hdRect(ctx,bx,hb,10,23,20,2,cream);
+  // plumas exteriores interiores
+  for(const [x,y,w,h] of [
+    [13,-10,4,3],[22,-11,4,3],[29,-6,4,4],[34,-1,4,4],
+    [0,2,4,4],[-1,9,4,4],[0,15,4,4],[35,6,4,4],[36,12,4,4],[33,18,4,4],
+  ]) hdRect(ctx,bx,hb,x,y,w,h,cream);
+
+  // Volumen cálido: luz arriba/izquierda, sombra abajo/derecha.
+  hdRect(ctx,bx,hb,11,-6,13,2,creamHi2);
+  hdRect(ctx,bx,hb,7,-2,9,4,creamHi);
+  hdRect(ctx,bx,hb,4,4,7,9,creamHi);
+  hdRect(ctx,bx,hb,3,12,6,6,creamHi);
+  hdRect(ctx,bx,hb,29,1,5,11,creamLo);
+  hdRect(ctx,bx,hb,31,10,5,8,creamDeep);
+  hdRect(ctx,bx,hb,25,18,8,4,creamLo);
+  hdRect(ctx,bx,hb,9,21,8,2,creamHi);
+
+  // ===== RELLENO TORSO =====
+  hdRect(ctx,bx,hb,10,23,20,3,cream);
+  hdRect(ctx,bx,hb,7,25,26,7,cream);
+  hdRect(ctx,bx,hb,5,31,30,5,cream);
+  hdRect(ctx,bx,hb,8,35,24,3,cream);
+  // alas/puntas mullidas
+  hdRect(ctx,bx,hb,3,27,6,7,cream);
+  hdRect(ctx,bx,hb,1,31,6,4,cream);
+  hdRect(ctx,bx,hb,31,27,6,7,cream);
+  hdRect(ctx,bx,hb,34,31,5,4,cream);
+  hdRect(ctx,bx,hb,6,35,5,4,cream);
+  hdRect(ctx,bx,hb,29,35,5,4,cream);
+
+  hdRect(ctx,bx,hb,8,26,7,7,creamHi);
+  hdRect(ctx,bx,hb,10,33,17,3,creamHi);
+  hdRect(ctx,bx,hb,29,27,4,8,creamLo);
+  hdRect(ctx,bx,hb,25,35,7,2,creamDeep);
+
+  // ===== OJOS =====
+  // Simples, verticales y negros. Nada de lentes, antifaz ni accesorios.
+  if(blink){
+    hdRect(ctx,bx,hb,11,8,4,1,outline);
+    hdRect(ctx,bx,hb,26,8,4,1,outline);
+  }else{
+    hdRect(ctx,bx,hb,11,5,4,7,'#171717');
+    hdRect(ctx,bx,hb,26,5,4,7,'#171717');
+    hdPx(ctx,bx,hb,12,6,'#fff8df',1);
+    hdPx(ctx,bx,hb,27,6,'#fff8df',1);
+  }
+  // cejas/plumas de expresión
+  hdRect(ctx,bx,hb,10,3,6,1,creamLo);
+  hdRect(ctx,bx,hb,25,3,6,1,creamLo);
+
+  // ===== PICO =====
+  // Grande, horizontal, cálido y centrado ligeramente hacia abajo.
+  hdRect(ctx,bx,hb,10,12,22,3,outline);
+  hdRect(ctx,bx,hb,8,15,26,6,outline);
+  hdRect(ctx,bx,hb,11,20,20,3,outline);
+  hdRect(ctx,bx,hb,11,13,20,3,beakLo);
+  hdRect(ctx,bx,hb,9,15,24,5,beak);
+  hdRect(ctx,bx,hb,12,14,18,2,beakHi);
+  hdRect(ctx,bx,hb,12,20,18,2,beakLo);
+  hdRect(ctx,bx,hb,13,16,13,1,'rgba(255,255,255,.25)');
+  hdPx(ctx,bx,hb,14,17,skinDark(beak,.34),1);
+  hdPx(ctx,bx,hb,27,17,skinDark(beak,.34),1);
+
+  // ===== MARCAS DE PLUMA =====
+  // Trazos durazno de la referencia, no blush humano.
+  ctx.globalAlpha=.82;
+  const headMarks=[
+    [8,-1,4,1],[7,1,2,3],[9,2,3,1],
+    [17,-5,3,1],[19,-4,2,2],[20,-2,3,1],
+    [30,5,3,1],[31,7,2,3],
+  ];
+  for(const [x,y,w,h] of headMarks)hdRect(ctx,bx,hb,x,y,w,h,featherWarmHi);
+  const chestMarks=[
+    [16,27,5,1],[14,28,2,3],[16,30,5,1],[20,29,2,3],
+    [17,32,5,1],[13,34,4,1],[23,34,3,1],
+  ];
+  for(const [x,y,w,h] of chestMarks)hdRect(ctx,bx,hb,x,y,w,h,featherWarm);
+  ctx.globalAlpha=1;
+
+  // Microplumas individuales.
+  ctx.globalAlpha=.65;
+  for(const [x,y,c] of [
+    [5,8,creamHi2],[33,3,creamDeep],[1,14,creamHi],[35,17,creamLo],
+    [8,18,creamHi2],[28,22,creamLo],[6,30,creamHi],[33,32,creamDeep],
+  ]) hdPx(ctx,bx,hb,x,y,c,1);
+  ctx.globalAlpha=1;
+
+  if(dashing){
+    ctx.globalAlpha=.14;microRect(ctx,bx-4,hb+4,25,13,creamHi2);
+    ctx.globalAlpha=.32;microRect(ctx,bx+1,hb+10,7,.5,'#fff2ad');
+    ctx.globalAlpha=1;
+  }
+}
+
 export function drawDuck(
   ctx: Ctx, x: number, y: number, frame: number,
   dir: DuckDir = 'down', moving = false, hurt = false, dashing = false,
@@ -132,6 +296,13 @@ export function drawDuck(
     hdPx(ctx,bx,by,25,18,'#11151b',2);hdPx(ctx,bx,by,29,22,'#11151b',2);
     hdPx(ctx,bx,by,29,18,'#11151b',2);hdPx(ctx,bx,by,25,22,'#11151b',2);
     ctx.restore();return;
+  }
+
+  // La vista frontal usa el sprite dedicado que replica la referencia del usuario.
+  if(dir==='down'){
+    drawReferenceDuckFront(ctx,bx,by,frame,moving,hurt,dashing,shooting,pal);
+    ctx.restore();
+    return;
   }
 
   enemyShadow(ctx,bx+8,by+19,10.5,dashing?.19:.31);
@@ -500,9 +671,7 @@ function drawSkinBackLayer(
   ctx.save();ctx.translate(0,bob);
   switch(overlay){
     case 'robber':
-      // Pañuelo de atracador: el nudo asoma siempre por un lado de la silueta.
-      rect(ctx,bx+(dir==='left'?12:1),by+5,3,2,accent);
-      rect(ctx,bx+(dir==='left'?14:0),by+6,2,4,accent);
+      // Skin base limpia: la identidad la da el pato y el arma, no accesorios.
       break;
     case 'fedora':
       // Faldones de abrigo, anchos pero cortos para no confundirse con hitbox.
@@ -614,9 +783,7 @@ function drawSkinMaterialPass(
   ctx.globalAlpha=.72;
   switch(overlay){
     case 'robber':
-      microRect(ctx,bx+4.25,by-.75,7.5,.25,'rgba(255,255,255,.18)');
-      microRect(ctx,bx+4.5,by+6.25,7,.25,skinLight(accent,.28));
-      if(front){microRect(ctx,bx+7.25,by+8.25,.5,3.5,skinLight(metal,.35));px(ctx,bx+12,by+12,skinLight(metal,.30),1);}
+      // El pato base ya contiene su microdetalle propio.
       break;
     case 'fedora':
       microRect(ctx,bx+1,by-.75,14,.25,'rgba(255,255,255,.15)');
@@ -703,7 +870,7 @@ function drawSkinMaterialPass(
   // Acabado kawaii universal: brillo suave en cabeza y pequeña luz de mejilla.
   ctx.globalAlpha=.28;
   microRect(ctx,bx+4.25,by+.25,6.5,.25,'rgba(255,255,255,.52)');
-  if(!back){
+  if(!back&&overlay!=='robber'){
     microRect(ctx,bx+3.25,by+5.15,1.25,.5,'rgba(255,141,174,.58)');
     microRect(ctx,bx+11.5,by+5.15,1.25,.5,'rgba(255,141,174,.58)');
   }
@@ -735,17 +902,7 @@ export function drawDuckSkin(
   ctx.save();ctx.translate(0,overlayBob);
   switch (overlay) {
     case 'robber':
-      // Sin pelo ni gorro: plumaje limpio, antifaz tipo gafas y pañuelo de atracador.
-      rect(ctx,bx+3,by+8,10,2,accent);
-      rect(ctx,bx+4,by+9,8,1,skinLight(accent,.18));
-      if(front){
-        microRect(ctx,bx+7.2,by+9.8,.6,5,'#34231f');
-        px(ctx,bx+7,by+12,metal,1);
-        rect(ctx,bx+11,by+12,3,3,'#4a3024');px(ctx,bx+12,by+12,metal,1);
-        microRect(ctx,bx+4.2,by+10.2,.4,3,'rgba(255,255,255,.14)');
-      }
-      else if(back){rect(ctx,bx+4,by+7,2,7,trim);rect(ctx,bx+10,by+7,2,7,trim);px(ctx,bx+7,by+10,metal,2);}
-      else {rect(ctx,bx+(left?11:1),by+8,4,6,'#4a3024');px(ctx,bx+(left?12:2),by+9,metal,1);}
+      // Skin base: sin ropa ni accesorios sobre el plumaje.
       break;
 
     case 'fedora':
