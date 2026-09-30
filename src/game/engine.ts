@@ -633,7 +633,11 @@ function pointBlocked(room: MapRoom, px:number, py:number, flying=false):boolean
   return false;
 }
 
-const DOOR_PASSAGE_HALF_SPAN=24;
+const DOOR_PASSAGE_HALF_SPAN=30;
+// Dispara el cambio de sala antes de que el jugador tenga que pegarse al borde.
+// Esto evita que el propio límite del canvas o una pared vecina del vano lo deje
+// visualmente dentro de la puerta pero sin alcanzar el umbral de transición.
+const DOOR_TRANSITION_DEPTH=TILE_SIZE*1.55;
 
 function openDoorPassageForBox(
   room:MapRoom,tx:number,ty:number,bx:number,by:number,bw:number,bh:number,
@@ -1257,6 +1261,29 @@ export function resumeHeistGame(engine:GameEngine):boolean {
       engine.currentKey=engine.map.rooms.has(cp.currentKey)?cp.currentKey:engine.map.startKey;
       engine.seenRoomKeys=Array.isArray(cp.seenRoomKeys)?cp.seenRoomKeys:[];
       engine.stainedFloor=Number.isInteger(cp.stainedFloor)?cp.stainedFloor:-1;
+
+      // Repara checkpoints existentes. Algunas versiones podían guardar una
+      // celda de puerta como muro aunque room.doors siguiera indicando una
+      // conexión válida, dejando al jugador atrapado en el marco de la puerta.
+      for(const [roomKey,restoredRoom] of engine.map.rooms){
+        applyDoorTiles(restoredRoom);
+        const restoredContent=engine.contents.get(roomKey);
+        if(
+          !restoredRoom.cleared &&
+          restoredContent &&
+          restoredContent.enemies.length===0 &&
+          !restoredContent.dangerEventActive &&
+          (restoredContent.alarmTimer??0)<=0
+        ) restoredRoom.cleared=true;
+        for(const dir of restoredRoom.doors){
+          const v=DIR_VECTORS[dir];
+          const target=engine.map.rooms.get(key(restoredRoom.gx+v.x,restoredRoom.gy+v.y));
+          const door=DOOR_TILE[dir];
+          if(target?.type===RoomType.SECRET&&!target.revealed){
+            restoredRoom.layout[door.y][door.x]=TILE_WALL;
+          }
+        }
+      }
 
       restoreGameRandom(cp.rng);
       if(!cp.rng)setGameRandomSeed(engine.run.seed+':run');
@@ -2798,11 +2825,14 @@ export function updateEngine(engine: GameEngine) {
       }
 
       const inDoor=
-        (d==='N'&&cy<TILE_SIZE*.82&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)||
-        (d==='S'&&cy>CANVAS_HEIGHT-TILE_SIZE*.82&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)||
-        (d==='W'&&cx<TILE_SIZE*.82&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN)||
-        (d==='E'&&cx>CANVAS_WIDTH-TILE_SIZE*.82&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN);
-      if(inDoor&&room.layout[t.y][t.x]===TILE_DOOR){
+        (d==='N'&&cy<=DOOR_TRANSITION_DEPTH&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)||
+        (d==='S'&&cy>=CANVAS_HEIGHT-DOOR_TRANSITION_DEPTH&&Math.abs(cx-doorX)<=DOOR_PASSAGE_HALF_SPAN)||
+        (d==='W'&&cx<=DOOR_TRANSITION_DEPTH&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN)||
+        (d==='E'&&cx>=CANVAS_WIDTH-DOOR_TRANSITION_DEPTH&&Math.abs(cy-doorY)<=DOOR_PASSAGE_HALF_SPAN);
+      // room.doors + targetKey son la fuente de verdad. No dependemos del tile
+      // serializado porque checkpoints de versiones anteriores podían conservar
+      // un muro visual en esa celda aun cuando la puerta ya estaba abierta.
+      if(inDoor){
         engine.transition={active:true,timer:0,total:22,dir:d,targetKey};
         break;
       }
