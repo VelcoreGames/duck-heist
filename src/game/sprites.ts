@@ -94,189 +94,142 @@ export function drawDuck(
   dir: DuckDir = 'down', moving = false, hurt = false, dashing = false,
   shooting = false, dead = false, pal: DuckPaletteLike = DEFAULT_DUCK, aiming = false,
 ) {
-  const bx = Math.floor(x);
-  const by = Math.floor(y);
-  const bodyLight=skinLight(pal.body,.34);
-  const bodyRim=skinLight(pal.body,.20);
-  // El contorno anterior formaba un perímetro oscuro que separaba demasiado
-  // al personaje del arte del juego. El borde ahora deriva del propio plumaje.
-  const outline=skinDark(pal.body,.22);
-  const packLight=skinLight(pal.pack,.18);
-  const beakLight=skinLight(pal.beak,.24);
+  const bx=Math.floor(x),by=Math.floor(y);
+  const hi=skinLight(pal.body,.28),rim=skinLight(pal.body,.14),shade=skinDark(pal.body,.22);
+  const deep=skinDark(pal.body,.38),beakHi=skinLight(pal.beak,.22);
+  const gait=moving?Math.sin(frame*.38):0;
+  const bob=moving?Math.round(gait):(!shooting&&!dashing&&Math.sin(frame*.055)>.78?1:0);
+  const blink=(frame%210)<6;
+  const look=!aiming&&!moving&&!shooting&&!dashing&&frame%300>238&&frame%300<276
+    ?(frame%300<257?-1:1):0;
 
   ctx.save();
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
+  if(dashing)ctx.globalAlpha=.80;
 
-  if (dead) {
-    ctx.fillStyle='rgba(0,0,0,.30)';
-    ctx.beginPath();ctx.ellipse(bx+8,by+16,9,2.5,0,0,Math.PI*2);ctx.fill();
-    // cuerpo compacto tumbado
-    rect(ctx,bx+2,by+10,12,5,pal.body);
-    rect(ctx,bx+3,by+14,10,1,outline);
-    rect(ctx,bx+3,by+13,10,2,pal.dark);
-    // cabeza grande mantiene la identidad chibi incluso en game over
-    rect(ctx,bx+11,by+6,6,5,pal.body);
-    rect(ctx,bx+12,by+10,5,1,outline);
-    rect(ctx,bx+15,by+8,4,2,pal.beak);
-    rect(ctx,bx+16,by+8,2,1,beakLight);
-    px(ctx,bx+12,by+7,'#111318',1);px(ctx,bx+14,by+9,'#111318',1);
-    px(ctx,bx+14,by+7,'#111318',1);px(ctx,bx+12,by+9,'#111318',1);
-    // patitas hacia arriba
-    rect(ctx,bx+4,by+7,2,4,pal.beak);rect(ctx,bx+9,by+6,2,5,pal.beak);
-    microRect(ctx,bx+2.5,by+10.25,8.5,.25,'rgba(255,255,255,.18)');
-    ctx.restore();
-    return;
+  if(dead){
+    enemyShadow(ctx,bx+8,by+17,8,.28);
+    rect(ctx,bx+1,by+11,13,4,pal.dark);
+    rect(ctx,bx+2,by+9,12,5,pal.body);
+    rect(ctx,bx+10,by+6,7,5,pal.body);
+    rect(ctx,bx+14,by+8,5,2,pal.beak);
+    rect(ctx,bx+15,by+8,3,1,beakHi);
+    px(ctx,bx+12,by+7,'#12151a',1);px(ctx,bx+14,by+9,'#12151a',1);
+    px(ctx,bx+14,by+7,'#12151a',1);px(ctx,bx+12,by+9,'#12151a',1);
+    rect(ctx,bx+3,by+7,3,3,pal.beak);rect(ctx,bx+8,by+6,3,4,pal.beak);
+    ctx.restore();return;
   }
 
-  if (hurt && Math.floor(frame * 0.5) % 2 === 0) ctx.globalAlpha = 0.45;
-  if (dashing) ctx.globalAlpha = 0.75;
+  enemyShadow(ctx,bx+8,by+18,7.5,dashing?.18:.27);
 
-  // El pato nunca queda completamente rígido: respiración muy sutil en idle,
-  // paso más marcado al moverse y tensión corporal al disparar/dashear.
-  const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
-  const gait=moving?Math.sin(frame*.38):0;
-  const waddle=moving?Math.round(gait):idleBreath;
-  const step=moving?gait:0;
-  const blink=(frame%190)<7;
-  const idleLook=!aiming&&!moving&&!dashing&&!shooting&&frame%260>205&&frame%260<250;
-  const headNudge=idleLook?(frame%260<228?-1:1):0;
+  // Pies pequeños pero separados: la silueta deja de parecer un bloque amarillo.
+  const stride=moving?(gait>0?1:-1):0;
+  const lift=moving&&Math.abs(gait)>.55?1:0;
+  const leftY=by+15-(lift&&gait>0?1:0),rightY=by+15-(lift&&gait<0?1:0);
+  rect(ctx,bx+3-stride,leftY,4,2,pal.beak);
+  rect(ctx,bx+10+stride,rightY,4,2,pal.beak);
+  rect(ctx,bx+4-stride,leftY+1,3,1,pal.beakDark);
+  rect(ctx,bx+10+stride,rightY+1,3,1,pal.beakDark);
 
-  // Chibi/kawaii: cabeza dominante, torso compacto, pies pequeños y silueta redonda.
-  ctx.fillStyle='rgba(0,0,0,.25)';
-  ctx.beginPath();ctx.ellipse(bx+8,by+17,7.5,2.1,0,0,Math.PI*2);ctx.fill();
-
-  const footA=moving?(step>0?1:-1):0;
-  const footLift=moving&&Math.abs(step)>.55?1:0;
-  const fyA=by+15-footLift*(step>0?1:0),fyB=by+15-footLift*(step<0?1:0);
-  rect(ctx,bx+3-footA,fyA,3,2,pal.beak);
-  rect(ctx,bx+3-footA,fyA+1,3,1,pal.beakDark);
-  rect(ctx,bx+10+footA,fyB,3,2,pal.beak);
-  rect(ctx,bx+10+footA,fyB+1,3,1,pal.beakDark);
-  if(moving&&Math.abs(step)>.72){
-    ctx.globalAlpha=.16;rect(ctx,bx+(step>0?2:11),by+17,3,1,'#e8d98f');ctx.globalAlpha=1;
-  }
-
-  // Torso de pato: forma ovalada/compacta sin una placa oscura alrededor.
+  // Torso en forma de pera con hombros estrechos y base redondeada.
   if(dir==='up'){
-    rect(ctx,bx+3,by+8+waddle,10,7,pal.pack);
-    rect(ctx,bx+4,by+9+waddle,8,2,packLight);
-    rect(ctx,bx+6,by+12+waddle,4,2,pal.strap);
-    rect(ctx,bx+4,by+14+waddle,8,1,skinDark(pal.pack,.18));
+    rect(ctx,bx+4,by+7+bob,8,8,pal.pack);
+    rect(ctx,bx+3,by+9+bob,10,5,pal.pack);
+    rect(ctx,bx+5,by+8+bob,6,2,skinLight(pal.pack,.16));
+    rect(ctx,bx+6,by+11+bob,4,3,pal.strap);
+    rect(ctx,bx+4,by+14+bob,8,1,skinDark(pal.pack,.18));
   }else{
-    rect(ctx,bx+3,by+8+waddle,10,7,pal.body);
-    rect(ctx,bx+2,by+10+waddle,12,4,pal.body);
-    // Panza clara, clave para que la lectura sea inequívocamente de pato.
-    rect(ctx,bx+5,by+10+waddle,6,4,skinLight(pal.body,.18));
-    rect(ctx,bx+6,by+13+waddle,4,2,pal.dark);
-    rect(ctx,bx+4,by+8+waddle,6,1,bodyLight);
-    rect(ctx,bx+3,by+9+waddle,1,4,bodyRim);
-    rect(ctx,bx+12,by+10+waddle,1,3,outline);
-    rect(ctx,bx+5,by+14+waddle,6,1,pal.shade);
+    rect(ctx,bx+4,by+7+bob,8,8,pal.body);
+    rect(ctx,bx+3,by+9+bob,10,5,pal.body);
+    rect(ctx,bx+2,by+11+bob,12,3,pal.body);
+    rect(ctx,bx+5,by+9+bob,6,4,hi);
+    rect(ctx,bx+4,by+13+bob,8,2,pal.dark);
+    rect(ctx,bx+5,by+14+bob,6,1,pal.shade);
+    microRect(ctx,bx+3.25,by+9.25+bob,.5,3.5,rim);
+    microRect(ctx,bx+12.25,by+10+bob,.5,3,deep);
   }
 
-  // Alas cortas con punta baja: rompen la silueta rectangular.
-  const wingKick=shooting?1:dashing?1:moving&&Math.abs(step)>.55?1:0;
-  if(dir==='left'){
-    rect(ctx,bx+11+wingKick,by+10+waddle,3,3,pal.shade);
-    rect(ctx,bx+12+wingKick,by+12+waddle,2,2,pal.dark);
-    px(ctx,bx+12+wingKick,by+10+waddle,bodyRim,1);
+  // Alas separadas del torso; reaccionan al movimiento y al disparo.
+  const wing=Math.max(0,shooting?2:dashing?2:(moving&&Math.abs(gait)>.55?1:0));
+  if(dir==='down'){
+    rect(ctx,bx+1-wing,by+9+bob,3,4,pal.dark);
+    rect(ctx,bx+12+wing,by+9+bob,3,4,pal.dark);
+    px(ctx,bx+2-wing,by+9+bob,rim,1);px(ctx,bx+13+wing,by+9+bob,rim,1);
+  }else if(dir==='left'){
+    rect(ctx,bx+11+wing,by+9+bob,4,4,pal.dark);
+    rect(ctx,bx+12+wing,by+12+bob,2,2,pal.shade);
   }else if(dir==='right'){
-    rect(ctx,bx+2-wingKick,by+10+waddle,3,3,pal.shade);
-    rect(ctx,bx+2-wingKick,by+12+waddle,2,2,pal.dark);
-    px(ctx,bx+3-wingKick,by+10+waddle,bodyRim,1);
-  }else if(dir==='down'){
-    rect(ctx,bx+1-wingKick,by+10+waddle,3,3,pal.shade);
-    px(ctx,bx+2-wingKick,by+13+waddle,pal.dark,1);
-    rect(ctx,bx+12+wingKick,by+10+waddle,3,3,pal.shade);
-    px(ctx,bx+13+wingKick,by+13+waddle,pal.dark,1);
+    rect(ctx,bx+1-wing,by+9+bob,4,4,pal.dark);
+    rect(ctx,bx+1-wing,by+12+bob,2,2,pal.shade);
   }
 
+  // Arnés táctico discreto: mantiene la fantasía de atraco sin tapar el plumaje.
   if(dir!=='up'){
-    // arnés fino: detalle, no un bloque que encierre el torso
-    microRect(ctx,bx+5.25,by+9+waddle,.5,4,pal.strap);
-    microRect(ctx,bx+10.25,by+9+waddle,.5,4,pal.strap);
+    microRect(ctx,bx+5.25,by+8+bob,.5,5,pal.strap);
+    microRect(ctx,bx+10.25,by+8+bob,.5,5,pal.strap);
+    rect(ctx,bx+7,by+11+bob,2,2,skinDark(pal.pack,.12));
+    px(ctx,bx+7,by+11+bob,skinLight(pal.pack,.28),1);
   }
-  if(dir==='left'){rect(ctx,bx+11,by+9+waddle,4,5,pal.pack);rect(ctx,bx+12,by+10+waddle,2,2,packLight);}
-  if(dir==='right'){rect(ctx,bx+1,by+9+waddle,4,5,pal.pack);rect(ctx,bx+2,by+10+waddle,2,2,packLight);}
+  if(dir==='left'){
+    rect(ctx,bx+11,by+8+bob,4,6,pal.pack);rect(ctx,bx+12,by+9+bob,2,2,skinLight(pal.pack,.18));
+  }else if(dir==='right'){
+    rect(ctx,bx+1,by+8+bob,4,6,pal.pack);rect(ctx,bx+2,by+9+bob,2,2,skinLight(pal.pack,.18));
+  }
 
-  // Cabeza chibi de pato: mejillas anchas, coronilla corta y borde del mismo plumaje.
-  const hy=by+waddle;
-  const hx=headNudge+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
-  rect(ctx,bx+4+hx,hy-1,8,1,outline);
-  rect(ctx,bx+3+hx,hy,10,1,pal.body);
-  rect(ctx,bx+2+hx,hy+1,12,6,pal.body);
-  rect(ctx,bx+3+hx,hy+7,10,1,pal.dark);
-  rect(ctx,bx+4+hx,hy,7,1,bodyLight);
-  rect(ctx,bx+2+hx,hy+2,1,4,bodyRim);
-  rect(ctx,bx+13+hx,hy+2,1,4,outline);
+  // Cabeza menos cuadrada: coronilla corta, mejillas recortadas y mandíbula visual.
+  const hy=by+bob,hx=look+(shooting?(dir==='left'?-1:dir==='right'?1:0):0);
+  rect(ctx,bx+5+hx,hy-2,6,1,shade);
+  rect(ctx,bx+3+hx,hy-1,10,2,pal.body);
+  rect(ctx,bx+2+hx,hy+1,12,4,pal.body);
+  rect(ctx,bx+3+hx,hy+5,10,2,pal.body);
+  rect(ctx,bx+4+hx,hy+7,8,1,pal.dark);
+  rect(ctx,bx+4+hx,hy,6,1,hi);
+  microRect(ctx,bx+2.25+hx,hy+2,.5,3,rim);
+  microRect(ctx,bx+13.25+hx,hy+2,.5,3,deep);
 
-  // Antifaz de ladrón alrededor de los ojos, no una franja que cubra la cara.
+  // Antifaz del atracador: más fino, con ojos pequeños y decididos.
   if(dir==='up'){
-    rect(ctx,bx+5+hx,hy+2,6,2,skinDark(pal.mask,.06));
+    rect(ctx,bx+5+hx,hy+2,6,2,pal.mask);
     rect(ctx,bx+6+hx,hy+6,4,1,pal.dark);
   }else if(dir==='down'){
-    rect(ctx,bx+3+hx,hy+2,4,3,pal.mask);
-    rect(ctx,bx+9+hx,hy+2,4,3,pal.mask);
-    rect(ctx,bx+7+hx,hy+3,2,1,pal.mask);
-    drawKawaiiFace(ctx,bx,hy,hx,dir,blink);
-    // Pico ancho y bajo: rasgo principal de pato.
+    rect(ctx,bx+3+hx,hy+2,10,3,pal.mask);
+    rect(ctx,bx+7+hx,hy+3,2,1,skinDark(pal.mask,.15));
+    if(blink){
+      rect(ctx,bx+4+hx,hy+3,3,1,'#e8edf0');rect(ctx,bx+9+hx,hy+3,3,1,'#e8edf0');
+    }else{
+      rect(ctx,bx+4+hx,hy+3,3,2,'#f5f7f3');rect(ctx,bx+9+hx,hy+3,3,2,'#f5f7f3');
+      px(ctx,bx+5+hx,hy+3,'#101319',1);px(ctx,bx+10+hx,hy+3,'#101319',1);
+      microRect(ctx,bx+5.25+hx,hy+3.25,.5,.5,'#ffffff');
+      microRect(ctx,bx+10.25+hx,hy+3.25,.5,.5,'#ffffff');
+    }
     rect(ctx,bx+5+hx,hy+5,6,3,pal.beak);
-    rect(ctx,bx+6+hx,hy+5,4,1,beakLight);
+    rect(ctx,bx+6+hx,hy+5,4,1,beakHi);
     rect(ctx,bx+6+hx,hy+7,4,1,pal.beakDark);
-    px(ctx,bx+6+hx,hy+6,skinDark(pal.beak,.22),1);
-    px(ctx,bx+9+hx,hy+6,skinDark(pal.beak,.22),1);
+    microRect(ctx,bx+7+hx,hy+6,.5,.5,skinDark(pal.beak,.25));
+    microRect(ctx,bx+9+hx,hy+6,.5,.5,skinDark(pal.beak,.25));
   }else{
-    const flip=dir==='left';
-    const maskX=(flip?bx+3:bx+8)+hx;
-    rect(ctx,maskX,hy+2,5,3,pal.mask);
-    drawKawaiiFace(ctx,bx,hy,hx,dir,blink);
-    const bxp=(flip?bx-3:bx+12)+hx;
-    rect(ctx,bxp,hy+5,7,3,pal.beak);
-    rect(ctx,bxp+(flip?1:0),hy+5,5,1,beakLight);
-    rect(ctx,bxp+(flip?0:2),hy+7,4,1,pal.beakDark);
+    const faceX=(dir==='left'?bx+3:bx+8)+hx;
+    rect(ctx,faceX,hy+2,5,3,pal.mask);
+    const eyeX=(dir==='left'?bx+4:bx+10)+hx;
+    if(blink)rect(ctx,eyeX,hy+3,2,1,'#f5f7f3');
+    else{rect(ctx,eyeX,hy+3,2,2,'#f5f7f3');px(ctx,eyeX+(dir==='left'?0:1),hy+3,'#101319',1);}
+    const beakX=(dir==='left'?bx-3:bx+12)+hx;
+    rect(ctx,beakX,hy+5,7,3,pal.beak);
+    rect(ctx,beakX+(dir==='left'?1:0),hy+5,5,1,beakHi);
+    rect(ctx,beakX+(dir==='left'?0:2),hy+7,4,1,pal.beakDark);
   }
 
-  // Mejillas kawaii sutiles, visibles incluso con skins oscuras.
-  if(dir!=='up'){
-    ctx.globalAlpha=.42;
-    microRect(ctx,bx+3.25+hx,hy+5.25,1.25,.5,'#ff8fae');
-    microRect(ctx,bx+11.5+hx,hy+5.25,1.25,.5,'#ff8fae');
+  if(shooting){
+    ctx.globalAlpha=.92;
+    const mx=dir==='left'?bx-3:dir==='right'?bx+18:bx+8;
+    const my=dir==='up'?by:dir==='down'?by+18:by+9;
+    rect(ctx,mx-2,my-2,4,4,'#fff3c4');rect(ctx,mx-1,my-1,2,2,'#f4b63f');
     ctx.globalAlpha=1;
   }
-
-  if (shooting) {
-    ctx.globalAlpha = 0.85;
-    const mx = dir === 'left' ? bx - 2 : dir === 'right' ? bx + 16 : bx + 8;
-    const my = dir === 'up' ? by + 1 : dir === 'down' ? by + 17 : by + 8;
-    rect(ctx, mx - 2, my - 2, 4, 4, '#fff8dc');
-    rect(ctx, mx - 1, my - 1, 2, 2, '#f4d03f');
-  }
-
-  if (dashing) {
-    ctx.globalAlpha = 0.28;
-    rect(ctx, bx + 2, by + 8, 12, 5, bodyLight);
-  }
-
-  // Pasada de microdetalle 4x. Son trazos de 1–2 píxeles físicos que antes
-  // no cabían en el sprite 16x20: volumen de pico/pluma, pupila y costuras.
-  ctx.globalAlpha=Math.min(1,ctx.globalAlpha);
-  const microY=waddle*.25;
-  if(dir==='down'){
-    if(!blink){
-      microRect(ctx,bx+5.25+hx,hy+2.25,.5,.5,'#050608');
-      microRect(ctx,bx+9.25+hx,hy+2.25,.5,.5,'#050608');
-      microRect(ctx,bx+5.25+hx,hy+2.25,.25,.25,'#ffffff');
-      microRect(ctx,bx+9.25+hx,hy+2.25,.25,.25,'#ffffff');
-    }
-    microRect(ctx,bx+5.75+hx,hy+5.25,4.5,.25,'rgba(255,224,160,.72)');
-  }else if(dir==='left'||dir==='right'){
-    const beakX=dir==='left'?bx-2.25+hx:bx+12.25+hx;
-    microRect(ctx,beakX,hy+5.25,5.25,.25,'rgba(255,224,160,.66)');
-  }
-  microRect(ctx,bx+4.25,by+8.25+waddle+microY,2.5,.25,'rgba(255,255,210,.30)');
-  microRect(ctx,bx+11.25,by+9.25+waddle+microY,.25,3,'rgba(255,255,255,.20)');
-  if(dir!=='up'){
-    microRect(ctx,bx+5.25,by+9+waddle,.25,4,'rgba(255,255,255,.10)');
-    microRect(ctx,bx+10.5,by+9+waddle,.25,4,'rgba(0,0,0,.22)');
+  if(dashing){
+    ctx.globalAlpha=.14;rect(ctx,bx-2,by+6,20,9,hi);
+    ctx.globalAlpha=.36;rect(ctx,bx+(dir==='right'?-5:dir==='left'?15:2),by+8,5,1,'#fff2ad');
+    ctx.globalAlpha=1;
   }
 
   ctx.restore();
@@ -3965,134 +3918,204 @@ export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame
 // ENEMIGOS POLICÍA
 // ---------------------------------------------------------------------------
 
-const POL_BLUE = '#284a70';
-const POL_BLUE_L = '#4e7596';
-const POL_BLUE_D = '#17293d';
+const POL_BLUE = '#274966';
+const POL_BLUE_L = '#4f7890';
+const POL_BLUE_D = '#172a3a';
+const POL_GOLD = '#d7b45a';
+const POL_STEEL = '#718896';
 
 function policeBadge(ctx:Ctx,x:number,y:number){
-  rect(ctx,x,y,4,4,'#d6b34a');px(ctx,x+1,y+1,'#fff0a6',1);
+  // Escudo pequeño en lugar de cuadrado dorado plano.
+  rect(ctx,x+1,y,3,1,'#f2d684');
+  rect(ctx,x,y+1,5,2,POL_GOLD);
+  rect(ctx,x+1,y+3,3,2,'#b58d34');
+  px(ctx,x+2,y+1,'#fff2b1',1);
 }
 function policeCap(ctx:Ctx,x:number,y:number,wide=11){
-  rect(ctx,x,y+1,wide,3,POL_BLUE_D);rect(ctx,x+2,y-1,wide-4,3,POL_BLUE);rect(ctx,x+wide-2,y+3,4,1,'#101820');
-  px(ctx,x+Math.floor(wide/2),y,'#d6b34a',2);
+  rect(ctx,x+1,y+1,wide-1,3,POL_BLUE_D);
+  rect(ctx,x+3,y-1,wide-5,3,POL_BLUE);
+  rect(ctx,x+wide-2,y+3,4,1,'#0f1820');
+  rect(ctx,x+2,y+1,wide-4,1,'#557796');
+  px(ctx,x+Math.floor(wide/2),y,POL_GOLD,2);
+}
+function policeVisor(ctx:Ctx,x:number,y:number,w:number,alert=false){
+  rect(ctx,x,y,w,2,alert?'#26313b':'#355064');
+  microRect(ctx,x+.5,y+.25,w-1,.5,alert?'rgba(255,100,82,.68)':'rgba(164,221,232,.58)');
+}
+function enemyFeatherHead(ctx:Ctx,x:number,y:number,w=9,h=7){
+  rect(ctx,x+1,y,w-2,h,'#e9e7df');
+  rect(ctx,x,y+2,w,h-3,'#e9e7df');
+  rect(ctx,x+2,y+1,w-4,1,'#f8f5ec');
+  microRect(ctx,x+w-1.5,y+3,.5,2,'#b7b3aa');
 }
 
-/** POLICÍA PATO — patrullero base con silueta de arma y chaleco claramente separados. */
+/** POLICÍA PATO — patrullero base, ahora con silueta más orgánica y uniforme premium. */
 export function drawPoliciaPato(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.18));
+  const faceRight=dirX>=0;
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
-  enemyShadow(ctx,bx+8,by+18,7,.33);
-  // cola y cuerpo
-  rect(ctx,bx,by+9+bob,4,6,'#d7d2c8');rect(ctx,bx+3,by+7+bob,10,9,'#ece8dd');
-  rect(ctx,bx+2,by+10+bob,12,6,POL_BLUE);rect(ctx,bx+4,by+11+bob,8,4,'#192430');
-  policeBadge(ctx,bx+5,by+11+bob);
-  // cabeza orientada
-  rect(ctx,bx+4,by+2+bob,8,6,'#eeeade');enemyEye(ctx,bx+(dirX>0?9:5),by+3+bob,true);
-  rect(ctx,dirX>0?bx+12:bx-2,by+5+bob,5,2,'#f0912b');
-  policeCap(ctx,bx+2,by+bob,11);
-  // arma al frente
-  const gx=dirX>0?bx+11:bx-5;
-  rect(ctx,gx,by+11+bob,8,3,'#27323b');rect(ctx,gx+(dirX>0?5:0),by+10+bob,4,2,'#485965');
-  px(ctx,dirX>0?gx+8:gx-1,by+11+bob,'#9fc4d3',1);
-  // radio y piernas
-  rect(ctx,bx+1,by+11+bob,2,5,'#374c59');rect(ctx,bx+4,by+16,3,2,'#ef8b35');rect(ctx,bx+10,by+16,3,2,'#ef8b35');
+  enemyShadow(ctx,bx+8,by+19,7.5,.32);
+
+  // Cola + cuerpo ovalado.
+  rect(ctx,bx,by+10+bob,4,5,'#c9c5bc');
+  rect(ctx,bx+3,by+8+bob,10,8,'#ece9df');
+  rect(ctx,bx+2,by+11+bob,12,5,POL_BLUE);
+  rect(ctx,bx+4,by+10+bob,8,6,POL_BLUE_D);
+  rect(ctx,bx+3,by+11+bob,2,4,'#456987');
+  policeBadge(ctx,bx+7,by+11+bob);
+
+  enemyFeatherHead(ctx,bx+4,by+2+bob,9,7);
+  enemyEye(ctx,bx+(faceRight?10:5),by+4+bob,true);
+  const beakX=faceRight?bx+12:bx-3;
+  rect(ctx,beakX,by+6+bob,6,2,'#ed8c2b');rect(ctx,beakX+(faceRight?1:0),by+6+bob,4,1,'#ffbd62');
+  policeCap(ctx,bx+2,by+bob,12);
+
+  // SMG compacta con culata y brillo de metal.
+  const gx=faceRight?bx+11:bx-7;
+  rect(ctx,gx,by+11+bob,10,3,'#1c2730');
+  rect(ctx,gx+(faceRight?4:2),by+10+bob,6,2,'#435968');
+  rect(ctx,gx+(faceRight?7:0),by+13+bob,3,2,'#20282f');
+  px(ctx,faceRight?gx+10:gx-1,by+11+bob,'#9bc5d0',1);
+
+  rect(ctx,bx+1,by+12+bob,2,4,'#3e5665');
+  rect(ctx,bx+4,by+16,3,3,'#e67f28');rect(ctx,bx+10,by+16,3,3,'#e67f28');
+  rect(ctx,bx+4,by+18,4,1,'#6d4b2d');rect(ctx,bx+10,by+18,4,1,'#6d4b2d');
   ctx.restore();ctx.globalAlpha=1;
 }
 
-/** POLICÍA ANTIDISTURBIOS — muro móvil con escudo de policarbonato y casco cerrado. */
+/** POLICÍA ANTIDISTURBIOS — bloque blindado con casco y escudo de lectura inmediata. */
 export function drawPoliciaAntidisturbios(
   ctx: Ctx, x: number, y: number, frame: number, hurt: boolean,
   shieldDir: { x: number; y: number }, charging: boolean, shieldDown = false,
 ) {
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.11));
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
-  enemyShadow(ctx,bx+11,by+23,10,.4);
-  // torso pesado + placas
-  rect(ctx,bx+2,by+9+bob,18,11,'#222a34');rect(ctx,bx+4,by+10+bob,14,8,'#303c49');
-  rect(ctx,bx,by+10+bob,5,6,'#414e5d');rect(ctx,bx+17,by+10+bob,5,6,'#414e5d');
-  rect(ctx,bx+7,by+12+bob,8,4,'#19212a');policeBadge(ctx,bx+9,by+12+bob);
-  // casco + visor cian
-  rect(ctx,bx+5,by+1+bob,12,7,'#e7e4db');rect(ctx,bx+4,by+bob,14,4,'#242d38');rect(ctx,bx+5,by+4+bob,12,3,'#6f91a4');
-  ctx.globalAlpha=.72;rect(ctx,bx+6,by+5+bob,10,1,'#b5d9e2');ctx.globalAlpha=1;
-  rect(ctx,bx+9,by+7+bob,5,2,'#ef8b35');
-  // piernas
-  rect(ctx,bx+5,by+19,4,3,'#d97c2d');rect(ctx,bx+13,by+19,4,3,'#d97c2d');
-  // escudo orientado: más alto y con marca BREAD SEC
+  enemyShadow(ctx,bx+11,by+24,10.5,.41);
+
+  // Pato pesado dentro de una armadura modular.
+  rect(ctx,bx+4,by+8+bob,14,11,'#e6e3da');
+  rect(ctx,bx+2,by+10+bob,18,10,'#26323e');
+  rect(ctx,bx,by+11+bob,5,7,'#455666');rect(ctx,bx+17,by+11+bob,5,7,'#455666');
+  rect(ctx,bx+5,by+11+bob,12,7,'#17212a');
+  rect(ctx,bx+7,by+12+bob,8,2,'#344b5c');
+  policeBadge(ctx,bx+9,by+14+bob);
+
+  enemyFeatherHead(ctx,bx+5,by+1+bob,12,8);
+  rect(ctx,bx+4,by+bob,14,4,'#202b36');
+  rect(ctx,bx+6,by-2+bob,10,3,'#354656');
+  policeVisor(ctx,bx+6,by+4+bob,10,true);
+  rect(ctx,bx+9,by+7+bob,5,2,'#e68428');
+
+  rect(ctx,bx+5,by+20,4,3,'#d87325');rect(ctx,bx+13,by+20,4,3,'#d87325');
+  rect(ctx,bx+4,by+22,6,1,'#553d2b');rect(ctx,bx+12,by+22,6,1,'#553d2b');
+
   const len=Math.hypot(shieldDir.x,shieldDir.y)||1;
   const sx=bx+11+(shieldDir.x/len)*12,sy=by+13+(shieldDir.y/len)*12;
   ctx.save();ctx.translate(sx,sy);ctx.rotate(Math.atan2(shieldDir.y,shieldDir.x)+Math.PI/2);
   if(shieldDown){
-    ctx.globalAlpha=.45;metalEdge(ctx,-8,4,16,6,'#495561','#73818c','#272f37');
+    ctx.globalAlpha=.45;metalEdge(ctx,-9,4,18,6,'#485764','#7c909a','#263038');
   }else{
-    metalEdge(ctx,-9,-5,18,10,'#546675','#9ab0bc','#2e3943');
-    ctx.globalAlpha=.3;rect(ctx,-7,-3,14,5,'#a9cfda');ctx.globalAlpha=1;
-    rect(ctx,-7,2,14,2,'#d6b34a');px(ctx,-1,-1,'#f5e7a1',2);
-    if(charging){ctx.globalAlpha=.35+.25*Math.sin(frame*.5);rect(ctx,-10,-6,20,12,'#ff5c50');ctx.globalAlpha=1;}
+    metalEdge(ctx,-10,-6,20,12,'#536a78','#9eb6c0','#2c3942');
+    ctx.globalAlpha=.28;rect(ctx,-8,-4,16,7,'#b6d9df');ctx.globalAlpha=1;
+    rect(ctx,-8,3,16,2,POL_GOLD);rect(ctx,-2,-2,4,4,'#263a47');
+    px(ctx,-1,-1,'#e9d47c',2);
+    if(charging){ctx.globalAlpha=.22+.30*Math.sin(frame*.5)**2;rect(ctx,-11,-7,22,14,'#ff594f');ctx.globalAlpha=1;}
   }
   ctx.restore();
   ctx.restore();ctx.globalAlpha=1;
 }
 
-/** POLICÍA ESCOPETA — artillero de hombros anchos y arma dominante. */
+/** POLICÍA ESCOPETA — artillero ancho, casco bajo y arma protagonista. */
 export function drawPoliciaEscopeta(
   ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number, charge: number,
 ) {
-  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.14));
+  const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.14)),faceRight=dirX>=0;
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
-  enemyShadow(ctx,bx+9,by+19,8,.34);
-  rect(ctx,bx+2,by+8+bob,14,9,POL_BLUE_D);rect(ctx,bx+1,by+11+bob,16,5,POL_BLUE);
-  rect(ctx,bx+4,by+10+bob,10,5,'#151e27');rect(ctx,bx,by+9+bob,4,5,'#465665');rect(ctx,bx+15,by+9+bob,4,5,'#465665');
-  // casco/gafas
-  rect(ctx,bx+4,by+2+bob,9,6,'#e8e2d5');rect(ctx,bx+3,by+bob,11,3,'#21354c');rect(ctx,bx+4,by+4+bob,9,2,'#151a21');
-  enemyEye(ctx,bx+(dirX>0?10:5),by+4+bob,charge>.2);
-  rect(ctx,dirX>0?bx+13:bx-1,by+6+bob,4,2,'#ef8b35');
-  // escopeta grande
-  const gx=dirX>0?bx+10:bx-10;
-  rect(ctx,gx,by+11+bob,15,3,'#513b32');rect(ctx,gx+(dirX>0?7:0),by+10+bob,8,2,'#7d6859');
-  rect(ctx,gx+(dirX>0?13:-1),by+10+bob,3,5,'#262d33');
+  enemyShadow(ctx,bx+9,by+20,8.5,.35);
+
+  rect(ctx,bx+3,by+8+bob,13,10,'#e8e4da');
+  rect(ctx,bx+1,by+10+bob,17,7,POL_BLUE_D);
+  rect(ctx,bx+3,by+11+bob,13,6,POL_BLUE);
+  rect(ctx,bx-1,by+10+bob,5,6,'#4f6271');rect(ctx,bx+15,by+10+bob,5,6,'#4f6271');
+  rect(ctx,bx+6,by+12+bob,7,4,'#17212a');policeBadge(ctx,bx+7,by+12+bob);
+
+  enemyFeatherHead(ctx,bx+4,by+2+bob,10,7);
+  rect(ctx,bx+3,by+bob,12,3,'#1f3245');
+  rect(ctx,bx+5,by-2+bob,8,3,'#365772');
+  policeVisor(ctx,bx+5,by+4+bob,8,charge>.2);
+  const beakX=faceRight?bx+13:bx-2;
+  rect(ctx,beakX,by+6+bob,5,2,'#e98529');
+
+  // Escopeta más ancha, con madera y recámara claramente separadas.
+  const gx=faceRight?bx+10:bx-12;
+  rect(ctx,gx,by+11+bob,18,3,'#20282f');
+  rect(ctx,gx+(faceRight?4:6),by+10+bob,10,2,'#6c4d39');
+  rect(ctx,gx+(faceRight?11:1),by+9+bob,6,2,'#92705b');
+  rect(ctx,gx+(faceRight?15:0),by+10+bob,4,5,'#303b44');
   if(charge>0){
-    const mx=dirX>0?gx+17:gx-3;
-    ctx.globalAlpha=.2+charge*.55;ctx.fillStyle='#ff8a43';ctx.beginPath();ctx.arc(mx,by+12+bob,2+charge*5,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=.75;rect(ctx,bx+2,by-5,Math.max(2,Math.round(14*charge)),2,'#ff5b4d');ctx.globalAlpha=1;
+    const mx=faceRight?gx+20:gx-2;
+    ctx.globalAlpha=.20+charge*.56;ctx.fillStyle='#ff8a43';ctx.beginPath();ctx.arc(mx,by+12+bob,2+charge*5,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.80;rect(ctx,bx+2,by-6,Math.max(2,Math.round(15*charge)),2,'#ff5b4d');ctx.globalAlpha=1;
   }
-  rect(ctx,bx+4,by+17,3,2,'#ef8b35');rect(ctx,bx+11,by+17,3,2,'#ef8b35');
+  rect(ctx,bx+4,by+18,3,2,'#df7826');rect(ctx,bx+12,by+18,3,2,'#df7826');
   ctx.restore();ctx.globalAlpha=1;
 }
 
-/** POLICÍA RÁPIDO — interceptor ligero, piernas largas y mochila de radio. */
+/** POLICÍA RÁPIDO — interceptor estilizado con casco aerodinámico y piernas largas. */
 export function drawPoliciaRapido(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
-  const bx=Math.floor(x),by=Math.floor(y),run=Math.sin(frame*.55),bob=Math.round(run);
+  const bx=Math.floor(x),by=Math.floor(y),run=Math.sin(frame*.55),bob=Math.round(run),faceRight=dirX>=0;
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
-  enemyShadow(ctx,bx+7,by+16,6,.27);
-  // zancada exagerada
-  rect(ctx,bx+3,by+12,2,run>0?4:2,'#ef8b35');rect(ctx,bx+9,by+12,2,run>0?2:4,'#ef8b35');
-  // cuerpo estrecho
-  rect(ctx,bx+2,by+6+bob,10,7,POL_BLUE_L);rect(ctx,bx+4,by+8+bob,6,4,'#1b2733');policeBadge(ctx,bx+5,by+8+bob);
-  rect(ctx,bx+1,by+8+bob,2,5,'#3c5365'); // radio
-  // cabeza + casco aerodinámico
-  rect(ctx,bx+3,by+2+bob,8,5,'#e8e3d8');rect(ctx,bx+2,by+bob,10,3,'#24435f');
-  enemyEye(ctx,bx+(dirX>0?8:4),by+3+bob,false);rect(ctx,dirX>0?bx+11:bx-1,by+4+bob,4,2,'#ef8b35');
-  // líneas velocidad
-  ctx.globalAlpha=.3;const tx=dirX>0?bx-5:bx+13;rect(ctx,tx,by+6,5,1,'#8fc5dd');rect(ctx,tx+(dirX>0?1:-1),by+9,4,1,'#d6b34a');ctx.globalAlpha=1;
+  enemyShadow(ctx,bx+7,by+17,6,.25);
+
+  // Piernas y zancada visibles.
+  rect(ctx,bx+3,by+12,2,run>0?5:3,'#e57c27');rect(ctx,bx+9,by+12,2,run>0?3:5,'#e57c27');
+  rect(ctx,bx+(run>0?2:8),by+16,4,1,'#65462d');
+
+  // Torso triangular/ligero.
+  rect(ctx,bx+4,by+6+bob,7,8,'#e8e5dc');
+  rect(ctx,bx+2,by+8+bob,11,5,POL_BLUE_L);
+  rect(ctx,bx+4,by+8+bob,7,5,POL_BLUE_D);
+  microRect(ctx,bx+3.25,by+8.25+bob,.5,4,'#91b2c2');
+  policeBadge(ctx,bx+5,by+9+bob);
+  rect(ctx,bx+1,by+9+bob,2,4,'#354b5d');
+
+  enemyFeatherHead(ctx,bx+3,by+1+bob,9,6);
+  rect(ctx,bx+2,by+bob,10,3,'#24455f');
+  rect(ctx,bx+4,by-1+bob,7,2,'#4f7e9a');
+  policeVisor(ctx,bx+4,by+3+bob,6,false);
+  rect(ctx,faceRight?bx+11:bx-2,by+5+bob,5,2,'#e98529');
+
+  // Estela corta, menos caricaturesca.
+  ctx.globalAlpha=.22;const tx=faceRight?bx-5:bx+14;
+  rect(ctx,tx,by+7,5,1,'#9bd2df');rect(ctx,tx+(faceRight?1:-1),by+10,3,1,POL_GOLD);ctx.globalAlpha=1;
   ctx.restore();ctx.globalAlpha=1;
 }
 
-/** DRON POLICIAL — silueta de rotor gemelo, ojo central y cono de vigilancia. */
+/** DRON POLICIAL — diseño de seguridad bancaria, compacto y con núcleo óptico. */
 export function drawDronPolicial(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
   const bx=Math.floor(x),by=Math.floor(y),hover=Math.sin(frame*.15)*1.5,pulse=.55+.45*Math.sin(frame*.25);
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
-  enemyShadow(ctx,bx+8,by+22,6,.22);
+  enemyShadow(ctx,bx+8,by+22,7,.20);
   const fy=by+hover;
-  // rotores
-  ctx.globalAlpha=.45;const spin=frame%4<2?7:4;rect(ctx,bx-4,fy+1,spin*2,1,'#bccbd2');rect(ctx,bx+10,fy+1,spin*2,1,'#bccbd2');ctx.globalAlpha=1;
-  rect(ctx,bx,fy+3,16,2,'#3a4853');rect(ctx,bx+3,fy+4,10,8,'#465967');
-  metalEdge(ctx,bx+4,fy+5,8,5,'#607785','#9fb5bd','#31424c');
-  // ojo central y luces
-  ctx.globalAlpha=.55+.35*pulse;enemyEye(ctx,bx+7,fy+8,true);ctx.globalAlpha=1;
-  px(ctx,bx+2,fy+4,frame%20<10?'#4f8fd4':'#ff5b50',2);px(ctx,bx+12,fy+4,frame%20<10?'#ff5b50':'#4f8fd4',2);
-  // foco/arma
-  rect(ctx,bx+6,fy+12,4,3,'#242d35');
-  ctx.globalAlpha=.12+.08*pulse;ctx.fillStyle='#e7d98b';ctx.beginPath();ctx.moveTo(bx+7,fy+15);ctx.lineTo(bx+1,fy+24);ctx.lineTo(bx+15,fy+24);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+  const spin=frame%4<2?8:5;
+
+  ctx.globalAlpha=.42;rect(ctx,bx-5,fy,spin*2,1,'#c5d4da');rect(ctx,bx+9,fy,spin*2,1,'#c5d4da');ctx.globalAlpha=1;
+  rect(ctx,bx-1,fy+2,18,3,'#26343e');
+  rect(ctx,bx+2,fy+4,12,9,'#405665');
+  metalEdge(ctx,bx+4,fy+5,8,6,'#5b7482','#a9bec5','#2a3942');
+  rect(ctx,bx+1,fy+6,3,4,'#26343e');rect(ctx,bx+13,fy+6,3,4,'#26343e');
+
+  ctx.globalAlpha=.50+.42*pulse;
+  ctx.fillStyle='#ff5b50';ctx.beginPath();ctx.arc(bx+8,fy+8,2.6,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.30;ctx.fillRect(bx+4,fy+5,8,7);ctx.globalAlpha=1;
+  px(ctx,bx+2,fy+4,frame%20<10?'#56a9db':'#ff5b50',2);
+  px(ctx,bx+12,fy+4,frame%20<10?'#ff5b50':'#56a9db',2);
+
+  rect(ctx,bx+6,fy+13,4,3,'#1f2930');
+  rect(ctx,bx+7,fy+15,2,2,POL_GOLD);
+  ctx.globalAlpha=.10+.07*pulse;ctx.fillStyle='#e7d98b';
+  ctx.beginPath();ctx.moveTo(bx+8,fy+16);ctx.lineTo(bx,fy+25);ctx.lineTo(bx+16,fy+25);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=1;
   ctx.restore();ctx.globalAlpha=1;
 }
 
