@@ -636,7 +636,9 @@ export function renderWorld(engine: GameEngine) {
       : target?.type === RoomType.BOSS ? 'boss' : target?.type===RoomType.SHOP?'green'
       :target?.type===RoomType.GUN_VAN||target?.type===RoomType.MINIBOSS?'orange':target?.type===RoomType.CHOICE||target?.type===RoomType.TREASURE||target?.type===RoomType.SECRET?'purple':'silver';
     const t=DOOR_TILE[d],accessLocked=!!target&&specialRoomLocked(target);
-    drawDoor(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,!room.cleared||accessLocked,content.doorAnim[d]??0,f);
+    const doorLocked=!room.cleared||accessLocked;
+    drawDoorThresholdAccent(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,!doorLocked,f);
+    drawDoor(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,doorLocked,content.doorAnim[d]??0,f);
     if(room.cleared&&accessLocked&&target){
       const x=t.x*TILE_SIZE,y=t.y*TILE_SIZE,cx=x+16,cy=y+16,cost=specialRoomKeyCost(target);
       ctx.save();
@@ -1296,6 +1298,63 @@ function drawRoomBackdropCached(
     ctx.drawImage(roomBackdropCanvas,0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
     ctx.restore();
   }
+}
+
+function doorAccentColor(style:string){
+  return style==='gold'?'#e6c56f':
+    style==='boss'?'#e06b60':
+    style==='green'?'#78c99a':
+    style==='orange'?'#d99a55':
+    style==='purple'?'#bd91d5':
+    '#8fb3bd';
+}
+
+function drawDoorThresholdAccent(
+  ctx:CanvasRenderingContext2D,x:number,y:number,dir:'N'|'S'|'E'|'W',
+  style:string,open:boolean,frame:number,
+){
+  const accent=doorAccentColor(style),pulse=.5+.5*Math.sin(frame*.075+x*.01+y*.01);
+  ctx.save();
+
+  // Luz proyectada hacia el interior: hace que una salida abierta sea
+  // reconocible de inmediato sin añadir flechas o marcadores flotantes.
+  if(open){
+    let g:CanvasGradient;
+    if(dir==='N'){
+      g=ctx.createLinearGradient(0,y+26,0,y+72);
+      g.addColorStop(0,accent+'42');g.addColorStop(1,accent+'00');
+      ctx.fillStyle=g;ctx.fillRect(x+3,y+26,26,46);
+      ctx.globalAlpha=.46+.12*pulse;ctx.fillStyle=accent;ctx.fillRect(x+5,y+31,22,1);
+    }else if(dir==='S'){
+      g=ctx.createLinearGradient(0,y+6,0,y-38);
+      g.addColorStop(0,accent+'42');g.addColorStop(1,accent+'00');
+      ctx.fillStyle=g;ctx.fillRect(x+3,y-38,26,46);
+      ctx.globalAlpha=.46+.12*pulse;ctx.fillStyle=accent;ctx.fillRect(x+5,y,22,1);
+    }else if(dir==='W'){
+      g=ctx.createLinearGradient(x+26,0,x+72,0);
+      g.addColorStop(0,accent+'42');g.addColorStop(1,accent+'00');
+      ctx.fillStyle=g;ctx.fillRect(x+26,y+3,46,26);
+      ctx.globalAlpha=.46+.12*pulse;ctx.fillStyle=accent;ctx.fillRect(x+31,y+5,1,22);
+    }else{
+      g=ctx.createLinearGradient(x+6,0,x-38,0);
+      g.addColorStop(0,accent+'42');g.addColorStop(1,accent+'00');
+      ctx.fillStyle=g;ctx.fillRect(x-38,y+3,46,26);
+      ctx.globalAlpha=.46+.12*pulse;ctx.fillStyle=accent;ctx.fillRect(x,y+5,1,22);
+    }
+  }
+
+  // Indicadores integrados al marco. Cerrado = rojo tenue; disponible = color
+  // de la sala destino. Son decoración del marco, no controles.
+  const lamp=open?accent:'#c95f58';
+  ctx.globalAlpha=open?.82:.70;ctx.fillStyle=lamp;
+  if(dir==='N'||dir==='S'){
+    const ly=dir==='N'?y+25:y+5;
+    ctx.fillRect(x+3,ly,2,3);ctx.fillRect(x+27,ly,2,3);
+  }else{
+    const lx=dir==='W'?x+25:x+5;
+    ctx.fillRect(lx,y+3,3,2);ctx.fillRect(lx,y+27,3,2);
+  }
+  ctx.restore();
 }
 
 function drawFloorSectorIdentity(
