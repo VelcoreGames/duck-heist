@@ -1239,7 +1239,7 @@ export function renderWorld(engine: GameEngine) {
 // El fondo arquitectónico es casi estático, pero antes se reconstruían ~165
 // tiles + gradientes en cada frame. Se rasteriza a 2x y sólo se refresca a
 // 10 Hz; actores, proyectiles, partículas y overlays siguen a la tasa completa.
-const ROOM_BACKDROP_SCALE=3; // escenario estático más nítido; actores siguen usando resolución adaptativa hasta 4x
+const ROOM_BACKDROP_SCALE=5; // fondo estático HD: coincide con la nueva rejilla artística 5x
 let roomBackdropCanvas:HTMLCanvasElement|null=null;
 let roomBackdropCtx:CanvasRenderingContext2D|null=null;
 let roomBackdropRef:ReturnType<typeof currentRoomOf>|null=null;
@@ -1260,7 +1260,7 @@ function drawRoomBackdropCached(
     roomBackdropCanvas.height=CANVAS_HEIGHT*ROOM_BACKDROP_SCALE;
     roomBackdropCtx=roomBackdropCanvas.getContext('2d',{alpha:false});
   }
-  const bucket=Math.floor(f/6);
+  const bucket=Math.floor(f/8);
   const rebuild=!!roomBackdropCtx&&(
     roomBackdropRef!==room||
     roomBackdropBucket!==bucket||
@@ -1273,7 +1273,7 @@ function drawRoomBackdropCached(
     b.clearRect(0,0,roomBackdropCanvas.width,roomBackdropCanvas.height);
     b.setTransform(ROOM_BACKDROP_SCALE,0,0,ROOM_BACKDROP_SCALE,0,0);
     b.imageSmoothingEnabled=false;
-    const sampledFrame=bucket*6;
+    const sampledFrame=bucket*8;
     for(let y=0;y<ROOM_HEIGHT;y++){
       for(let x=0;x<ROOM_WIDTH;x++){
         const t=room.layout[y][x];
