@@ -75,17 +75,14 @@ export default function App() {
       : Math.max(.2,Math.min(widthScale,heightScale,maxScale));
     const displayW=Math.max(1,fullscreen?Math.round(availW):Math.floor(CANVAS_WIDTH*css));
     const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
-    const dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
-    const physicalDensity=css*dpr;
-    // El arte sigue AUTORADO en 6x, pero el mundo se rasteriza a 4x en
-    // escritorio. La subrejilla de 1/2 píxel del personaje sigue cayendo en
-    // píxeles físicos enteros (2 px por celda) y el coste por frame baja mucho.
-    const desktopDetail=vw>=900&&vh>=520;
-    const detailBoost=desktopDetail?1.18:1.08;
-    const preferred=desktopDetail?4:3;
-    const world=Math.max(3,Math.min(preferred,Math.ceil(physicalDensity*detailBoost)));
-    // El HUD sigue separado del mundo para no inflar innecesariamente su backing store.
-    const ui=Math.max(2,Math.min(4,Math.ceil(physicalDensity)));
+    // El detalle de los sprites está AUTORADO en 6x, pero sus celdas HD
+    // principales son de 1/2 píxel lógico. Un backing store 2x las representa
+    // exactamente con 1 píxel físico por celda. Renderizar el mismo dibujo a
+    // 4x/6x sólo multiplicaba el coste sin añadir detalle artístico real.
+    const world=2;
+    // La UI también se mantiene en 2x: suficiente para texto nítido y mucho
+    // más barata de limpiar/redibujar en cada frame.
+    const ui=2;
     return {displayW,displayH,css,ui,world};
   }, []);
 
@@ -93,8 +90,8 @@ export default function App() {
     const wc = worldRef.current, uc = uiRef.current;
     if (!wc || !uc) return;
 
-    // El arte permanece autorado a 6x, pero la rasterización normal es 4x.
-    // Esto conserva el detalle visible y evita canvases gigantes por frame.
+    // El arte permanece autorado a 6x, pero el runtime usa 2x porque la
+    // subrejilla principal del nuevo sprite es de 1/2 píxel lógico.
     const initialSizing=computeScale();
     let preferredWorldScale=initialSizing.world;
     let worldRenderScale=preferredWorldScale;
@@ -878,23 +875,11 @@ export default function App() {
       const average=perfElapsed/perfFrames;
       perfElapsed=0;perfFrames=0;
 
-      // 4x es el punto de equilibrio: mantiene la subrejilla HD nítida.
-      // Si el frame time cae, baja pronto a 3x; para volver a subir exige
-      // varios intervalos estables y así evita tirones por oscilación.
-      if(average>20.5&&worldRenderScale>3){
-        applyWorldRenderScale(3);
-        upgradeStableWindows=0;
-        renderScaleCooldownUntil=ts+30000;
-      }else if(ts>=renderScaleCooldownUntil&&average<16.8&&worldRenderScale<preferredWorldScale){
-        upgradeStableWindows++;
-        if(upgradeStableWindows>=5){
-          applyWorldRenderScale(Math.min(preferredWorldScale,worldRenderScale+1));
-          upgradeStableWindows=0;
-          renderScaleCooldownUntil=ts+15000;
-        }
-      }else{
-        upgradeStableWindows=0;
-      }
+      // El runtime queda fijado en 2x. Evitamos cambiar el tamaño físico
+      // del canvas durante una partida, porque esa reasignación provoca tirones
+      // visibles y resetea el contexto 2D.
+      void average; void ts;
+      upgradeStableWindows=0;
     };
     const padAction=(action:PadAction)=>{
       if(engine.state===GameState.HEIST_INTRO){

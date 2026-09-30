@@ -1238,14 +1238,13 @@ export function renderWorld(engine: GameEngine) {
 }
 
 // ---------------------------------------------------------------------------
-// El fondo arquitectónico es casi estático. Mantenerlo a 6x y reconstruirlo
-// varias veces por segundo costaba millones de píxeles sin aportar detalle
-// perceptible en movimiento. 4x conserva el acabado HD y reduce mucho el coste.
-const ROOM_BACKDROP_SCALE=4;
+// El fondo arquitectónico es estático durante una sala. Se cachea a 2x,
+// exactamente la misma densidad del mundo, y sólo se reconstruye al cambiar de
+// sala/tema. Esto elimina los picos periódicos que se sentían como "trabones".
+const ROOM_BACKDROP_SCALE=2;
 let roomBackdropCanvas:HTMLCanvasElement|null=null;
 let roomBackdropCtx:CanvasRenderingContext2D|null=null;
 let roomBackdropRef:ReturnType<typeof currentRoomOf>|null=null;
-let roomBackdropBucket=-1;
 let roomBackdropDeco='';
 let roomBackdropSpecial=false;
 
@@ -1262,10 +1261,8 @@ function drawRoomBackdropCached(
     roomBackdropCanvas.height=CANVAS_HEIGHT*ROOM_BACKDROP_SCALE;
     roomBackdropCtx=roomBackdropCanvas.getContext('2d',{alpha:false});
   }
-  const bucket=Math.floor(f/60);
   const rebuild=!!roomBackdropCtx&&(
     roomBackdropRef!==room||
-    roomBackdropBucket!==bucket||
     roomBackdropDeco!==theme.deco||
     roomBackdropSpecial!==special
   );
@@ -1275,7 +1272,7 @@ function drawRoomBackdropCached(
     b.clearRect(0,0,roomBackdropCanvas.width,roomBackdropCanvas.height);
     b.setTransform(ROOM_BACKDROP_SCALE,0,0,ROOM_BACKDROP_SCALE,0,0);
     b.imageSmoothingEnabled=false;
-    const sampledFrame=bucket*60;
+    const sampledFrame=f;
     for(let y=0;y<ROOM_HEIGHT;y++){
       for(let x=0;x<ROOM_WIDTH;x++){
         const t=room.layout[y][x];
@@ -1290,7 +1287,6 @@ function drawRoomBackdropCached(
     drawInnerWallShadow(b);
     drawRoomAtmosphere(b,theme.deco,sampledFrame,special);
     roomBackdropRef=room;
-    roomBackdropBucket=bucket;
     roomBackdropDeco=theme.deco;
     roomBackdropSpecial=special;
   }
