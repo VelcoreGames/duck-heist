@@ -1026,7 +1026,7 @@ export function renderWorld(engine: GameEngine) {
     if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
     // La referencia visual usa personajes de ~1 baldosa de alto, no miniaturas.
     // Sólo escala representación; la hitbox permanece intacta.
-    const heroScale=1.44;
+    const heroScale=1.50;
     ctx.scale(sx*(1+interact*.025)*heroScale,sy*(1-interact*.045)*heroScale);
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,aimDir,p.moving,
       p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true);
@@ -1039,7 +1039,7 @@ export function renderWorld(engine: GameEngine) {
       const hand=equippedVisual.palette.body,handShade=equippedVisual.palette.shade;
       ctx.save();
       const handPerpX=Math.cos(p.facingAngle-Math.PI/2),handPerpY=Math.sin(p.facingAngle-Math.PI/2);
-      ctx.translate(drawX+7+handPerpX*3.2,drawY+11+handPerpY*3.2);ctx.rotate(p.facingAngle);
+      ctx.translate(drawX+7+handPerpX*4.6,drawY+12+handPerpY*4.6);ctx.rotate(p.facingAngle);
       ctx.globalAlpha=interact>0?.86:(p.shootFlash>0?.9:.72);
       ctx.fillStyle=hand;
       ctx.fillRect(1,-2,interact>0?6:4,3);
@@ -1059,12 +1059,12 @@ export function renderWorld(engine: GameEngine) {
     const weaponForwardX=Math.cos(p.facingAngle);
     const weaponForwardY=Math.sin(p.facingAngle);
     ctx.translate(
-      drawX+7+weaponPerpX*4.2+weaponForwardX*2.6,
-      drawY+11+interact*3+weaponPerpY*4.2+weaponForwardY*2.6,
+      drawX+7+weaponPerpX*5.8+weaponForwardX*3.8,
+      drawY+12.5+interact*3+weaponPerpY*5.8+weaponForwardY*3.8,
     );
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
-    const gunSize=longGun?18:16;
+    const gunSize=longGun?15:13;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
     const postShot=clamp((cooldownNorm-.35)/.65,0,1);

@@ -661,8 +661,8 @@ export interface DuckSkin {
 export const DEFAULT_PALETTE: DuckPalette = {
   // Héroe base inspirado en la nueva referencia: plumaje crema cálido,
   // sombras miel y pico naranja. Mantiene identidad propia y no usa pelo.
-  body: '#f7dfa1', dark: '#dfb96f', shade: '#c6934f',
-  beak: '#e88b28', beakDark: '#a94f17', mask: '#171816', pack: '#e2bd76', strap: '#d6aa66',
+  body: '#f6d995', dark: '#e5b86f', shade: '#c9904e',
+  beak: '#e98a2d', beakDark: '#a94e18', mask: '#171816', pack: '#e2bd76', strap: '#d6aa66',
 };
 
 export const SKINS: DuckSkin[] = [
