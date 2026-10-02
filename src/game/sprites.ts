@@ -105,7 +105,7 @@ function drawReferenceDuckFront(
   ctx:Ctx,bx:number,by:number,frame:number,moving:boolean,hurt:boolean,dashing:boolean,shooting:boolean,pal:DuckPaletteLike,
 ){
   const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait*.48):(!shooting&&! dashing&&Math.sin(frame*.055)>.82?.5:0);
+  const bob=moving?Math.round(gait*.45):(!shooting&&!dashing&&Math.sin(frame*.055)>.84?.5:0);
   const hb=by+bob;
   const outline='#1b1813';
   const cream=pal.body;
@@ -123,152 +123,143 @@ function drawReferenceDuckFront(
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
 
-  enemyShadow(ctx,bx+9.5,by+20.6,10.8,dashing?.18:.30);
+  enemyShadow(ctx,bx+9.5,by+20.8,9.4,dashing?.18:.29);
 
-  // Pies cortos y anchos, como en la referencia.
-  const stride=moving?(gait>0?1.5:-1.5):0;
-  const lift=moving&&Math.abs(gait)>.58?1.5:0;
-  const lLift=lift&&gait>0?1.5:0,rLift=lift&&gait<0?1.5:0;
-  hdRect(ctx,bx,hb,8-stride,38-lLift,10,4,outline);
-  hdRect(ctx,bx,hb,9-stride,37-lLift,9,4,beak);
-  hdRect(ctx,bx,hb,11-stride,37-lLift,5,1,beakHi);
-  hdRect(ctx,bx,hb,23+stride,38-rLift,10,4,outline);
-  hdRect(ctx,bx,hb,23+stride,37-rLift,9,4,beak);
-  hdRect(ctx,bx,hb,24+stride,37-rLift,5,1,beakHi);
+  const stride=moving?(gait>0?1.25:-1.25):0;
+  const lift=moving&&Math.abs(gait)>.58?1.25:0;
+  const lLift=lift&&gait>0?1.25:0,rLift=lift&&gait<0?1.25:0;
 
-  // ===== CONTORNO DE CABEZA =====
-  // Menos "dientes": pocos mechones grandes y una masa redonda/mullida.
-  hdRect(ctx,bx,hb,16,-13,7,3,outline);
-  hdRect(ctx,bx,hb,12,-11,16,3,outline);
-  hdRect(ctx,bx,hb,8,-9,24,3,outline);
-  hdRect(ctx,bx,hb,5,-7,30,4,outline);
-  hdRect(ctx,bx,hb,2,-4,36,6,outline);
-  hdRect(ctx,bx,hb,0,1,40,8,outline);
-  hdRect(ctx,bx,hb,-2,7,44,9,outline);
-  hdRect(ctx,bx,hb,0,15,40,7,outline);
-  hdRect(ctx,bx,hb,3,21,34,5,outline);
+  // Pies más pequeños: el personaje ya no domina la escala de utilería.
+  hdRect(ctx,bx,hb,9-stride,41-lLift,9,4,outline);
+  hdRect(ctx,bx,hb,10-stride,40-lLift,8,4,beak);
+  hdRect(ctx,bx,hb,12-stride,40-lLift,4,1,beakHi);
+  hdRect(ctx,bx,hb,22+stride,41-rLift,9,4,outline);
+  hdRect(ctx,bx,hb,22+stride,40-rLift,8,4,beak);
+  hdRect(ctx,bx,hb,23+stride,40-rLift,4,1,beakHi);
 
-  // Mechones grandes y asimétricos, claramente plumas y no pelo.
+  // ===== CUERPO =====
+  // El cuerpo gana presencia vertical y ancho para equilibrar la cabeza.
+  hdRect(ctx,bx,hb,10,23,20,4,outline);
+  hdRect(ctx,bx,hb,7,26,26,7,outline);
+  hdRect(ctx,bx,hb,5,32,30,7,outline);
+  hdRect(ctx,bx,hb,7,38,26,5,outline);
   for(const [x,y,w,h] of [
-    [11,-12,6,4],[22,-12,6,4],
-    [4,-6,5,5],[31,-5,5,5],
-    [-3,5,5,5],[-4,12,5,5],[-1,18,5,5],
-    [38,4,5,5],[39,11,5,5],[36,18,5,5],
-    [5,20,5,5],[30,21,5,5],
+    [4,28,5,6],[2,33,5,5],[33,28,5,6],[35,33,5,5],
+    [6,38,5,5],[29,38,5,5],
   ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
 
-  // ===== CABEZA INTERIOR =====
-  hdRect(ctx,bx,hb,16,-11,7,3,cream);
-  hdRect(ctx,bx,hb,12,-9,16,3,cream);
-  hdRect(ctx,bx,hb,9,-7,22,4,cream);
-  hdRect(ctx,bx,hb,6,-4,28,5,cream);
-  hdRect(ctx,bx,hb,3,0,34,7,cream);
-  hdRect(ctx,bx,hb,1,6,38,10,cream);
-  hdRect(ctx,bx,hb,2,15,36,6,cream);
-  hdRect(ctx,bx,hb,5,20,30,4,cream);
+  hdRect(ctx,bx,hb,12,24,16,4,cream);
+  hdRect(ctx,bx,hb,9,27,22,6,cream);
+  hdRect(ctx,bx,hb,7,32,26,7,cream);
+  hdRect(ctx,bx,hb,9,38,22,4,cream);
+  hdRect(ctx,bx,hb,5,29,6,7,cream);
+  hdRect(ctx,bx,hb,3,33,5,4,cream);
+  hdRect(ctx,bx,hb,30,29,6,7,cream);
+  hdRect(ctx,bx,hb,33,33,5,4,cream);
+  hdRect(ctx,bx,hb,8,38,5,4,cream);
+  hdRect(ctx,bx,hb,28,38,5,4,cream);
 
-  for(const [x,y,w,h] of [
-    [12,-10,5,4],[23,-10,5,4],
-    [5,-4,4,5],[31,-3,4,5],
-    [0,5,4,5],[-1,12,4,5],[1,18,4,4],
-    [37,5,4,5],[38,11,4,5],[35,18,4,4],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,cream);
+  hdRect(ctx,bx,hb,10,28,6,7,creamHi);
+  hdRect(ctx,bx,hb,12,35,14,3,creamMid);
+  hdRect(ctx,bx,hb,28,29,4,8,creamLo);
+  hdRect(ctx,bx,hb,24,39,6,2,creamDeep);
 
-  // Volumen suave y cálido: grandes masas, no rayas duras.
-  hdRect(ctx,bx,hb,10,-6,14,2,creamHi);
-  hdRect(ctx,bx,hb,7,-2,9,4,creamHi);
-  hdRect(ctx,bx,hb,4,3,7,8,creamHi);
-  hdRect(ctx,bx,hb,3,11,6,7,creamMid);
-  hdRect(ctx,bx,hb,7,19,9,3,creamMid);
-  hdRect(ctx,bx,hb,31,1,4,10,creamLo);
-  hdRect(ctx,bx,hb,32,10,5,8,creamLo);
-  hdRect(ctx,bx,hb,27,18,7,4,creamDeep);
-
-  // ===== CUELLO / SEPARACIÓN CABEZA-CUERPO =====
-  // Dos muescas oscuras laterales hacen que la cabeza no se lea como una sola bola.
-  hdRect(ctx,bx,hb,6,23,7,3,outline);
-  hdRect(ctx,bx,hb,27,23,7,3,outline);
-  hdRect(ctx,bx,hb,12,22,16,4,cream);
-
-  // ===== CONTORNO DE CUERPO =====
-  hdRect(ctx,bx,hb,9,24,22,4,outline);
-  hdRect(ctx,bx,hb,6,27,28,6,outline);
-  hdRect(ctx,bx,hb,4,32,32,5,outline);
-  hdRect(ctx,bx,hb,7,36,26,4,outline);
-  for(const [x,y,w,h] of [
-    [3,28,5,5],[1,32,5,4],[34,28,5,5],[36,32,5,4],
-    [6,35,5,5],[29,35,5,5],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
-
-  // ===== CUERPO INTERIOR =====
-  hdRect(ctx,bx,hb,11,25,18,3,cream);
-  hdRect(ctx,bx,hb,8,27,24,6,cream);
-  hdRect(ctx,bx,hb,6,32,28,4,cream);
-  hdRect(ctx,bx,hb,9,35,22,3,cream);
-  hdRect(ctx,bx,hb,4,29,6,6,cream);
-  hdRect(ctx,bx,hb,2,32,5,3,cream);
-  hdRect(ctx,bx,hb,31,29,6,6,cream);
-  hdRect(ctx,bx,hb,34,32,5,3,cream);
-  hdRect(ctx,bx,hb,7,35,5,4,cream);
-  hdRect(ctx,bx,hb,29,35,5,4,cream);
-
-  // Pecho con volumen más redondo.
-  hdRect(ctx,bx,hb,9,27,7,6,creamHi);
-  hdRect(ctx,bx,hb,11,33,15,3,creamMid);
-  hdRect(ctx,bx,hb,29,28,4,7,creamLo);
-  hdRect(ctx,bx,hb,25,35,6,2,creamDeep);
-
-  // ===== CARA =====
-  // Ojos sólidos, verticales y un poco más cercanos al pico. Sin reflejo blanco.
-  if(blink){
-    hdRect(ctx,bx,hb,12,8,4,1,outline);
-    hdRect(ctx,bx,hb,25,8,4,1,outline);
-  }else{
-    hdRect(ctx,bx,hb,12,4,4,7,'#171717');
-    hdRect(ctx,bx,hb,25,4,4,7,'#171717');
-  }
-  hdRect(ctx,bx,hb,11,2,6,1,creamLo);
-  hdRect(ctx,bx,hb,24,2,6,1,creamLo);
-
-  // Pico más orgánico: extremos más estrechos y centro más lleno.
-  hdRect(ctx,bx,hb,12,11,17,2,outline);
-  hdRect(ctx,bx,hb,9,13,23,2,outline);
-  hdRect(ctx,bx,hb,7,15,27,5,outline);
-  hdRect(ctx,bx,hb,10,20,21,3,outline);
-  hdRect(ctx,bx,hb,13,12,15,2,beakLo);
-  hdRect(ctx,bx,hb,10,14,21,2,beak);
-  hdRect(ctx,bx,hb,8,16,25,4,beak);
-  hdRect(ctx,bx,hb,11,20,19,2,beakLo);
-  hdRect(ctx,bx,hb,12,14,17,1,beakHi);
-  hdRect(ctx,bx,hb,11,16,14,1,'rgba(255,255,255,.22)');
-  hdPx(ctx,bx,hb,14,17,skinDark(beak,.34),1);
-  hdPx(ctx,bx,hb,27,17,skinDark(beak,.34),1);
-
-  // ===== MARCAS DE PLUMA =====
-  // Diagonales anchas y espiral de pecho, como la referencia original.
+  // Marca de plumas del pecho.
   ctx.globalAlpha=.84;
   for(const [x,y,w,h] of [
-    [7,0,4,1],[6,2,5,1],[5,4,4,1],
-    [16,-5,4,1],[18,-3,4,1],[19,-1,3,1],
-    [30,5,3,1],[31,7,2,3],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,featherSoft);
-  for(const [x,y,w,h] of [
-    [15,28,5,1],[13,29,2,3],[15,31,5,1],[20,30,2,3],
-    [17,33,5,1],[13,35,4,1],[23,35,3,1],
+    [15,29,5,1],[13,30,2,3],[15,32,5,1],[20,31,2,3],
+    [17,34,5,1],[13,36,4,1],[23,36,3,1],
   ]) hdRect(ctx,bx,hb,x,y,w,h,feather);
   ctx.globalAlpha=1;
 
-  // Pocas microplumas para evitar ruido visual.
-  ctx.globalAlpha=.55;
-  hdPx(ctx,bx,hb,4,9,creamHi,1);
-  hdPx(ctx,bx,hb,35,15,creamDeep,1);
-  hdPx(ctx,bx,hb,7,31,creamHi,1);
-  hdPx(ctx,bx,hb,32,32,creamDeep,1);
+  // ===== CABEZA =====
+  // Se dibuja 14% más pequeña que antes. Mantiene el look fluffy pero deja de
+  // verse como una cabeza gigante sobre un cuerpo diminuto.
+  ctx.save();
+  const headCx=bx+10,headCy=hb+4.5;
+  ctx.translate(headCx,headCy);
+  ctx.scale(.86,.86);
+  ctx.translate(-headCx,-headCy+1.1);
+
+  hdRect(ctx,bx,hb,16,-12,7,3,outline);
+  hdRect(ctx,bx,hb,12,-10,16,3,outline);
+  hdRect(ctx,bx,hb,8,-8,24,3,outline);
+  hdRect(ctx,bx,hb,5,-6,30,4,outline);
+  hdRect(ctx,bx,hb,2,-3,36,6,outline);
+  hdRect(ctx,bx,hb,0,2,40,8,outline);
+  hdRect(ctx,bx,hb,-2,8,44,9,outline);
+  hdRect(ctx,bx,hb,0,16,40,6,outline);
+  hdRect(ctx,bx,hb,4,21,32,5,outline);
+  for(const [x,y,w,h] of [
+    [11,-11,6,4],[22,-11,6,4],[4,-5,5,5],[31,-4,5,5],
+    [-3,6,5,5],[-4,13,5,5],[-1,18,5,5],
+    [38,5,5,5],[39,12,5,5],[36,18,5,5],
+  ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
+
+  hdRect(ctx,bx,hb,16,-10,7,3,cream);
+  hdRect(ctx,bx,hb,12,-8,16,3,cream);
+  hdRect(ctx,bx,hb,9,-6,22,4,cream);
+  hdRect(ctx,bx,hb,6,-3,28,5,cream);
+  hdRect(ctx,bx,hb,3,1,34,7,cream);
+  hdRect(ctx,bx,hb,1,7,38,10,cream);
+  hdRect(ctx,bx,hb,2,16,36,5,cream);
+  hdRect(ctx,bx,hb,6,20,28,4,cream);
+  for(const [x,y,w,h] of [
+    [12,-9,5,4],[23,-9,5,4],[5,-3,4,5],[31,-2,4,5],
+    [0,6,4,5],[-1,13,4,5],[37,6,4,5],[38,12,4,5],
+  ]) hdRect(ctx,bx,hb,x,y,w,h,cream);
+
+  // Volumen de la cabeza más limpio.
+  hdRect(ctx,bx,hb,10,-5,14,2,creamHi);
+  hdRect(ctx,bx,hb,7,-1,9,4,creamHi);
+  hdRect(ctx,bx,hb,4,4,7,8,creamHi);
+  hdRect(ctx,bx,hb,3,12,6,6,creamMid);
+  hdRect(ctx,bx,hb,31,2,4,9,creamLo);
+  hdRect(ctx,bx,hb,32,11,5,7,creamLo);
+  hdRect(ctx,bx,hb,27,18,7,4,creamDeep);
+
+  // Ojos un poco más bajos para una expresión menos "bebé cabezón".
+  if(blink){
+    hdRect(ctx,bx,hb,12,9,4,1,outline);
+    hdRect(ctx,bx,hb,25,9,4,1,outline);
+  }else{
+    hdRect(ctx,bx,hb,12,5,4,7,'#171717');
+    hdRect(ctx,bx,hb,25,5,4,7,'#171717');
+  }
+  hdRect(ctx,bx,hb,11,3,6,1,creamLo);
+  hdRect(ctx,bx,hb,24,3,6,1,creamLo);
+
+  // Pico más corto y proporcional.
+  hdRect(ctx,bx,hb,13,12,15,2,outline);
+  hdRect(ctx,bx,hb,10,14,21,2,outline);
+  hdRect(ctx,bx,hb,8,16,25,5,outline);
+  hdRect(ctx,bx,hb,11,21,19,3,outline);
+  hdRect(ctx,bx,hb,14,13,13,2,beakLo);
+  hdRect(ctx,bx,hb,11,15,19,2,beak);
+  hdRect(ctx,bx,hb,9,17,23,4,beak);
+  hdRect(ctx,bx,hb,12,21,17,2,beakLo);
+  hdRect(ctx,bx,hb,13,15,15,1,beakHi);
+  hdRect(ctx,bx,hb,12,17,12,1,'rgba(255,255,255,.22)');
+  hdPx(ctx,bx,hb,15,18,skinDark(beak,.34),1);
+  hdPx(ctx,bx,hb,26,18,skinDark(beak,.34),1);
+
+  ctx.globalAlpha=.82;
+  for(const [x,y,w,h] of [
+    [7,1,4,1],[6,3,5,1],[5,5,4,1],
+    [16,-4,4,1],[18,-2,4,1],[19,0,3,1],
+    [30,6,3,1],[31,8,2,3],
+  ]) hdRect(ctx,bx,hb,x,y,w,h,featherSoft);
   ctx.globalAlpha=1;
+  ctx.restore();
+
+  // Cuello visible entre cabeza y torso.
+  hdRect(ctx,bx,hb,12,23,16,3,cream);
+  hdRect(ctx,bx,hb,8,24,5,2,creamLo);
+  hdRect(ctx,bx,hb,27,24,5,2,creamDeep);
 
   if(dashing){
-    ctx.globalAlpha=.12;microRect(ctx,bx-4,hb+5,25,12,creamHi);
-    ctx.globalAlpha=.28;microRect(ctx,bx+1,hb+11,7,.5,'#fff2ad');
+    ctx.globalAlpha=.11;microRect(ctx,bx-3,hb+6,23,11,creamHi);
+    ctx.globalAlpha=.26;microRect(ctx,bx+1,hb+12,6,.5,'#fff2ad');
     ctx.globalAlpha=1;
   }
 }
