@@ -1064,7 +1064,7 @@ export function renderWorld(engine: GameEngine) {
     );
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
-    const gunSize=longGun?14:12;
+    const gunSize=longGun?13:11;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
     const postShot=clamp((cooldownNorm-.35)/.65,0,1);

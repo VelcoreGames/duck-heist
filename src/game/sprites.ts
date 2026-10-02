@@ -105,161 +105,144 @@ function drawReferenceDuckFront(
   ctx:Ctx,bx:number,by:number,frame:number,moving:boolean,hurt:boolean,dashing:boolean,shooting:boolean,pal:DuckPaletteLike,
 ){
   const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait*.45):(!shooting&&!dashing&&Math.sin(frame*.055)>.84?.5:0);
+  const bob=moving?Math.round(gait*.42):(!shooting&&!dashing&&Math.sin(frame*.055)>.86?.5:0);
   const hb=by+bob;
   const outline='#1b1813';
   const cream=pal.body;
-  const creamHi='#ffe8b5';
-  const creamMid='#f8dca1';
-  const creamLo='#edbf79';
+  const creamHi='#ffe9b7';
+  const creamMid='#f8dca0';
+  const creamLo='#edbd77';
   const creamDeep='#d99a58';
-  const feather='#efb16e';
-  const featherSoft='#f6c98f';
+  const feather='#eca968';
+  const featherSoft='#f4c58a';
   const beak=pal.beak;
-  const beakHi='#f7a64c';
+  const beakHi='#f6a44a';
   const beakLo=pal.beakDark;
   const blink=(frame%210)<6;
 
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
 
-  enemyShadow(ctx,bx+9.5,by+20.8,9.4,dashing?.18:.29);
+  enemyShadow(ctx,bx+10,by+20.6,8.8,dashing?.18:.29);
 
+  // Cada fila es una celda HD de 1/2 píxel lógico. Esto hace que la silueta
+  // se comporte como un sprite dibujado a mano y no como bloques superpuestos.
+  const rows=(data:[number,number,number][],color:string)=>{
+    for(const [yy,x0,x1] of data)hdRect(ctx,bx,hb,x0,yy,x1-x0+1,1,color);
+  };
+
+  // Pies pequeños y separados.
   const stride=moving?(gait>0?1.25:-1.25):0;
-  const lift=moving&&Math.abs(gait)>.58?1.25:0;
-  const lLift=lift&&gait>0?1.25:0,rLift=lift&&gait<0?1.25:0;
+  const lift=moving&&Math.abs(gait)>.58?1.2:0;
+  const lLift=lift&&gait>0?lift:0,rLift=lift&&gait<0?lift:0;
+  hdRect(ctx,bx,hb,10-stride,40-lLift,8,4,outline);
+  hdRect(ctx,bx,hb,11-stride,39-lLift,7,4,beak);
+  hdRect(ctx,bx,hb,13-stride,39-lLift,3,1,beakHi);
+  hdRect(ctx,bx,hb,23+stride,40-rLift,8,4,outline);
+  hdRect(ctx,bx,hb,23+stride,39-rLift,7,4,beak);
+  hdRect(ctx,bx,hb,24+stride,39-rLift,3,1,beakHi);
 
-  // Pies más pequeños: el personaje ya no domina la escala de utilería.
-  hdRect(ctx,bx,hb,9-stride,41-lLift,9,4,outline);
-  hdRect(ctx,bx,hb,10-stride,40-lLift,8,4,beak);
-  hdRect(ctx,bx,hb,12-stride,40-lLift,4,1,beakHi);
-  hdRect(ctx,bx,hb,22+stride,41-rLift,9,4,outline);
-  hdRect(ctx,bx,hb,22+stride,40-rLift,8,4,beak);
-  hdRect(ctx,bx,hb,23+stride,40-rLift,4,1,beakHi);
+  // Silueta tomada de la referencia: cabeza mullida y ligeramente asimétrica,
+  // pero sólo ~25% más ancha que el cuerpo.
+  const outlineRows:[number,number,number][]=[
+    [-11,18,22],[-10,15,25],[-9,13,28],[-8,11,31],[-7,9,33],[-6,7,35],
+    [-5,6,36],[-4,4,38],[-3,3,39],[-2,2,40],[-1,1,40],[0,0,41],
+    [1,0,41],[2,1,41],[3,0,40],[4,-1,40],[5,-2,39],[6,-2,39],
+    [7,-1,40],[8,0,40],[9,-1,39],[10,-2,38],[11,-1,38],[12,0,39],
+    [13,1,39],[14,0,38],[15,1,37],[16,2,37],[17,1,36],[18,2,35],
+    [19,3,35],[20,4,34],[21,6,33],[22,8,32],[23,10,30],
+    [24,8,32],[25,7,33],[26,5,35],[27,4,36],[28,3,37],[29,4,36],
+    [30,3,37],[31,2,38],[32,3,37],[33,4,36],[34,5,35],[35,4,36],
+    [36,6,34],[37,8,32],[38,10,30],[39,12,28],
+  ];
+  rows(outlineRows,outline);
 
-  // ===== CUERPO =====
-  // El cuerpo gana presencia vertical y ancho para equilibrar la cabeza.
-  hdRect(ctx,bx,hb,10,23,20,4,outline);
-  hdRect(ctx,bx,hb,7,26,26,7,outline);
-  hdRect(ctx,bx,hb,5,32,30,7,outline);
-  hdRect(ctx,bx,hb,7,38,26,5,outline);
-  for(const [x,y,w,h] of [
-    [4,28,5,6],[2,33,5,5],[33,28,5,6],[35,33,5,5],
-    [6,38,5,5],[29,38,5,5],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
+  const fillRows:[number,number,number][]=[
+    [-10,18,22],[-9,15,25],[-8,13,28],[-7,11,31],[-6,9,33],[-5,7,35],
+    [-4,6,36],[-3,5,37],[-2,4,38],[-1,3,38],[0,2,39],[1,2,39],
+    [2,3,39],[3,2,38],[4,1,38],[5,0,37],[6,0,37],[7,1,38],
+    [8,2,38],[9,1,37],[10,0,36],[11,1,36],[12,2,37],[13,3,37],
+    [14,2,36],[15,3,35],[16,4,35],[17,3,34],[18,4,33],[19,5,33],
+    [20,6,32],[21,8,31],[22,10,30],[23,12,28],
+    [24,10,30],[25,9,31],[26,7,33],[27,6,34],[28,5,35],[29,6,34],
+    [30,5,35],[31,4,36],[32,5,35],[33,6,34],[34,7,33],[35,6,34],
+    [36,8,32],[37,10,30],[38,12,28],
+  ];
+  rows(fillRows,cream);
 
-  hdRect(ctx,bx,hb,12,24,16,4,cream);
-  hdRect(ctx,bx,hb,9,27,22,6,cream);
-  hdRect(ctx,bx,hb,7,32,26,7,cream);
-  hdRect(ctx,bx,hb,9,38,22,4,cream);
-  hdRect(ctx,bx,hb,5,29,6,7,cream);
-  hdRect(ctx,bx,hb,3,33,5,4,cream);
-  hdRect(ctx,bx,hb,30,29,6,7,cream);
-  hdRect(ctx,bx,hb,33,33,5,4,cream);
-  hdRect(ctx,bx,hb,8,38,5,4,cream);
-  hdRect(ctx,bx,hb,28,38,5,4,cream);
+  // Luz lateral y sombra inferior/derecha. Las formas siguen el plumaje.
+  rows([
+    [-7,13,20],[-6,10,18],[-5,8,16],[-4,7,14],[-3,6,13],[-2,5,12],
+    [-1,4,11],[0,3,10],[1,3,9],[2,4,9],[3,3,8],[4,2,8],[5,1,7],
+    [6,1,7],[7,2,8],[8,3,9],
+  ],creamHi);
+  rows([
+    [11,31,35],[12,31,36],[13,32,36],[14,31,35],[15,30,34],[16,30,34],
+    [17,29,33],[18,29,32],[19,28,31],[20,27,31],
+    [28,31,33],[29,31,33],[30,30,33],[31,30,34],[32,29,33],[33,29,32],
+    [34,28,31],[35,28,31],[36,27,30],
+  ],creamLo);
+  rows([[18,30,32],[19,29,32],[20,28,31],[34,29,31],[35,28,30],[36,27,29]],creamDeep);
 
-  hdRect(ctx,bx,hb,10,28,6,7,creamHi);
-  hdRect(ctx,bx,hb,12,35,14,3,creamMid);
-  hdRect(ctx,bx,hb,28,29,4,8,creamLo);
-  hdRect(ctx,bx,hb,24,39,6,2,creamDeep);
+  // Separación sutil de cabeza y cuerpo: no línea dura, sólo dos muescas.
+  hdRect(ctx,bx,hb,8,23,5,2,creamLo);
+  hdRect(ctx,bx,hb,28,23,5,2,creamDeep);
 
-  // Marca de plumas del pecho.
-  ctx.globalAlpha=.84;
-  for(const [x,y,w,h] of [
-    [15,29,5,1],[13,30,2,3],[15,32,5,1],[20,31,2,3],
-    [17,34,5,1],[13,36,4,1],[23,36,3,1],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,feather);
-  ctx.globalAlpha=1;
-
-  // ===== CABEZA =====
-  // Se dibuja 14% más pequeña que antes. Mantiene el look fluffy pero deja de
-  // verse como una cabeza gigante sobre un cuerpo diminuto.
-  ctx.save();
-  const headCx=bx+10,headCy=hb+4.5;
-  ctx.translate(headCx,headCy);
-  ctx.scale(.86,.86);
-  ctx.translate(-headCx,-headCy+1.1);
-
-  hdRect(ctx,bx,hb,16,-12,7,3,outline);
-  hdRect(ctx,bx,hb,12,-10,16,3,outline);
-  hdRect(ctx,bx,hb,8,-8,24,3,outline);
-  hdRect(ctx,bx,hb,5,-6,30,4,outline);
-  hdRect(ctx,bx,hb,2,-3,36,6,outline);
-  hdRect(ctx,bx,hb,0,2,40,8,outline);
-  hdRect(ctx,bx,hb,-2,8,44,9,outline);
-  hdRect(ctx,bx,hb,0,16,40,6,outline);
-  hdRect(ctx,bx,hb,4,21,32,5,outline);
-  for(const [x,y,w,h] of [
-    [11,-11,6,4],[22,-11,6,4],[4,-5,5,5],[31,-4,5,5],
-    [-3,6,5,5],[-4,13,5,5],[-1,18,5,5],
-    [38,5,5,5],[39,12,5,5],[36,18,5,5],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,outline);
-
-  hdRect(ctx,bx,hb,16,-10,7,3,cream);
-  hdRect(ctx,bx,hb,12,-8,16,3,cream);
-  hdRect(ctx,bx,hb,9,-6,22,4,cream);
-  hdRect(ctx,bx,hb,6,-3,28,5,cream);
-  hdRect(ctx,bx,hb,3,1,34,7,cream);
-  hdRect(ctx,bx,hb,1,7,38,10,cream);
-  hdRect(ctx,bx,hb,2,16,36,5,cream);
-  hdRect(ctx,bx,hb,6,20,28,4,cream);
-  for(const [x,y,w,h] of [
-    [12,-9,5,4],[23,-9,5,4],[5,-3,4,5],[31,-2,4,5],
-    [0,6,4,5],[-1,13,4,5],[37,6,4,5],[38,12,4,5],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,cream);
-
-  // Volumen de la cabeza más limpio.
-  hdRect(ctx,bx,hb,10,-5,14,2,creamHi);
-  hdRect(ctx,bx,hb,7,-1,9,4,creamHi);
-  hdRect(ctx,bx,hb,4,4,7,8,creamHi);
-  hdRect(ctx,bx,hb,3,12,6,6,creamMid);
-  hdRect(ctx,bx,hb,31,2,4,9,creamLo);
-  hdRect(ctx,bx,hb,32,11,5,7,creamLo);
-  hdRect(ctx,bx,hb,27,18,7,4,creamDeep);
-
-  // Ojos un poco más bajos para una expresión menos "bebé cabezón".
+  // Ojos verticales simples, idénticos al lenguaje de la referencia.
   if(blink){
-    hdRect(ctx,bx,hb,12,9,4,1,outline);
-    hdRect(ctx,bx,hb,25,9,4,1,outline);
+    hdRect(ctx,bx,hb,12,8,4,1,outline);
+    hdRect(ctx,bx,hb,26,8,4,1,outline);
   }else{
     hdRect(ctx,bx,hb,12,5,4,7,'#171717');
-    hdRect(ctx,bx,hb,25,5,4,7,'#171717');
+    hdRect(ctx,bx,hb,26,5,4,7,'#171717');
   }
-  hdRect(ctx,bx,hb,11,3,6,1,creamLo);
-  hdRect(ctx,bx,hb,24,3,6,1,creamLo);
 
-  // Pico más corto y proporcional.
-  hdRect(ctx,bx,hb,13,12,15,2,outline);
-  hdRect(ctx,bx,hb,10,14,21,2,outline);
-  hdRect(ctx,bx,hb,8,16,25,5,outline);
-  hdRect(ctx,bx,hb,11,21,19,3,outline);
-  hdRect(ctx,bx,hb,14,13,13,2,beakLo);
-  hdRect(ctx,bx,hb,11,15,19,2,beak);
-  hdRect(ctx,bx,hb,9,17,23,4,beak);
-  hdRect(ctx,bx,hb,12,21,17,2,beakLo);
-  hdRect(ctx,bx,hb,13,15,15,1,beakHi);
-  hdRect(ctx,bx,hb,12,17,12,1,'rgba(255,255,255,.22)');
+  // Pico ancho pero no rectangular: extremos escalonados y centro más lleno.
+  hdRect(ctx,bx,hb,14,12,14,2,outline);
+  hdRect(ctx,bx,hb,11,14,20,2,outline);
+  hdRect(ctx,bx,hb,9,16,24,4,outline);
+  hdRect(ctx,bx,hb,11,20,20,3,outline);
+  hdRect(ctx,bx,hb,15,13,12,2,beakLo);
+  hdRect(ctx,bx,hb,12,15,18,2,beak);
+  hdRect(ctx,bx,hb,10,17,22,3,beak);
+  hdRect(ctx,bx,hb,12,20,18,2,beakLo);
+  hdRect(ctx,bx,hb,14,15,14,1,beakHi);
+  hdRect(ctx,bx,hb,13,17,11,1,'rgba(255,255,255,.20)');
   hdPx(ctx,bx,hb,15,18,skinDark(beak,.34),1);
-  hdPx(ctx,bx,hb,26,18,skinDark(beak,.34),1);
+  hdPx(ctx,bx,hb,27,18,skinDark(beak,.34),1);
 
-  ctx.globalAlpha=.82;
-  for(const [x,y,w,h] of [
-    [7,1,4,1],[6,3,5,1],[5,5,4,1],
-    [16,-4,4,1],[18,-2,4,1],[19,0,3,1],
-    [30,6,3,1],[31,8,2,3],
-  ]) hdRect(ctx,bx,hb,x,y,w,h,featherSoft);
+  // Marcas de pluma durazno: diagonal izquierda, pequeño remolino superior
+  // y espiral del pecho, como en el diseño de referencia.
+  ctx.globalAlpha=.86;
+  hdRect(ctx,bx,hb,7,1,4,1,featherSoft);
+  hdRect(ctx,bx,hb,6,3,5,1,featherSoft);
+  hdRect(ctx,bx,hb,5,5,4,1,featherSoft);
+  hdRect(ctx,bx,hb,17,-4,4,1,featherSoft);
+  hdRect(ctx,bx,hb,19,-2,4,1,featherSoft);
+  hdRect(ctx,bx,hb,20,0,3,1,featherSoft);
+  hdRect(ctx,bx,hb,31,7,3,1,featherSoft);
+  hdRect(ctx,bx,hb,32,9,2,3,featherSoft);
+
+  hdRect(ctx,bx,hb,16,28,5,1,feather);
+  hdRect(ctx,bx,hb,14,29,2,3,feather);
+  hdRect(ctx,bx,hb,16,31,5,1,feather);
+  hdRect(ctx,bx,hb,20,30,2,3,feather);
+  hdRect(ctx,bx,hb,17,33,5,1,feather);
+  hdRect(ctx,bx,hb,14,35,4,1,feather);
+  hdRect(ctx,bx,hb,23,35,3,1,feather);
   ctx.globalAlpha=1;
-  ctx.restore();
 
-  // Cuello visible entre cabeza y torso.
-  hdRect(ctx,bx,hb,12,23,16,3,cream);
-  hdRect(ctx,bx,hb,8,24,5,2,creamLo);
-  hdRect(ctx,bx,hb,27,24,5,2,creamDeep);
+  // Muy pocos microacentos: la referencia es limpia, no ruidosa.
+  ctx.globalAlpha=.52;
+  hdPx(ctx,bx,hb,4,11,creamHi,1);
+  hdPx(ctx,bx,hb,35,16,creamDeep,1);
+  hdPx(ctx,bx,hb,7,31,creamHi,1);
+  hdPx(ctx,bx,hb,33,32,creamDeep,1);
+  ctx.globalAlpha=1;
 
   if(dashing){
-    ctx.globalAlpha=.11;microRect(ctx,bx-3,hb+6,23,11,creamHi);
-    ctx.globalAlpha=.26;microRect(ctx,bx+1,hb+12,6,.5,'#fff2ad');
+    ctx.globalAlpha=.10;microRect(ctx,bx-3,hb+6,22,10,creamHi);
+    ctx.globalAlpha=.24;microRect(ctx,bx+1,hb+12,6,.5,'#fff2ad');
     ctx.globalAlpha=1;
   }
 }
@@ -359,7 +342,7 @@ function drawReferenceDuckSide(
   // Ojo simple del perfil.
   const eyeX=left?8:25;
   if(blink)hdRect(ctx,bx,hb,eyeX,7,4,1,outline);
-  else {hdRect(ctx,bx,hb,eyeX,4,4,7,'#171717');hdPx(ctx,bx,hb,eyeX+(left?0:1),5,'#fff8df',1);}
+  else {hdRect(ctx,bx,hb,eyeX,4,4,7,'#171717');}
   hdRect(ctx,bx,hb,eyeX-1,2,6,1,lo);
 
   // Pico sale claramente del perfil.
@@ -418,12 +401,22 @@ export function drawDuck(
     return;
   }
   if(dir==='up'){
+    ctx.save();
+    ctx.translate(bx+10,by+12);
+    ctx.scale(.90,.90);
+    ctx.translate(-(bx+10),-(by+12));
     drawReferenceDuckBack(ctx,bx,by,frame,moving,hurt,dashing,pal);
+    ctx.restore();
     ctx.restore();
     return;
   }
   if(dir==='left'||dir==='right'){
+    ctx.save();
+    ctx.translate(bx+10,by+12);
+    ctx.scale(.90,.90);
+    ctx.translate(-(bx+10),-(by+12));
     drawReferenceDuckSide(ctx,bx,by,frame,dir,moving,hurt,dashing,pal);
+    ctx.restore();
     ctx.restore();
     return;
   }
