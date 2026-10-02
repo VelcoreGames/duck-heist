@@ -4,6 +4,8 @@
 import { TILE_SIZE, ART_SCALE, ART_PIXEL } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
+import duckReferenceFrontUrl from '../assets/duck-reference-front.png';
+import duckReferenceBackUrl from '../assets/duck-reference-back.png';
 import type { BossPartState } from './types';
 
 type Ctx = CanvasRenderingContext2D;
@@ -88,6 +90,60 @@ const PACK = '#3b2f2a';
 const PACK_STRAP = '#2a211d';
 
 export type DuckDir = 'up' | 'down' | 'left' | 'right';
+
+const referenceDuckImages:Partial<Record<DuckDir,HTMLImageElement>>={};
+
+function referenceDuckImage(dir:DuckDir){
+  const src=dir==='down'?duckReferenceFrontUrl:dir==='up'?duckReferenceBackUrl:null;
+  if(!src)return null;
+  let img=referenceDuckImages[dir];
+  if(!img){
+    img=new Image();
+    img.decoding='async';
+    img.src=src;
+    referenceDuckImages[dir]=img;
+  }
+  return img;
+}
+
+/**
+ * Sprite base fiel a la referencia del usuario.
+ * El PNG frontal conserva directamente silueta, pico, ojos, marcas y proporciones
+ * del diseño original; sólo se escala dentro del mundo. La física no cambia.
+ */
+function drawReferenceDuckAsset(
+  ctx:Ctx,bx:number,by:number,frame:number,dir:DuckDir,moving:boolean,
+  hurt:boolean,dashing:boolean,shooting:boolean,
+){
+  if(dir!=='down'&&dir!=='up')return false;
+  const img=referenceDuckImage(dir);
+  if(!img||!img.complete||img.naturalWidth===0)return false;
+
+  const gait=moving?Math.sin(frame*.38):0;
+  const bob=moving?Math.round(gait*.45):(!shooting&&!dashing&&Math.sin(frame*.055)>.86?.5:0);
+  const cx=bx+10;
+  const baseline=by+20.5+bob;
+  const w=dir==='down'?18.4:17.2;
+  const h=23.8;
+  const x=artSnap(cx-w*.5);
+  const y=artSnap(baseline-h);
+
+  ctx.save();
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
+  if(dashing)ctx.globalAlpha=.82;
+  enemyShadow(ctx,cx,baseline+1.2,7.7,dashing?.17:.28);
+  ctx.imageSmoothingEnabled=false;
+
+  // Waddle mínimo: da vida al sprite sin deformar el diseño original.
+  ctx.translate(cx,baseline);
+  ctx.rotate(moving?gait*.018:0);
+  const squash=moving?Math.abs(gait)*.012:0;
+  ctx.scale(1+squash,1-squash*.7);
+  ctx.translate(-cx,-baseline);
+  ctx.drawImage(img,x,y,w,h);
+  ctx.restore();
+  return true;
+}
 
 /** Paleta de colores del pato */
 export type DuckPaletteLike = DuckPalette;
@@ -1008,7 +1064,10 @@ export function drawDuckSkin(
   const overlay=skin?.overlay ?? 'robber';
 
   if(!dead)drawSkinBackLayer(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving,dashing,shooting);
-  drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal, aiming);
+  const usedReferenceAsset=!dead&&overlay==='robber'
+    ?drawReferenceDuckAsset(ctx,bx,by,frame,dir,moving,hurt,dashing,shooting)
+    :false;
+  if(!usedReferenceAsset)drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal, aiming);
   if(dead){drawSkinDeathAccessory(ctx,bx,by,overlay,accent,trim,metal);return;}
 
   const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
