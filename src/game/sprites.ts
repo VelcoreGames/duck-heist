@@ -6,6 +6,8 @@ import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef 
 import { drawItemIcon } from './itemArt';
 import duckReferenceFrontUrl from '../assets/duck-reference-front.png';
 import duckReferenceBackUrl from '../assets/duck-reference-back.png';
+import duckReferenceLeftUrl from '../assets/duck-reference-left.png';
+import duckReferenceRightUrl from '../assets/duck-reference-right.png';
 import type { BossPartState } from './types';
 
 type Ctx = CanvasRenderingContext2D;
@@ -94,8 +96,13 @@ export type DuckDir = 'up' | 'down' | 'left' | 'right';
 const referenceDuckImages:Partial<Record<DuckDir,HTMLImageElement>>={};
 
 function referenceDuckImage(dir:DuckDir){
-  const src=dir==='down'?duckReferenceFrontUrl:dir==='up'?duckReferenceBackUrl:null;
-  if(!src)return null;
+  const src=dir==='down'
+    ?duckReferenceFrontUrl
+    :dir==='up'
+      ?duckReferenceBackUrl
+      :dir==='left'
+        ?duckReferenceLeftUrl
+        :duckReferenceRightUrl;
   let img=referenceDuckImages[dir];
   if(!img){
     img=new Image();
@@ -115,36 +122,66 @@ function drawReferenceDuckAsset(
   ctx:Ctx,bx:number,by:number,frame:number,dir:DuckDir,moving:boolean,
   hurt:boolean,dashing:boolean,shooting:boolean,
 ){
-  if(dir!=='down'&&dir!=='up')return false;
   const img=referenceDuckImage(dir);
   if(!img||!img.complete||img.naturalWidth===0)return false;
 
   const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait*.45):(!shooting&&!dashing&&Math.sin(frame*.055)>.86?.5:0);
+  const bob=moving?Math.round(gait*.42):(!shooting&&!dashing&&Math.sin(frame*.055)>.86?.5:0);
   const cx=bx+10;
   const baseline=by+20.5+bob;
-  const w=dir==='down'?18.4:17.2;
   const h=23.8;
+  const w=dir==='down'?18.4:dir==='up'?17.2:16.2;
   const x=artSnap(cx-w*.5);
   const y=artSnap(baseline-h);
 
   ctx.save();
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
-  enemyShadow(ctx,cx,baseline+1.2,7.7,dashing?.17:.28);
+  enemyShadow(ctx,cx,baseline+1.15,dir==='down'?7.7:7.2,dashing?.17:.28);
   ctx.imageSmoothingEnabled=false;
 
-  // Waddle mínimo: da vida al sprite sin deformar el diseño original.
+  // Waddle mínimo: anima sin deformar la silueta original.
   ctx.translate(cx,baseline);
-  ctx.rotate(moving?gait*.018:0);
-  const squash=moving?Math.abs(gait)*.012:0;
-  ctx.scale(1+squash,1-squash*.7);
+  ctx.rotate(moving?gait*.016:0);
+  const squash=moving?Math.abs(gait)*.010:0;
+  ctx.scale(1+squash,1-squash*.65);
   ctx.translate(-cx,-baseline);
   ctx.drawImage(img,x,y,w,h);
+
+  // Parpadeo natural sobre el MISMO sprite de referencia. Atrás no se dibuja
+  // porque los ojos no son visibles. Hay un doble parpadeo ocasional.
+  const blinkPhase=frame%240;
+  const blinking=(blinkPhase<5)||(blinkPhase>=10&&blinkPhase<13);
+  if(blinking&&dir!=='up'){
+    const cream='#fde4ac';
+    const eyelid='#211d18';
+    ctx.fillStyle=cream;
+
+    if(dir==='down'){
+      const eyeW=w*.063,eyeH=h*.112;
+      const eyeY=y+h*.326;
+      const leftX=x+w*.430;
+      const rightX=x+w*.760;
+      ctx.fillRect(artSnap(leftX),artSnap(eyeY),artSize(eyeW),artSize(eyeH));
+      ctx.fillRect(artSnap(rightX),artSnap(eyeY),artSize(eyeW),artSize(eyeH));
+      ctx.fillStyle=eyelid;
+      const lineY=eyeY+eyeH*.64;
+      ctx.fillRect(artSnap(leftX+eyeW*.12),artSnap(lineY),artSize(eyeW*.76),ART_PIXEL);
+      ctx.fillRect(artSnap(rightX+eyeW*.12),artSnap(lineY),artSize(eyeW*.76),ART_PIXEL);
+    }else{
+      const eyeW=w*.060,eyeH=h*.098;
+      const eyeY=y+h*.326;
+      const eyeX=dir==='left'?x+w*.295:x+w*.650;
+      ctx.fillRect(artSnap(eyeX),artSnap(eyeY),artSize(eyeW),artSize(eyeH));
+      ctx.fillStyle=eyelid;
+      const lineY=eyeY+eyeH*.62;
+      ctx.fillRect(artSnap(eyeX+eyeW*.08),artSnap(lineY),artSize(eyeW*.84),ART_PIXEL);
+    }
+  }
+
   ctx.restore();
   return true;
 }
-
 /** Paleta de colores del pato */
 export type DuckPaletteLike = DuckPalette;
 
