@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.3.22';
+export const GAME_VERSION = '0.0.2.3.23';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -9,3 +9,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.3.21: mismo diseño de referencia en 4 direcciones + parpadeo natural.
 
 // v0.0.2.3.22: pato 100% pixel-art nativo, 8 direcciones, parpadeo y arma integrada.
+
+// v0.0.2.3.23: refinado frontal/trasero/perfiles nativos y diagonales 3/4 sin imágenes.
