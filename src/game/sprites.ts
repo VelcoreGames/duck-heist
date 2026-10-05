@@ -273,50 +273,46 @@ function drawReferenceDuckBack(
   ctx:Ctx,bx:number,by:number,frame:number,moving:boolean,hurt:boolean,dashing:boolean,pal:DuckPaletteLike,
 ){
   const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait*.55):Math.sin(frame*.055)>.82?.5:0;
-  const hb=by+bob,outline='#171816',cream=pal.body;
-  const hi=skinLight(cream,.18),lo=skinDark(cream,.13),deep=skinDark(cream,.23);
-  const warm='#e9ad72';
-  const beakHi=skinLight(pal.beak,.22);
+  const bob=moving?Math.round(gait*.42):(Math.sin(frame*.055)>.86?.5:0);
+  const hb=by+bob,outline='#1b1813',cream=pal.body;
+  const hi=skinLight(cream,.22),mid=skinLight(cream,.10);
+  const lo=skinDark(cream,.12),deep=skinDark(cream,.23),feather='#edb16f';
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
-  enemyShadow(ctx,bx+9,by+20,10.5,dashing?.18:.31);
+  enemyShadow(ctx,bx+10,by+20.7,8.7,dashing?.17:.29);
 
-  const stride=moving?(gait>0?2:-2):0;
-  hdRect(ctx,bx,hb,8-stride,38,9,4,outline);hdRect(ctx,bx,hb,9-stride,37,8,4,pal.beak);
-  hdRect(ctx,bx,hb,23+stride,38,9,4,outline);hdRect(ctx,bx,hb,23+stride,37,8,4,pal.beak);
-  hdRect(ctx,bx,hb,11-stride,37,4,1,beakHi);hdRect(ctx,bx,hb,24+stride,37,4,1,beakHi);
+  const stride=moving?(gait>0?1.2:-1.2):0;
+  hdRect(ctx,bx,hb,10-stride,40,8,4,outline);hdRect(ctx,bx,hb,11-stride,39,7,4,pal.beak);
+  hdRect(ctx,bx,hb,23+stride,40,8,4,outline);hdRect(ctx,bx,hb,23+stride,39,7,4,pal.beak);
 
-  // Contorno de espalda: cabeza mullida y cuerpo pequeño.
-  hdRect(ctx,bx,hb,15,-11,9,3,outline);hdRect(ctx,bx,hb,10,-9,19,3,outline);
-  hdRect(ctx,bx,hb,6,-7,27,4,outline);hdRect(ctx,bx,hb,3,-4,33,5,outline);
-  hdRect(ctx,bx,hb,0,0,39,8,outline);hdRect(ctx,bx,hb,-2,7,43,9,outline);
-  hdRect(ctx,bx,hb,0,15,39,7,outline);hdRect(ctx,bx,hb,4,21,32,5,outline);
-  for(const [x,y,w,h] of [[12,-12,5,3],[22,-13,5,4],[-3,8,5,4],[-2,15,5,4],[37,8,5,4],[36,16,5,4],[5,21,5,5],[31,21,5,5]])hdRect(ctx,bx,hb,x,y,w,h,outline);
+  hdRect(ctx,bx,hb,16,-11,8,3,outline);hdRect(ctx,bx,hb,12,-9,16,3,outline);
+  hdRect(ctx,bx,hb,8,-7,24,4,outline);hdRect(ctx,bx,hb,5,-4,30,5,outline);
+  hdRect(ctx,bx,hb,2,0,36,8,outline);hdRect(ctx,bx,hb,0,6,40,10,outline);
+  hdRect(ctx,bx,hb,2,15,36,7,outline);hdRect(ctx,bx,hb,5,21,30,5,outline);
+  for(const [x,y] of [[11,-10],[23,-10],[2,-2],[-2,7],[-1,15],[34,-1],[38,7],[37,15],[4,20],[32,20]])hdRect(ctx,bx,hb,x,y,5,4,outline);
 
-  hdRect(ctx,bx,hb,8,22,25,4,outline);hdRect(ctx,bx,hb,5,25,31,8,outline);
-  hdRect(ctx,bx,hb,3,32,35,6,outline);hdRect(ctx,bx,hb,7,37,27,3,outline);
-  for(const [x,y,w,h] of [[1,29,5,5],[36,29,5,5],[5,35,5,5],[31,35,5,5]])hdRect(ctx,bx,hb,x,y,w,h,outline);
+  hdRect(ctx,bx,hb,16,-9,8,3,cream);hdRect(ctx,bx,hb,12,-7,16,3,cream);
+  hdRect(ctx,bx,hb,9,-5,22,4,cream);hdRect(ctx,bx,hb,6,-2,28,5,cream);
+  hdRect(ctx,bx,hb,3,2,34,7,cream);hdRect(ctx,bx,hb,2,8,36,8,cream);
+  hdRect(ctx,bx,hb,4,15,32,7,cream);hdRect(ctx,bx,hb,7,21,26,4,cream);
 
-  // Fill cabeza.
-  hdRect(ctx,bx,hb,15,-9,9,3,cream);hdRect(ctx,bx,hb,10,-7,19,4,cream);
-  hdRect(ctx,bx,hb,7,-4,25,5,cream);hdRect(ctx,bx,hb,4,0,31,7,cream);
-  hdRect(ctx,bx,hb,2,6,35,9,cream);hdRect(ctx,bx,hb,3,14,33,7,cream);
-  hdRect(ctx,bx,hb,7,20,26,4,cream);
-  hdRect(ctx,bx,hb,6,-2,8,8,hi);hdRect(ctx,bx,hb,4,7,6,8,hi);
-  hdRect(ctx,bx,hb,30,2,5,12,lo);hdRect(ctx,bx,hb,29,14,6,6,deep);
+  hdRect(ctx,bx,hb,8,22,24,4,outline);hdRect(ctx,bx,hb,5,25,30,9,outline);
+  hdRect(ctx,bx,hb,3,33,34,6,outline);hdRect(ctx,bx,hb,7,38,26,3,outline);
+  hdRect(ctx,bx,hb,10,23,20,4,cream);hdRect(ctx,bx,hb,7,26,26,8,cream);
+  hdRect(ctx,bx,hb,5,33,30,5,cream);hdRect(ctx,bx,hb,9,38,22,2,cream);
 
-  // Fill cuerpo.
-  hdRect(ctx,bx,hb,10,23,21,3,cream);hdRect(ctx,bx,hb,7,25,27,8,cream);
-  hdRect(ctx,bx,hb,5,32,31,5,cream);hdRect(ctx,bx,hb,9,36,23,3,cream);
-  hdRect(ctx,bx,hb,5,27,6,7,hi);hdRect(ctx,bx,hb,29,27,5,8,lo);
+  hdRect(ctx,bx,hb,7,-2,7,12,hi);hdRect(ctx,bx,hb,4,8,6,9,hi);hdRect(ctx,bx,hb,7,27,6,8,hi);
+  hdRect(ctx,bx,hb,31,2,5,13,lo);hdRect(ctx,bx,hb,29,15,6,7,deep);
+  hdRect(ctx,bx,hb,29,28,5,8,lo);hdRect(ctx,bx,hb,25,36,7,2,deep);
 
-  // Marcas de pluma traseras, suaves y cálidas.
+  hdRect(ctx,bx,hb,6,17,8,8,mid);hdRect(ctx,bx,hb,27,17,8,8,lo);
+  hdRect(ctx,bx,hb,8,20,5,1,feather);hdRect(ctx,bx,hb,28,20,5,1,feather);
+  hdRect(ctx,bx,hb,15,31,11,2,hi);hdRect(ctx,bx,hb,17,34,7,2,cream);hdRect(ctx,bx,hb,18,37,5,2,deep);
   ctx.globalAlpha=.78;
-  for(const [x,y,w,h] of [[8,3,5,1],[7,5,2,3],[11,17,5,1],[25,4,4,1],[27,6,2,3],[15,27,5,1],[13,29,2,3],[18,31,5,1],[24,33,4,1]])hdRect(ctx,bx,hb,x,y,w,h,warm);
+  hdRect(ctx,bx,hb,9,4,4,1,feather);hdRect(ctx,bx,hb,8,6,2,3,feather);
+  hdRect(ctx,bx,hb,27,3,4,1,feather);hdRect(ctx,bx,hb,30,6,2,3,feather);
+  hdRect(ctx,bx,hb,14,28,5,1,feather);hdRect(ctx,bx,hb,20,30,5,1,feather);
   ctx.globalAlpha=1;
-
-  if(dashing){ctx.globalAlpha=.13;microRect(ctx,bx-4,hb+5,25,12,hi);ctx.globalAlpha=1;}
 }
 
 function drawReferenceDuckSide(
