@@ -988,7 +988,7 @@ export function renderWorld(engine: GameEngine) {
         ctx.translate(p.x+ox+7,p.y+oy+9);
         const horizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
         ctx.scale(horizontal?1.12:.9,horizontal?.88:1.1);
-        drawDuckSkin(ctx,-7,-9,f-i*2,engine.equippedSkin,aimDir,true,false,true,p.shootFlash>0,false,true);
+        drawDuckSkin(ctx,-7,-9,f-i*2,engine.equippedSkin,aimDir,true,false,true,p.shootFlash>0,false,true,p.facingAngle);
         ctx.restore();
       }
       ctx.save();
@@ -1029,7 +1029,7 @@ export function renderWorld(engine: GameEngine) {
     const heroScale=1.18;
     ctx.scale(sx*(1+interact*.025)*heroScale,sy*(1-interact*.045)*heroScale);
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,aimDir,p.moving,
-      p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true);
+      p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true,p.facingAngle);
     ctx.restore();
 
     // Ala/mano de apoyo respeta la skin equipada. Antes siempre volvía al
@@ -1039,7 +1039,11 @@ export function renderWorld(engine: GameEngine) {
       const hand=equippedVisual.palette.body,handShade=equippedVisual.palette.shade;
       ctx.save();
       const handPerpX=Math.cos(p.facingAngle-Math.PI/2),handPerpY=Math.sin(p.facingAngle-Math.PI/2);
-      ctx.translate(drawX+7+handPerpX*3.8,drawY+11.5+handPerpY*3.8);ctx.rotate(p.facingAngle);
+      const handForwardX=Math.cos(p.facingAngle),handForwardY=Math.sin(p.facingAngle);
+      ctx.translate(
+        drawX+7+handPerpX*2.7+handForwardX*2.4,
+        drawY+11.1+handPerpY*2.7+handForwardY*2.4,
+      );ctx.rotate(p.facingAngle);
       ctx.globalAlpha=interact>0?.86:(p.shootFlash>0?.9:.72);
       ctx.fillStyle=hand;
       ctx.fillRect(1,-2,interact>0?6:4,3);
@@ -1059,8 +1063,8 @@ export function renderWorld(engine: GameEngine) {
     const weaponForwardX=Math.cos(p.facingAngle);
     const weaponForwardY=Math.sin(p.facingAngle);
     ctx.translate(
-      drawX+7+weaponPerpX*4.8+weaponForwardX*3.1,
-      drawY+12+interact*3+weaponPerpY*4.8+weaponForwardY*3.1,
+      drawX+7+weaponPerpX*3.25+weaponForwardX*3.55,
+      drawY+11.6+interact*3+weaponPerpY*3.25+weaponForwardY*3.55,
     );
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
