@@ -4,10 +4,6 @@
 import { TILE_SIZE, ART_SCALE, ART_PIXEL } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
-import duckReferenceFrontUrl from '../assets/duck-reference-front.png';
-import duckReferenceBackUrl from '../assets/duck-reference-back.png';
-import duckReferenceLeftUrl from '../assets/duck-reference-left.png';
-import duckReferenceRightUrl from '../assets/duck-reference-right.png';
 import type { BossPartState } from './types';
 
 type Ctx = CanvasRenderingContext2D;
@@ -92,96 +88,22 @@ const PACK = '#3b2f2a';
 const PACK_STRAP = '#2a211d';
 
 export type DuckDir = 'up' | 'down' | 'left' | 'right';
+export type DuckVisualPose = DuckDir | 'down-left' | 'down-right' | 'up-left' | 'up-right';
 
-const referenceDuckImages:Partial<Record<DuckDir,HTMLImageElement>>={};
-
-function referenceDuckImage(dir:DuckDir){
-  const src=dir==='down'
-    ?duckReferenceFrontUrl
-    :dir==='up'
-      ?duckReferenceBackUrl
-      :dir==='left'
-        ?duckReferenceLeftUrl
-        :duckReferenceRightUrl;
-  let img=referenceDuckImages[dir];
-  if(!img){
-    img=new Image();
-    img.decoding='async';
-    img.src=src;
-    referenceDuckImages[dir]=img;
-  }
-  return img;
+function duckVisualPose(angle:number|undefined,fallback:DuckDir):DuckVisualPose{
+  if(angle===undefined||!Number.isFinite(angle)) return fallback;
+  const tau=Math.PI*2;
+  const a=((angle%tau)+tau)%tau;
+  const oct=Math.round(a/(Math.PI/4))%8;
+  return (['right','down-right','down','down-left','left','up-left','up','up-right'] as DuckVisualPose[])[oct];
 }
 
-/**
- * Sprite base fiel a la referencia del usuario.
- * El PNG frontal conserva directamente silueta, pico, ojos, marcas y proporciones
- * del diseño original; sólo se escala dentro del mundo. La física no cambia.
- */
-function drawReferenceDuckAsset(
-  ctx:Ctx,bx:number,by:number,frame:number,dir:DuckDir,moving:boolean,
-  hurt:boolean,dashing:boolean,shooting:boolean,
-){
-  const img=referenceDuckImage(dir);
-  if(!img||!img.complete||img.naturalWidth===0)return false;
-
-  const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait*.42):(!shooting&&!dashing&&Math.sin(frame*.055)>.86?.5:0);
-  const cx=bx+10;
-  const baseline=by+20.5+bob;
-  const h=23.8;
-  const w=dir==='down'?18.4:dir==='up'?17.2:16.2;
-  const x=artSnap(cx-w*.5);
-  const y=artSnap(baseline-h);
-
-  ctx.save();
-  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
-  if(dashing)ctx.globalAlpha=.82;
-  enemyShadow(ctx,cx,baseline+1.15,dir==='down'?7.7:7.2,dashing?.17:.28);
-  ctx.imageSmoothingEnabled=false;
-
-  // Waddle mínimo: anima sin deformar la silueta original.
-  ctx.translate(cx,baseline);
-  ctx.rotate(moving?gait*.016:0);
-  const squash=moving?Math.abs(gait)*.010:0;
-  ctx.scale(1+squash,1-squash*.65);
-  ctx.translate(-cx,-baseline);
-  ctx.drawImage(img,x,y,w,h);
-
-  // Parpadeo natural sobre el MISMO sprite de referencia. Atrás no se dibuja
-  // porque los ojos no son visibles. Hay un doble parpadeo ocasional.
-  const blinkPhase=frame%240;
-  const blinking=(blinkPhase<5)||(blinkPhase>=10&&blinkPhase<13);
-  if(blinking&&dir!=='up'){
-    const cream='#fde4ac';
-    const eyelid='#211d18';
-    ctx.fillStyle=cream;
-
-    if(dir==='down'){
-      const eyeW=w*.063,eyeH=h*.112;
-      const eyeY=y+h*.326;
-      const leftX=x+w*.430;
-      const rightX=x+w*.760;
-      ctx.fillRect(artSnap(leftX),artSnap(eyeY),artSize(eyeW),artSize(eyeH));
-      ctx.fillRect(artSnap(rightX),artSnap(eyeY),artSize(eyeW),artSize(eyeH));
-      ctx.fillStyle=eyelid;
-      const lineY=eyeY+eyeH*.64;
-      ctx.fillRect(artSnap(leftX+eyeW*.12),artSnap(lineY),artSize(eyeW*.76),ART_PIXEL);
-      ctx.fillRect(artSnap(rightX+eyeW*.12),artSnap(lineY),artSize(eyeW*.76),ART_PIXEL);
-    }else{
-      const eyeW=w*.060,eyeH=h*.098;
-      const eyeY=y+h*.326;
-      const eyeX=dir==='left'?x+w*.295:x+w*.650;
-      ctx.fillRect(artSnap(eyeX),artSnap(eyeY),artSize(eyeW),artSize(eyeH));
-      ctx.fillStyle=eyelid;
-      const lineY=eyeY+eyeH*.62;
-      ctx.fillRect(artSnap(eyeX+eyeW*.08),artSnap(lineY),artSize(eyeW*.84),ART_PIXEL);
-    }
-  }
-
-  ctx.restore();
-  return true;
+function duckBlinking(frame:number){
+  const p=((Math.floor(frame)%240)+240)%240;
+  return p<5||(p>=11&&p<14);
 }
+
+
 /** Paleta de colores del pato */
 export type DuckPaletteLike = DuckPalette;
 
@@ -211,7 +133,7 @@ function drawReferenceDuckFront(
   const beak=pal.beak;
   const beakHi='#f6a44a';
   const beakLo=pal.beakDark;
-  const blink=(frame%210)<6;
+  const blink=duckBlinking(frame);
 
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
@@ -397,7 +319,7 @@ function drawReferenceDuckSide(
   const hb=by+bob,outline='#171816',cream=pal.body;
   const hi=skinLight(cream,.18),lo=skinDark(cream,.13),deep=skinDark(cream,.23),warm='#e9ad72';
   const beakHi=skinLight(pal.beak,.22),left=dir==='left';
-  const blink=(frame%210)<6;
+  const blink=duckBlinking(frame);
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
   enemyShadow(ctx,bx+9,by+20,10,dashing?.18:.30);
@@ -453,6 +375,70 @@ function drawReferenceDuckSide(
 }
 
 
+
+function drawReferenceDuckDownDiagonal(
+  ctx:Ctx,bx:number,by:number,frame:number,left:boolean,moving:boolean,
+  hurt:boolean,dashing:boolean,pal:DuckPaletteLike,
+){
+  ctx.save();
+  const cx=bx+10,cy=by+11;
+  ctx.translate(cx,cy);
+  ctx.scale(left?-1:1,1);
+  ctx.transform(.97,0,.05,1,0,0);
+  ctx.translate(-cx,-cy);
+  drawReferenceDuckSide(ctx,bx,by,frame,'right',moving,hurt,dashing,pal);
+  ctx.restore();
+
+  const bob=moving?Math.round(Math.sin(frame*.38)*.5):0;
+  const hb=by+bob;
+  const outline='#171816',cream=pal.body;
+  // El segundo ojo y las plumas de pecho hacen que se lea 3/4, no perfil puro.
+  if(duckBlinking(frame)) hdRect(ctx,bx,hb,left?25:12,7,3,1,outline);
+  else hdRect(ctx,bx,hb,left?25:12,5,3,5,'#171717');
+  hdRect(ctx,bx,hb,left?22:15,25,5,1,skinDark(cream,.12));
+  hdRect(ctx,bx,hb,left?20:17,27,2,3,skinDark('#efb36f',.02));
+}
+
+function drawReferenceDuckUpDiagonal(
+  ctx:Ctx,bx:number,by:number,frame:number,left:boolean,moving:boolean,
+  hurt:boolean,dashing:boolean,pal:DuckPaletteLike,
+){
+  ctx.save();
+  const cx=bx+10,cy=by+11;
+  ctx.translate(cx,cy);
+  ctx.scale(left?-1:1,1);
+  ctx.transform(.98,0,.045,1,0,0);
+  ctx.translate(-cx,-cy);
+  drawReferenceDuckBack(ctx,bx,by,frame,moving,hurt,dashing,pal);
+  ctx.restore();
+
+  const bob=moving?Math.round(Math.sin(frame*.38)*.5):0;
+  const hb=by+bob;
+  const outline='#171816';
+  // Al girar desde atrás apenas aparecen ojo y punta de pico del lado cercano.
+  if(duckBlinking(frame)) hdRect(ctx,bx,hb,left?7:31,7,3,1,outline);
+  else hdRect(ctx,bx,hb,left?7:31,5,3,5,'#171717');
+  hdRect(ctx,bx,hb,left?-2:39,12,5,2,outline);
+  hdRect(ctx,bx,hb,left?-4:41,14,7,4,pal.beak);
+  hdRect(ctx,bx,hb,left?-2:39,14,3,1,skinLight(pal.beak,.20));
+}
+
+function drawReferenceDuckNative(
+  ctx:Ctx,bx:number,by:number,frame:number,pose:DuckVisualPose,moving:boolean,
+  hurt:boolean,dashing:boolean,shooting:boolean,pal:DuckPaletteLike,
+){
+  switch(pose){
+    case 'down': drawReferenceDuckFront(ctx,bx,by,frame,moving,hurt,dashing,shooting,pal); break;
+    case 'up': drawReferenceDuckBack(ctx,bx,by,frame,moving,hurt,dashing,pal); break;
+    case 'left': drawReferenceDuckSide(ctx,bx,by,frame,'left',moving,hurt,dashing,pal); break;
+    case 'right': drawReferenceDuckSide(ctx,bx,by,frame,'right',moving,hurt,dashing,pal); break;
+    case 'down-left': drawReferenceDuckDownDiagonal(ctx,bx,by,frame,true,moving,hurt,dashing,pal); break;
+    case 'down-right': drawReferenceDuckDownDiagonal(ctx,bx,by,frame,false,moving,hurt,dashing,pal); break;
+    case 'up-left': drawReferenceDuckUpDiagonal(ctx,bx,by,frame,true,moving,hurt,dashing,pal); break;
+    case 'up-right': drawReferenceDuckUpDiagonal(ctx,bx,by,frame,false,moving,hurt,dashing,pal); break;
+  }
+}
+
 export function drawDuck(
   ctx: Ctx, x: number, y: number, frame: number,
   dir: DuckDir = 'down', moving = false, hurt = false, dashing = false,
@@ -464,7 +450,7 @@ export function drawDuck(
   const outline=skinDark(pal.body,.76),beakHi=skinLight(pal.beak,.24);
   const gait=moving?Math.sin(frame*.38):0;
   const bob=moving?Math.round(gait*.65):(!shooting&&!dashing&&Math.sin(frame*.055)>.80?.5:0);
-  const blink=(frame%210)<6;
+  const blink=duckBlinking(frame);
   const look=!aiming&&!moving&&!shooting&&!dashing&&frame%300>238&&frame%300<276
     ?(frame%300<257?-1:1):0;
 
@@ -1090,7 +1076,7 @@ function drawSkinMaterialPass(
 export function drawDuckSkin(
   ctx: Ctx, x: number, y: number, frame: number,
   skinId: string, dir: DuckDir = 'down', moving = false, hurt = false,
-  dashing = false, shooting = false, dead = false, aiming = false,
+  dashing = false, shooting = false, dead = false, aiming = false, facingAngle?: number,
 ) {
   const skin = getSkin(skinId);
   const pal: DuckPaletteLike = skin?.palette ?? DEFAULT_DUCK;
@@ -1101,10 +1087,13 @@ export function drawDuckSkin(
   const overlay=skin?.overlay ?? 'robber';
 
   if(!dead)drawSkinBackLayer(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving,dashing,shooting);
-  const usedReferenceAsset=!dead&&overlay==='robber'
-    ?drawReferenceDuckAsset(ctx,bx,by,frame,dir,moving,hurt,dashing,shooting)
-    :false;
-  if(!usedReferenceAsset)drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal, aiming);
+  const nativePose=duckVisualPose(facingAngle,dir);
+  const usedNativeReference=!dead&&overlay==='robber';
+  if(usedNativeReference){
+    drawReferenceDuckNative(ctx,bx,by,frame,nativePose,moving,hurt,dashing,shooting,pal);
+  }else{
+    drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal, aiming);
+  }
   if(dead){drawSkinDeathAccessory(ctx,bx,by,overlay,accent,trim,metal);return;}
 
   const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
