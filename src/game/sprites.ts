@@ -155,15 +155,17 @@ function drawReferenceDuckFront(
   };
 
   // Pies pequeños y separados.
-  const stride=moving?(gait>0?1.25:-1.25):0;
-  const lift=moving&&Math.abs(gait)>.58?1.2:0;
+  const stride=moving?(gait>0?1.35:-1.35):0;
+  const lift=moving&&Math.abs(gait)>.58?1.4:0;
   const lLift=lift&&gait>0?lift:0,rLift=lift&&gait<0?lift:0;
-  hdRect(ctx,bx,hb,10-stride,40-lLift,8,4,outline);
-  hdRect(ctx,bx,hb,11-stride,39-lLift,7,4,beak);
-  hdRect(ctx,bx,hb,13-stride,39-lLift,3,1,beakHi);
-  hdRect(ctx,bx,hb,23+stride,40-rLift,8,4,outline);
-  hdRect(ctx,bx,hb,23+stride,39-rLift,7,4,beak);
-  hdRect(ctx,bx,hb,24+stride,39-rLift,3,1,beakHi);
+  // Pies deliberadamente separados: incluso en idle queda una franja clara
+  // de suelo entre ambos para que nunca se lean como una sola masa naranja.
+  hdRect(ctx,bx,hb,7-stride,40-lLift,8,4,outline);
+  hdRect(ctx,bx,hb,8-stride,39-lLift,7,4,beak);
+  hdRect(ctx,bx,hb,10-stride,39-lLift,3,1,beakHi);
+  hdRect(ctx,bx,hb,27+stride,40-rLift,8,4,outline);
+  hdRect(ctx,bx,hb,27+stride,39-rLift,7,4,beak);
+  hdRect(ctx,bx,hb,28+stride,39-rLift,3,1,beakHi);
 
   // Silueta tomada de la referencia: cabeza mullida y ligeramente asimétrica,
   // pero sólo ~25% más ancha que el cuerpo.
@@ -281,11 +283,11 @@ function drawReferenceDuckBack(
   if(dashing)ctx.globalAlpha=.82;
   enemyShadow(ctx,bx+10,by+20.7,8.7,dashing?.17:.29);
 
-  const stride=moving?(gait>0?1.2:-1.2):0;
-  const lift=moving&&Math.abs(gait)>.58?1.2:0;
+  const stride=moving?(gait>0?1.35:-1.35):0;
+  const lift=moving&&Math.abs(gait)>.58?1.4:0;
   const lLift=lift&&gait>0?lift:0,rLift=lift&&gait<0?lift:0;
-  hdRect(ctx,bx,hb,10-stride,40-lLift,8,4,outline);hdRect(ctx,bx,hb,11-stride,39-lLift,7,4,pal.beak);
-  hdRect(ctx,bx,hb,23+stride,40-rLift,8,4,outline);hdRect(ctx,bx,hb,23+stride,39-rLift,7,4,pal.beak);
+  hdRect(ctx,bx,hb,7-stride,40-lLift,8,4,outline);hdRect(ctx,bx,hb,8-stride,39-lLift,7,4,pal.beak);
+  hdRect(ctx,bx,hb,27+stride,40-rLift,8,4,outline);hdRect(ctx,bx,hb,27+stride,39-rLift,7,4,pal.beak);
 
   hdRect(ctx,bx,hb,16,-11,8,3,outline);hdRect(ctx,bx,hb,12,-9,16,3,outline);
   hdRect(ctx,bx,hb,8,-7,24,4,outline);hdRect(ctx,bx,hb,5,-4,30,5,outline);
@@ -330,11 +332,13 @@ function drawReferenceDuckSideRight(
   if(dashing)ctx.globalAlpha=.82;
   enemyShadow(ctx,bx+10,by+20.7,8.4,dashing?.17:.29);
 
-  const stride=moving?(gait>0?1.2:-1.2):0;
-  const lift=moving&&Math.abs(gait)>.58?1.2:0;
+  const stride=moving?(gait>0?1.45:-1.45):0;
+  const lift=moving&&Math.abs(gait)>.58?1.5:0;
   const nearLift=lift&&gait>0?lift:0,farLift=lift&&gait<0?lift:0;
-  hdRect(ctx,bx,hb,10-stride,40-nearLift,8,4,outline);hdRect(ctx,bx,hb,11-stride,39-nearLift,7,4,pal.beak);
-  hdRect(ctx,bx,hb,22+stride,40-farLift,8,4,outline);hdRect(ctx,bx,hb,22+stride,39-farLift,7,4,pal.beak);
+  // En perfil los pies también conservan dos apoyos visibles. El pie lejano
+  // queda retrasado un poco para dar profundidad sin fundirse con el cercano.
+  hdRect(ctx,bx,hb,7-stride,40-nearLift,8,4,outline);hdRect(ctx,bx,hb,8-stride,39-nearLift,7,4,pal.beak);
+  hdRect(ctx,bx,hb,25+stride,41-farLift,8,4,outline);hdRect(ctx,bx,hb,25+stride,40-farLift,7,4,pal.beak);
 
   hdRect(ctx,bx,hb,14,-11,8,3,outline);hdRect(ctx,bx,hb,10,-9,16,3,outline);
   hdRect(ctx,bx,hb,7,-7,23,4,outline);hdRect(ctx,bx,hb,4,-4,29,5,outline);
