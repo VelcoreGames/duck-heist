@@ -282,8 +282,10 @@ function drawReferenceDuckBack(
   enemyShadow(ctx,bx+10,by+20.7,8.7,dashing?.17:.29);
 
   const stride=moving?(gait>0?1.2:-1.2):0;
-  hdRect(ctx,bx,hb,10-stride,40,8,4,outline);hdRect(ctx,bx,hb,11-stride,39,7,4,pal.beak);
-  hdRect(ctx,bx,hb,23+stride,40,8,4,outline);hdRect(ctx,bx,hb,23+stride,39,7,4,pal.beak);
+  const lift=moving&&Math.abs(gait)>.58?1.2:0;
+  const lLift=lift&&gait>0?lift:0,rLift=lift&&gait<0?lift:0;
+  hdRect(ctx,bx,hb,10-stride,40-lLift,8,4,outline);hdRect(ctx,bx,hb,11-stride,39-lLift,7,4,pal.beak);
+  hdRect(ctx,bx,hb,23+stride,40-rLift,8,4,outline);hdRect(ctx,bx,hb,23+stride,39-rLift,7,4,pal.beak);
 
   hdRect(ctx,bx,hb,16,-11,8,3,outline);hdRect(ctx,bx,hb,12,-9,16,3,outline);
   hdRect(ctx,bx,hb,8,-7,24,4,outline);hdRect(ctx,bx,hb,5,-4,30,5,outline);
@@ -329,8 +331,10 @@ function drawReferenceDuckSideRight(
   enemyShadow(ctx,bx+10,by+20.7,8.4,dashing?.17:.29);
 
   const stride=moving?(gait>0?1.2:-1.2):0;
-  hdRect(ctx,bx,hb,10-stride,40,8,4,outline);hdRect(ctx,bx,hb,11-stride,39,7,4,pal.beak);
-  hdRect(ctx,bx,hb,22+stride,40,8,4,outline);hdRect(ctx,bx,hb,22+stride,39,7,4,pal.beak);
+  const lift=moving&&Math.abs(gait)>.58?1.2:0;
+  const nearLift=lift&&gait>0?lift:0,farLift=lift&&gait<0?lift:0;
+  hdRect(ctx,bx,hb,10-stride,40-nearLift,8,4,outline);hdRect(ctx,bx,hb,11-stride,39-nearLift,7,4,pal.beak);
+  hdRect(ctx,bx,hb,22+stride,40-farLift,8,4,outline);hdRect(ctx,bx,hb,22+stride,39-farLift,7,4,pal.beak);
 
   hdRect(ctx,bx,hb,14,-11,8,3,outline);hdRect(ctx,bx,hb,10,-9,16,3,outline);
   hdRect(ctx,bx,hb,7,-7,23,4,outline);hdRect(ctx,bx,hb,4,-4,29,5,outline);
@@ -474,30 +478,21 @@ export function drawDuck(
     ctx.restore();return;
   }
 
-  // Todas las orientaciones de la skin base comparten ahora la misma familia
-  // visual: pato crema, esponjado, sin lentes, sin pelo y sin gorro.
+  // Todas las orientaciones de la skin base comparten la misma familia visual
+  // y la misma escala nativa. Las poses trasera/laterales ya fueron dibujadas
+  // para igualar el volumen frontal, así que no deben reducirse al renderizar.
   if(dir==='down'){
     drawReferenceDuckFront(ctx,bx,by,frame,moving,hurt,dashing,shooting,pal);
     ctx.restore();
     return;
   }
   if(dir==='up'){
-    ctx.save();
-    ctx.translate(bx+10,by+12);
-    ctx.scale(.90,.90);
-    ctx.translate(-(bx+10),-(by+12));
     drawReferenceDuckBack(ctx,bx,by,frame,moving,hurt,dashing,pal);
-    ctx.restore();
     ctx.restore();
     return;
   }
   if(dir==='left'||dir==='right'){
-    ctx.save();
-    ctx.translate(bx+10,by+12);
-    ctx.scale(.90,.90);
-    ctx.translate(-(bx+10),-(by+12));
     drawReferenceDuckSide(ctx,bx,by,frame,dir,moving,hurt,dashing,pal);
-    ctx.restore();
     ctx.restore();
     return;
   }
