@@ -103,6 +103,14 @@ function duckBlinking(frame:number){
   return p<5||(p>=11&&p<14);
 }
 
+function duckMirror(ctx:Ctx,bx:number,draw:()=>void){
+  ctx.save();
+  ctx.translate((bx+10)*2,0);
+  ctx.scale(-1,1);
+  draw();
+  ctx.restore();
+}
+
 
 /** Paleta de colores del pato */
 export type DuckPaletteLike = DuckPalette;
