@@ -1032,25 +1032,42 @@ export function renderWorld(engine: GameEngine) {
       p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true,p.facingAngle);
     ctx.restore();
 
-    // Ala/mano de apoyo respeta la skin equipada. Antes siempre volvía al
-    // amarillo clásico y rompía la ilusión en skins oscuras, rosas o doradas.
-    if(heavyStance||longGun||interact>0){
+    // Brazos/alas de agarre separados del torso. El arma ya no nace del pico
+    // ni se confunde con el pecho: se ven una mano de empuñadura y, en armas
+    // largas/pesadas, una segunda mano de apoyo adelantada.
+    {
       const equippedVisual=getSkin(engine.equippedSkin);
-      const hand=equippedVisual.palette.body,handShade=equippedVisual.palette.shade;
-      ctx.save();
+      const hand=equippedVisual.palette.body;
+      const handShade=equippedVisual.palette.shade;
+      const handOutline=equippedVisual.palette.dark;
       const handPerpX=Math.cos(p.facingAngle-Math.PI/2),handPerpY=Math.sin(p.facingAngle-Math.PI/2);
       const handForwardX=Math.cos(p.facingAngle),handForwardY=Math.sin(p.facingAngle);
+
+      ctx.save();
       ctx.translate(
-        drawX+7+handPerpX*2.7+handForwardX*2.4,
-        drawY+11.1+handPerpY*2.7+handForwardY*2.4,
-      );ctx.rotate(p.facingAngle);
-      ctx.globalAlpha=interact>0?.86:(p.shootFlash>0?.9:.72);
-      ctx.fillStyle=hand;
-      ctx.fillRect(1,-2,interact>0?6:4,3);
-      ctx.fillStyle=handShade;ctx.fillRect(3,0,interact>0?5:4,2);
-      if(heavyStance&&!interact){ctx.fillStyle=equippedVisual.palette.dark;ctx.fillRect(-1,1,3,2);}
-      if(interact>0){ctx.fillStyle=equippedVisual.accent;ctx.fillRect(7,-1,2,2);}
+        drawX+7+handPerpX*4.15+handForwardX*3.7,
+        drawY+10.9+handPerpY*4.15+handForwardY*3.7,
+      );
+      ctx.rotate(p.facingAngle);
+      ctx.globalAlpha=interact>0?.88:(p.shootFlash>0?.96:.92);
+      ctx.fillStyle=handOutline;ctx.fillRect(-1,-3,6,5);
+      ctx.fillStyle=hand;ctx.fillRect(0,-2,5,3);
+      ctx.fillStyle=handShade;ctx.fillRect(2,1,4,2);
       ctx.restore();
+
+      if(heavyStance||longGun){
+        ctx.save();
+        ctx.translate(
+          drawX+7-handPerpX*1.7+handForwardX*7.2,
+          drawY+10.9-handPerpY*1.7+handForwardY*7.2,
+        );
+        ctx.rotate(p.facingAngle);
+        ctx.globalAlpha=p.shootFlash>0?.94:.88;
+        ctx.fillStyle=handOutline;ctx.fillRect(-1,-3,6,5);
+        ctx.fillStyle=hand;ctx.fillRect(0,-2,5,3);
+        ctx.fillStyle=handShade;ctx.fillRect(2,1,4,2);
+        ctx.restore();
+      }
     }
 
     // El arma equipada ahora se ve físicamente en las manos del pato. Cada ID
@@ -1063,12 +1080,14 @@ export function renderWorld(engine: GameEngine) {
     const weaponForwardX=Math.cos(p.facingAngle);
     const weaponForwardY=Math.sin(p.facingAngle);
     ctx.translate(
-      drawX+7+weaponPerpX*3.25+weaponForwardX*3.55,
-      drawY+11.6+interact*3+weaponPerpY*3.25+weaponForwardY*3.55,
+      drawX+7+weaponPerpX*4.55+weaponForwardX*5.6,
+      drawY+11.15+interact*3+weaponPerpY*4.55+weaponForwardY*5.6,
     );
     ctx.rotate(p.facingAngle+interact*.10);
     ctx.globalAlpha=1-interact*.38;
-    const gunSize=longGun?13:11;
+    // Un poco más grande y, sobre todo, más adelantada: debe poder distinguirse
+    // del pico, el pecho y las patas en las ocho direcciones.
+    const gunSize=longGun?14:12;
     const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
     const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
     const postShot=clamp((cooldownNorm-.35)/.65,0,1);
