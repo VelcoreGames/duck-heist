@@ -315,70 +315,68 @@ function drawReferenceDuckBack(
   ctx.globalAlpha=1;
 }
 
-function drawReferenceDuckSide(
-  ctx:Ctx,bx:number,by:number,frame:number,dir:'left'|'right',moving:boolean,hurt:boolean,dashing:boolean,pal:DuckPaletteLike,
+function drawReferenceDuckSideRight(
+  ctx:Ctx,bx:number,by:number,frame:number,moving:boolean,hurt:boolean,dashing:boolean,pal:DuckPaletteLike,
 ){
   const gait=moving?Math.sin(frame*.38):0;
-  const bob=moving?Math.round(gait*.55):Math.sin(frame*.055)>.82?.5:0;
-  const hb=by+bob,outline='#171816',cream=pal.body;
-  const hi=skinLight(cream,.18),lo=skinDark(cream,.13),deep=skinDark(cream,.23),warm='#e9ad72';
-  const beakHi=skinLight(pal.beak,.22),left=dir==='left';
+  const bob=moving?Math.round(gait*.42):(Math.sin(frame*.055)>.86?.5:0);
+  const hb=by+bob,outline='#1b1813',cream=pal.body;
+  const hi=skinLight(cream,.23),mid=skinLight(cream,.10);
+  const lo=skinDark(cream,.12),deep=skinDark(cream,.23),feather='#efb36f';
   const blink=duckBlinking(frame);
   if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
   if(dashing)ctx.globalAlpha=.82;
-  enemyShadow(ctx,bx+9,by+20,10,dashing?.18:.30);
+  enemyShadow(ctx,bx+10,by+20.7,8.4,dashing?.17:.29);
 
-  const stride=moving?(gait>0?2:-2):0;
-  hdRect(ctx,bx,hb,10-stride,38,9,4,outline);hdRect(ctx,bx,hb,11-stride,37,8,4,pal.beak);
-  hdRect(ctx,bx,hb,23+stride,38,8,4,outline);hdRect(ctx,bx,hb,23+stride,37,7,4,pal.beak);
+  const stride=moving?(gait>0?1.2:-1.2):0;
+  hdRect(ctx,bx,hb,10-stride,40,8,4,outline);hdRect(ctx,bx,hb,11-stride,39,7,4,pal.beak);
+  hdRect(ctx,bx,hb,22+stride,40,8,4,outline);hdRect(ctx,bx,hb,22+stride,39,7,4,pal.beak);
 
-  // Cabeza de perfil, con frente alta y nuca muy plumosa.
-  const ox=left?0:1;
-  hdRect(ctx,bx,hb,13+ox,-11,9,3,outline);hdRect(ctx,bx,hb,8+ox,-9,18,3,outline);
-  hdRect(ctx,bx,hb,5+ox,-7,25,4,outline);hdRect(ctx,bx,hb,2+ox,-4,31,5,outline);
-  hdRect(ctx,bx,hb,0+ox,0,35,8,outline);hdRect(ctx,bx,hb,-2+ox,7,39,9,outline);
-  hdRect(ctx,bx,hb,0+ox,15,35,7,outline);hdRect(ctx,bx,hb,4+ox,21,29,5,outline);
-  for(const [x,y,w,h] of [[10,-12,5,3],[21,-13,5,4],[-3,7,5,4],[-2,15,5,4],[32,2,5,4],[34,10,5,4],[30,18,5,4]])hdRect(ctx,bx,hb,x+ox,y,w,h,outline);
+  hdRect(ctx,bx,hb,14,-11,8,3,outline);hdRect(ctx,bx,hb,10,-9,16,3,outline);
+  hdRect(ctx,bx,hb,7,-7,23,4,outline);hdRect(ctx,bx,hb,4,-4,29,5,outline);
+  hdRect(ctx,bx,hb,2,0,34,8,outline);hdRect(ctx,bx,hb,1,6,37,10,outline);
+  hdRect(ctx,bx,hb,3,15,35,7,outline);hdRect(ctx,bx,hb,6,21,30,5,outline);
+  for(const [x,y] of [[9,-10],[21,-10],[2,-2],[-1,7],[0,15],[31,-1],[36,6],[36,15],[5,20],[31,20]])hdRect(ctx,bx,hb,x,y,5,4,outline);
 
-  // Torso pequeño.
-  hdRect(ctx,bx,hb,8,22,24,4,outline);hdRect(ctx,bx,hb,5,25,30,8,outline);
-  hdRect(ctx,bx,hb,4,32,32,6,outline);hdRect(ctx,bx,hb,8,37,25,3,outline);
-  hdRect(ctx,bx,hb,left?1:33,28,5,6,outline);
+  hdRect(ctx,bx,hb,14,-9,8,3,cream);hdRect(ctx,bx,hb,10,-7,16,3,cream);
+  hdRect(ctx,bx,hb,8,-5,21,4,cream);hdRect(ctx,bx,hb,5,-2,27,5,cream);
+  hdRect(ctx,bx,hb,3,2,32,7,cream);hdRect(ctx,bx,hb,2,8,35,8,cream);
+  hdRect(ctx,bx,hb,4,15,33,7,cream);hdRect(ctx,bx,hb,8,21,27,4,cream);
 
-  // Relleno.
-  hdRect(ctx,bx,hb,13+ox,-9,9,3,cream);hdRect(ctx,bx,hb,9+ox,-7,17,4,cream);
-  hdRect(ctx,bx,hb,6+ox,-4,23,5,cream);hdRect(ctx,bx,hb,3+ox,0,29,7,cream);
-  hdRect(ctx,bx,hb,2+ox,6,32,9,cream);hdRect(ctx,bx,hb,3+ox,14,30,7,cream);
-  hdRect(ctx,bx,hb,7+ox,20,24,4,cream);
-  hdRect(ctx,bx,hb,left?5:23,-1,8,11,hi);
-  hdRect(ctx,bx,hb,left?27:3,4,5,13,lo);
-  hdRect(ctx,bx,hb,left?28:2,14,5,6,deep);
+  hdRect(ctx,bx,hb,35,11,8,2,outline);hdRect(ctx,bx,hb,37,13,11,6,outline);
+  hdRect(ctx,bx,hb,35,18,9,3,outline);hdRect(ctx,bx,hb,36,12,7,2,pal.beakDark);
+  hdRect(ctx,bx,hb,38,14,9,5,pal.beak);hdRect(ctx,bx,hb,36,18,7,2,pal.beakDark);
+  hdRect(ctx,bx,hb,39,14,5,1,skinLight(pal.beak,.22));
 
-  hdRect(ctx,bx,hb,10,23,20,3,cream);hdRect(ctx,bx,hb,7,25,26,8,cream);
-  hdRect(ctx,bx,hb,6,32,28,5,cream);hdRect(ctx,bx,hb,10,36,20,3,cream);
-  hdRect(ctx,bx,hb,left?5:28,27,6,7,hi);hdRect(ctx,bx,hb,left?27:6,28,5,7,lo);
+  hdRect(ctx,bx,hb,9,22,24,4,outline);hdRect(ctx,bx,hb,6,25,29,9,outline);
+  hdRect(ctx,bx,hb,4,33,32,6,outline);hdRect(ctx,bx,hb,8,38,25,3,outline);
+  hdRect(ctx,bx,hb,11,23,20,4,cream);hdRect(ctx,bx,hb,8,26,25,8,cream);
+  hdRect(ctx,bx,hb,6,33,28,5,cream);hdRect(ctx,bx,hb,10,38,21,2,cream);
 
-  // Ojo simple del perfil.
-  const eyeX=left?8:25;
-  if(blink)hdRect(ctx,bx,hb,eyeX,7,4,1,outline);
-  else {hdRect(ctx,bx,hb,eyeX,4,4,7,'#171717');}
-  hdRect(ctx,bx,hb,eyeX-1,2,6,1,lo);
+  hdRect(ctx,bx,hb,7,-1,7,12,hi);hdRect(ctx,bx,hb,5,9,6,8,hi);hdRect(ctx,bx,hb,8,27,6,8,hi);
+  hdRect(ctx,bx,hb,30,2,5,10,lo);hdRect(ctx,bx,hb,31,12,5,8,deep);
+  hdRect(ctx,bx,hb,28,29,5,7,lo);hdRect(ctx,bx,hb,24,36,7,2,deep);
 
-  // Pico sale claramente del perfil.
-  if(left){
-    hdRect(ctx,bx,hb,-12,12,15,3,outline);hdRect(ctx,bx,hb,-14,15,18,6,outline);hdRect(ctx,bx,hb,-11,20,14,3,outline);
-    hdRect(ctx,bx,hb,-11,13,13,3,pal.beakDark);hdRect(ctx,bx,hb,-13,15,16,5,pal.beak);hdRect(ctx,bx,hb,-10,14,11,2,beakHi);hdRect(ctx,bx,hb,-10,20,12,2,pal.beakDark);
-  }else{
-    hdRect(ctx,bx,hb,33,12,15,3,outline);hdRect(ctx,bx,hb,32,15,18,6,outline);hdRect(ctx,bx,hb,33,20,14,3,outline);
-    hdRect(ctx,bx,hb,34,13,13,3,pal.beakDark);hdRect(ctx,bx,hb,33,15,16,5,pal.beak);hdRect(ctx,bx,hb,35,14,11,2,beakHi);hdRect(ctx,bx,hb,34,20,12,2,pal.beakDark);
-  }
+  if(blink)hdRect(ctx,bx,hb,29,8,4,1,outline);
+  else hdRect(ctx,bx,hb,29,5,4,7,'#171717');
 
-  ctx.globalAlpha=.80;
-  for(const [x,y,w,h] of left?[[5,0,4,1],[4,2,2,3],[21,-4,3,1],[24,16,4,1],[14,27,5,1],[12,29,2,3],[18,31,5,1]]:[[28,0,4,1],[30,2,2,3],[16,-4,3,1],[7,16,4,1],[16,27,5,1],[20,29,2,3],[14,31,5,1]])hdRect(ctx,bx,hb,x,y,w,h,warm);
+  hdRect(ctx,bx,hb,7,23,8,10,mid);hdRect(ctx,bx,hb,8,28,5,5,hi);
+  ctx.globalAlpha=.82;
+  hdRect(ctx,bx,hb,9,2,4,1,'#f6cb95');hdRect(ctx,bx,hb,8,4,4,1,'#f6cb95');
+  hdRect(ctx,bx,hb,22,-3,4,1,'#f6cb95');hdRect(ctx,bx,hb,24,-1,3,1,'#f6cb95');
+  hdRect(ctx,bx,hb,13,29,5,1,feather);hdRect(ctx,bx,hb,12,31,2,3,feather);hdRect(ctx,bx,hb,15,33,5,1,feather);
   ctx.globalAlpha=1;
 }
 
-
+function drawReferenceDuckSide(
+  ctx:Ctx,bx:number,by:number,frame:number,dir:'left'|'right',moving:boolean,hurt:boolean,dashing:boolean,pal:DuckPaletteLike,
+){
+  if(dir==='right'){
+    drawReferenceDuckSideRight(ctx,bx,by,frame,moving,hurt,dashing,pal);
+    return;
+  }
+  duckMirror(ctx,bx,()=>drawReferenceDuckSideRight(ctx,bx,by,frame,moving,hurt,dashing,pal));
+}
 
 function drawReferenceDuckDownDiagonal(
   ctx:Ctx,bx:number,by:number,frame:number,left:boolean,moving:boolean,
