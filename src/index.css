@@ -326,24 +326,29 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 }
 .is-featured .vg-card-art{height:264px}
 /* Portada de Duck Heist: captura del juego a sangre, sin alterar las tarjetas futuras. */
-.vg-game-duck .vg-card-art{background:#0a1426}
+.vg-game-duck .vg-card-art{background:#071827}
 .vg-card-thumbnail{
   position:absolute;inset:0;z-index:0;display:block;width:100%;height:100%;
-  object-fit:cover;object-position:center 52%;image-rendering:auto;
-  filter:saturate(1.08) contrast(1.04);
+  object-fit:cover;object-position:center center;image-rendering:auto;
+  filter:brightness(1.10) saturate(1.08) contrast(1.035);
   transition:transform .35s ease,filter .35s ease;
 }
 .vg-game-duck:hover .vg-card-thumbnail,.vg-game-duck:focus-visible .vg-card-thumbnail{
-  transform:scale(1.035);filter:saturate(1.15) contrast(1.06);
+  transform:scale(1.04);filter:brightness(1.14) saturate(1.16) contrast(1.05);
 }
-.vg-game-duck .vg-card-art::before{
-  z-index:1;opacity:.3;
-}
+.vg-game-duck .vg-card-art::before{z-index:1;opacity:.12}
 .vg-game-duck .vg-card-art::after{
   z-index:1;
-  background:linear-gradient(180deg,rgba(3,9,24,.38),transparent 38%,rgba(5,10,24,.84));
+  background:linear-gradient(180deg,rgba(2,9,23,.67),transparent 36%,transparent 57%,rgba(2,9,23,.86));
 }
-.vg-game-duck .vg-card-glow{z-index:1;opacity:.5}
+.vg-game-duck .vg-card-glow{z-index:1;opacity:.2;pointer-events:none}
+.vg-thumb-kicker{
+  position:absolute;top:14px;left:15px;z-index:2;
+  font:700 9px 'Sora',Arial,sans-serif;letter-spacing:.10em;
+  color:#faf5e9;text-shadow:0 2px 9px rgba(0,0,0,.95);
+  pointer-events:none;
+}
+.vg-thumb-kicker span{color:#f4bb64;margin:0 3px}
 
 .vg-card-art::before{
   content:"";position:absolute;inset:0;opacity:.46;

@@ -87,9 +87,10 @@ export default function GamePortal(){
             <div className="vg-card-number">{String(index+1).padStart(2,'0')}</div>
             <div className="vg-card-art" aria-hidden="true">
               {game.id==='duck-heist'
-                ? <img className="vg-card-thumbnail" src="/duck-heist-thumbnail.png" alt="" loading="eager" decoding="async" />
+                ? <img className="vg-card-thumbnail" src="/duck-heist-gameplay.webp" alt="" loading="eager" decoding="async" />
                 : <div className="vg-pixel-shape" />}
               <div className="vg-card-glow" />
+              {game.id==='duck-heist'&&<div className="vg-thumb-kicker">EL BANCO DEL PAN <span>·</span> ROGUELITE DE ACCIÓN</div>}
               <div className="vg-art-caption">
                 <span>{game.live?'DISPONIBLE AHORA':'EN PRODUCCIÓN'}</span>
                 <strong>{game.platform}</strong>
