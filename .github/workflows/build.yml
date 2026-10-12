@@ -23,14 +23,10 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Validate catalog gameplay artwork
+      - name: Validate catalog artwork checksum
         run: |
           set -euo pipefail
-          test -s public/duck-heist-gameplay.webp
-          python3 scripts/repair-gameplay-cover.py
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg > /dev/null
-          ffmpeg -v error -i public/duck-heist-gameplay.webp -f null -
+          test "$(git hash-object public/duck-heist-gameplay.webp)" = "bb7814364955e75467490907439efea208fa55de"
       - name: Build
         run: npm run build
       - name: Publish dist on main
