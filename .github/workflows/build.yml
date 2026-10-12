@@ -27,6 +27,8 @@ jobs:
         run: |
           set -euo pipefail
           test -s public/duck-heist-gameplay.webp
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg > /dev/null
           ffmpeg -v error -i public/duck-heist-gameplay.webp -f null -
       - name: Build
         run: npm run build
