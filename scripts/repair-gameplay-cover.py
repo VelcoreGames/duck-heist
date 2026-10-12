@@ -24,7 +24,10 @@ else:
     for i in range(len(truncated)+1):
         left,right=truncated[:i],truncated[i:]
         for ch in alphabet:
-            candidate=b64decode(left+ch+right)
+            try:
+                candidate=b64decode(left+ch+right,validate=True)
+            except (ValueError, __import__("binascii").Error):
+                continue
             if git_hash(candidate)==expected:
                 recovered=candidate
                 print(f"Recovered exact original artwork at position {i}")
