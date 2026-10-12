@@ -23,6 +23,11 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Validate catalog gameplay artwork
+        run: |
+          set -euo pipefail
+          test -s public/duck-heist-gameplay.webp
+          ffmpeg -v error -i public/duck-heist-gameplay.webp -f null -
       - name: Build
         run: npm run build
       - name: Publish dist on main
