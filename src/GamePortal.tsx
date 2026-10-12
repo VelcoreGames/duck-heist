@@ -86,7 +86,9 @@ export default function GamePortal(){
           >
             <div className="vg-card-number">{String(index+1).padStart(2,'0')}</div>
             <div className="vg-card-art" aria-hidden="true">
-              <div className="vg-pixel-shape" />
+              {game.id==='duck-heist'
+                ? <img className="vg-card-thumbnail" src="/duck-heist-thumbnail.png" alt="" loading="eager" decoding="async" />
+                : <div className="vg-pixel-shape" />}
               <div className="vg-card-glow" />
               <div className="vg-art-caption">
                 <span>{game.live?'DISPONIBLE AHORA':'EN PRODUCCIÓN'}</span>
