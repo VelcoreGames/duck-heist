@@ -3291,6 +3291,8 @@ function spawnWeaponImpact(engine:GameEngine,p:Projectile,x:number,y:number,surf
   const count=heavy?5:energy?3:2;
   const color=energy?'#ffe7a6':bread?'#d7a56a':surface?'#aeb9bd':'#fff0cf';
   spawn(engine,x,y,energy?'spark':bread?'crumb':'hit',count,color);
+  // Estrellitas kawaii al acertarle a un enemigo (no en paredes ni objetos).
+  if(!surface&&p.friendly)spawn(engine,x,y,'star',heavy?3:1+(engine.frame&1),engine.frame%3===0?'#ffc6d8':'#fff1a8');
   if(heavy)spawn(engine,x,y,'spark',3,id==='breadcrumb_shotgun'?'#f0b568':'#e6c56f');
   if(surface&&heavy)spawn(engine,x,y,'smoke',2,'#69757a');
 }
@@ -5149,7 +5151,7 @@ function spawn(engine: GameEngine, x: number, y: number, type: string, count: nu
       x: x + rng(-3, 3), y: y + rng(-3, 3),
       vx: rng(-2.2, 2.2), vy: rng(-3, 0.4),
       type, life: 1, decay: rng(0.02, 0.05), color,
-      gravity: type === 'feather' ? 0.02 : type === 'smoke' ? -0.01 : 0.08,
+      gravity: type === 'feather' ? 0.02 : type === 'smoke' ? -0.01 : type === 'star' ? -0.035 : 0.08,
     });
   }
 }

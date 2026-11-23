@@ -13,7 +13,7 @@ import {
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
   drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
   drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
-  drawDuckSkin, drawBankKey, drawCrumbCluster,
+  drawDuckSkin, drawDizzyStars, drawBankKey, drawCrumbCluster,
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, ENEMIES, META_UPGRADES,
@@ -65,6 +65,15 @@ const duckAimDir=(angle:number):'up'|'down'|'left'|'right'=> {
   return Math.abs(x)>Math.abs(y)?(x>=0?'right':'left'):(y>=0?'down':'up');
 };
 const easeOutCubic=(v:number)=>1-Math.pow(1-clamp(v,0,1),3);
+// Destello de cuatro puntas en píxeles lógicos (efectos kawaii del pato).
+function kawaiiSparkle(ctx:CanvasRenderingContext2D,x:number,y:number,r:number,color:string,alpha:number){
+  if(alpha<=0||r<=0)return;
+  ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=color;
+  const t=Math.max(.5,r*.32);
+  ctx.fillRect(x-t*.5,y-r,t,r*2);ctx.fillRect(x-r,y-t*.5,r*2,t);
+  ctx.fillStyle='#ffffff';ctx.fillRect(x-t*.5,y-t*.5,t,t);
+  ctx.restore();
+}
 const BALLISTIC_PLAYER_PROJECTILES=new Set([
   'pistol_round','buckshot_player','smg_round','rifle_556','rifle_762','lmg_556',
   'magnum_round','suppressed_45','dmr_round','sniper_308','heavy_50','pdw_57','grenade_40mm',
@@ -884,8 +893,9 @@ export function renderWorld(engine: GameEngine) {
       ctx.globalAlpha=.16;ctx.fillStyle='#e87620';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5.2:6.2,0,Math.PI*2);ctx.fill();
       ctx.globalAlpha=.09;ctx.fillStyle='#f9b736';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?3.2:4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     } else if(BALLISTIC_PLAYER_PROJECTILES.has(p.type)) {
-      ctx.globalAlpha=.15;ctx.fillStyle='#e87620';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?4.2:5.2,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.09;ctx.fillStyle='#fbd748';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?2.8:3.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      // Balas del pato: halo crema y rosa (el fuego enemigo sigue naranja).
+      ctx.globalAlpha=.14;ctx.fillStyle='#ffb3c8';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?4.2:5.2,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.16;ctx.fillStyle='#fff1b8';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?2.8:3.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     }
 
     // Estela corta y orientada para leer velocidad/dirección sin blur ni filtros.
@@ -893,11 +903,11 @@ export function renderWorld(engine: GameEngine) {
       ctx.save();
       if(!directional)ctx.rotate(Math.atan2(p.vy,p.vx));
       const hostile=!p.friendly;
-      ctx.globalAlpha=hostile?.19:.18;ctx.fillStyle='#e87620';
+      ctx.globalAlpha=hostile?.19:.18;ctx.fillStyle=hostile?'#e87620':'#ffb3c8';
       ctx.fillRect(-Math.min(16,5+speed*1.7),-1,Math.min(12,3+speed),2);
-      ctx.globalAlpha=hostile?.13:.12;ctx.fillStyle='#fca12d';
+      ctx.globalAlpha=hostile?.13:.12;ctx.fillStyle=hostile?'#fca12d':'#ffe3a3';
       ctx.fillRect(-Math.min(13,4+speed*1.45),-1,Math.min(9,2+speed*.85),2);
-      ctx.globalAlpha=hostile?.08:.075;ctx.fillStyle='#fbd748';
+      ctx.globalAlpha=hostile?.08:.075;ctx.fillStyle=hostile?'#fbd748':'#fff6d8';
       ctx.fillRect(-Math.min(20,7+speed*2.2),0,Math.min(9,2+speed*.72),1);
       ctx.restore();
     }
@@ -981,6 +991,13 @@ export function renderWorld(engine: GameEngine) {
     ctx.restore();
 
     if(p.dashTimer>0){
+      // Rastro de estrellitas detrás del dash.
+      const dl=clamp(p.dashTimer/12,0,1);
+      for(let i=0;i<4;i++){
+        const back=8+i*6+(1-dl)*6,wob=Math.sin(f*.6+i*1.9)*3;
+        kawaiiSparkle(ctx,p.x+7-p.dashDir.x*back+p.dashDir.y*wob,p.y+9-p.dashDir.y*back-p.dashDir.x*wob,
+          1.6+((i+Math.floor(f/3))%2)*.9,i%2?'#ffc6d8':'#fff1a8',(.85-i*.17)*dl);
+      }
       for(let i=4;i>=1;i--){
         ctx.save();
         ctx.globalAlpha=.045+i*.045;
@@ -1020,9 +1037,16 @@ export function renderWorld(engine: GameEngine) {
     const strafe=Math.sin(p.facingAngle-moveAngle);
     const interact=clamp((p.interactFlash??0)/12,0,1);
     const bodyLean=p.dashTimer>0?0:clamp(strafe*(p.moving?.055:.025),-.07,.07);
+    // Kawaii: contoneo de pato al caminar (gira desde las patas, al ritmo del paso)
+    // y respiración suave en reposo. No cambia la hitbox.
+    const calm=p.dashTimer<=0&&p.hurtTimer<=0;
+    const waddle=calm&&p.moving?Math.sin(f*.38)*.085:0;
+    const breathe=calm&&!p.moving&&p.shootFlash<=0?Math.sin(f*.07)*.022:0;
     ctx.save();
     ctx.translate(drawX+7,drawY+9+interact*1.5);
     ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
+    if(waddle){ctx.translate(0,8);ctx.rotate(waddle);ctx.translate(0,-8);}
+    if(breathe){ctx.translate(0,8);ctx.scale(1-breathe*.5,1+breathe);ctx.translate(0,-8);}
     if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
     // El personaje debe convivir con cajeros, sillas y utilería de una baldosa:
     // se mantiene detallado, pero ya no domina visualmente la habitación.
@@ -1180,6 +1204,11 @@ export function renderWorld(engine: GameEngine) {
         ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-3);ctx.lineTo(flash-2,0);ctx.lineTo(flash,3);ctx.closePath();ctx.fill();
       }
       ctx.fillStyle=plasma?'#f2c95b':bread?'#d99a4b':'#efad4a';ctx.fillRect(1,-1,Math.max(2,flash-3),2);
+      // Kawaii: estrella blanca y anillo rosa que se abre en cada disparo.
+      const tw=clamp(p.shootFlash/6,0,1);
+      kawaiiSparkle(ctx,flash*.6,0,2+tw*2.2,'#fffbe8',.95*tw);
+      ctx.globalAlpha=.45*tw;ctx.strokeStyle='#ffc6d8';ctx.lineWidth=.6;
+      ctx.beginPath();ctx.arc(flash*.6,0,2.5+(1-tw)*4.5,0,Math.PI*2);ctx.stroke();
       ctx.restore();
     }
     if(p.iFrames>0&&p.dashTimer<=0&&Math.floor(f*.35)%2===0){
@@ -1195,6 +1224,8 @@ export function renderWorld(engine: GameEngine) {
     ctx.scale(1,.35+death*.65);
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,p.dir,false,true,false,false);
     ctx.restore();
+    // Estrellitas de mareo sobre el pato derrotado.
+    ctx.save();ctx.globalAlpha=Math.min(1,.35+fall);drawDizzyStars(ctx,p.x+7,p.y-3+fall*7,f,7);ctx.restore();
     ctx.save();ctx.globalAlpha=.18*death;ctx.strokeStyle='#f4d384';ctx.beginPath();ctx.ellipse(p.x+7,p.y+15,10+fall*12,3+fall*3,0,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
 

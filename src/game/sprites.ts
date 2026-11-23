@@ -103,6 +103,59 @@ function duckBlinking(frame:number){
   return p<5||(p>=11&&p<14);
 }
 
+// ---------------------------------------------------------------------------
+// Detalles kawaii del protagonista (v0.0.2.3.27): destellos en los ojos, mejillas,
+// cara de "> <" al recibir daño, gota de sudor y estrellitas de mareo.
+// Todo se dibuja encima del diseño de referencia aprobado, sin cambiar su silueta.
+// ---------------------------------------------------------------------------
+type KawaiiEyeState='open'|'blink'|'hurt';
+const KAWAII_INK='#171717';
+const KAWAII_BLUSH='#ff8fa6';
+function kawaiiEye(ctx:Ctx,bx:number,hb:number,x:number,y:number,w:number,h:number,state:KawaiiEyeState,pointsRight:boolean){
+  if(state==='blink'){hdRect(ctx,bx,hb,x,y+Math.floor(h/2),w,1,KAWAII_INK);return;}
+  if(state==='hurt'){
+    // Ojo apretado en forma de flecha: ">" (izquierdo) y "<" (derecho).
+    const cy=y+Math.floor(h/2);
+    const xs=pointsRight?[x,x+1,x+2,x+1,x]:[x+w-2,x+w-3,x+w-4,x+w-3,x+w-2];
+    xs.forEach((xx,i)=>hdRect(ctx,bx,hb,Math.max(x,xx),cy-2+i,2,1,KAWAII_INK));
+    return;
+  }
+  hdRect(ctx,bx,hb,x,y,w,h,KAWAII_INK);
+  // Destello grande arriba y uno pequeño abajo: la mirada "brillante".
+  const a=ctx.globalAlpha;
+  ctx.globalAlpha=a*.95;
+  hdRect(ctx,bx,hb,x+(w>=4?1:0),y+1,1,w>=4?2:1,'#ffffff');
+  if(h>=6){ctx.globalAlpha=a*.7;hdPx(ctx,bx,hb,x+w-2,y+h-2,'#ffffff',1);}
+  ctx.globalAlpha=a;
+}
+function kawaiiBlush(ctx:Ctx,bx:number,hb:number,x:number,y:number,w=4){
+  const a=ctx.globalAlpha;
+  ctx.globalAlpha=a*.5;hdRect(ctx,bx,hb,x,y,w,2,KAWAII_BLUSH);
+  ctx.globalAlpha=a*.28;hdRect(ctx,bx,hb,x+1,y+2,Math.max(1,w-2),1,KAWAII_BLUSH);
+  ctx.globalAlpha=a;
+}
+function kawaiiSweat(ctx:Ctx,bx:number,hb:number,x:number,y:number){
+  const a=ctx.globalAlpha;
+  ctx.globalAlpha=Math.max(a,.75);
+  hdRect(ctx,bx,hb,x+1,y,1,1,'#bfe9ff');hdRect(ctx,bx,hb,x,y+1,3,2,'#8fd3ff');hdRect(ctx,bx,hb,x+1,y+3,1,1,'#5fb7ea');
+  hdPx(ctx,bx,hb,x,y+1,'#ffffff',1);
+  ctx.globalAlpha=a;
+}
+/** Estrellitas que giran sobre la cabeza (mareo). cx, cy en píxeles lógicos. */
+export function drawDizzyStars(ctx:Ctx,cx:number,cy:number,frame:number,radius=7,count=3){
+  for(let i=0;i<count;i++){
+    const t=frame*.09+i*(Math.PI*2/count);
+    const x=cx+Math.cos(t)*radius,y=cy+Math.sin(t)*radius*.38;
+    const near=Math.sin(t)>0;
+    const s=near?1.6:1.1;
+    ctx.save();ctx.globalAlpha*=near?1:.7;
+    ctx.fillStyle=i%2?'#ffd6e4':'#fff1a8';
+    ctx.fillRect(x-s*.5,y-s*1.6,s,s*3.2);ctx.fillRect(x-s*1.6,y-s*.5,s*3.2,s);
+    ctx.fillStyle='#ffffff';ctx.fillRect(x-s*.5,y-s*.5,s,s);
+    ctx.restore();
+  }
+}
+
 function duckMirror(ctx:Ctx,bx:number,draw:()=>void){
   ctx.save();
   ctx.translate((bx+10)*2,0);
@@ -126,6 +179,7 @@ const DEFAULT_DUCK: DuckPaletteLike = {
  */
 function drawReferenceDuckFront(
   ctx:Ctx,bx:number,by:number,frame:number,moving:boolean,hurt:boolean,dashing:boolean,shooting:boolean,pal:DuckPaletteLike,
+  dizzy=false,
 ){
   const gait=moving?Math.sin(frame*.38):0;
   const bob=moving?Math.round(gait*.42):(!shooting&&!dashing&&Math.sin(frame*.055)>.86?.5:0);
@@ -213,14 +267,20 @@ function drawReferenceDuckFront(
   hdRect(ctx,bx,hb,8,23,5,2,creamLo);
   hdRect(ctx,bx,hb,28,23,5,2,creamDeep);
 
-  // Ojos verticales simples, idénticos al lenguaje de la referencia.
-  if(blink){
-    hdRect(ctx,bx,hb,12,8,4,1,outline);
-    hdRect(ctx,bx,hb,26,8,4,1,outline);
+  // Ojos verticales de la referencia, ahora con destellos; "> <" al recibir daño.
+  const eyeState:KawaiiEyeState=hurt?'hurt':blink?'blink':'open';
+  if(dizzy){
+    // Ojos en "x": derrota tierna, sin dramatismo.
+    for(const ex of [11,25]){
+      for(let i=0;i<5;i++){hdPx(ctx,bx,hb,ex+i,6+i,KAWAII_INK,1);hdPx(ctx,bx,hb,ex+4-i,6+i,KAWAII_INK,1);}
+    }
   }else{
-    hdRect(ctx,bx,hb,12,5,4,7,'#171717');
-    hdRect(ctx,bx,hb,26,5,4,7,'#171717');
+    kawaiiEye(ctx,bx,hb,12,5,4,7,eyeState,true);
+    kawaiiEye(ctx,bx,hb,26,5,4,7,eyeState,false);
   }
+  kawaiiBlush(ctx,bx,hb,6,11);
+  kawaiiBlush(ctx,bx,hb,32,11);
+  if(hurt)kawaiiSweat(ctx,bx,hb,36,-6);
 
   // Pico ancho pero no rectangular: extremos escalonados y centro más lleno.
   hdRect(ctx,bx,hb,14,12,14,2,outline);
@@ -365,8 +425,9 @@ function drawReferenceDuckSideRight(
   hdRect(ctx,bx,hb,30,2,5,10,lo);hdRect(ctx,bx,hb,31,12,5,8,deep);
   hdRect(ctx,bx,hb,28,29,5,7,lo);hdRect(ctx,bx,hb,24,36,7,2,deep);
 
-  if(blink)hdRect(ctx,bx,hb,29,8,4,1,outline);
-  else hdRect(ctx,bx,hb,29,5,4,7,'#171717');
+  kawaiiEye(ctx,bx,hb,29,5,4,7,hurt?'hurt':blink?'blink':'open',false);
+  kawaiiBlush(ctx,bx,hb,25,12);
+  if(hurt)kawaiiSweat(ctx,bx,hb,20,-7);
 
   hdRect(ctx,bx,hb,7,23,8,10,mid);hdRect(ctx,bx,hb,8,28,5,5,hi);
   ctx.globalAlpha=.82;
@@ -401,12 +462,14 @@ function drawReferenceDuckDownDiagonal(
 
   const bob=moving?Math.round(Math.sin(frame*.38)*.5):0;
   const hb=by+bob;
-  const outline='#171816',cream=pal.body;
+  const cream=pal.body;
   // El segundo ojo y las plumas de pecho hacen que se lea 3/4, no perfil puro.
-  if(duckBlinking(frame)) hdRect(ctx,bx,hb,left?25:12,7,3,1,outline);
-  else hdRect(ctx,bx,hb,left?25:12,5,3,5,'#171717');
+  // Mismo parpadeo de daño que el cuerpo, para que los dos ojos se vean parejos.
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
+  kawaiiEye(ctx,bx,hb,left?25:12,5,3,5,hurt?'hurt':duckBlinking(frame)?'blink':'open',!left);
   hdRect(ctx,bx,hb,left?22:15,25,5,1,skinDark(cream,.12));
   hdRect(ctx,bx,hb,left?20:17,27,2,3,skinDark('#efb36f',.02));
+  ctx.globalAlpha=1;
 }
 
 function drawReferenceDuckUpDiagonal(
@@ -426,11 +489,12 @@ function drawReferenceDuckUpDiagonal(
   const hb=by+bob;
   const outline='#171816';
   // Al girar desde atrás apenas aparecen ojo y punta de pico del lado cercano.
-  if(duckBlinking(frame)) hdRect(ctx,bx,hb,left?7:31,7,3,1,outline);
-  else hdRect(ctx,bx,hb,left?7:31,5,3,5,'#171717');
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha=.48;
+  kawaiiEye(ctx,bx,hb,left?7:31,5,3,5,hurt?'hurt':duckBlinking(frame)?'blink':'open',left);
   hdRect(ctx,bx,hb,left?-2:39,12,5,2,outline);
   hdRect(ctx,bx,hb,left?-4:41,14,7,4,pal.beak);
   hdRect(ctx,bx,hb,left?-2:39,14,3,1,skinLight(pal.beak,.20));
+  ctx.globalAlpha=1;
 }
 
 function drawReferenceDuckNative(
@@ -1087,6 +1151,12 @@ export function drawDuckSkin(
   const metal=skin?.metal ?? '#aeb8b8';
   const overlay=skin?.overlay ?? 'robber';
 
+  if(dead&&overlay==='robber'){
+    // Derrota kawaii del pato base: de frente, ojos en "x" y estrellitas girando.
+    drawReferenceDuckFront(ctx,bx,by,frame,false,false,false,false,pal,true);
+    drawDizzyStars(ctx,bx+10,by-6,frame,8);
+    return;
+  }
   if(!dead)drawSkinBackLayer(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving,dashing,shooting);
   const nativePose=duckVisualPose(facingAngle,dir);
   const usedNativeReference=!dead&&overlay==='robber';
@@ -1438,34 +1508,56 @@ export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, fra
     ctx.globalAlpha=1;
   };
   
+  // Disparos del pato (v0.0.2.3.27): cápsula de luz dorada con estela de chispas
+  // crema y rosa. Se distinguen a primera vista del fuego naranja enemigo.
+  const sparkShot=(length:number,width=2)=>{
+    const half=Math.max(1,Math.floor(width/2));
+    const tw=((frame+bx+by)>>1)&1;
+    // Estela rosa suave.
+    ctx.globalAlpha=.32;
+    rect(ctx,bx-length-4,by-half-1,length+2,width+2,'#ff8fb5');
+    ctx.globalAlpha=.7;
+    rect(ctx,bx-length-1,by-half,length,width,'#ffb3cf');
+    // Chispitas que se quedan atrás.
+    for(let k=0;k<3;k++){
+      ctx.globalAlpha=.95-k*.25;
+      px(ctx,bx-length-3-k*3,by+(k%2===tw?-half-1:half),k===1?'#ffc6d8':'#fff4cf',1);
+    }
+    // Cuerpo dorado y punta blanca.
+    ctx.globalAlpha=1;
+    rect(ctx,bx-Math.floor(length*.45),by-half,Math.max(3,Math.ceil(length*.75)),width,'#ffcf4d');
+    rect(ctx,bx-Math.floor(length*.15),by-half,Math.max(2,Math.ceil(length*.45)),width,'#ffeaa0');
+    rect(ctx,bx+Math.max(1,Math.floor(length*.25)),by-half,2,width,'#fffbea');
+    if(width>=3)px(ctx,bx,by-half,'#ffffff',1);
+  };
   switch (type) {
     case 'pistol_round':
     case 'smg_round':
-      fireShot(6,2);
+      sparkShot(6,2);
       break;
     case 'rifle_556':
     case 'lmg_556':
     case 'rifle_762':
-      fireShot(9,2);
+      sparkShot(9,2);
       break;
     case 'pdw_57':
     case 'suppressed_45':
-      fireShot(7,2);
+      sparkShot(7,2);
       break;
     case 'dmr_round':
-      fireShot(10,2);
+      sparkShot(10,2);
       break;
     case 'sniper_308':
-      fireShot(12,3);
+      sparkShot(12,3);
       break;
     case 'magnum_round':
-      fireShot(8,3);
+      sparkShot(8,3);
       break;
     case 'heavy_50':
-      fireShot(14,4);
+      sparkShot(14,4);
       break;
     case 'buckshot_player':
-      fireShot(4,2,false);
+      sparkShot(4,2);
       break;
     case 'grenade_40mm': {
       ctx.save();ctx.translate(bx,by);ctx.rotate(frame*.05);
@@ -4824,6 +4916,14 @@ export function drawParticle(ctx: Ctx, x: number, y: number, type: string, life:
       const len=2+Math.round((1-alpha)*3);
       ctx.fillStyle=color||'#f4d03f';ctx.fillRect(ix,iy,len,1);ctx.fillRect(ix+1,iy-1,1,3);
       ctx.globalAlpha=alpha*.28;ctx.fillRect(ix-len,iy,Math.max(1,len-1),1);
+      break;
+    }
+    case 'star': {
+      // Destello de cuatro puntas que flota hacia arriba (impactos del pato).
+      const s=.6+alpha*1.1;
+      ctx.fillStyle=color||'#fff1a8';
+      ctx.fillRect(x-s*.5,y-s*2,s,s*4);ctx.fillRect(x-s*2,y-s*.5,s*4,s);
+      ctx.fillStyle='#ffffff';ctx.fillRect(x-s*.5,y-s*.5,s,s);
       break;
     }
     case 'smoke': {

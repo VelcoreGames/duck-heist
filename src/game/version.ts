@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.3.26';
+export const GAME_VERSION = '0.0.2.3.27';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -18,3 +18,6 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.26: jugar como invitado (guardado local, cuenta opcional), aviso para celulares,
 //            vista previa al compartir cada ruta y autodiagnóstico en verde.
+// v0.0.2.3.27: pato más kawaii: ojos con destello, mejillas, cara "> <" y gotita al recibir daño,
+//            contoneo al caminar, respiración en reposo, estrellitas en dash, disparo e impactos,
+//            balas doradas con estela rosa y derrota con ojos en "x" y estrellas de mareo.
