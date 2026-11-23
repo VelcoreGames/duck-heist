@@ -56,7 +56,13 @@ function withMeta(html,{title,description,url,image,noindex=false}){
   return out;
 }
 
-const game=await readFile(source,'utf8');
+const rawGame=await readFile(source,'utf8');
+// Red de seguridad: si una página vieja quedó guardada y pide un archivo del juego que ya
+// no existe (después de publicar una versión nueva), recarga una vez con la versión actual.
+const RELOAD_GUARD=`<script>addEventListener('error',function(e){var t=e.target;if(!t||!(t.tagName==='SCRIPT'||t.tagName==='LINK'))return;try{if(sessionStorage.getItem('vg_asset_reload'))return;sessionStorage.setItem('vg_asset_reload','1')}catch(_){return}location.replace(location.pathname+'?v='+Date.now()+location.hash)},true);addEventListener('load',function(){try{sessionStorage.removeItem('vg_asset_reload')}catch(_){}})</script>`;
+const game=rawGame.replace('<head>',`<head>\n    ${RELOAD_GUARD}`);
+// Archivos pesados del juego (JS y CSS con huella) para precargarlos desde la portada.
+const gameAssets=[...rawGame.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)].map(m=>m[1]);
 for(const route of routes){
   const dir=join(dist,route.slug);
   await mkdir(dir,{recursive:true});
@@ -78,6 +84,13 @@ let hasSite=true;
 try{await access(join(site,'index.html'));}catch{hasSite=false;}
 if(hasSite){
   await cp(site,dist,{recursive:true,force:true});
+  // La portada precarga el juego en segundo plano: al dar clic en "Jugar" ya está guardado.
+  if(gameAssets.length){
+    const home=join(dist,'index.html');
+    const html=await readFile(home,'utf8');
+    const links=gameAssets.map(a=>`<link rel="prefetch" href="${a}"${a.endsWith('.js')?' as="script" crossorigin':' as="style"'}>`).join('\n');
+    await writeFile(home,html.replace('</head>',`${links}\n</head>`),'utf8');
+  }
 }
 
 const manifest={

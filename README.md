@@ -44,5 +44,9 @@ No cambies las direcciones `/duck-heist`, `/duck-heist-movil` ni `/eca`: las cue
 ## Publicación
 
 - Hostinger despliega `main` automáticamente (Node.js 22, `npm run build`, salida `dist/`).
+- El juego se publica en archivos separados con huella (`/assets/index-XXXX.js`, `.css`, fuentes `woff2`). El CDN de Hostinger y el navegador los guardan; el HTML de cada ruta pesa pocos KB. No vuelvas a meter todo en un solo HTML en la web: el CDN no guarda HTML y tardaba más de 20 s en bajar.
+- La portada precarga el JS y el CSS del juego en segundo plano (`build-routes.mjs`), así "Jugar" abre casi al instante.
+- `public/.htaccess` pone caché de un año a los archivos con huella y `no-cache` al HTML.
+- Versión de un solo archivo (offline): `VG_SINGLEFILE=1 npm run build`.
 - La acción de GitHub (`.github/workflows/build.yml`) también compila y guarda `dist/` en el repositorio.
 - `dist/` es generado: no lo edites a mano.
