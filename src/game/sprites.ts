@@ -4,6 +4,7 @@
 import { TILE_SIZE, ART_SCALE, ART_PIXEL } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
+import { drawKawaiiDuck, KAWAII_DUCK_DEFAULT, type KawaiiDuckColors, type KawaiiFace } from './kawaiiDuck';
 import type { BossPartState } from './types';
 
 type Ctx = CanvasRenderingContext2D;
@@ -51,6 +52,37 @@ function mixHex(color:string,target:string,amount:number){
 }
 const skinLight=(c:string,a=.34)=>mixHex(c,'#fff8df',a);
 const skinDark=(c:string,a=.48)=>mixHex(c,'#070b0f',a);
+
+// Paleta del pato "Pollito ladrón" para cada skin: el plumaje, el pico y la pañoleta
+// salen de los colores de la skin; la base usa la paleta original amarilla.
+const kawaiiSkinCache=new Map<string,KawaiiDuckColors>();
+export function kawaiiDuckColors(skinId:string):KawaiiDuckColors{
+  const cached=kawaiiSkinCache.get(skinId);
+  if(cached)return cached;
+  const skin=getSkin(skinId);
+  let colors:KawaiiDuckColors;
+  if(!skin||skin.overlay==='robber'){
+    colors={...KAWAII_DUCK_DEFAULT};
+  }else{
+    const p=skin.palette,acc=skin.accent??'#e8455a';
+    colors={
+      Y0:skinLight(p.body,.42),Y1:p.body,Y2:p.dark,Y3:p.shade,
+      W0:skinLight(p.body,.22),W1:mixHex(p.body,p.dark,.35),W2:mixHex(p.dark,p.shade,.4),W3:p.shade,
+      OD:skinDark(p.shade,.55),OL:skinDark(p.dark,.22),
+      B0:p.beak,B1:skinLight(p.beak,.38),B2:p.beakDark,
+      F0:p.beak,F1:p.beakDark,
+      R0:skinLight(acc,.32),R1:acc,R2:skinDark(acc,.22),R3:skinDark(acc,.42),
+      P:'#ff9eb2',
+    };
+  }
+  kawaiiSkinCache.set(skinId,colors);
+  return colors;
+}
+/** Colores de las alitas que sostienen el arma (deben coincidir con el plumaje). */
+export function kawaiiHandColors(skinId:string){
+  const c=kawaiiDuckColors(skinId);
+  return {hand:c.Y1,shade:c.Y2,outline:c.OD};
+}
 
 function drawKawaiiFace(ctx:Ctx,bx:number,hy:number,hx:number,dir:DuckDir,blink:boolean){
   const eye='#111318',eyeHi='#fffdf3',blush='rgba(255,126,159,.52)';
@@ -1138,6 +1170,10 @@ function drawSkinMaterialPass(
 }
 
 /** Pato con skin cosmética completa: silueta + ropa + accesorios + estados. */
+// Los accesorios antiguos estaban dibujados para el pato anterior y ya no encajan;
+// se reemplazarán por accesorios nuevos. Mientras tanto las skins cambian plumaje y pañoleta.
+const KAWAII_SKINS_WITHOUT_OLD_OVERLAY=true;
+
 export function drawDuckSkin(
   ctx: Ctx, x: number, y: number, frame: number,
   skinId: string, dir: DuckDir = 'down', moving = false, hurt = false,
@@ -1151,21 +1187,24 @@ export function drawDuckSkin(
   const metal=skin?.metal ?? '#aeb8b8';
   const overlay=skin?.overlay ?? 'robber';
 
-  if(dead&&overlay==='robber'){
-    // Derrota kawaii del pato base: de frente, ojos en "x" y estrellitas girando.
-    drawReferenceDuckFront(ctx,bx,by,frame,false,false,false,false,pal,true);
-    drawDizzyStars(ctx,bx+10,by-6,frame,8);
+  // v0.0.2.4.0: todas las skins usan al "Pollito ladrón" (30x30, 8 direcciones) con su
+  // propia paleta. Centrado en bx+7 y con las patas donde las tenía el pato anterior.
+  const colors=kawaiiDuckColors(skinId);
+  const ox=bx-8,oy=by-6;
+  if(dead){
+    drawKawaiiDuck(ctx,ox,oy,frame,'down',{face:'dizzy',colors});
+    drawDizzyStars(ctx,bx+7,by-4,frame,8);
     return;
   }
-  if(!dead)drawSkinBackLayer(ctx,bx,by,frame,overlay,accent,trim,metal,dir,moving,dashing,shooting);
-  const nativePose=duckVisualPose(facingAngle,dir);
-  const usedNativeReference=!dead&&overlay==='robber';
-  if(usedNativeReference){
-    drawReferenceDuckNative(ctx,bx,by,frame,nativePose,moving,hurt,dashing,shooting,pal);
-  }else{
-    drawDuck(ctx, x, y, frame, dir, moving, hurt, dashing, shooting, dead, pal, aiming);
-  }
-  if(dead){drawSkinDeathAccessory(ctx,bx,by,overlay,accent,trim,metal);return;}
+  const pose=duckVisualPose(facingAngle,dir);
+  const face:KawaiiFace=hurt?'hurt':duckBlinking(frame)?'blink':'open';
+  ctx.save();
+  if(hurt&&Math.floor(frame*.5)%2===0)ctx.globalAlpha*=.55;
+  else if(dashing)ctx.globalAlpha*=.88;
+  drawKawaiiDuck(ctx,ox,oy,frame,pose,{moving,face,colors});
+  ctx.restore();
+  if(KAWAII_SKINS_WITHOUT_OLD_OVERLAY)return;
+  void pal;void accent;void trim;void metal;void aiming;void shooting;void drawDuck;void drawSkinBackLayer;void drawSkinDeathAccessory;void drawReferenceDuckNative;
 
   const idleBreath=!moving&&!dashing&&!shooting&&Math.sin(frame*.06)>.72?1:0;
   const overlayBob=moving?Math.round(Math.sin(frame*.38)):idleBreath;

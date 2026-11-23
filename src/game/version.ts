@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.3.27';
+export const GAME_VERSION = '0.0.2.4.0';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -21,3 +21,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.3.27: pato más kawaii: ojos con destello, mejillas, cara "> <" y gotita al recibir daño,
 //            contoneo al caminar, respiración en reposo, estrellitas en dash, disparo e impactos,
 //            balas doradas con estela rosa y derrota con ojos en "x" y estrellas de mareo.
+// v0.0.2.4.0: nuevo protagonista "Pollito ladrón" hecho desde cero (pixel art 30x30, 8 direcciones,
+//           caminata de 4 frames, ojos con brillo, cara de daño y de mareo) y skins por paleta.

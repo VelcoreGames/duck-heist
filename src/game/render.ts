@@ -13,7 +13,7 @@ import {
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
   drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
   drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
-  drawDuckSkin, drawDizzyStars, drawBankKey, drawCrumbCluster,
+  drawDuckSkin, drawDizzyStars, kawaiiHandColors, drawBankKey, drawCrumbCluster,
 } from './sprites';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, BOSSES, SUBBOSSES, MINIBOSSES, ENEMIES, META_UPGRADES,
@@ -1060,10 +1060,8 @@ export function renderWorld(engine: GameEngine) {
     // ni se confunde con el pecho: se ven una mano de empuñadura y, en armas
     // largas/pesadas, una segunda mano de apoyo adelantada.
     {
-      const equippedVisual=getSkin(engine.equippedSkin);
-      const hand=equippedVisual.palette.body;
-      const handShade=equippedVisual.palette.shade;
-      const handOutline=equippedVisual.palette.dark;
+      // Las alitas usan los mismos colores que el plumaje del pato nuevo.
+      const {hand,shade:handShade,outline:handOutline}=kawaiiHandColors(engine.equippedSkin);
       const handPerpX=Math.cos(p.facingAngle-Math.PI/2),handPerpY=Math.sin(p.facingAngle-Math.PI/2);
       const handForwardX=Math.cos(p.facingAngle),handForwardY=Math.sin(p.facingAngle);
 
