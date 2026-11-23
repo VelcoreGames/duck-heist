@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.3.25';
+export const GAME_VERSION = '0.0.2.3.26';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -15,3 +15,6 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.3.24: miniatura de Duck Heist integrada al catálogo de Velcore Games.
 
 // v0.0.2.3.25: miniatura del catálogo con la acción del Banco del Pan.
+
+// v0.0.2.3.26: jugar como invitado (guardado local, cuenta opcional), aviso para celulares,
+//            vista previa al compartir cada ruta y autodiagnóstico en verde.

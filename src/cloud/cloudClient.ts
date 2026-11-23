@@ -164,6 +164,11 @@ export function cacheSession(s:AccountSession|null){
   localStorage.removeItem(LEGACY_SESSION_KEY);
 }
 export function localOwner(){return localStorage.getItem(OWNER_KEY)||'';}
+// Modo invitado: se juega con guardado local, sin cuenta. Al entrar o crear cuenta,
+// initialSync sube ese progreso (cuenta nueva) o pregunta qué copia conservar.
+const GUEST_KEY='vg_guest_'+GAME_SLUG;
+export function isGuestMode(){try{return localStorage.getItem(GUEST_KEY)==='1';}catch{return false;}}
+export function setGuestMode(on:boolean){try{if(on)localStorage.setItem(GUEST_KEY,'1');else localStorage.removeItem(GUEST_KEY);}catch{/* almacenamiento opcional */}}
 export function clearLocalGameData(){
   const remove:string[]=[];
   for(let i=0;i<localStorage.length;i++){

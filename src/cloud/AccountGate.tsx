@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   type AccountSession,type CloudConfig,type CloudConflict,
-  CloudAuthError,UsernameTakenError,claimUsername,clearLocalGameData,getCachedSession,initialSync,
+  CloudAuthError,UsernameTakenError,claimUsername,clearLocalGameData,getCachedSession,initialSync,isGuestMode,setGuestMode,
   loadCloudConfig,loginEmail,loginUsername,logoutAccount,parseAuthCallback,resendVerification,resolveConflict,
   sendPasswordReset,signUpEmail,syncCurrent,updatePassword,validateEmail,validatePassword,validateSession,validateUsername,
 } from './cloudClient';
 import { GAME_VERSION_LABEL } from '../game/version';
 
 type Mode='login'|'signup'|'recover';
-type Gate='boot'|'auth'|'verify'|'username'|'reset'|'ready'|'offline'|'conflict';
+type Gate='boot'|'auth'|'verify'|'username'|'reset'|'ready'|'offline'|'conflict'|'guest';
 
 export default function AccountGate({children}:{children:ReactNode}){
   const audit=new URLSearchParams(window.location.search).get('auditoria')==='1';
@@ -40,6 +40,7 @@ export default function AccountGate({children}:{children:ReactNode}){
   const enterGame=useCallback(async(c:CloudConfig,s:AccountSession)=>{
     const checked=await validateSession(c,s);
     if(!checked)throw new Error('Tu sesión venció. Inicia sesión otra vez.');
+    setGuestMode(false);
     setSession(checked);
     setEmailInput(checked.email);
     if(!checked.username){setGate('username');setMessage('Correo verificado. Ahora elige tu nombre dentro de Velcore Games.');return checked;}
@@ -56,7 +57,7 @@ export default function AccountGate({children}:{children:ReactNode}){
     void (async()=>{
       const c=await loadCloudConfig();if(!alive)return;
       setCfg(c);
-      if(!c){setGate('auth');setMessage('La cuenta en la nube no está disponible.');return;}
+      if(!c){setGate(isGuestMode()?'guest':'auth');setMessage('La cuenta en la nube no está disponible. Puedes jugar como invitado.');return;}
       try{
         const callback=await parseAuthCallback(c);
         if(callback){
@@ -65,7 +66,7 @@ export default function AccountGate({children}:{children:ReactNode}){
           await enterGame(c,callback.session);return;
         }
         const cached=getCachedSession();
-        if(!cached){setGate('auth');return;}
+        if(!cached){setGate(isGuestMode()?'guest':'auth');return;}
         await enterGame(c,cached);
       }catch(e){
         setSession(null);setGate('auth');
@@ -196,6 +197,11 @@ export default function AccountGate({children}:{children:ReactNode}){
     catch(e){setMessage(e instanceof Error?e.message:'No se pudo resolver el conflicto.');}
     finally{setBusy(false);}
   };
+  const playAsGuest=()=>{setGuestMode(true);setMenu(false);setMessage('');setGate('guest');};
+  const leaveGuest=(next:Mode)=>{
+    setMenu(false);setMode(next);setGate('auth');
+    setMessage(next==='signup'?'Tu progreso de invitado se subirá a tu cuenta nueva.':'Si tu cuenta ya tiene progreso, te preguntaré cuál conservar.');
+  };
   const signOut=async()=>{
     if(!cfg||!session)return;
     setBusy(true);setMessage('Sincronizando antes de cerrar sesión…');
@@ -229,6 +235,9 @@ export default function AccountGate({children}:{children:ReactNode}){
       </form>
       <p className="vg-account-note">{mode==='signup'?'Primero verifica el correo. Después elegirás tu usuario.':mode==='recover'?'Recibirás un enlace seguro para cambiar tu contraseña.':'Entra con tu usuario y contraseña. El correo sólo se usa para verificación y recuperación.'}</p>
       {message&&<p className="vg-account-message">{message}</p>}
+      <div className="vg-guest-divider" aria-hidden="true"><span>O</span></div>
+      <button type="button" className="vg-account-secondary vg-guest-button" disabled={busy} onClick={playAsGuest}>JUGAR COMO INVITADO</button>
+      <p className="vg-account-note">Sin registro. Tu progreso se guarda en este equipo y puedes crear tu cuenta después para llevarlo a la nube.</p>
     </AccountShell>
   );
 
@@ -278,6 +287,17 @@ export default function AccountGate({children}:{children:ReactNode}){
 
   return <>
     {children}
+    {gate==='guest'&&!session&&<div className="vg-account-hud">
+      <button className="vg-account-chip" onClick={()=>setMenu(v=>!v)} aria-expanded={menu}>
+        <span className="vg-cloud-dot is-guest" />
+        <strong>INVITADO</strong><small>LOCAL</small>
+      </button>
+      {menu&&<div className="vg-account-menu">
+        <div><b>JUGANDO COMO INVITADO</b><span>Tu progreso está en este equipo.</span><small>Crea tu cuenta para no perderlo y jugar en otra PC. Guarda tu partida antes de salir del atraco.</small></div>
+        <button onClick={()=>leaveGuest('signup')}>CREAR CUENTA</button>
+        <button onClick={()=>leaveGuest('login')}>YA TENGO CUENTA</button>
+      </div>}
+    </div>}
     {session&&<div className="vg-account-hud">
       <button className="vg-account-chip" onClick={()=>setMenu(v=>!v)} aria-expanded={menu}>
         <span className={'vg-cloud-dot '+(gate==='offline'?'is-offline':'')} />

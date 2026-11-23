@@ -30,9 +30,9 @@ export function runSelfChecks():CheckReport {
   const check=(name:string,fn:()=>void)=>{try {fn();report.passed++;}catch(error){report.failures.push(`${name}: ${String(error)}`);}};
   const assert=(ok:unknown,message:string)=>{if(!ok) throw new Error(message);};
   setAudioTestMode(true);
-  check('Resolución artística interna usa rejilla 4x sin alterar unidades lógicas',()=>{
-    assert(ART_SCALE===4,'ART_SCALE debe permanecer en 4');
-    assert(ART_PIXEL===.25,'cada microdetalle debe equivaler a 1/4 de píxel lógico');
+  check('Resolución artística interna usa rejilla 6x sin alterar unidades lógicas',()=>{
+    assert(ART_SCALE===6,'ART_SCALE debe permanecer en 6 (medio píxel para el pato y personajes)');
+    assert(Math.abs(ART_PIXEL-1/6)<1e-9,'cada microdetalle debe equivaler a 1/6 de píxel lógico');
   });
   check('Hit-test del menú coincide con layout ancho y compacto',()=>{
     for(const wide of [false,true]){
@@ -356,14 +356,15 @@ export function runSelfChecks():CheckReport {
       assert(OBSTACLES.includes('monumental_gold_statue'),'falta estatua monumental');
       assert(OBSTACLES.includes('diamond_fountain'),'falta fuente de diamante');
     });
-    check('Sala inicial también se amuebla como banco sin bloquear accesos',()=>{
-      const room:MapRoom={gx:0,gy:0,type:RoomType.START,doors:['N','E','S'],visited:false,cleared:false,generated:false,layout:[],distance:0,floorIndex:0};
-      const layout=generateRoomLayout(room,()=>.2);
-      const props=layout.flat().filter(v=>v>=OBSTACLE_BASE);
-      assert(props.length>=4,'START sigue pareciendo una sala vacía');
-      assert(room.template==='bankLobby','START no usa recepción bancaria');
-      const cx=Math.floor(layout[0].length/2),cy=Math.floor(layout.length/2);
-      assert(layout[cy][cx]<OBSTACLE_BASE,'START bloqueó el centro');
+    check('Sala inicial queda despejada en todos los pisos',()=>{
+      // Decisión de diseño (sep 2026): la sala de inicio no lleva objetos para que el
+      // tutorial y la entrada al piso sean claros.
+      for(let floor=0;floor<6;floor++){
+        const room:MapRoom={gx:0,gy:0,type:RoomType.START,doors:['N','E','S'],visited:false,cleared:false,generated:false,layout:[],distance:0,floorIndex:floor};
+        const layout=generateRoomLayout(room,()=>.2);
+        const props=layout.flat().filter(v=>v>=OBSTACLE_BASE);
+        assert(props.length===0,`START del piso ${floor+1} tiene objetos`);
+      }
     });
     check('Daño de escenario persiste y al romper libera el tile',()=>{
       const e=setup(),room=e.map.rooms.get(e.currentKey)!,content=e.contents.get(e.currentKey)!;
@@ -932,7 +933,8 @@ export function runSelfChecks():CheckReport {
         const room:MapRoom={gx:0,gy:0,type:RoomType.COMBAT,doors:['N','S','E','W'],visited:false,cleared:false,generated:false,distance:2,floorIndex:4,layout:[]};
         const layout=generateRoomLayout(room,()=>.4,template);
         const ids=new Set(layout.flat().filter(v=>v>=OBSTACLE_BASE).map(v=>v-OBSTACLE_BASE));
-        for(const kind of kinds)assert(ids.has(kind),`${template} no genera ${OBSTACLES[kind]}`);
+        // Cada piso usa su propia versión del objeto: familia + piso * 20.
+        for(const slot of kinds){const kind=(room.floorIndex??0)*OBSTACLES_PER_FLOOR+slot;assert(ids.has(kind),`${template} no genera ${OBSTACLES[kind]}`);}
       }
     });
     for(let floor=0;floor<6;floor++) for(const template of ROOM_TEMPLATES)check(`Plantilla ${floor}/${template}`,()=>{

@@ -1,6 +1,7 @@
 import App from './App';
 import GamePortal from './GamePortal';
 import AccountGate from './cloud/AccountGate';
+import TouchNotice from './TouchNotice';
 
 function normalizePath(pathname:string){
   const clean=pathname.replace(/\/{2,}/g,'/').replace(/\/$/,'')||'/';
@@ -40,7 +41,7 @@ export default function RouteApp(){
 
   if(path==='/duck-heist'){
     document.title='DUCK HEIST · Velcore Games';
-    return <AccountGate><App /></AccountGate>;
+    return <TouchNotice><AccountGate><App /></AccountGate></TouchNotice>;
   }
   if(path==='/duck-heist-movil'){
     document.title='Duck Heist Móvil · Velcore Games';

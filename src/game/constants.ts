@@ -205,7 +205,7 @@ export const FLOOR_PROP_NAMES = [
   [
     'admin_workstation','chrome_queue_post','file_carousel','document_box',
     'supply_credenza','oak_office_column','staff_access_pad','office_alarm_panel',
-    'filing_bank','executive_briefcase','note_counter','records_cart',
+    'filing_bank','executive_briefcase','office_note_counter','records_cart',
     'document_locker','archive_cage','multifunction_printer','ergonomic_chair',
     'office_planter','water_station','meeting_display','server_tower',
   ],

@@ -644,6 +644,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .vg-account-chip small{color:var(--dh-gold);font-size:8px;letter-spacing:.1em}
 .vg-cloud-dot{width:7px;height:7px;border-radius:50%;background:var(--dh-green);box-shadow:0 0 9px rgba(120,201,154,.54)}
 .vg-cloud-dot.is-offline{background:var(--dh-danger);box-shadow:0 0 9px rgba(216,107,88,.52)}
+.vg-cloud-dot.is-guest{background:var(--dh-gold);box-shadow:0 0 9px rgba(230,197,111,.5)}
+.vg-account-menu>div small{display:block;color:#71878a;font-size:9px;line-height:1.4;margin-bottom:4px}
+.vg-guest-divider{position:relative;display:flex;align-items:center;gap:10px;margin:16px 0 4px;color:#53686c;font-size:9px;letter-spacing:.2em}
+.vg-guest-divider::before,.vg-guest-divider::after{content:"";flex:1;height:1px;background:rgba(95,174,178,.2)}
+.vg-guest-button{letter-spacing:.12em}
+.vg-touch-link{display:block;text-align:center;text-decoration:none}
 .vg-account-menu{
   position:absolute;right:0;top:calc(100% + 7px);width:210px;padding:12px;border:1px solid rgba(230,197,111,.25);
   background:rgba(5,16,21,.98);box-shadow:0 16px 44px rgba(0,0,0,.68)
