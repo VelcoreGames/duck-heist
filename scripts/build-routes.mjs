@@ -12,19 +12,19 @@ const routes=[
     slug:'duck-heist',
     title:'Duck Heist: El Banco del Pan · Velcore Games',
     description:'Roguelite de acción en tu navegador: entra al Banco del Pan, arma tu build y roba los seis pisos antes de que la seguridad te cierre el paso.',
-    image:'/media/og-duck-heist.jpg',
+    image:'/media/og-duck-heist-v2.jpg',
   },
   {
     slug:'duck-heist-movil',
     title:'Duck Heist Móvil · Velcore Games',
     description:'Una versión de Duck Heist pensada desde cero para el celular. En desarrollo.',
-    image:'/media/og-velcoregames.jpg',
+    image:'/media/og-velcoregames-v2.jpg',
   },
   {
     slug:'eca',
     title:'ECA · Velcore Games',
     description:'El siguiente universo de Velcore Games. Próximamente.',
-    image:'/media/og-velcoregames.jpg',
+    image:'/media/og-velcoregames-v2.jpg',
   },
 ];
 
@@ -73,7 +73,7 @@ for(const route of routes){
 await writeFile(join(dist,'404.html'),withMeta(game,{
   title:'Página no encontrada · Velcore Games',
   description:'Esta dirección no existe. Vuelve a Velcore Games.',
-  url:`${SITE}/`,image:'/media/og-velcoregames.jpg',noindex:true,
+  url:`${SITE}/`,image:'/media/og-velcoregames-v2.jpg',noindex:true,
 }),'utf8');
 
 // Sitio de Velcore Games (página principal de velcoregames.com).
