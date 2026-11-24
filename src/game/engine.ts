@@ -4,6 +4,7 @@ import {
   PLAYER_SPEED, DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, RESTART_HOLD_FRAMES, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, OPPOSITE,
   TILE_WALL, TILE_DOOR, OBSTACLE_BASE, type Dir,
+  PLAYER_HIT_RADIUS,
 } from './constants';
 import {
   WEAPONS, ITEMS, ACTIVE_ITEMS, ENEMIES, ENCOUNTERS, BOSSES, SUBBOSSES, MINIBOSSES,
@@ -3504,7 +3505,7 @@ function updateProjectiles(engine: GameEngine, room: MapRoom, content: RoomConte
       }
       if (removed) continue;
     } else if (player.iFrames <= 0 && player.dashTimer <= 0) {
-      if (dist(p.x, p.y, player.x + 7, player.y + 8) < 10) {
+      if (dist(p.x, p.y, player.x + 7, player.y + 8) < PLAYER_HIT_RADIUS) {
         const pelletDamage=p.type==='buckshot'
           ? p.damage*(.35+.65*clamp(p.lifetime/Math.max(1,p.maxLifetime),0,1))
           : p.damage;

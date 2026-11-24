@@ -241,3 +241,9 @@ export const FLOOR_PROP_NAMES = [
 
 export const OBSTACLES = FLOOR_PROP_NAMES.flat();
 
+// Tamaño del Pollito ladrón en el mundo: más chico que los policías pato y
+// mucho más que los jefes, para que se note que es un pollito.
+export const PLAYER_ART_SCALE = 0.9;
+// Radio de impacto de las balas enemigas sobre el pollito (centro en x+7, y+8).
+// Va de la mano con PLAYER_ART_SCALE para que los golpes coincidan con lo que se ve.
+export const PLAYER_HIT_RADIUS = 8;

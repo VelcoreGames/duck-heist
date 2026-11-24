@@ -39,6 +39,7 @@ import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './f
 import { drawItemIcon } from './itemArt';
 import { drawHeldWeapon, heldWeapon } from './heldWeapons';
 import { drawKawaiiEnemy } from './kawaiiEnemies';
+import { PLAYER_ART_SCALE } from './constants';
 import { getBuild, FOODS } from './itemRules';
 import { renderCollection } from './collectionUI';
 import { nearbyTooltip, type TooltipTarget } from './tooltips';
@@ -453,7 +454,9 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
   const calm=p.dashTimer<=0&&p.hurtTimer<=0;
   const waddle=calm&&p.moving?Math.sin(f*.38)*.085:0;
   const breathe=calm&&!p.moving&&p.shootFlash<=0?Math.sin(f*.07)*.022:0;
-  const heroScale=1.18;
+  const heroScale=PLAYER_ART_SCALE;
+  // Las distancias del arma se pensaron para la escala 1.18; se ajustan al tamaño actual.
+  const bodyK=heroScale/1.18;
   const drawBody=()=>{
     ctx.save();
     ctx.translate(drawX+7,drawY+9+interact*1.5);
@@ -479,11 +482,11 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
   // Al apuntar hacia arriba o abajo el arma se corre a un costado del pato
   // (del lado de la mano) para que no desaparezca detrás de la cabeza ni tape
   // la panza. En horizontal queda a la altura del pecho.
-  const side=(aimY<0?11:6.5)*Math.pow(Math.abs(aimY),1.4);
-  const pivotX=drawX+7-aimY*gunFlip*side,pivotY=drawY+12+aimX*gunFlip*side+interact*2.5;
+  const side=(aimY<0?11:6.5)*bodyK*Math.pow(Math.abs(aimY),1.4);
+  const pivotX=drawX+7-aimY*gunFlip*side,pivotY=drawY+9+3*bodyK+aimX*gunFlip*side+interact*2.5;
   // La empuñadura queda a "reach" del centro; el arma se dibuja a la misma
   // escala de píxel que el pato para que todo se vea del mismo juego.
-  const reach=6.5;
+  const reach=6.5*bodyK;
   const held=heldWeapon(currentWeapon.id);
   const gripX=held.grip[0],gripY=held.grip[1];
   const muzzleLX=(held.muzzle[0]-gripX)*heroScale,muzzleLY=(held.muzzle[1]-gripY)*heroScale;
@@ -1170,7 +1173,7 @@ export function renderWorld(engine: GameEngine) {
     // silueta sigue siendo la misma y no afecta la hitbox.
     const skinVisual=getSkin(engine.equippedSkin);
     ctx.save();
-    ctx.globalAlpha=.34;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(p.x+7,p.y+16,9.5,3.2,0,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.34;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(p.x+7,p.y+9+12.6*PLAYER_ART_SCALE,8.2*PLAYER_ART_SCALE,2.7*PLAYER_ART_SCALE,0,0,Math.PI*2);ctx.fill();
     if(p.dashTimer>0||p.interactFlash>0){
       const life=p.dashTimer>0?clamp(p.dashTimer/12,0,1):clamp((p.interactFlash??0)/12,0,1);
       ctx.globalAlpha=.10+.16*life;ctx.strokeStyle=skinVisual.accent;ctx.lineWidth=1;
@@ -1192,7 +1195,7 @@ export function renderWorld(engine: GameEngine) {
         const ox=-p.dashDir.x*(i*5+3),oy=-p.dashDir.y*(i*5+3);
         ctx.translate(p.x+ox+7,p.y+oy+9);
         const horizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
-        ctx.scale(horizontal?1.12:.9,horizontal?.88:1.1);
+        ctx.scale((horizontal?1.12:.9)*PLAYER_ART_SCALE,(horizontal?.88:1.1)*PLAYER_ART_SCALE);
         drawDuckSkin(ctx,-7,-9,f-i*2,engine.equippedSkin,aimDir,true,false,true,p.shootFlash>0,false,true,p.facingAngle);
         ctx.restore();
       }
@@ -1210,7 +1213,7 @@ export function renderWorld(engine: GameEngine) {
     }
     drawArmedPlayer(ctx,p,activeWeapon(p),engine.equippedSkin,aimDir,f);
     if(p.iFrames>0&&p.dashTimer<=0&&Math.floor(f*.35)%2===0){
-      ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#fff4d8';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(p.x+7,p.y+9,9,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#fff4d8';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(p.x+7,p.y+9,11*PLAYER_ART_SCALE,12*PLAYER_ART_SCALE,0,0,Math.PI*2);ctx.stroke();ctx.restore();
     }
   }else{
     // El pato no desaparece al morir: cae y deja un último eco de plumas.
@@ -1219,7 +1222,7 @@ export function renderWorld(engine: GameEngine) {
     ctx.globalAlpha=Math.max(.22,death);
     ctx.translate(p.x+7,p.y+10+fall*5);
     ctx.rotate((p.dir==='left'?-1:1)*fall*.95);
-    ctx.scale(1,.35+death*.65);
+    ctx.scale(PLAYER_ART_SCALE,(.35+death*.65)*PLAYER_ART_SCALE);
     drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,p.dir,false,true,false,false);
     ctx.restore();
     // Estrellitas de mareo sobre el pato derrotado.

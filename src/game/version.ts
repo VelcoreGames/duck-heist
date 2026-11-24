@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.4.5';
+export const GAME_VERSION = '0.0.2.4.6';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -33,3 +33,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.4.5: 145 jefes kawaii: 8 cuerpos por facción (comando, finanzas, panadería, antidisturbios, guerra, riqueza,
 //           tecnología, bóveda) con accesorios por rol, colores propios de cada jefe, ojos enojados, vena de enojo
 //           en fase 2, burbuja "!" al preparar ataques, módulos destructibles como aparatitos y corona del jefe final.
+// v0.0.2.4.6: el Pollito ladrón es más chico (escala 0.9 en vez de 1.18) para que se note pequeño frente a policías
+//           y jefes; el radio de impacto de las balas enemigas baja de 10 a 8 para coincidir con su tamaño.
