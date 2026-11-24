@@ -82,7 +82,11 @@ export function kawaiiDuckColors(skinId:string):KawaiiDuckColors{
 export function kawaiiHandColors(skinId:string){
   const c=kawaiiDuckColors(skinId);
   // Manitas del color del plumaje; el contorno oscuro las separa del cuerpo.
-  return {hand:c.Y1,shade:c.Y2,outline:c.OD,shine:c.Y0};
+  // En plumajes muy oscuros serían una mancha: se usan guantes claros.
+  const h=c.Y1.replace('#','');
+  const lum=(parseInt(h.slice(0,2),16)*.299+parseInt(h.slice(2,4),16)*.587+parseInt(h.slice(4,6),16)*.114)/255;
+  if(lum<.36)return {hand:'#ece6f4',shade:'#b9b0cc',outline:c.OD,outlineLight:'#8d84a6',shine:'#ffffff'};
+  return {hand:c.Y1,shade:c.Y2,outline:c.OD,outlineLight:c.OL,shine:c.Y0};
 }
 
 function drawKawaiiFace(ctx:Ctx,bx:number,hy:number,hx:number,dir:DuckDir,blink:boolean){

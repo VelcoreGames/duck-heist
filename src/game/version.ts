@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.4.2';
+export const GAME_VERSION = '0.0.2.4.3';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -26,3 +26,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.4.1: carga rápida: el juego se publica en archivos separados que el CDN guarda y la portada precarga.
 // v0.0.2.4.2: manitas redondas que no rotan, arma que nunca queda boca abajo, pasa detrás del pato al
 //           apuntar hacia arriba y se corre a un costado; armas largas más grandes para que se vean.
+// v0.0.2.4.3: 13 armas kawaii nuevas (de juguete, mismos colores que el pato) con agarre propio; manitas de ala
+//           que aprietan al disparar y se mecen al caminar; guantes claros en skins oscuras; iconos nuevos.

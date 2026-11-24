@@ -2,6 +2,7 @@
 // world, shop, tooltips, inventory and collection; there are no network assets.
 import { EXPANSION_ART } from './expansionArt';
 import { ART_SCALE } from './constants';
+import { heldWeaponIconPixels } from './heldWeapons';
 type Pixel = string | undefined;
 export type IconPainter = (p: PixelPainter) => void;
 
@@ -230,6 +231,8 @@ const mystery: IconPainter = p => {
 const cache = new Map<string, HTMLCanvasElement>();
 
 export function getIconPixels(id: string) {
+  const held = heldWeaponIconPixels(id);
+  if (held) return held;
   const p = new PixelPainter();
   (ITEM_ART[id] ?? mystery)(p);
   return p.pixels;

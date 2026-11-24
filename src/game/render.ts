@@ -37,6 +37,7 @@ import {
 } from './layout';
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
+import { drawHeldWeapon, heldWeapon } from './heldWeapons';
 import { getBuild, FOODS } from './itemRules';
 import { renderCollection } from './collectionUI';
 import { nearbyTooltip, type TooltipTarget } from './tooltips';
@@ -432,8 +433,6 @@ function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:n
 // Separado de renderWorld para poder revisarlo en una hoja de sprites.
 export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['player'],weapon:ReturnType<typeof activeWeapon>,skinId:string,aimDir:'up'|'down'|'left'|'right',f:number){
   const currentWeapon=weapon;
-  const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
-    currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
   const recoilPower=currentWeapon.id==='plasma_baker'?3.15:currentWeapon.id==='baguette_launcher'?2.8:
     currentWeapon.id==='breadcrumb_shotgun'?2.55:currentWeapon.id==='baguette_sniper'?2.25:
     currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'||currentWeapon.id==='golden_egg_revolver'?1.75:
@@ -481,12 +480,13 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
   // la panza. En horizontal queda a la altura del pecho.
   const side=(aimY<0?11:6.5)*Math.pow(Math.abs(aimY),1.4);
   const pivotX=drawX+7-aimY*gunFlip*side,pivotY=drawY+12+aimX*gunFlip*side+interact*2.5;
-  const reach=2.5;
-  const gunSize=longGun?14:12;
-  // Las armas largas se dibujan un poco más grandes para que las dos manitas
-  // no las tapen; los detalles de cada arma escalan con ellas.
-  const gunScale=longGun?1.15:1;
-  const gunLen=(3+gunSize)*gunScale;
+  // La empuñadura queda a "reach" del centro; el arma se dibuja a la misma
+  // escala de píxel que el pato para que todo se vea del mismo juego.
+  const reach=6.5;
+  const held=heldWeapon(currentWeapon.id);
+  const gripX=held.grip[0],gripY=held.grip[1];
+  const muzzleLX=(held.muzzle[0]-gripX)*heroScale,muzzleLY=(held.muzzle[1]-gripY)*heroScale;
+  const gunLen=muzzleLX;
   const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
   const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
   const postShot=clamp((cooldownNorm-.35)/.65,0,1);
@@ -508,89 +508,85 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
       actionY=Math.sin(f*.7)*.45;break;
   }
   const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
+  // Manitas vivas: aprietan al disparar y se mecen un poquito al caminar.
+  const squeeze=p.shootFlash>0?1+.14*(p.shootFlash/6):1;
+  const sway=p.moving&&p.dashTimer<=0?Math.sin(f*.38)*.6:0;
   const drawGunAndHands=()=>{
   ctx.save();
   ctx.translate(pivotX+aimX*reach,pivotY+aimY*reach);
   ctx.rotate(p.facingAngle+interact*.10*gunFlip);
   ctx.scale(1,gunFlip);
   ctx.globalAlpha=1-interact*.38;
-  ctx.translate(-weaponKick+actionX,actionY);
+  ctx.translate(-weaponKick+actionX,actionY+sway*gunFlip);
   ctx.rotate(actionRot);
-  ctx.scale(weaponScaleX*gunScale,weaponScaleY*gunScale);
-  drawItemIcon(ctx,3,-Math.round(gunSize/2),currentWeapon.id,gunSize);
+  ctx.scale(weaponScaleX*heroScale,weaponScaleY*heroScale);
+  drawHeldWeapon(ctx,currentWeapon.id);
+  // A partir de aquí las coordenadas son píxeles del arma, con la empuñadura en (0,0).
+  const mX=held.muzzle[0]-gripX,mY=held.muzzle[1]-gripY;
 
-  // Mecánica visible propia de cada familia: corredera, bomba, cerrojo,
-  // cilindro, calor y estabilización. Sólo dibujo; el balance no cambia.
-  if(currentWeapon.id==='breadcrumb_shotgun'&&postShot>.18){
-    ctx.fillStyle='#795038';ctx.fillRect(7+Math.round(postShot*4),3,5,2);
-  }else if(currentWeapon.id==='baguette_sniper'&&postShot>.2){
-    ctx.fillStyle='#c6d0cf';ctx.fillRect(8+Math.round(postShot*3),-5,4,1);
-    ctx.fillRect(11+Math.round(postShot*3),-4,1,3);
-  }else if(currentWeapon.id==='golden_egg_revolver'){
-    ctx.strokeStyle='#d5b05c';ctx.globalAlpha=.42+.22*postShot;ctx.beginPath();ctx.arc(8,0,3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-  }else if(currentWeapon.id==='feather_gun'){
+  // Calor y destellos propios de cada familia. Sólo dibujo; el balance no cambia.
+  if(currentWeapon.id==='feather_gun'){
     const heat=clamp(p.heat/100,0,1);
-    if(heat>.35){ctx.fillStyle=heat>.8?'#e9664f':'#d9a45d';ctx.globalAlpha=.25+heat*.45;ctx.fillRect(7,-5,6,1);ctx.globalAlpha=1;}
-    if(p.overheat>0){ctx.fillStyle='#ff7962';ctx.globalAlpha=.55+.25*Math.sin(f*.5);ctx.fillRect(9,-7,2,2);ctx.globalAlpha=1;}
+    if(heat>.35){ctx.fillStyle=heat>.8?'#ff7a8a':'#ffc27a';ctx.globalAlpha=.3+heat*.45;ctx.fillRect(mX-6,mY-1,5,1);ctx.globalAlpha=1;}
+    if(p.overheat>0){ctx.fillStyle='#ff7a8a';ctx.globalAlpha=.55+.25*Math.sin(f*.5);ctx.fillRect(mX-4,mY-3,2,2);ctx.globalAlpha=1;}
   }else if(currentWeapon.id==='quack_laser'){
     const hot=clamp((p.fireCooldown>0?1:0)+(p.shootFlash>0?.5:0),0,1);
-    ctx.globalAlpha=.18+.15*hot;ctx.fillStyle='#e7b85c';ctx.fillRect(7,-5,8,1);ctx.globalAlpha=1;
-  }else if(currentWeapon.id==='baguette_launcher'&&postShot>.2){
-    ctx.fillStyle='#76866a';ctx.fillRect(10,-4,4,3);ctx.fillStyle='#303a36';ctx.fillRect(13,-3,2,2);
+    ctx.globalAlpha=.16+.22*hot;ctx.fillStyle='#ffc27a';ctx.fillRect(mX-9,mY-1,7,1);ctx.globalAlpha=1;
+  }else if(currentWeapon.id==='golden_egg_revolver'&&postShot>.1){
+    ctx.globalAlpha=.35*postShot;ctx.fillStyle='#fff0a3';ctx.fillRect(2,-3,2,2);ctx.globalAlpha=1;
   }
 
+  // Casquillo que salta hacia arriba al disparar.
   if(p.shootFlash>0&&currentWeapon.id!=='quack_laser'&&currentWeapon.id!=='homing_crumbs'&&currentWeapon.id!=='feather_gun'){
     const shellAge=6-p.shootFlash;
-    ctx.globalAlpha=.78-shellAge*.08;
-    ctx.fillStyle=currentWeapon.id==='breadcrumb_shotgun'?'#b86e38':'#c8a352';
-    const sy=-6-shellAge*.7,sx=1-shellAge*.8;
-    ctx.fillRect(Math.round(sx),Math.round(sy),currentWeapon.id==='breadcrumb_shotgun'?3:2,1);
+    ctx.globalAlpha=.85-shellAge*.09;
+    ctx.fillStyle=currentWeapon.id==='breadcrumb_shotgun'?'#ff8fb1':'#ffd45e';
+    ctx.fillRect(Math.round(3-shellAge*.8),Math.round(-4-shellAge*.8),currentWeapon.id==='breadcrumb_shotgun'?2:1,1);
     ctx.globalAlpha=1;
   }
   if(p.charge>0&&(currentWeapon.id==='plasma_baker'||currentWeapon.id==='golden_egg_revolver'||currentWeapon.id==='baguette_sniper')){
-    const q=clamp(p.charge/70,0,1),mx=longGun?18:14;
-    const chargeCol=currentWeapon.id==='plasma_baker'?'#ffd98a':currentWeapon.id==='baguette_sniper'?'#b9d8d8':'#e6c56f';
-    ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=chargeCol;ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(mx,0,4+q*6,0,Math.PI*2);ctx.stroke();
-    ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mx-1,-1,2,2);
+    const q=clamp(p.charge/70,0,1);
+    const chargeCol=currentWeapon.id==='plasma_baker'?'#ffd98a':currentWeapon.id==='baguette_sniper'?'#8ff0d6':'#ffd45e';
+    ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=chargeCol;ctx.lineWidth=.8;
+    ctx.beginPath();ctx.arc(mX+1,mY,3+q*5,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mX,mY-1,2,2);
     // Línea de estabilización corta: comunica precisión creciente sin
     // convertirla en mira láser permanente.
     if(q>.22){
       ctx.globalAlpha=.08+q*.18;ctx.strokeStyle=chargeCol;
-      ctx.beginPath();ctx.moveTo(mx+4,0);ctx.lineTo(mx+22+q*24,0);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(mX+4,mY);ctx.lineTo(mX+18+q*20,mY);ctx.stroke();
     }
     ctx.globalAlpha=1;
   }
   ctx.restore();
 
-  // Manitas tipo mitón (contorno oscuro, relleno claro, brillo arriba a la
-  // izquierda). Van encima del arma, en la empuñadura y, en armas largas o
-  // pesadas, otra adelantada sujetando el cañón.
-  const {hand,shade:handShade,outline:handOutline,shine:handShine}=kawaiiHandColors(skinId);
+  // Manitas: puntita de ala redonda de 5×5 con el mismo contorno selectivo
+  // del pato (claro arriba/izquierda, oscuro abajo/derecha). No rotan, así se
+  // ven iguales en cualquier dirección.
+  const {hand,shade:handShade,outline:handOutline,outlineLight:handOutlineLight,shine:handShine}=kawaiiHandColors(skinId);
   const handAt=(lx:number,ly:number)=>{
-    const ax=reach+lx-weaponKick+actionX,ay=(ly+actionY)*gunFlip;
+    const ax=reach+lx-weaponKick+actionX,ay=(ly+actionY+sway*gunFlip)*gunFlip;
     const hx=pivotX+aimX*ax-aimY*ay,hy=pivotY+aimY*ax+aimX*ay;
     ctx.save();
-    ctx.translate(hx,hy);ctx.scale(heroScale,heroScale);
+    ctx.translate(hx,hy);ctx.scale(heroScale*squeeze,heroScale*squeeze);
     ctx.globalAlpha=1-interact*.25;
-    // Mitón redondo de 6×6: contorno, relleno, sombra abajo a la derecha y
-    // brillo arriba a la izquierda.
-    ctx.fillStyle=handOutline;ctx.fillRect(-2,-3,4,6);ctx.fillRect(-3,-2,6,4);
-    ctx.fillStyle=hand;ctx.fillRect(-1,-2,2,4);ctx.fillRect(-2,-1,4,2);
-    ctx.fillStyle=handShade;ctx.fillRect(-1,1,2,1);ctx.fillRect(1,0,1,1);
-    ctx.fillStyle=handShine;ctx.fillRect(-1,-2,1,1);ctx.fillRect(-2,-1,1,1);
+    ctx.fillStyle=handOutlineLight;ctx.fillRect(-1.5,-2.5,3,1);ctx.fillRect(-2.5,-1.5,1,3);
+    ctx.fillStyle=handOutline;ctx.fillRect(-1.5,1.5,3,1);ctx.fillRect(1.5,-1.5,1,3);
+    ctx.fillStyle=hand;ctx.fillRect(-1.5,-1.5,3,3);
+    ctx.fillStyle=handShade;ctx.fillRect(-.5,.5,2,1);ctx.fillRect(.5,-.5,1,1);
+    ctx.fillStyle=handShine;ctx.fillRect(-1.5,-1.5,1,1);
     ctx.restore();
   };
-  if(heavyStance||longGun)handAt(3*gunScale+gunSize*gunScale*.62,1.5);
-  handAt(3*gunScale+1.5,2.5);
+  if(held.front)handAt((held.front[0]-gripX)*heroScale,(held.front[1]-gripY)*heroScale);
+  handAt(0,0);
   };
 
   if(gunBehind){drawGunAndHands();drawBody();}
   else{drawBody();drawGunAndHands();}
 
   if(p.shootFlash>0){
-    const barrel=reach+gunLen;
-    const mx=pivotX+aimX*barrel,my=pivotY+aimY*barrel;
+    const barrel=reach+gunLen-weaponKick,side2=muzzleLY*gunFlip;
+    const mx=pivotX+aimX*barrel-aimY*side2,my=pivotY+aimY*barrel+aimX*side2;
     ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);
     const shotgun=currentWeapon.id==='breadcrumb_shotgun';
     const plasma=currentWeapon.id==='plasma_baker'||currentWeapon.id==='quack_laser';
