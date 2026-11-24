@@ -241,9 +241,12 @@ export const FLOOR_PROP_NAMES = [
 
 export const OBSTACLES = FLOOR_PROP_NAMES.flat();
 
-// Tamaño del Pollito ladrón en el mundo: poco más de la mitad de alto que un
-// policía pato (18 px contra 31 px), para que se note que es un pollito.
-export const PLAYER_ART_SCALE = 0.62;
+// Escala de tamaños del mundo (baldosa = 32 px):
+//   muebles altos 26-30 px · policías ~27 px · pollito ~16 px · jefes 40-55 px.
+// El pollito mide poco más de la mitad de un policía pato, para que se note
+// que es un pollito; los enemigos quedan a la altura de los muebles altos.
+export const PLAYER_ART_SCALE = 0.55;
+export const ENEMY_ART_SCALE = 0.88;
 // Radio de impacto de las balas enemigas sobre el pollito (centro en x+7, y+8).
 // Va de la mano con PLAYER_ART_SCALE para que los golpes coincidan con lo que se ve.
 export const PLAYER_HIT_RADIUS = 6;

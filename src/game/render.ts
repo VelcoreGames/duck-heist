@@ -4,12 +4,12 @@
 import {
   TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH, UI_OFFSET_X, ART_SCALE,
   HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
-  GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE, TILE_DOOR,
+  GameState, RoomType, DIR_VECTORS, DOOR_TILE, FLOOR_THEMES, OBSTACLE_BASE,
   type FloorTheme,
 } from './constants';
 import {
   drawDuck, drawHeart, drawSecurityPigeon, drawGuardGoose, drawToasterTurret,
-  drawRollingBagel, drawProjectile, drawCoin, drawChest, drawBoss, drawDoor,
+  drawRollingBagel, drawProjectile, drawCoin, drawChest, drawBoss,
   drawParticle, drawItem, drawWeaponIcon, drawShopPigeon, drawEvilCroissant,
   drawBankerChicken, drawPoliciaPato, drawPoliciaAntidisturbios, drawPoliciaEscopeta,
   drawPoliciaRapido, drawDronPolicial, drawPedestal, drawCandle, drawObstacle,
@@ -39,7 +39,8 @@ import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './f
 import { drawItemIcon } from './itemArt';
 import { drawHeldWeapon, heldWeapon } from './heldWeapons';
 import { drawKawaiiEnemy } from './kawaiiEnemies';
-import { PLAYER_ART_SCALE } from './constants';
+import { drawKawaiiRoomBackdrop, drawKawaiiDoor } from './kawaiiRoom';
+import { PLAYER_ART_SCALE, ENEMY_ART_SCALE } from './constants';
 import { getBuild, FOODS } from './itemRules';
 import { renderCollection } from './collectionUI';
 import { nearbyTooltip, type TooltipTarget } from './tooltips';
@@ -56,7 +57,6 @@ import { renderCareer } from './careerUI';
 import { renderDailyBrief, renderDailyHUD, renderDailyResult } from './dailyChallengeUI';
 import { dailyMedalColor } from './dailyChallenge';
 import { endlessStage } from './endless';
-import { drawRichTile, drawRoomAtmosphere, drawInnerWallShadow } from './roomArt';
 import { obstacleHitbox, obstacleCoverRect, obstacleMaxHp, obstacleOccludes, specialSolidRects, pedestalInteractPoint, PEDESTAL_INTERACT_RADIUS, type WorldRect } from './worldProps';
 import type { GameEngine, Enemy, RoomContent, Pedestal, EndlessRewardOption } from './types';
 import { GAME_VERSION_LABEL } from './version';
@@ -841,7 +841,7 @@ export function renderWorld(engine: GameEngine) {
     const t=DOOR_TILE[d],accessLocked=!!target&&specialRoomLocked(target);
     const doorLocked=!room.cleared||accessLocked;
     drawDoorThresholdAccent(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,!doorLocked,f);
-    drawDoor(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,doorLocked,content.doorAnim[d]??0,f);
+    drawKawaiiDoor(ctx,t.x*TILE_SIZE,t.y*TILE_SIZE,d,style,doorLocked,content.doorAnim[d]??0,f,FLOOR_THEMES[Math.min(engine.map.floorIndex??0,FLOOR_THEMES.length-1)]);
     if(room.cleared&&accessLocked&&target){
       const x=t.x*TILE_SIZE,y=t.y*TILE_SIZE,cx=x+16,cy=y+16,cost=specialRoomKeyCost(target);
       ctx.save();
@@ -1342,19 +1342,9 @@ function drawRoomBackdropCached(
     b.setTransform(ROOM_BACKDROP_SCALE,0,0,ROOM_BACKDROP_SCALE,0,0);
     b.imageSmoothingEnabled=false;
     const sampledFrame=f;
-    for(let y=0;y<ROOM_HEIGHT;y++){
-      for(let x=0;x<ROOM_WIDTH;x++){
-        const t=room.layout[y][x];
-        if(t===TILE_DOOR){
-          b.fillStyle='#080b0d';
-          b.fillRect(x*TILE_SIZE,y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
-        }else{
-          drawRichTile(b,x,y,t===1,theme,room.gx,room.gy,sampledFrame,room.type!==RoomType.START);
-        }
-      }
-    }
-    drawInnerWallShadow(b);
-    drawRoomAtmosphere(b,theme.deco,sampledFrame,special);
+    // Escenario kawaii: piso, muros, alfombra y luces en la rejilla de píxel de los personajes.
+    const rugRoom=room.type!==RoomType.COMBAT&&room.type!==RoomType.CHALLENGE||((room.gx+room.gy)&1)===0;
+    drawKawaiiRoomBackdrop(b,room.layout,theme,sampledFrame,room.type!==RoomType.START,rugRoom&&room.type!==RoomType.ITEM);
     roomBackdropRef=room;
     roomBackdropDeco=theme.deco;
     roomBackdropSpecial=special;
@@ -1424,84 +1414,6 @@ function drawDoorThresholdAccent(
   ctx.restore();
 }
 
-function drawFloorSectorIdentity(
-  ctx:CanvasRenderingContext2D,floorIndex:number,f:number,roomType:RoomType,
-){
-  if(roomType===RoomType.ITEM||roomType===RoomType.SHOP||roomType===RoomType.GUN_VAN||
-     roomType===RoomType.BOSS||roomType===RoomType.SUBBOSS||roomType===RoomType.SECRET)return;
-
-  const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2,pulse=.5+.5*Math.sin(f*.035);
-  const palette=[
-    ['#9f8555','#f0e7d7'], // lobby: latón + piedra clara
-    ['#a99369','#8f8173'], // administración: champagne + roble
-    ['#b38c55','#51473e'], // ejecutivo: bronce + nogal
-    ['#c99c55','#3e3028'], // alta dirección: latón + nogal oscuro
-    ['#dfb83f','#26251f'], // tesorería: oro
-    ['#f2ca4c','#121720'], // soberano: oro + ónix
-  ] as const;
-  const [accent,deep]=palette[Math.max(0,Math.min(5,floorIndex))];
-
-  ctx.save();
-
-  if(floorIndex===0){
-    // Gran entrada: runner institucional y medallón central tipo lobby.
-    ctx.globalAlpha=.10;ctx.fillStyle='#efe7d7';
-    ctx.fillRect(cx-56,58,112,CANVAS_HEIGHT-116);
-    ctx.globalAlpha=.26;ctx.strokeStyle=accent;ctx.lineWidth=1;
-    ctx.strokeRect(cx-56.5,58.5,113,CANVAS_HEIGHT-117);
-    ctx.strokeRect(cx-48.5,66.5,97,CANVAS_HEIGHT-133);
-    ctx.globalAlpha=.22;ctx.beginPath();ctx.ellipse(cx,cy,48,25,0,0,Math.PI*2);ctx.stroke();
-    ctx.globalAlpha=.11;ctx.beginPath();ctx.ellipse(cx,cy,34,17,0,0,Math.PI*2);ctx.stroke();
-  }else if(floorIndex===1){
-    // Administración: áreas de alfombra modular entre corredores de piedra.
-    ctx.globalAlpha=.09;ctx.fillStyle='#5d6c70';
-    ctx.fillRect(76,72,CANVAS_WIDTH-152,62);ctx.fillRect(76,CANVAS_HEIGHT-134,CANVAS_WIDTH-152,62);
-    ctx.globalAlpha=.18;ctx.strokeStyle=accent;ctx.lineWidth=1;
-    for(let x=84;x<CANVAS_WIDTH-78;x+=48){ctx.beginPath();ctx.moveTo(x,72);ctx.lineTo(x,134);ctx.moveTo(x,CANVAS_HEIGHT-134);ctx.lineTo(x,CANVAS_HEIGHT-72);ctx.stroke();}
-  }else if(floorIndex===2){
-    // Administración ejecutiva: banda de nogal y geometría simétrica.
-    ctx.globalAlpha=.13;ctx.strokeStyle=accent;ctx.lineWidth=2;
-    ctx.strokeRect(66.5,66.5,CANVAS_WIDTH-133,CANVAS_HEIGHT-133);
-    ctx.globalAlpha=.09;ctx.fillStyle='#3d332c';
-    ctx.fillRect(70,74,18,CANVAS_HEIGHT-148);ctx.fillRect(CANVAS_WIDTH-88,74,18,CANVAS_HEIGHT-148);
-    ctx.globalAlpha=.10;ctx.fillStyle=accent;ctx.fillRect(88,cy-1,CANVAS_WIDTH-176,2);
-  }else if(floorIndex===3){
-    // Alta dirección: alfombra central, mármol visible y latón.
-    ctx.globalAlpha=.10;ctx.fillStyle='#5b2631';
-    ctx.fillRect(cx-92,72,184,CANVAS_HEIGHT-144);
-    ctx.globalAlpha=.30;ctx.strokeStyle=accent;ctx.lineWidth=1;
-    ctx.strokeRect(cx-92.5,72.5,185,CANVAS_HEIGHT-145);
-    ctx.strokeRect(cx-82.5,82.5,165,CANVAS_HEIGHT-165);
-    ctx.globalAlpha=.14;ctx.beginPath();ctx.ellipse(cx,cy,52,27,0,0,Math.PI*2);ctx.stroke();
-  }else if(floorIndex===4){
-    // Tesorería: incrustación geométrica de oro en mármol oscuro.
-    ctx.globalAlpha=.28;ctx.strokeStyle=accent;ctx.lineWidth=2;
-    ctx.strokeRect(60.5,60.5,CANVAS_WIDTH-121,CANVAS_HEIGHT-121);
-    ctx.strokeRect(78.5,76.5,CANVAS_WIDTH-157,CANVAS_HEIGHT-153);
-    ctx.globalAlpha=.18;ctx.fillStyle=accent;
-    ctx.fillRect(cx-2,66,4,CANVAS_HEIGHT-132);ctx.fillRect(68,cy-2,CANVAS_WIDTH-136,4);
-    ctx.globalAlpha=.20;ctx.beginPath();ctx.ellipse(cx,cy,58,30,0,0,Math.PI*2);ctx.stroke();
-  }else{
-    // Cámara diamante: patrón ceremonial de oro con eje cristalino.
-    ctx.globalAlpha=.32;ctx.strokeStyle=accent;ctx.lineWidth=2;
-    ctx.strokeRect(56.5,56.5,CANVAS_WIDTH-113,CANVAS_HEIGHT-113);
-    ctx.strokeRect(76.5,72.5,CANVAS_WIDTH-153,CANVAS_HEIGHT-145);
-    ctx.globalAlpha=.24;ctx.fillStyle=accent;
-    ctx.fillRect(cx-3,64,6,CANVAS_HEIGHT-128);ctx.fillRect(66,cy-3,CANVAS_WIDTH-132,6);
-    ctx.globalAlpha=.24;ctx.strokeStyle='#9deaff';
-    ctx.beginPath();ctx.ellipse(cx,cy,64,34,0,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.ellipse(cx,cy,42,21,0,0,Math.PI*2);ctx.stroke();
-    ctx.globalAlpha=.45+.20*pulse;ctx.fillStyle='#dffbff';
-    for(const [x,y] of [[cx-62,cy],[cx+62,cy],[cx,cy-34],[cx,cy+34]] as const)ctx.fillRect(x-1,y-1,3,3);
-  }
-
-  // Esquinas: firma arquitectónica discreta, no HUD.
-  ctx.globalAlpha=floorIndex>=4?.42:.25;ctx.fillStyle=accent;
-  for(const [x,y] of [[70,70],[CANVAS_WIDTH-76,70],[70,CANVAS_HEIGHT-76],[CANVAS_WIDTH-76,CANVAS_HEIGHT-76]] as const){
-    ctx.fillRect(x,y,7,2);ctx.fillRect(x,y,2,7);
-  }
-  ctx.restore();
-}
 
 function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof currentRoomOf>, content: RoomContent, f: number, floorIndex: number) {
   const th=FLOOR_THEMES[Math.min(floorIndex,FLOOR_THEMES.length-1)];
@@ -1516,7 +1428,6 @@ function drawRoomFloor(ctx: CanvasRenderingContext2D, room: ReturnType<typeof cu
   const theme=itemRoom?itemTheme:th;
 
   drawRoomBackdropCached(ctx,room,theme,f,itemRoom);
-  drawFloorSectorIdentity(ctx,floorIndex,f,room.type);
 
   const cx=CANVAS_WIDTH/2,cy=CANVAS_HEIGHT/2;
   ctx.save();
@@ -2234,7 +2145,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    const tacticalScale=e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.32:1.26;
+    const tacticalScale=(e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.32:1.26)*ENEMY_ART_SCALE;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*tacticalScale,p.sy*tacticalScale);ctx.translate(-cx,-cy);
     if(!drawKawaiiEnemy(ctx,e.type,e.x,e.y,e.size,f,hurt,dirX,{moving:Math.hypot(e.vx,e.vy)>.12,telegraph:e.telegraph,seed:e.id}))
       drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
@@ -2242,7 +2153,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawEnemyRoleAccent(ctx,e,f);
   } else {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    const regularScale=e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.34:e.type==='dron_policial'||e.type==='rolling_bagel'?1.22:1.28;
+    const regularScale=(e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.34:e.type==='dron_policial'||e.type==='rolling_bagel'?1.22:1.28)*ENEMY_ART_SCALE;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*regularScale,p.sy*regularScale);ctx.translate(-cx,-cy);
     const kawaiiDrawn=drawKawaiiEnemy(ctx,e.type,e.x,e.y,e.size,f,hurt,
       e.type==='policia_antidisturbios'?(Math.cos(e.shieldAngle)<0?-1:1):dirX,

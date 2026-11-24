@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.4.7';
+export const GAME_VERSION = '0.0.2.5.0';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -37,3 +37,7 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           y jefes; el radio de impacto de las balas enemigas baja de 10 a 8 para coincidir con su tamaño.
 // v0.0.2.4.7: el pollito mide poco más de la mitad de un policía pato (escala 0.62, radio de impacto 6); arma y
 //           manitas un poco más grandes que el cuerpo para que se lean.
+// v0.0.2.5.0: escenario kawaii completo: pisos pastel por piso (damero, duela, mármol), muros con repisa y
+//           decoración, alfombra con emblema, puertas con arco del color del destino y candado, 20 familias de
+//           objetos destructibles + 12 piezas de lujo que llenan su caja de impacto, grietas al dañarse, y
+//           escala de tamaños pareja (muebles 26-30 px, policías ~27 px, pollito ~16 px).

@@ -6,6 +6,7 @@ import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef 
 import { drawItemIcon } from './itemArt';
 import { drawKawaiiEnemy } from './kawaiiEnemies';
 import { drawKawaiiBoss } from './kawaiiBosses';
+import { drawKawaiiObstacle } from './kawaiiProps';
 import { drawKawaiiDuck, KAWAII_DUCK_DEFAULT, type KawaiiDuckColors, type KawaiiFace } from './kawaiiDuck';
 import type { BossPartState } from './types';
 
@@ -4369,6 +4370,7 @@ function drawLuxuryPropOverride(
 
 /** Obstáculos sólidos del banco */
 export function drawObstacle(ctx: Ctx, x: number, y: number, kind: number, frame: number, integrity = 1) {
+  if(drawKawaiiObstacle(ctx,x,y,kind,frame,integrity))return;
   const bx=Math.floor(x),by=Math.floor(y),T=TILE_SIZE;
   const tier=Math.max(0,Math.min(5,Math.floor(kind/20))),family=((kind%20)+20)%20;
   // Cada piso tiene un lenguaje material propio: operativo, seguridad, custodia,
