@@ -1,5 +1,6 @@
 import { drawPoliciaPato, drawGuardGoose } from './sprites';
 import { ART_SCALE, ART_PIXEL } from './constants';
+import { drawKawaiiEnemy } from './kawaiiEnemies';
 
 type Ctx=CanvasRenderingContext2D;
 
@@ -37,6 +38,8 @@ function tacticalMaterialPass(c:Ctx,bx:number,by:number,id:string,frame:number){
 }
 
 export function drawTacticalEnemy(c:Ctx,id:string,x:number,y:number,frame:number,hurt=false,angle=0,charge=0) {
+  const kawaiiSize:Record<string,number>={policia_francotirador:18,policia_medico:16,policia_capitan:20,ganso_k9:20,security_camera:18,policia_granadero:18,policia_porra:16,torreta_banco:20,robot_cajero:22,camara_movil:16};
+  if(drawKawaiiEnemy(c,id,x,y,kawaiiSize[id]??18,frame,hurt,Math.cos(angle)<0?-1:1,{telegraph:charge}))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.13));
   c.save();if(hurt&&Math.floor(frame)%2===0)c.globalAlpha=.58;
 

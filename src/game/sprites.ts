@@ -4,6 +4,7 @@
 import { TILE_SIZE, ART_SCALE, ART_PIXEL } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
+import { drawKawaiiEnemy } from './kawaiiEnemies';
 import { drawKawaiiDuck, KAWAII_DUCK_DEFAULT, type KawaiiDuckColors, type KawaiiFace } from './kawaiiDuck';
 import type { BossPartState } from './types';
 
@@ -1378,6 +1379,7 @@ function crownMark(ctx:Ctx,x:number,y:number,color='#e5bd45'){
 
 /** PALOMA DE SEGURIDAD — silueta de tirador, visera y arma siempre legibles. */
 export function drawSecurityPigeon(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'security_pigeon',x,y,16,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.16)),pulse=.5+.5*Math.sin(frame*.11);
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+8,by+19,7.5,.31);
@@ -1415,6 +1417,7 @@ export function drawSecurityPigeon(ctx: Ctx, x: number, y: number, frame: number
 
 /** GANSO GUARDIA — bruto de contacto con casco, porra y hombreras anchas. */
 export function drawGuardGoose(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'guard_goose',x,y,20,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.13));
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+10,by+24,10,.39);
@@ -1451,6 +1454,7 @@ export function drawGuardGoose(ctx: Ctx, x: number, y: number, frame: number, hu
 
 /** TORRETA TOSTADORA — máquina de cocina militarizada con núcleo/cañón claramente frontal. */
 export function drawToasterTurret(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'toaster_turret',x,y,18,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),pulse=.55+.45*Math.sin(frame*.17);
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+10,by+22,10,.40);
@@ -1490,6 +1494,7 @@ export function drawToasterTurret(ctx: Ctx, x: number, y: number, frame: number,
 
 /** ROSQUILLA RODANTE — rueda blindada de pan con pinchos y rostro central. */
 export function drawRollingBagel(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'rolling_bagel',x,y,14,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),rot=frame*.16;
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+8,by+18,8.5,.30);
@@ -4637,6 +4642,7 @@ function enemyFeatherHead(ctx:Ctx,x:number,y:number,w=9,h=7){
 
 /** POLICÍA PATO — patrullero base, ahora con silueta más orgánica y uniforme premium. */
 export function drawPoliciaPato(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
+  if(drawKawaiiEnemy(ctx,'policia_pato',x,y,16,frame,hurt,dirX))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.18)*.6);
   const faceRight=dirX>=0;
   const feather='#ece9df',featherHi='#fbf8ef',featherLo='#c7c5bd';
@@ -4743,6 +4749,7 @@ export function drawPoliciaAntidisturbios(
   ctx: Ctx, x: number, y: number, frame: number, hurt: boolean,
   shieldDir: { x: number; y: number }, charging: boolean, shieldDown = false,
 ) {
+  if(drawKawaiiEnemy(ctx,'policia_antidisturbios',x,y,22,frame,hurt,shieldDir.x<0?-1:1,{shield:shieldDown?undefined:shieldDir,charging}))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.11));
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+11,by+24,10.5,.41);
@@ -4784,6 +4791,7 @@ export function drawPoliciaAntidisturbios(
 export function drawPoliciaEscopeta(
   ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number, charge: number,
 ) {
+  if(drawKawaiiEnemy(ctx,'policia_escopeta',x,y,18,frame,hurt,dirX,{telegraph:charge}))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.14)),faceRight=dirX>=0;
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+9,by+20,8.5,.35);
@@ -4818,6 +4826,7 @@ export function drawPoliciaEscopeta(
 
 /** POLICÍA RÁPIDO — interceptor estilizado con casco aerodinámico y piernas largas. */
 export function drawPoliciaRapido(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean, dirX: number) {
+  if(drawKawaiiEnemy(ctx,'policia_rapido',x,y,14,frame,hurt,dirX))return;
   const bx=Math.floor(x),by=Math.floor(y),run=Math.sin(frame*.55),bob=Math.round(run),faceRight=dirX>=0;
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+7,by+17,6,.25);
@@ -4848,6 +4857,7 @@ export function drawPoliciaRapido(ctx: Ctx, x: number, y: number, frame: number,
 
 /** DRON POLICIAL — diseño de seguridad bancaria, compacto y con núcleo óptico. */
 export function drawDronPolicial(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'dron_policial',x,y,16,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),hover=Math.sin(frame*.15)*1.5,pulse=.55+.45*Math.sin(frame*.25);
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+8,by+22,7,.20);
@@ -4985,6 +4995,7 @@ export function drawParticle(ctx: Ctx, x: number, y: number, type: string, life:
 }
 
 export function drawEvilCroissant(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'evil_croissant',x,y,14,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.24));
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+8,by+18,7.5,.30);
@@ -5018,6 +5029,7 @@ export function drawEvilCroissant(ctx: Ctx, x: number, y: number, frame: number,
 }
 
 export function drawBankerChicken(ctx: Ctx, x: number, y: number, frame: number, hurt: boolean) {
+  if(drawKawaiiEnemy(ctx,'banker_chicken',x,y,18,frame,hurt,1))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.11)),pulse=.55+.45*Math.sin(frame*.18);
   ctx.save();if(hurt&&Math.floor(frame)%2===0)ctx.globalAlpha=.55;
   enemyShadow(ctx,bx+9,by+21,8.5,.34);
@@ -5061,6 +5073,7 @@ export function drawBankerChicken(ctx: Ctx, x: number, y: number, frame: number,
 }
 
 export function drawShopPigeon(ctx: Ctx, x: number, y: number, frame: number) {
+  if(drawKawaiiEnemy(ctx,'shop_pigeon',x,y,16,frame,false,1))return;
   const bx=Math.floor(x),by=Math.floor(y),bob=Math.round(Math.sin(frame*.1)),look=Math.sin(frame*.025)>0?1:-1;
   ctx.save();
   enemyShadow(ctx,bx+9,by+20,8,.28);

@@ -38,6 +38,7 @@ import {
 import { renderFloorMap, visibleRoomKeys, ROOM_STYLE, drawRoomSymbol } from './floorMap';
 import { drawItemIcon } from './itemArt';
 import { drawHeldWeapon, heldWeapon } from './heldWeapons';
+import { drawKawaiiEnemy } from './kawaiiEnemies';
 import { getBuild, FOODS } from './itemRules';
 import { renderCollection } from './collectionUI';
 import { nearbyTooltip, type TooltipTarget } from './tooltips';
@@ -1025,7 +1026,7 @@ export function renderWorld(engine: GameEngine) {
     }
     ctx.translate(0,dy);ctx.rotate(drot);ctx.scale(sx,sy);
     if(d.enemy.isBoss) drawBoss(ctx,-d.enemy.size/2,-d.enemy.size/2,d.enemy.bossType,f,0,1,false,d.enemy.bossPhase,0,d.enemy.bossParts);
-    else {
+    else if(!drawKawaiiEnemy(ctx,d.enemy.type,-d.enemy.size/2,-d.enemy.size/2,d.enemy.size,f,false,1,{dead:true})) {
       switch(d.enemy.type) {
         case 'toaster_turret':drawToasterTurret(ctx,-10,-10,f,false);break;
         case 'rolling_bagel':drawRollingBagel(ctx,-8,-8,f,false);break;
@@ -2229,14 +2230,20 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
     const tacticalScale=e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.32:1.26;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*tacticalScale,p.sy*tacticalScale);ctx.translate(-cx,-cy);
-    drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
+    if(!drawKawaiiEnemy(ctx,e.type,e.x,e.y,e.size,f,hurt,dirX,{moving:Math.hypot(e.vx,e.vy)>.12,telegraph:e.telegraph,seed:e.id}))
+      drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
     ctx.restore();
     drawEnemyRoleAccent(ctx,e,f);
   } else {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
     const regularScale=e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.34:e.type==='dron_policial'||e.type==='rolling_bagel'?1.22:1.28;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*regularScale,p.sy*regularScale);ctx.translate(-cx,-cy);
-    switch (e.type) {
+    const kawaiiDrawn=drawKawaiiEnemy(ctx,e.type,e.x,e.y,e.size,f,hurt,
+      e.type==='policia_antidisturbios'?(Math.cos(e.shieldAngle)<0?-1:1):dirX,
+      {moving:Math.hypot(e.vx,e.vy)>.12,telegraph:e.telegraph,seed:e.id,
+        shield:e.type==='policia_antidisturbios'&&e.recover<=0?{x:Math.cos(e.shieldAngle),y:Math.sin(e.shieldAngle)}:undefined,
+        charging:e.type==='policia_antidisturbios'&&e.chargeTimer>0});
+    if(!kawaiiDrawn) switch (e.type) {
       case 'policia_pato': drawPoliciaPato(ctx, e.x, e.y, f, hurt, dirX); break;
       case 'policia_rapido': drawPoliciaRapido(ctx, e.x, e.y, f, hurt, dirX); break;
       case 'policia_escopeta': drawPoliciaEscopeta(ctx, e.x, e.y, f, hurt, dirX, e.telegraph); break;
