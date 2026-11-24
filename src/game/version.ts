@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.4.6';
+export const GAME_VERSION = '0.0.2.4.7';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -35,3 +35,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           en fase 2, burbuja "!" al preparar ataques, módulos destructibles como aparatitos y corona del jefe final.
 // v0.0.2.4.6: el Pollito ladrón es más chico (escala 0.9 en vez de 1.18) para que se note pequeño frente a policías
 //           y jefes; el radio de impacto de las balas enemigas baja de 10 a 8 para coincidir con su tamaño.
+// v0.0.2.4.7: el pollito mide poco más de la mitad de un policía pato (escala 0.62, radio de impacto 6); arma y
+//           manitas un poco más grandes que el cuerpo para que se lean.

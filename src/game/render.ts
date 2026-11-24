@@ -457,6 +457,9 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
   const heroScale=PLAYER_ART_SCALE;
   // Las distancias del arma se pensaron para la escala 1.18; se ajustan al tamaño actual.
   const bodyK=heroScale/1.18;
+  // El arma y las manitas no bajan tanto como el cuerpo: un pollito con una
+  // pistola grandota se lee mejor (y se ve más chiquito).
+  const gunPx=Math.max(heroScale,.82),handPx=Math.max(heroScale,.72);
   const drawBody=()=>{
     ctx.save();
     ctx.translate(drawX+7,drawY+9+interact*1.5);
@@ -489,7 +492,7 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
   const reach=6.5*bodyK;
   const held=heldWeapon(currentWeapon.id);
   const gripX=held.grip[0],gripY=held.grip[1];
-  const muzzleLX=(held.muzzle[0]-gripX)*heroScale,muzzleLY=(held.muzzle[1]-gripY)*heroScale;
+  const muzzleLX=(held.muzzle[0]-gripX)*gunPx,muzzleLY=(held.muzzle[1]-gripY)*gunPx;
   const gunLen=muzzleLX;
   const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
   const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
@@ -523,7 +526,7 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
   ctx.globalAlpha=1-interact*.38;
   ctx.translate(-weaponKick+actionX,actionY+sway*gunFlip);
   ctx.rotate(actionRot);
-  ctx.scale(weaponScaleX*heroScale,weaponScaleY*heroScale);
+  ctx.scale(weaponScaleX*gunPx,weaponScaleY*gunPx);
   drawHeldWeapon(ctx,currentWeapon.id);
   // A partir de aquí las coordenadas son píxeles del arma, con la empuñadura en (0,0).
   const mX=held.muzzle[0]-gripX,mY=held.muzzle[1]-gripY;
@@ -572,7 +575,7 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
     const ax=reach+lx-weaponKick+actionX,ay=(ly+actionY+sway*gunFlip)*gunFlip;
     const hx=pivotX+aimX*ax-aimY*ay,hy=pivotY+aimY*ax+aimX*ay;
     ctx.save();
-    ctx.translate(hx,hy);ctx.scale(heroScale*squeeze,heroScale*squeeze);
+    ctx.translate(hx,hy);ctx.scale(handPx*squeeze,handPx*squeeze);
     ctx.globalAlpha=1-interact*.25;
     ctx.fillStyle=handOutlineLight;ctx.fillRect(-1.5,-2.5,3,1);ctx.fillRect(-2.5,-1.5,1,3);
     ctx.fillStyle=handOutline;ctx.fillRect(-1.5,1.5,3,1);ctx.fillRect(1.5,-1.5,1,3);
@@ -581,7 +584,7 @@ export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['playe
     ctx.fillStyle=handShine;ctx.fillRect(-1.5,-1.5,1,1);
     ctx.restore();
   };
-  if(held.front)handAt((held.front[0]-gripX)*heroScale,(held.front[1]-gripY)*heroScale);
+  if(held.front)handAt((held.front[0]-gripX)*gunPx,(held.front[1]-gripY)*gunPx);
   handAt(0,0);
   };
 
