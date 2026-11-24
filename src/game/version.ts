@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.2';
+export const GAME_VERSION = '0.0.2.5.3';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -45,3 +45,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           contorno grueso y sombra sólida; corazones kawaii; monedas y llaves con contorno; escena del menú teñida.
 // v0.0.2.5.2: enemigos generados a su tamaño real (píxel parejo con el escenario), balas enemigas kawaii, cofre,
 //           pedestal de premio y escalera nuevos, humo en nubecitas y alfombra más discreta.
+// v0.0.2.5.3: mira kawaii grande (anillo rosa con contorno grueso, marcas y punto; amarilla al disparar) en lugar
+//           del cursor del sistema; pisos y muros en tonos medios, una loseta por baldosa y luces más suaves.

@@ -2457,9 +2457,37 @@ export function renderUI(engine: GameEngine) {
       drawHUD(engine);
       renderPrompts(engine);
       if(engine.keys.tab) legacy(()=>renderRunStats(engine));
+      if(s===GameState.PLAYING)drawAimReticle(engine);
       break;
   }
 
+  ctx.restore();
+}
+
+/** Mira kawaii grande: anillo rosa con contorno oscuro grueso, cuatro marcas y
+ *  punto central. Se lee sobre pisos claros y oscuros; se encoge al disparar. */
+function drawAimReticle(engine:GameEngine){
+  if(engine.lastInput==='gamepad')return;
+  const ctx=engine.ui!,x=engine.mouseX,y=engine.mouseY;
+  if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>CANVAS_WIDTH||y>CANVAS_HEIGHT)return;
+  const firing=engine.player.shootFlash>0;
+  const r=firing?5.6:7+Math.sin(engine.frame*.12)*.4;
+  const col=firing?'#ffe45e':'#ff4f8b';
+  ctx.save();
+  ctx.lineCap='round';
+  // halo suave para despegar la mira del fondo
+  ctx.globalAlpha=.22;ctx.fillStyle='#130f24';ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  const ring=(w:number,c:string)=>{ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();};
+  const ticks=(w:number,c:string)=>{
+    ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ctx.moveTo(x+dx*(r+3),y+dy*(r+3));ctx.lineTo(x+dx*(r+7.5),y+dy*(r+7.5));}
+    ctx.stroke();
+  };
+  ring(4.2,'#130f24');ticks(4.2,'#130f24');
+  ring(2.2,col);ticks(2.2,col);
+  ctx.globalAlpha=.85;ctx.strokeStyle='#ffffff';ctx.lineWidth=.8;ctx.beginPath();ctx.arc(x,y,r,Math.PI*1.1,Math.PI*1.45);ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle='#130f24';ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(x,y,1.1,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 

@@ -14,24 +14,25 @@ type RoomPal = {
 
 // Piso 1 lobby · 2 administración · 3 ejecutivo · 4 alta dirección · 5 tesorería · 6 cámara soberana
 const PALS: RoomPal[] = [
-  { floorA:'#d3dde3', floorB:'#c6d2d9', grout:'#a9b7c2', shine:'#eef4f7',
-    wallTop:'#a9b6d8', wallTopHi:'#c9d3ee', wallFace:'#8796c2', wallFaceLo:'#7181b0', wainscot:'#6574a3', base:'#4e5a86',
-    rug:'#ee8399', rugHi:'#ffb0be', rugLo:'#cc627a', rugTrim:'#ffd45e', trim:'#ffd45e', glow:'#fff6d8' },
-  { floorA:'#eadfce', floorB:'#e4d8c5', grout:'#c7b69c', shine:'#fbf4e8',
-    wallTop:'#e3b08a', wallTopHi:'#f6cfae', wallFace:'#cf9470', wallFaceLo:'#bb7f5c', wainscot:'#a86d4c', base:'#7f4f37',
-    rug:'#6f9ccf', rugHi:'#9cc2ec', rugLo:'#557fb0', rugTrim:'#fff1d6', trim:'#e8c07a', glow:'#fff1d6' },
-  { floorA:'#d6bd9b', floorB:'#cdb18e', grout:'#a68a68', shine:'#ecd9bc',
-    wallTop:'#9cbf98', wallTopHi:'#bcd9b6', wallFace:'#7ea47b', wallFaceLo:'#6c9069', wainscot:'#5d7d5a', base:'#425a40',
-    rug:'#b56f9c', rugHi:'#d897c0', rugLo:'#91567c', rugTrim:'#ffe08a', trim:'#e8b86a', glow:'#ffeccc' },
-  { floorA:'#f3e9da', floorB:'#ecdfcc', grout:'#d6c3a6', shine:'#fffaf1', vein:'#dcc8ad',
-    wallTop:'#d4a3bd', wallTopHi:'#ecc4d8', wallFace:'#bb85a3', wallFaceLo:'#a7718f', wainscot:'#8f5c79', base:'#683f58',
-    rug:'#4f8a8b', rugHi:'#78b5b4', rugLo:'#3a6c6e', rugTrim:'#ffd45e', trim:'#ffd45e', glow:'#fff3dc' },
-  { floorA:'#5a5174', floorB:'#4f4767', grout:'#3b3452', shine:'#776d96', vein:'#6f6590',
+  // Tonos medios: nada de blanco puro, para que personajes, balas y la mira resalten.
+  { floorA:'#a9b5c9', floorB:'#a1adc2', grout:'#8a96ad', shine:'#bac5d6',
+    wallTop:'#7c87b4', wallTopHi:'#96a1ca', wallFace:'#646f9d', wallFaceLo:'#58628e', wainscot:'#4d5683', base:'#394066',
+    rug:'#c4677d', rugHi:'#dc8698', rugLo:'#a14f63', rugTrim:'#f2c65a', trim:'#f2c65a', glow:'#fff6d8' },
+  { floorA:'#cfbea4', floorB:'#c8b69b', grout:'#ad9b80', shine:'#ddcdb5',
+    wallTop:'#c58f69', wallTopHi:'#d9a985', wallFace:'#ab7652', wallFaceLo:'#986645', wainscot:'#85573a', base:'#5f3e2a',
+    rug:'#5f8cbf', rugHi:'#86addb', rugLo:'#4a71a0', rugTrim:'#f3e4c4', trim:'#e0b56c', glow:'#fff1d6' },
+  { floorA:'#c3a27d', floorB:'#b99772', grout:'#957552', shine:'#d4b893',
+    wallTop:'#88a985', wallTopHi:'#a3c39f', wallFace:'#6c8f69', wallFaceLo:'#5e7f5b', wainscot:'#506d4d', base:'#3a5039',
+    rug:'#a8638f', rugHi:'#c886b0', rugLo:'#874d72', rugTrim:'#f0d27c', trim:'#dcae62', glow:'#ffeccc' },
+  { floorA:'#d8c7b0', floorB:'#d0bea5', grout:'#b8a386', shine:'#e7dac8', vein:'#c3ae90',
+    wallTop:'#be8ba7', wallTopHi:'#d4a7bf', wallFace:'#a5728f', wallFaceLo:'#93637f', wainscot:'#7d526b', base:'#5c3a4f',
+    rug:'#4a8283', rugHi:'#6fa8a7', rugLo:'#376566', rugTrim:'#f2c65a', trim:'#f2c65a', glow:'#fff3dc' },
+  { floorA:'#5a5174', floorB:'#544b6d', grout:'#3b3452', shine:'#6c6290', vein:'#6a608c',
     wallTop:'#6c6294', wallTopHi:'#8c82b4', wallFace:'#4f4675', wallFaceLo:'#443c66', wainscot:'#3a3259', base:'#2a2342',
-    rug:'#c9443d', rugHi:'#ef6d5f', rugLo:'#9c2f2d', rugTrim:'#ffd45e', trim:'#ffd45e', glow:'#ffe08a' },
-  { floorA:'#334166', floorB:'#2c3a5c', grout:'#222c48', shine:'#4d5f8f', vein:'#5f7cb8',
+    rug:'#b9443e', rugHi:'#dc675c', rugLo:'#912f2d', rugTrim:'#f2c65a', trim:'#f2c65a', glow:'#ffe08a' },
+  { floorA:'#334166', floorB:'#2f3c60', grout:'#222c48', shine:'#46578a', vein:'#5f7cb8',
     wallTop:'#3f4f80', wallTopHi:'#5d70a8', wallFace:'#2e3b63', wallFaceLo:'#283458', wainscot:'#222b4c', base:'#171d36',
-    rug:'#7a54c9', rugHi:'#a07fe8', rugLo:'#5c3ca3', rugTrim:'#8ff0e6', trim:'#ffd45e', glow:'#c8f6ff' },
+    rug:'#7151bb', rugHi:'#9677db', rugLo:'#573a99', rugTrim:'#8ff0e6', trim:'#f2c65a', glow:'#c8f6ff' },
 ];
 const DECOS = ['lobby', 'security', 'storage', 'bakery', 'vault', 'golden'];
 export function kawaiiRoomTier(theme: FloorTheme) { return Math.max(0, DECOS.indexOf(theme.deco)); }
@@ -53,14 +54,10 @@ function floorTile(ctx: CanvasRenderingContext2D, px: number, py: number, x: num
     }
     return;
   }
-  // Cuatro losetas de 16 px por baldosa, en damero suave.
-  for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
-    const ox = px + i * 16, oy = py + j * 16;
-    const alt = ((x * 2 + i) + (y * 2 + j)) % 2 === 0;
-    r(ctx, ox, oy, 16, 16, alt ? p.floorA : p.floorB);
-    r(ctx, ox, oy, 16, 1, p.grout); r(ctx, ox, oy, 1, 16, p.grout);
-    r(ctx, ox + 1, oy + 1, 3, 1, p.shine); r(ctx, ox + 1, oy + 2, 1, 1, p.shine);
-  }
+  // Una loseta por baldosa en damero muy suave: menos líneas, piso más tranquilo.
+  r(ctx, px, py, T, T, (x + y) % 2 === 0 ? p.floorA : p.floorB);
+  r(ctx, px, py, T, 1, p.grout); r(ctx, px, py, 1, T, p.grout);
+  r(ctx, px + 1, py + 1, 3, 1, p.shine);
   const k = h(x, y, tier);
   if (p.vein && k % 3 === 0) { // vetas de mármol, pocas y suaves
     const sx = px + 4 + (k % 20), sy = py + 3 + ((k >> 5) % 18);
@@ -145,11 +142,7 @@ function wallTile(ctx: CanvasRenderingContext2D, x: number, y: number, p: RoomPa
   }
   // Muros vistos desde arriba (laterales, inferior y esquinas).
   r(ctx, px, py, T, T, p.wallTop);
-  const k = h(x, y, tier + 3);
-  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
-    r(ctx, px + i * 16, py + j * 16, 16, 1, p.wallTopHi);
-    if (k & (1 << (i + j * 2))) r(ctx, px + i * 16 + 3, py + j * 16 + 4, 2, 1, p.wallTopHi);
-  }
+  r(ctx, px, py, T, 1, p.wallTopHi);
   const W = ROOM_WIDTH - 1, H = ROOM_HEIGHT - 1;
   // borde interior hacia la sala: línea oscura y una franja de sombra.
   if (x === 0 && y > 0 && y < H) { r(ctx, px + T - 4, py, 3, T, p.wallFaceLo); r(ctx, px + T - 1, py, 1, T, INK); }
@@ -179,7 +172,7 @@ export function drawKawaiiRoomBackdrop(ctx: CanvasRenderingContext2D, layout: nu
     const cx = ((i + .5) / lights) * ROOM_WIDTH * T, cy = ROOM_HEIGHT * T * .42;
     const g = ctx.createRadialGradient(cx, cy, 6, cx, cy, 120);
     g.addColorStop(0, p.glow); g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.globalAlpha = tier >= 4 ? .14 : .1; ctx.fillStyle = g; ctx.fillRect(cx - 120, cy - 120, 240, 240);
+    ctx.globalAlpha = tier >= 4 ? .1 : .05; ctx.fillStyle = g; ctx.fillRect(cx - 120, cy - 120, 240, 240);
   }
   ctx.restore();
 }

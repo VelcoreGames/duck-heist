@@ -40,7 +40,7 @@ export default function App() {
   const rafRef = useRef<number>(0);
   const [, force] = useState(0);
   const [hint, setHint] = useState('');
-  const [cursor, setCursor] = useState<'crosshair' | 'default' | 'pointer'>('pointer');
+  const [cursor, setCursor] = useState<'none' | 'default' | 'pointer'>('pointer');
   const [audit,setAudit]=useState<CheckReport|null>(null);
 
   /** Escala responsive del viewport; independiente de la resolución artística 6x. */
@@ -124,7 +124,7 @@ export default function App() {
     engine.onStateChange = () => {
       force(n => n + 1);
       setHint(hintFor(engine));
-      setCursor(engine.state === GameState.PLAYING ? 'crosshair' : 'pointer');
+      setCursor(engine.state === GameState.PLAYING ? 'none' : 'pointer');
     };
 
     const applySize = () => {
@@ -610,7 +610,7 @@ export default function App() {
       const p = uiPoint(raw);
       engine.mouseX = p.x; engine.mouseY = p.y;
       if(Math.abs(ev.movementX)+Math.abs(ev.movementY)>1)engine.lastInput='keyboard';
-      if(engine.state===GameState.PLAYING)setCursor('crosshair');
+      if(engine.state===GameState.PLAYING)setCursor('none');
       if(engine.state===GameState.MAP) {mapHit(engine,p.x,p.y);return;}
       if(engine.swap) {const hit=swapHit(p.x,p.y);if(hit>=0&&hit!==engine.swapSel) selectSwapSlot(engine,hit);return;}
       // Hover real: la selección visual sigue exactamente a la geometría clicable.
