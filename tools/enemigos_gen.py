@@ -6,10 +6,11 @@
 import math, json, sys
 from PIL import Image
 
-N = 32            # lienzo 32x32
-GROUND = 29       # línea de los pies; el juego la alinea con la base del enemigo
+N = 34            # lienzo 34x34
+GROUND = 31       # línea de los pies; el juego la alinea con la base del enemigo
 LIGHT = (-.62, -.78)
 OUT_D, OUT_L = '#25203a', '#4f4874'
+BIRD_SCALE = 1.13
 
 def R(*c): return list(c)
 # Rampas: brillo, base, sombra, sombra profunda
@@ -89,6 +90,7 @@ def feet(s, pts, ramp=BEAK):
 def bird(step, k=1.0, body=WHITE, suit=None, head=None, beak='duck', hat=None, prop=None,
          neck=0, extra=None, cy_off=0, wide=1.0):
     """Ave chibi en 3/4 mirando a la derecha. Devuelve sprite y ojos."""
+    k *= BIRD_SCALE  # tamaño nativo: el juego dibuja a los enemigos a escala 1 (píxel parejo)
     s = Spr(); head = head or body
     lift = [(-1, 0), (0, 0), (0, -1), (0, 0)][step]; bob = [0, -1, 0, -1][step]
     hx, hy = 16.5, GROUND - 14.2 * k + bob + cy_off - neck
@@ -302,6 +304,7 @@ def atm(step):
     s = Spr(); lift = [(-1, 0), (0, 0), (0, -1), (0, 0)][step]
     feet(s, [(12, GROUND - .6 + lift[0]), (20, GROUND - .6 + lift[1])], DARK)
     bob = [0, -1, 0, -1][step]
+    bob += 2
     s.box(6, 4 + bob, 20, 23, MINT, 'body', 1)
     s.box(9, 7 + bob, 14, 9, DARK, 'screen', 1)
     s.box(11, 19 + bob, 10, 2, DARK, 'slot', 0)
@@ -320,11 +323,11 @@ def make(id_, step):
     if id_ == 'policia_escopeta':
         return bird(step, 1.06, WHITE, NAVY, hat=cap(), extra=both(sunglasses, suit_badge), prop=gun('shotgun'), wide=1.08)
     if id_ == 'policia_antidisturbios':
-        return bird(step, 1.2, WHITE, RIOT, hat=helmet(), extra=suit_badge, wide=1.1)
+        return bird(step, 1.12, WHITE, RIOT, hat=helmet(), extra=suit_badge, wide=1.1)
     if id_ == 'security_pigeon':
         return bird(step, 1.0, PIGEON, DARK, beak='pigeon', hat=cap(DARK, GOLD), extra=pigeon_neck, prop=gun('radio'))
     if id_ == 'guard_goose':
-        return bird(step, 1.08, WHITE, NAVY, beak='goose', neck=4, hat=cap(), prop=gun('baton'))
+        return bird(step, 1.0, WHITE, NAVY, beak='goose', neck=4, hat=cap(), prop=gun('baton'))
     if id_ == 'banker_chicken':
         return bird(step, 1.04, CREAM, R('#d6ffd8', '#9ae6a0', '#6cbf78', '#4f9a5c'), beak='small', hat=comb(), extra=monocle, prop=gun('bag'))
     if id_ == 'policia_francotirador':
@@ -335,7 +338,7 @@ def make(id_, step):
     if id_ == 'policia_capitan':
         return bird(step, 1.12, WHITE, NAVY, hat=peaked(), extra=both(mustache, medals), prop=gun('pistol'))
     if id_ == 'ganso_k9':
-        return bird(step, 1.06, WHITE, None, beak='goose', neck=4, hat=None, extra=k9_vest)
+        return bird(step, 1.02, WHITE, None, beak='goose', neck=4, hat=None, extra=k9_vest)
     if id_ == 'policia_granadero':
         return bird(step, 1.06, WHITE, CAMO, hat=helmet(CAMO, CAMO), extra=grenade_belt, prop=gun('grenade'))
     if id_ == 'policia_porra':
@@ -344,12 +347,15 @@ def make(id_, step):
         return bird(step, 1.06, PIGEON, None, beak='pigeon', hat=fedora(), extra=both(coat, pigeon_neck))
     if id_ == 'rolling_bagel': return bagel(step)
     if id_ == 'evil_croissant': return croissant(step)
-    if id_ == 'toaster_turret': return toaster(step)
-    if id_ == 'dron_policial': return drone(step)
-    if id_ == 'security_camera': return camera(step)
-    if id_ == 'camara_movil': return camera(step, True)
-    if id_ == 'torreta_banco': return bank_turret(step)
     if id_ == 'robot_cajero': return atm(step)
+    objs = {'toaster_turret': lambda: toaster(step), 'dron_policial': lambda: drone(step), 'security_camera': lambda: camera(step),
+            'camara_movil': lambda: camera(step, True), 'torreta_banco': lambda: bank_turret(step)}
+    if id_ in objs:
+        # Diseñados sobre un suelo en y=29: se bajan 2 px para la línea de pies nueva.
+        s, e = objs[id_](); t = Spr()
+        for y in range(N - 2):
+            for x in range(N): t.px[y + 2][x] = s.px[y][x]
+        return t, [(ex, ey + 2) for ex, ey in e]
     raise KeyError(id_)
 
 STYLE = {  # cómo se dibujan los ojos en el juego

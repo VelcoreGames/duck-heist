@@ -154,6 +154,24 @@ def lux(name):
     elif name == 'crown_case':
         s.box(2, 20, 28, 10, M); s.box(3, 8, 26, 13, ['#e8fbff', '#cdeffb', '#a6dbee', '#86c4dc'], 'glass')
         s.rows(9, 11, ['g..g..g..g..g', 'gg.gg.g.gg.gg', 'ggggggggggggg', 'grgggbgggrggg', 'ggggggggggggg'], {'g': GOLD[1], 'r': RED[1], 'b': GEM[1]})
+    elif name == 'chest_closed':
+        s.box(4, 18, 24, 12, WOOD); s.ell(16, 18, 12, 6, WOOD, 'lid', clip=lambda x, y: y <= 18)
+        for x in (7, 23): s.box(x, 12, 2, 18, GOLD, 'band', 0)
+        s.box(4, 18, 24, 2, GOLD, 'rim', 0); s.box(13, 17, 6, 7, GOLD); s.put(15, 20, INK); s.put(16, 20, INK); s.put(15, 21, INK)
+    elif name == 'chest_open':
+        s.box(4, 18, 24, 12, WOOD); s.box(5, 7, 22, 7, WOOD, 'lid'); s.box(5, 13, 22, 2, GOLD, 'lidrim', 0)
+        s.box(6, 15, 20, 4, ['#5a3a28', '#3a2618', '#2a1a10', '#1c120a'], 'inside', 0)
+        for x, y in ((9, 15), (13, 14), (18, 15), (22, 14), (16, 16)): s.ell(x, y, 1.8, 1.4, GOLD, 'coin')
+        for x in (7, 23): s.box(x, 19, 2, 11, GOLD, 'band', 0)
+        s.box(4, 18, 24, 2, GOLD, 'rim', 0)
+    elif name == 'pedestal_item':
+        s.box(9, 12, 14, 15, PAPER); for_x = [s.box(x, 13, 1, 13, ['#e8dcc8'] * 4, 'flute', 0) for x in (12, 16, 20)]
+        s.box(5, 8, 22, 5, GOLD); s.box(5, 26, 22, 5, M)
+        s.ell(16, 7, 7, 2.6, POT, 'cushion')
+    elif name == 'stairs':
+        s.box(2, 4, 28, 26, GOLD); s.box(4, 6, 24, 22, ['#3a3060', '#2a2247', '#1b1533', '#130f24'], 'hole', 0)
+        for k, c in enumerate(('#8c82b4', '#6c6294', '#4f4675', '#3a3259')): s.box(5 + k * 2, 8 + k * 5, 22 - k * 4, 4, [c, c, c, c], 'step', 0)
+        s.rows(13, 1, ['..ww..', '..ww..', 'wwwwww', '.wwww.', '..ww..'], {'w': '#fff0a3'})
     s.outline(INK, INK_L)
     return s
 
@@ -179,7 +197,7 @@ def enc(s):
 
 def main():
     fams = [enc(fam(i)) for i in range(20)]
-    luxn = sorted(set(LUX.values())); luxs = {n: enc(lux(n)) for n in luxn}
+    luxn = sorted(set(LUX.values()) | {'chest_closed', 'chest_open', 'pedestal_item', 'stairs'}); luxs = {n: enc(lux(n)) for n in luxn}
     pal = [None] * len(FIXED)
     for c, ch in FIXED.items(): pal[CHARS.index(ch)] = c
     ts = ['// Generado por tools/props_gen.py. No editar a mano.',

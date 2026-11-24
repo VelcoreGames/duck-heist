@@ -246,7 +246,7 @@ export const OBSTACLES = FLOOR_PROP_NAMES.flat();
 // El pollito mide poco más de la mitad de un policía pato, para que se note
 // que es un pollito; los enemigos quedan a la altura de los muebles altos.
 export const PLAYER_ART_SCALE = 0.55;
-export const ENEMY_ART_SCALE = 0.88;
+export const ENEMY_ART_SCALE = 1; // los enemigos se generan ya a su tamaño (tools/enemigos_gen.py)
 // Radio de impacto de las balas enemigas sobre el pollito (centro en x+7, y+8).
 // Va de la mano con PLAYER_ART_SCALE para que los golpes coincidan con lo que se ve.
 export const PLAYER_HIT_RADIUS = 6;

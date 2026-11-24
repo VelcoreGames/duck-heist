@@ -40,6 +40,7 @@ import { drawItemIcon } from './itemArt';
 import { drawHeldWeapon, heldWeapon } from './heldWeapons';
 import { drawKawaiiEnemy } from './kawaiiEnemies';
 import { drawKawaiiRoomBackdrop, drawKawaiiDoor } from './kawaiiRoom';
+import { drawKawaiiExtra } from './kawaiiProps';
 import { PLAYER_ART_SCALE, ENEMY_ART_SCALE } from './constants';
 import { getBuild, FOODS } from './itemRules';
 import { renderCollection } from './collectionUI';
@@ -1094,8 +1095,8 @@ export function renderWorld(engine: GameEngine) {
     // Halo de peligro: muy tenue pero suficiente para que el fuego enemigo no
     // se pierda contra mármol, oro, reflejos o props de los pisos nuevos.
     if(!p.friendly){
-      ctx.globalAlpha=.16;ctx.fillStyle='#e87620';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5.2:6.2,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=.09;ctx.fillStyle='#f9b736';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?3.2:4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      ctx.globalAlpha=.16;ctx.fillStyle='#ff4f6d';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?5.2:6.2,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.1;ctx.fillStyle='#ffc2cb';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot'?3.2:4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     } else if(BALLISTIC_PLAYER_PROJECTILES.has(p.type)) {
       // Balas del pato: halo crema y rosa (el fuego enemigo sigue naranja).
       ctx.globalAlpha=.14;ctx.fillStyle='#ffb3c8';ctx.beginPath();ctx.arc(0,0,p.type==='buckshot_player'?4.2:5.2,0,Math.PI*2);ctx.fill();
@@ -1523,6 +1524,13 @@ function drawStairs(ctx: CanvasRenderingContext2D, st: NonNullable<RoomContent['
   const g=ctx.createLinearGradient(px,py-40,px,py+36);
   g.addColorStop(0,'rgba(244,208,63,'+(.28*glow*st.glow)+')');g.addColorStop(1,'rgba(244,208,63,0)');
   ctx.fillStyle=g;ctx.fillRect(px-22,py-44,76,80);
+  ctx.globalAlpha=1;
+  // Escotilla kawaii con escalones y flecha dorada que rebota.
+  if(drawKawaiiExtra(ctx,'stairs',px,py)){
+    const b=Math.round(Math.abs(Math.sin(f*.1))*2);
+    ctx.fillStyle='#fff0a3';ctx.globalAlpha=.5+.4*glow;ctx.fillRect(px+15,py-8+b,2,4);ctx.fillRect(px+13,py-5+b,6,1);ctx.fillRect(px+14,py-4+b,4,1);
+    ctx.restore();return;
+  }
   ctx.fillStyle='#080c12';ctx.fillRect(px-3,py-3,38,35);
   ctx.strokeStyle='#343d48';ctx.lineWidth=1;ctx.strokeRect(px-2.5,py-2.5,36,34);
   for(let i=0;i<5;i++){
@@ -2155,7 +2163,8 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawBossMutationOverlay(ctx,e,f,engine);
   } else if(SPECIAL_ENEMIES.has(e.type)) {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    const tacticalScale=(e.behavior==='shielded'||e.behavior==='turret'||e.behavior==='atm'?1.32:1.26)*ENEMY_ART_SCALE;
+    // Sprites a tamaño nativo: escala 1 para que el píxel coincida con el escenario.
+    const tacticalScale=ENEMY_ART_SCALE;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*tacticalScale,p.sy*tacticalScale);ctx.translate(-cx,-cy);
     if(!drawKawaiiEnemy(ctx,e.type,e.x,e.y,e.size,f,hurt,dirX,{moving:Math.hypot(e.vx,e.vy)>.12,telegraph:e.telegraph,seed:e.id}))
       drawTacticalEnemy(ctx,e.type,e.x,e.y,f,hurt,e.moveAngle,e.telegraph);
@@ -2163,7 +2172,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, f: number, engine: G
     drawEnemyRoleAccent(ctx,e,f);
   } else {
     const p=enemyPose(e,f),cx=e.x+e.size/2,cy=e.y+e.size/2;
-    const regularScale=(e.type==='policia_antidisturbios'||e.type==='guard_goose'?1.34:e.type==='dron_policial'||e.type==='rolling_bagel'?1.22:1.28)*ENEMY_ART_SCALE;
+    const regularScale=ENEMY_ART_SCALE;
     ctx.save();ctx.translate(cx+p.dx,cy+p.dy);ctx.rotate(p.rot);ctx.scale(p.sx*regularScale,p.sy*regularScale);ctx.translate(-cx,-cy);
     const kawaiiDrawn=drawKawaiiEnemy(ctx,e.type,e.x,e.y,e.size,f,hurt,
       e.type==='policia_antidisturbios'?(Math.cos(e.shieldAngle)<0?-1:1):dirX,

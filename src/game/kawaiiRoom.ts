@@ -16,7 +16,7 @@ type RoomPal = {
 const PALS: RoomPal[] = [
   { floorA:'#d3dde3', floorB:'#c6d2d9', grout:'#a9b7c2', shine:'#eef4f7',
     wallTop:'#a9b6d8', wallTopHi:'#c9d3ee', wallFace:'#8796c2', wallFaceLo:'#7181b0', wainscot:'#6574a3', base:'#4e5a86',
-    rug:'#e8687e', rugHi:'#ff9bab', rugLo:'#c24d66', rugTrim:'#ffd45e', trim:'#ffd45e', glow:'#fff6d8' },
+    rug:'#ee8399', rugHi:'#ffb0be', rugLo:'#cc627a', rugTrim:'#ffd45e', trim:'#ffd45e', glow:'#fff6d8' },
   { floorA:'#eadfce', floorB:'#e4d8c5', grout:'#c7b69c', shine:'#fbf4e8',
     wallTop:'#e3b08a', wallTopHi:'#f6cfae', wallFace:'#cf9470', wallFaceLo:'#bb7f5c', wainscot:'#a86d4c', base:'#7f4f37',
     rug:'#6f9ccf', rugHi:'#9cc2ec', rugLo:'#557fb0', rugTrim:'#fff1d6', trim:'#e8c07a', glow:'#fff1d6' },
@@ -73,7 +73,9 @@ function floorTile(ctx: CanvasRenderingContext2D, px: number, py: number, x: num
 }
 
 function rug(ctx: CanvasRenderingContext2D, p: RoomPal, tier: number) {
-  const x0 = 4 * T + 8, y0 = 3 * T + 4, x1 = (ROOM_WIDTH - 4) * T - 8, y1 = (ROOM_HEIGHT - 3) * T - 4;
+  // Alfombra centrada de 8x4 baldosas: da estructura sin dominar la sala.
+  const cxT = Math.floor(ROOM_WIDTH / 2);
+  const x0 = (cxT - 4) * T + 8, y0 = 3 * T + 20, x1 = (cxT + 4) * T - 8, y1 = (ROOM_HEIGHT - 3) * T - 20;
   const w = x1 - x0, hh = y1 - y0;
   if (w < 64) return;
   r(ctx, x0 + 2, y0, w - 4, hh, INK); r(ctx, x0, y0 + 2, w, hh - 4, INK); r(ctx, x0 + 1, y0 + 1, w - 2, hh - 2, INK);

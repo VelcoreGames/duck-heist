@@ -75,3 +75,24 @@ export function drawKawaiiObstacle(ctx:CanvasRenderingContext2D,x:number,y:numbe
   void family;
   return true;
 }
+
+/** Piezas especiales (cofre, pedestal de premio, escalera) con el oro y el crema del banco. */
+const extraCache=new Map<string,HTMLCanvasElement|null>();
+export function drawKawaiiExtra(ctx:CanvasRenderingContext2D,name:string,x:number,y:number){
+  const rows=KAWAII_PROP_LUXURY[name];
+  if(!rows)return false;
+  let cv=extraCache.get(name);
+  if(cv===undefined){
+    try{
+      cv=document.createElement('canvas');cv.width=cv.height=32;const c=cv.getContext('2d');if(!c)throw new Error('2d');
+      const m=ramp('#c9b8f0'),a=ramp('#ffd45e');
+      rows.forEach((row,yy)=>{for(let xx=0;xx<row.length;xx++){const ch=row[xx];if(ch==='.')continue;const k='ABCDEFGH'.indexOf(ch);
+        c.fillStyle=k>=0?(k<4?m[k]:a[k-4]):KAWAII_PROP_PALETTE[KAWAII_PROP_CHARS.indexOf(ch)];c.fillRect(xx,yy,1,1);}});
+    }catch{cv=null;}
+    extraCache.set(name,cv);
+  }
+  if(!cv)return false;
+  const prev=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(cv,Math.floor(x),Math.floor(y));ctx.imageSmoothingEnabled=prev;
+  return true;
+}

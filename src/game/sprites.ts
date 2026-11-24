@@ -6,7 +6,7 @@ import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef 
 import { drawItemIcon } from './itemArt';
 import { drawKawaiiEnemy } from './kawaiiEnemies';
 import { drawKawaiiBoss } from './kawaiiBosses';
-import { drawKawaiiObstacle } from './kawaiiProps';
+import { drawKawaiiObstacle, drawKawaiiExtra } from './kawaiiProps';
 import { drawKawaiiDuck, KAWAII_DUCK_DEFAULT, type KawaiiDuckColors, type KawaiiFace } from './kawaiiDuck';
 import type { BossPartState } from './types';
 
@@ -1539,6 +1539,22 @@ export function drawRollingBagel(ctx: Ctx, x: number, y: number, frame: number, 
 }
 
 export function drawProjectile(ctx: Ctx, x: number, y: number, type: string, frame: number) {
+  // Balas enemigas kawaii: cometita redonda con contorno, brillo y estela.
+  if(type==='pistol'||type==='enemy_bullet'||type==='buckshot'||type==='drone_shot'){
+    const small=type==='buckshot',drone=type==='drone_shot';
+    const core=drone?'#8fd6ff':small?'#ffb070':'#ff6b7f',light=drone?'#dff6ff':small?'#ffe0bf':'#ffd6de',deep=drone?'#4a8cc2':small?'#e07a36':'#c23a52';
+    const r=small?2:3,bx=Math.floor(x),by=Math.floor(y);
+    ctx.save();
+    ctx.globalAlpha=.55;ctx.fillStyle=light;ctx.fillRect(bx-r-6,by-1,4,2);
+    ctx.globalAlpha=.8;ctx.fillStyle=core;ctx.fillRect(bx-r-3,by-1,3,2);
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#25203a';ctx.beginPath();ctx.arc(bx,by,r+1,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=deep;ctx.beginPath();ctx.arc(bx,by,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=core;ctx.beginPath();ctx.arc(bx-.4,by-.4,r-.6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.fillRect(bx-1,by-r+1,1,1);if(!small)ctx.fillRect(bx,by-r+1,1,1);
+    ctx.restore();
+    return;
+  }
   const bx = Math.floor(x);
   const by = Math.floor(y);
 
@@ -1855,6 +1871,15 @@ export function drawCoin(ctx:Ctx,x:number,y:number,frame:number,golden=false,ani
 }
 
 export function drawChest(ctx: Ctx, x: number, y: number, opened: boolean, frame: number) {
+  {
+    const bx=Math.floor(x),by=Math.floor(y);
+    ctx.save();ctx.globalAlpha=.28;ctx.fillStyle='#0b0f1a';ctx.beginPath();ctx.ellipse(bx+10,by+18,12,3,0,0,Math.PI*2);ctx.fill();ctx.restore();
+    if(opened){ctx.save();ctx.globalAlpha=.18+.08*Math.sin(frame*.1);ctx.fillStyle='#fff0a3';ctx.beginPath();ctx.moveTo(bx+2,by+3);ctx.lineTo(bx+18,by+3);ctx.lineTo(bx+24,by-22);ctx.lineTo(bx-4,by-22);ctx.closePath();ctx.fill();ctx.restore();}
+    if(drawKawaiiExtra(ctx,opened?'chest_open':'chest_closed',bx-6,by-12)){
+      if(!opened&&frame%60<8){ctx.fillStyle='#ffffff';ctx.fillRect(bx+15,by-4,1,3);ctx.fillRect(bx+14,by-3,3,1);}
+      return;
+    }
+  }
   const bx=Math.floor(x),by=Math.floor(y),pulse=.55+.45*Math.sin(frame*.08);
   ctx.save();
   ctx.globalAlpha=.34;ctx.fillStyle='#020609';ctx.beginPath();ctx.ellipse(bx+10,by+18,13,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
@@ -4911,6 +4936,17 @@ export function drawDronPolicial(ctx: Ctx, x: number, y: number, frame: number, 
 
 /** Pedestal de la sala de objeto */
 export function drawPedestal(ctx: Ctx, x: number, y: number, frame: number, taken: boolean, rarityColor='#f4d03f') {
+  {
+    const bx=Math.floor(x),by=Math.floor(y);
+    ctx.save();ctx.globalAlpha=.3;ctx.fillStyle='#0b0f1a';ctx.beginPath();ctx.ellipse(bx+12,by+34,15,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
+    if(drawKawaiiExtra(ctx,'pedestal_item',bx-4,by+4)){
+      if(!taken){ // aro de rareza que respira bajo el premio
+        ctx.save();ctx.globalAlpha=.35+.2*Math.sin(frame*.08);ctx.strokeStyle=rarityColor;ctx.lineWidth=1.2;
+        ctx.beginPath();ctx.ellipse(bx+12,by+11,10,3.2,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      }
+      return;
+    }
+  }
   const bx=Math.floor(x),by=Math.floor(y),pulse=.5+.5*Math.sin(frame*.07);
   ctx.save();
 
@@ -5006,10 +5042,12 @@ export function drawParticle(ctx: Ctx, x: number, y: number, type: string, life:
       break;
     }
     case 'smoke': {
+      // Nubecita kawaii: bolita suave con brillo.
       const r=2.5+(1-alpha)*3.5;
-      ctx.fillStyle=color||'#586065';ctx.globalAlpha=alpha*.58;
+      ctx.fillStyle=color||'#b8b0d8';ctx.globalAlpha=alpha*.6;
       ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=alpha*.22;ctx.beginPath();ctx.arc(x+2,y-2,r*.62,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=alpha*.3;ctx.beginPath();ctx.arc(x+2,y-2,r*.62,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=alpha*.45;ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(x-r*.4),Math.round(y-r*.5),1,1);
       break;
     }
     default:

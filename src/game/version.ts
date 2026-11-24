@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.1';
+export const GAME_VERSION = '0.0.2.5.2';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -43,3 +43,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           escala de tamaños pareja (muebles 26-30 px, policías ~27 px, pollito ~16 px).
 // v0.0.2.5.1: interfaz kawaii: menús, botones, tarjetas, encabezados, teclas y HUD con paneles ciruela redondos,
 //           contorno grueso y sombra sólida; corazones kawaii; monedas y llaves con contorno; escena del menú teñida.
+// v0.0.2.5.2: enemigos generados a su tamaño real (píxel parejo con el escenario), balas enemigas kawaii, cofre,
+//           pedestal de premio y escalera nuevos, humo en nubecitas y alfombra más discreta.
