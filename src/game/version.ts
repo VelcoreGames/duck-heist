@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.4.4';
+export const GAME_VERSION = '0.0.2.4.5';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -30,3 +30,6 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           que aprietan al disparar y se mecen al caminar; guantes claros en skins oscuras; iconos nuevos.
 // v0.0.2.4.4: 21 enemigos y la paloma de la tienda rediseñados en estilo kawaii (chibi, ojos enojados que parpadean,
 //           cara de daño, ojos en "x" al caer, burbuja "!" antes de atacar y escudo nuevo del antidisturbios).
+// v0.0.2.4.5: 145 jefes kawaii: 8 cuerpos por facción (comando, finanzas, panadería, antidisturbios, guerra, riqueza,
+//           tecnología, bóveda) con accesorios por rol, colores propios de cada jefe, ojos enojados, vena de enojo
+//           en fase 2, burbuja "!" al preparar ataques, módulos destructibles como aparatitos y corona del jefe final.

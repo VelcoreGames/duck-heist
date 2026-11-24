@@ -5,6 +5,7 @@ import { TILE_SIZE, ART_SCALE, ART_PIXEL } from './constants';
 import { getSkin, BOSSES, SUBBOSSES, MINIBOSSES, type DuckPalette, type BossDef } from './data';
 import { drawItemIcon } from './itemArt';
 import { drawKawaiiEnemy } from './kawaiiEnemies';
+import { drawKawaiiBoss } from './kawaiiBosses';
 import { drawKawaiiDuck, KAWAII_DUCK_DEFAULT, type KawaiiDuckColors, type KawaiiFace } from './kawaiiDuck';
 import type { BossPartState } from './types';
 
@@ -3705,6 +3706,13 @@ export function drawBoss(ctx: Ctx, x: number, y: number, bossType: string, frame
   const by = Math.floor(y + bob);
   const floorBoss = !!BOSSES[bossType];
   const subBoss = !!SUBBOSSES[bossType];
+  // Jefes kawaii (8 cuerpos por facción + accesorios por rol). El arte
+  // anterior queda como respaldo si faltara algún dato.
+  const kawaiiDef=BOSSES[bossType]??SUBBOSSES[bossType]??MINIBOSSES[bossType];
+  if(kawaiiDef&&drawKawaiiBoss(ctx,bx,Math.floor(y),kawaiiDef,floorBoss?2:subBoss?1:0,frame,phase,hurt,telegraph,maxHp>0?hp/maxHp:1,parts)){
+    ctx.globalAlpha=1;return;
+  }
+
   if (phase > 0) {
     const pulse=.18+.08*Math.sin(frame*.16);
     ctx.save();

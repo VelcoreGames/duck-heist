@@ -34,15 +34,16 @@ BEIGE = R('#fff1d6', '#e8d2a8', '#c8ad80', '#a58b62')
 GLASS = R('#e8fbff', '#bdeaf7', '#8cc9e0', '#6aa3c2')
 
 class Spr:
-    def __init__(s):
-        s.px = [[None] * N for _ in range(N)]
-        s.part = [[None] * N for _ in range(N)]
-    def ok(s, x, y): return 0 <= x < N and 0 <= y < N
+    def __init__(s, n=None):
+        s.n = n or N
+        s.px = [[None] * s.n for _ in range(s.n)]
+        s.part = [[None] * s.n for _ in range(s.n)]
+    def ok(s, x, y): return 0 <= x < s.n and 0 <= y < s.n
     def put(s, x, y, c, part='detail'):
         if s.ok(x, y): s.px[y][x] = c; s.part[y][x] = part
     def ell(s, cx, cy, rx, ry, ramp, part='body', bias=0.0, clip=None):
-        for y in range(N):
-            for x in range(N):
+        for y in range(s.n):
+            for x in range(s.n):
                 nx, ny = (x + .5 - cx) / rx, (y + .5 - cy) / ry
                 r = math.hypot(nx, ny)
                 if r > 1 or (clip and not clip(x, y)): continue
@@ -67,12 +68,12 @@ class Spr:
                 if ch in pal: s.put(x0 + i, y0 + j, pal[ch], part)
     def contact(s, top, bottom, color):
         for y in range(1, N):
-            for x in range(N):
+            for x in range(s.n):
                 if s.part[y][x] == bottom and s.part[y - 1][x] == top: s.px[y][x] = color
     def outline(s, dark=OUT_D, light=OUT_L):
         out = {}
-        for y in range(N):
-            for x in range(N):
+        for y in range(s.n):
+            for x in range(s.n):
                 if s.px[y][x] is not None: continue
                 nb = [(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
                       if s.ok(x + dx, y + dy) and s.px[y + dy][x + dx] is not None]
@@ -405,4 +406,5 @@ def main():
     if len(sys.argv) > 1: prev.save(sys.argv[1])
     print(len(data), 'personajes; paleta', len(palette))
 
-main()
+if __name__ == '__main__':
+    main()
