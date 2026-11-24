@@ -8,6 +8,11 @@ export function aimVector(e: GameEngine): { x: number; y: number } {
     const len = Math.hypot(e.pad.aimX, e.pad.aimY) || 1;
     return { x: e.pad.aimX / len, y: e.pad.aimY / len };
   }
+  if (e.touchMode) {
+    // Celular: no hay puntero; se conserva la última dirección.
+    const last = e.player.facingAngle;
+    return { x: Math.cos(last), y: Math.sin(last) };
+  }
   const dx = e.mouseX - px, dy = e.mouseY - py, len = Math.hypot(dx, dy);
   if (len > 4) return { x: dx / len, y: dy / len };
   const last = e.player.facingAngle;

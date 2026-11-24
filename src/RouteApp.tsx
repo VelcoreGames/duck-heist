@@ -44,8 +44,9 @@ export default function RouteApp(){
     return <TouchNotice><AccountGate><App /></AccountGate></TouchNotice>;
   }
   if(path==='/duck-heist-movil'){
+    // Mismo juego, mismo motor y misma cuenta; sólo cambian los controles.
     document.title='Duck Heist Móvil · Velcore Games';
-    return <ComingSoon title="DUCK HEIST MÓVIL" slug="duck-heist-movil" />;
+    return <AccountGate><App mobile /></AccountGate>;
   }
   if(path==='/eca'){
     document.title='ECA · Velcore Games';

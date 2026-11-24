@@ -693,3 +693,38 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @media(prefers-reduced-motion:reduce){
   .vg-game-card,.vg-account-primary,.vg-account-secondary{transition:none!important}
 }
+
+/* ===================== Duck Heist Móvil: controles táctiles ===================== */
+.duck-mobile{touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.duck-mobile .duck-responsive-stage{margin:0}
+.vg-tc{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:'Bungee','Chakra Petch',system-ui,sans-serif}
+.vg-tc-zone{position:absolute;top:16%;bottom:0;pointer-events:auto;touch-action:none}
+.vg-tc-left{left:0;width:46%}
+.vg-tc-right{right:0;width:54%}
+.vg-tc-base,.vg-tc-knob{position:fixed;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.vg-tc-base{width:116px;height:116px;border:4px solid;background:rgba(42,34,71,.28);box-shadow:0 0 0 3px rgba(19,15,36,.55)}
+.vg-tc-knob{width:52px;height:52px;border:4px solid #130f24;box-shadow:0 3px 0 rgba(19,15,36,.6),inset 0 4px 0 rgba(255,255,255,.45)}
+.vg-tc-ghost{position:fixed;bottom:30vh;font-size:10px;letter-spacing:.1em;color:rgba(255,246,234,.72);text-shadow:0 1px 0 #130f24,0 0 6px #130f24;pointer-events:none;animation:vg-tc-pulse 1.6s ease-in-out infinite}
+.vg-tc-ghost-l{left:8vw}.vg-tc-ghost-r{right:calc(3vw + min(19vh,86px) + 40px);bottom:42vh}
+@keyframes vg-tc-pulse{50%{opacity:.45}}
+.vg-tc-btn.is-holding{animation:vg-tc-hold .42s linear forwards}
+@keyframes vg-tc-hold{to{box-shadow:0 2px 0 rgba(19,15,36,.75),0 0 0 6px var(--c)}}
+.vg-tc-btn{position:fixed;pointer-events:auto;touch-action:none;display:grid;place-items:center;border-radius:999px;
+  border:3px solid #130f24;background:rgba(42,34,71,.72);color:var(--c);font:700 11px/1 'Bungee','Chakra Petch',system-ui,sans-serif;
+  letter-spacing:.04em;box-shadow:0 4px 0 rgba(19,15,36,.75),inset 0 0 0 2px color-mix(in srgb,var(--c) 55%,transparent);
+  -webkit-tap-highlight-color:transparent;user-select:none}
+.vg-tc-btn.is-down,.vg-tc-btn.is-on{background:var(--c);color:#130f24;transform:translateY(2px);box-shadow:0 2px 0 rgba(19,15,36,.75)}
+.vg-tc-dash{right:calc(3vw + env(safe-area-inset-right));bottom:20vh;width:min(19vh,86px);height:min(19vh,86px);font-size:10px}
+.vg-tc-use{right:calc(3vw + min(19vh,86px) + 14px + env(safe-area-inset-right));bottom:8vh;width:min(15vh,66px);height:min(15vh,66px)}
+.vg-tc-quack{right:calc(3vw + env(safe-area-inset-right));bottom:calc(20vh + min(19vh,86px) + 14px);width:min(14vh,62px);height:min(14vh,62px)}
+.vg-tc-weapon{right:calc(3vw + min(19vh,86px) + 14px + env(safe-area-inset-right));bottom:calc(8vh + min(15vh,66px) + 12px);width:min(13vh,58px);height:min(13vh,58px)}
+.vg-tc-top{position:fixed;top:calc(15vh + env(safe-area-inset-top));left:calc(2vw + env(safe-area-inset-left));display:flex;gap:8px;pointer-events:none}
+.vg-tc-top .vg-tc-btn{position:static}
+.vg-tc-small{min-width:44px;height:36px;padding:0 10px;font-size:10px}
+.vg-tc-rotate{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:radial-gradient(circle at 50% 35%,#342a57,#130f24);color:#fff6ea;text-align:center;font-family:'Bungee',system-ui,sans-serif;padding:24px}
+.vg-tc-rotate b{font-size:22px;color:#ffd45e;text-shadow:0 3px 0 #130f24}
+.vg-tc-rotate span{font:600 14px/1.4 'Sora',system-ui,sans-serif;color:#d8d0f0}
+.vg-tc-rotate button{margin-top:10px;border:3px solid #130f24;border-radius:999px;background:#ffd45e;color:#130f24;font:700 13px 'Bungee',system-ui;padding:12px 22px;box-shadow:0 4px 0 #130f24}
+.vg-tc-rotate-phone{width:58px;height:96px;border:5px solid #fff6ea;border-radius:12px;box-shadow:0 4px 0 #130f24;animation:vg-tc-turn 2.2s ease-in-out infinite}
+@keyframes vg-tc-turn{0%,25%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}

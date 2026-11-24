@@ -259,7 +259,7 @@ export function renderFloorMap(e:GameEngine) {
   const legend:[RoomType,string][]=[[RoomType.COMBAT,'Normal'],[RoomType.ITEM,'Objeto'],[RoomType.SHOP,'Tienda'],[RoomType.MINIBOSS,'Minijefe'],[RoomType.SUBBOSS,'Subjefe'],[RoomType.BOSS,'Jefe de piso'],[RoomType.CHOICE,'Recompensa']];
   legend.forEach(([type,label],i)=>{const x=31+i*65;drawRoomSymbol(c,{type,cleared:false,visited:false} as MapRoom,x,305,9);text(c,label,x+9,308,6.5,'#9cbac0','left');});
   drawRoomSymbol(c,{type:RoomType.START,cleared:false,visited:false} as MapRoom,420,305,9,true);text(c,'Escaleras',429,308,6,'#9cbac0','left');
-  text(c,'Haz clic en una sala para inspeccionarla.',28,331,5.8,'#829fad','left');
+  text(c,e.touchMode?'Toca una sala para inspeccionarla.':'Haz clic en una sala para inspeccionarla.',28,331,5.8,'#829fad','left');
   drawMouseButton(c,'CERRAR MAPA',MAP_CLOSE.x,MAP_CLOSE.y,MAP_CLOSE.w,MAP_CLOSE.h,inside(e.mouseX,e.mouseY,MAP_CLOSE),'#e4d29d');
   c.restore();
 }

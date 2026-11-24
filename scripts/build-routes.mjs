@@ -17,7 +17,7 @@ const routes=[
   {
     slug:'duck-heist-movil',
     title:'Duck Heist Móvil · Velcore Games',
-    description:'Una versión de Duck Heist pensada desde cero para el celular. En desarrollo.',
+    description:'Juega Duck Heist en tu celular: el mismo atraco con sticks y botones táctiles, puntería asistida y disparo automático.',
     image:'/media/og-velcoregames-v3.jpg',
   },
   {

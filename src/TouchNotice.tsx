@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { GAME_VERSION_LABEL } from './game/version';
 
-// Duck Heist se juega con teclado y mouse o con control. En celulares y tabletas
-// sin puntero fino mostramos un aviso antes de cargar la cuenta y el juego.
+// /duck-heist es la versión de computadora (teclado y mouse o control). En celulares
+// y tabletas sin puntero fino ofrecemos Duck Heist Móvil (/duck-heist-movil), que es
+// el mismo juego con controles táctiles.
 const DISMISS_KEY='vg_touch_notice_dismissed';
 const GAME_LINK='https://velcoregames.com/duck-heist';
 
@@ -36,13 +37,13 @@ export default function TouchNotice({children}:{children:ReactNode}){
         <span className="vg-account-duck-mark">DH</span>
         <div><b>DUCK HEIST</b><small>VELCORE GAMES</small></div>
       </a>
-      <div className="vg-account-kicker">BANCO DEL PAN · VERSIÓN PARA COMPUTADORA</div>
-      <h1>JUÉGALO EN TU PC</h1>
-      <p className="vg-account-sub">Duck Heist se juega con teclado y mouse o con control. En el celular todavía no hay controles táctiles: estamos preparando Duck Heist Móvil.</p>
-      <button type="button" className="vg-account-primary" onClick={()=>void share()}>ENVIAR EL ENLACE A MI COMPUTADORA</button>
-      <a className="vg-account-secondary vg-touch-link" href="/">VER VELCORE GAMES</a>
+      <div className="vg-account-kicker">BANCO DEL PAN · ESTÁS EN UN CELULAR</div>
+      <h1>JUEGA LA VERSIÓN MÓVIL</h1>
+      <p className="vg-account-sub">Esta es la versión para computadora. En tu celular juega Duck Heist Móvil: el mismo atraco, con sticks y botones táctiles. Tu cuenta y tu progreso son los mismos.</p>
+      <a className="vg-account-primary vg-touch-link" href="/duck-heist-movil">JUGAR DUCK HEIST MÓVIL</a>
+      <button type="button" className="vg-account-secondary" onClick={()=>void share()}>ENVIAR EL ENLACE A MI COMPUTADORA</button>
       {status&&<p className="vg-account-message">{status}</p>}
-      <button type="button" className="vg-account-link" onClick={playAnyway}>Abrir el juego de todos modos</button>
+      <button type="button" className="vg-account-link" onClick={playAnyway}>Abrir la versión de computadora de todos modos</button>
       <p className="vg-account-version">BANCO DEL PAN // DUCK HEIST {GAME_VERSION_LABEL}</p>
     </section>
   </main>;

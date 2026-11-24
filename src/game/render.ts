@@ -25,7 +25,7 @@ import {
   drawMenuBackdrop, drawMenuHeader, drawMenuCard, drawMouseButton,
   drawSectionLabel, drawKeyChip,
 } from './ui';
-import { wrappedText } from './ui';
+import { wrappedText, drawMenuFooter } from './ui';
 import { activeWeapon, currentRoomOf, getContentOf, SETTING_ROWS, settingValue, shopPrice, DIFFICULTY_MODES, DIFFICULTIES, difficultyLabel, endlessMarketOptions } from './engine';
 import { drawVaultScene } from './titleScene';
 import {
@@ -2376,7 +2376,7 @@ function renderHeistIntroUI(engine:GameEngine) {
   if(elapsed>=HEIST_INTRO_SKIP_AFTER&&p<.88){
     const a=Math.min(1,(elapsed-HEIST_INTRO_SKIP_AFTER)/10)*(.62+.14*Math.sin(engine.frame*.08));
     ctx.globalAlpha=a;
-    text(ctx,'ENTER / ESPACIO / CLIC · OMITIR',UI_BASE_WIDTH/2,CANVAS_HEIGHT-18,4.2,'#879997','center',true,false);
+    text(ctx,(TOUCH_UI?'TOCA LA PANTALLA · OMITIR':'ENTER / ESPACIO / CLIC · OMITIR'),UI_BASE_WIDTH/2,CANVAS_HEIGHT-18,4.2,'#879997','center',true,false);
     ctx.globalAlpha=1;
   }
 
@@ -2392,7 +2392,12 @@ function renderHeistIntroUI(engine:GameEngine) {
   ctx.restore();
 }
 
+/** Duck Heist Móvil: textos de menú dicen "TOCA" en vez de "CLIC". */
+let TOUCH_UI=false;
+const CLIC=()=>TOUCH_UI?'TOCA':'CLIC';
+
 export function renderUI(engine: GameEngine) {
+  TOUCH_UI=!!engine.touchMode;
   const ctx = engine.ui;
   if (!ctx) return;
   const s = engine.state;
@@ -2678,7 +2683,8 @@ function renderPrompts(engine: GameEngine) {
     const hint=engine.tutorialHint;
     const key=hint.kind==='map'?actionPrompt(engine,'map'):hint.kind==='wheel'?actionPrompt(engine,'weapons'):actionPrompt(engine,'dash');
     const label=hint.kind==='map'?'ABRIR MAPA':hint.kind==='wheel'?'CAMBIAR ARMA':'ESQUIVAR';
-    ctx.globalAlpha=Math.min(1,hint.timer/30);text(ctx,`${hint.kind==='wheel'?'USA':'PRESIONA'} ${key} · ${label}`, CANVAS_WIDTH/2,266,8,'#ccddba','center',true);ctx.globalAlpha=1;
+    const line=engine.touchMode?(hint.kind==='dash'||key===label?`TOCA ${key}`:`TOCA ${key} · ${label}`):`${hint.kind==='wheel'?'USA':'PRESIONA'} ${key} · ${label}`;
+    ctx.globalAlpha=Math.min(1,hint.timer/30);text(ctx,line, CANVAS_WIDTH/2,266,8,'#ccddba','center',true);ctx.globalAlpha=1;
   }
   for(const d of engine.damageNumbers) {
     ctx.globalAlpha=d.life;text(ctx,d.value===0?T.block:String(Math.round(d.value)),d.x,d.y,d.crit?11:8,d.crit?'#f9d889':'#f0ebd7','center',true);ctx.globalAlpha=1;
@@ -2965,7 +2971,7 @@ function drawHUD(engine: GameEngine) {
   // Esquive centrado: icono funcional, no una tercera tarjeta.
   const dashReady=p.dashCooldown<=0,dashFlash=p.dashReadyFlash>0,dashW=54,dashX=CANVAS_WIDTH/2-dashW/2;
   hudMeter(ctx,dashX,CANVAS_HEIGHT-13,dashW,1-p.dashCooldown/(45*getBuild(p).dashCooldown),dashFlash?'#a3f0c2':dashReady?'#72c796':'#516168');
-  text(ctx,engine.lastInput==='gamepad'?'B · ESQUIVE':'ESQUIVE',CANVAS_WIDTH/2,CANVAS_HEIGHT-4,4.8,dashReady?'#83d8a6':'#6d7d82','center',dashFlash,false);
+  text(ctx,engine.lastInput==='gamepad'&&!engine.touchMode?'B · ESQUIVE':'ESQUIVE',CANVAS_WIDTH/2,CANVAS_HEIGHT-4,4.8,dashReady?'#83d8a6':'#6d7d82','center',dashFlash,false);
 
   if(p.items.length){
     const maxShown=10,n=Math.min(p.items.length,maxShown);
@@ -3085,7 +3091,7 @@ function drawMinimap(engine: GameEngine, topY=68) {
 
   hudPlate(ctx,ox,oy,w,h,'#79b9d2',.66);
   text(ctx,'MAPA',ox+7,oy+10,4.2,'#78999e','left',true,false);
-  text(ctx,actionPrompt(engine,'map'),ox+w-7,oy+10,4.3,'#96b9bd','right',true,false);
+  if(!engine.touchMode)text(ctx,actionPrompt(engine,'map'),ox+w-7,oy+10,4.3,'#96b9bd','right',true,false);
 
   const gx0=ox+6,gy0=oy+15;
   for (const room of rooms) {
@@ -3112,7 +3118,7 @@ function drawMinimap(engine: GameEngine, topY=68) {
   }
 
   text(ctx,`${rooms.length} SALAS`,ox+7,oy+h-5,3.8,'#667f84','left',true,false);
-  text(ctx,'M · ABRIR',ox+w-7,oy+h-5,3.8,'#769aa0','right',true,false);
+  if(!engine.touchMode)text(ctx,'M · ABRIR',ox+w-7,oy+h-5,3.8,'#769aa0','right',true,false);
 }
 
 // ---------------------------------------------------------------------------
@@ -3161,7 +3167,7 @@ function renderDifficultyUI(engine:GameEngine) {
     titleText(ctx,def.label,box.x+(locked?32:14),box.y+24,9,color,'left',false);
     for(let n=0;n<i+1;n++) drawDifficultySkull(ctx,box.x+14+n*12,box.y+34,color);
     wrappedText(ctx,locked?'Completa un atraco para desbloquear este nivel.':def.desc,box.x+14,box.y+53,box.w-28,5.1,6.2,2,locked?'#8a6870':'#9cafaf');
-    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?'CLIC PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected||hover?color:'#60747b','right',true,false);
+    text(ctx,locked?'BLOQUEADO':selected?'ELEGIDO':hover?CLIC()+' PARA ELEGIR':'DISPONIBLE',box.x+box.w-12,box.y+20,4.7,locked?'#a76f79':selected||hover?color:'#60747b','right',true,false);
   });
   if(engine.pendingMode==='heist'){
     const active=engine.seedEditing,hover=inside(engine.mouseX,engine.mouseY,SEED_INPUT);
@@ -3950,7 +3956,7 @@ function renderPausedUI(engine: GameEngine) {
 function renderRunInfoUI(engine:GameEngine) {
   const ctx=engine.ui!,mf=menuFrame(engine),p=engine.player,r=engine.run,s2=engine.stats;
   drawMenuBackdrop(ctx,mf,.95,'#79b9d2');
-  drawMenuHeader(ctx,'INFO DE RUN','Haz clic en una pestaña para cambiar de vista.',mf,'#79b9d2','DOSSIER EN CURSO');
+  drawMenuHeader(ctx,'INFO DE RUN',TOUCH_UI?'Toca una pestaña para cambiar de vista.':'Haz clic en una pestaña para cambiar de vista.',mf,'#79b9d2','DOSSIER EN CURSO');
   const tabs=[{label:'BUILD',x:42,w:190},{label:engine.gameMode==='endless'?'ARENA / RENDIMIENTO':'RENDIMIENTO',x:248,w:190}];
   tabs.forEach((tab,i)=>{const on=engine.runInfoTab===i,hover=inside(engine.mouseX,engine.mouseY,{x:tab.x,y:70,w:tab.w,h:24});drawMenuCard(ctx,tab.x,70,tab.w,24,on||hover,on?'#79b9d2':'#52676e',on?'rgba(22,39,46,.98)':hover?'rgba(16,30,36,.98)':'rgba(8,21,27,.94)');text(ctx,tab.label,tab.x+tab.w/2,86,6.6,on?'#eaf7f5':hover?'#cad9d7':'#8ca0a1','center',true,false);});
 
@@ -4038,7 +4044,7 @@ function renderSwapUI(engine: GameEngine) {
 
   const old=p.weapons[engine.swapSel];
   text(ctx,'ACTUAL · '+(old?.description ?? ''),240,271,5.4,'#839799','center',false,false);
-  text(ctx,'Haz clic en el arma que quieres reemplazar.',240,292,5.1,'#9aa9a5','center',false,false);
+  text(ctx,TOUCH_UI?'Toca el arma que quieres reemplazar.':'Haz clic en el arma que quieres reemplazar.',240,292,5.1,'#9aa9a5','center',false,false);
   drawMouseButton(ctx,'CANCELAR',SWAP_CANCEL.x,SWAP_CANCEL.y,SWAP_CANCEL.w,SWAP_CANCEL.h,inside(engine.mouseX,engine.mouseY,SWAP_CANCEL),'#ff9f43');
 }
 
@@ -4203,7 +4209,7 @@ function drawEndlessRewardCard(
 
   drawEndlessCategoryGlyph(ctx,x+16,y+131,meta.kind,base);
   wrappedText(ctx,opt.description,x+26,y+126,w-35,4.75,5.8,4,on?'#cdd9d2':'#8fa5a6',false);
-  if(on)text(ctx,'CLIC PARA TOMAR',x+w/2,y+h-7,4.2,base,'center',true,false);
+  if(on)text(ctx,CLIC()+' PARA TOMAR',x+w/2,y+h-7,4.2,base,'center',true,false);
 }
 
 type EndlessMarketVisual={id:'heal'|'shield'|'boost';label:string;description:string;cost:number};
@@ -4231,7 +4237,7 @@ function drawEndlessMarketCard(
   ctx.save();ctx.globalAlpha=.72;ctx.fillStyle=base;ctx.fillRect(x+10,y+116,w-20,1);ctx.restore();
   drawEndlessCategoryGlyph(ctx,x+16,y+131,kind,base);
   wrappedText(ctx,opt.description,x+26,y+126,w-35,4.65,5.8,4,on?'#c9ddd2':'#8fa5a6',false);
-  if(on)text(ctx,'CLIC PARA COMPRAR',x+w/2,y+h-7,4.1,base,'center',true,false);
+  if(on)text(ctx,CLIC()+' PARA COMPRAR',x+w/2,y+h-7,4.1,base,'center',true,false);
 }
 
 function drawEndlessRecycleIcon(ctx:CanvasRenderingContext2D,cx:number,cy:number,color:string){

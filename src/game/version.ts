@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.3';
+export const GAME_VERSION = '0.0.2.5.4';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -47,3 +47,6 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           pedestal de premio y escalera nuevos, humo en nubecitas y alfombra más discreta.
 // v0.0.2.5.3: mira kawaii grande (anillo rosa con contorno grueso, marcas y punto; amarilla al disparar) en lugar
 //           del cursor del sistema; pisos y muros en tonos medios, una loseta por baldosa y luces más suaves.
+// v0.0.2.5.4: Duck Heist Móvil (/duck-heist-movil): el mismo juego y motor con controles táctiles (stick de
+//           mover, stick de apuntar y disparar con puntería asistida, AUTO, ESQUIVAR, USAR/mantener=reciclar, CUAC,
+//           ARMA, pausa, mapa y pantalla completa); textos "TOCA"; el stick de apuntar del control gira al pato.

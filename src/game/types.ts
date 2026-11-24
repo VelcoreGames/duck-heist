@@ -385,6 +385,8 @@ export interface GameEngine {
   frame: number;
   mapView:{returnState:GameState;selected:string;frame:number;gpsTarget:'shop'|'boss'|'stairs'|null};
   lastInput:'keyboard'|'gamepad';
+  /** Duck Heist Móvil: controles táctiles en pantalla (route /duck-heist-movil). */
+  touchMode?:boolean;
   pad:{connected:boolean;moveX:number;moveY:number;aimX:number;aimY:number;shoot:boolean};
   tutorial:{started:boolean;map:boolean;mapShown:boolean;wheel:boolean;dash:boolean};
   tutorialRun:boolean;

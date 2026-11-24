@@ -15,10 +15,10 @@ const games=[
     title:'DUCK HEIST',
     subtitle:'MÓVIL',
     href:'/duck-heist-movil',
-    status:'EN DESARROLLO',
-    live:false,
+    status:'JUGABLE',
+    live:true,
     className:'mobile',
-    description:'Una versión independiente pensada desde cero para controles táctiles y sesiones móviles.',
+    description:'El mismo atraco en tu celular: sticks y botones táctiles, puntería asistida y disparo automático opcional.',
     platform:'MÓVIL',
   },
   {

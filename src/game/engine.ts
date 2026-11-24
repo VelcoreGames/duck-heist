@@ -2317,8 +2317,8 @@ export function updateEngine(engine: GameEngine) {
   // cuando realmente está apuntando con gamepad.
   let lookX=0,lookY=0;
   if(engine.pad.connected&&Math.hypot(engine.pad.aimX,engine.pad.aimY)>.18){
-    lookX=engine.pad.aimX;lookY=engine.pad.aimY;
-  }else if(engine.mouseX!==0||engine.mouseY!==0){
+    lookX=engine.pad.aimX*16;lookY=engine.pad.aimY*16;
+  }else if(!engine.touchMode&&(engine.mouseX!==0||engine.mouseY!==0)){
     lookX=engine.mouseX-(player.x+7);
     lookY=engine.mouseY-(player.y+8);
   }

@@ -59,5 +59,7 @@ export function actionPrompt(e:GameEngine,key:'interact'|'active'|'dash'|'map'|'
     weapons:'RUEDA / '+keyLabel(e.bindings.weapon1)+' / '+keyLabel(e.bindings.weapon2),
   };
   const pad={interact:'A',active:'Y',dash:'B',map:'VIEW',pause:'START',recycle:'X',weapons:'LB / RB'};
+  const touch={interact:'USAR',active:'CUAC',dash:'ESQUIVAR',map:'MAPA',pause:'PAUSA',recycle:'MANTÉN USAR',weapons:'ARMA'};
+  if(e.touchMode)return touch[key];
   return (e.lastInput==='gamepad'?pad:keys)[key];
 }

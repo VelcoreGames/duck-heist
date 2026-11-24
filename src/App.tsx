@@ -20,6 +20,8 @@ import {
 } from './game/layout';
 import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHit, mapClick, focusMapDestination } from './game/floorMap';
 import { GamepadInput, type PadAction } from './game/gamepad';
+import { TouchInput } from './game/touchInput';
+import TouchControls from './TouchControls';
 import { getBuild } from './game/itemRules';
 import { COLLECTION_TABS } from './game/catalog';
 import { collectionMove, collectionTab, collectionClick, collectionViewEntries, cycleCollectionFilter, cycleCollectionSort } from './game/collectionUI';
@@ -32,7 +34,7 @@ import { refreshDailyRuntime } from './game/dailyChallenge';
 import { ART_SCALE } from './game/constants';
 
 
-export default function App() {
+export default function App({ mobile = false }: { mobile?: boolean } = {}) {
   const worldRef = useRef<HTMLCanvasElement>(null);
   const uiRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -58,7 +60,7 @@ export default function App() {
     const safeY=cssVar('--duck-safe-top')+cssVar('--duck-safe-bottom');
     const padX=fullscreen?0:Math.max(2,Math.min(8,vw*.006));
     const padY=fullscreen?0:Math.max(2,Math.min(7,vh*.008));
-    const footer=fullscreen?0:vh<440?18:24;
+    const footer=fullscreen||mobile?0:vh<440?18:24;
     const availW=Math.max(1,vw-safeX-padX*2);
     const availH=Math.max(1,vh-safeY-padY*2-footer);
     const eng=engineRef.current;
@@ -686,7 +688,8 @@ export default function App() {
         const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
       if(engine.state===GameState.PLAYING){
-        engine.mouseDown=true;return;
+        // En celular se dispara con el stick derecho; un toque suelto no dispara.
+        if(!mobile)engine.mouseDown=true;return;
       }
       if(engine.state===GameState.HEIST_INTRO){
         const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
@@ -815,6 +818,8 @@ export default function App() {
       if (ev.button === 0) engine.mouseDown = false;
     };
     const padInput=new GamepadInput();
+    const touchInput=new TouchInput();
+    engine.touchMode=mobile;
     const onBlur = () => {engine.keys={};engine.mouseDown=false;padInput.reset(engine);if(engine.state===GameState.PLAYING)goTo(GameState.PAUSED);};
     const onCtx = (ev: Event) => ev.preventDefault();
 
@@ -904,6 +909,7 @@ export default function App() {
       saveSettings(engine);
       clearFullscreenExitArm();
       if(active)void lockFullscreenEscape();
+      if(active&&mobile){try{const o=screen.orientation as ScreenOrientation&{lock?:(m:string)=>Promise<void>};void o.lock?.('landscape').catch(()=>{});}catch{/* opcional */}}
       else keyboardApi()?.unlock?.();
       applySize();
     };
@@ -919,7 +925,8 @@ export default function App() {
       const delta=Math.min(100,Math.max(0,rawDelta));
       accumulator+=delta;
 
-      if(document.hasFocus())padInput.poll(engine,padAction,ts);
+      if(mobile)touchInput.poll(engine,padAction);
+      else if(document.hasFocus())padInput.poll(engine,padAction,ts);
       if(lastDevice!==engine.lastInput){lastDevice=engine.lastInput;setHint(hintFor(engine));}
 
       if (engine.settings.uiScale !== lastUiScale) {
@@ -1008,7 +1015,7 @@ export default function App() {
   ].includes(engineRef.current.state);
 
   return (
-    <div className="duck-responsive-shell relative w-screen h-screen overflow-hidden text-[#c3cbd9] flex flex-col items-center justify-center select-none">
+    <div className={`duck-responsive-shell${mobile?' duck-mobile':''} relative w-screen h-screen overflow-hidden text-[#c3cbd9] flex flex-col items-center justify-center select-none`}>
       {/* ambiente: monedas y migas flotando tras la consola */}
       <Ambient active={ambientActive} />
       <div ref={wrapRef} className="duck-responsive-stage relative z-10"
@@ -1019,13 +1026,14 @@ export default function App() {
           style={{ imageRendering: 'auto',outline:'none' }} />
 
       </div>
-      <div className="duck-responsive-footer relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
+      {mobile&&<TouchControls playing={engineRef.current?.state===GameState.PLAYING} onFullscreen={toggleFs} />}
+      {!mobile&&<div className="duck-responsive-footer relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
         <span className="duck-responsive-hint hidden text-[#6a817f] md:block">{hint}</span>
         <button onClick={toggleFs}
           className="duck-responsive-fullscreen pointer-events-auto text-[#7c8494] hover:text-[#f4d03f] transition-colors border border-transparent hover:border-[#f4d03f]/40 px-2 py-0.5">
           Pantalla completa
         </button>
-      </div>
+      </div>}
       {audit && <details className="fixed bottom-2 left-2 z-50 max-h-[40vh] max-w-[94vw] overflow-auto border border-[#5b7b72] bg-[#0c1b22] p-3 text-xs">
         <summary className="cursor-pointer text-[#e7d196]">Auditoría: {audit.passed} comprobaciones correctas · {audit.failures.length} fallos · {audit.manifest.count} objetos</summary>
         {audit.failures.map(f=><p key={f} className="my-1 text-red-300">{f}</p>)}
