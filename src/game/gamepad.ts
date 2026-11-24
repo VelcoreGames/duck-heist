@@ -59,7 +59,21 @@ export function actionPrompt(e:GameEngine,key:'interact'|'active'|'dash'|'map'|'
     weapons:'RUEDA / '+keyLabel(e.bindings.weapon1)+' / '+keyLabel(e.bindings.weapon2),
   };
   const pad={interact:'A',active:'Y',dash:'B',map:'VIEW',pause:'START',recycle:'X',weapons:'LB / RB'};
-  const touch={interact:'USAR',active:'CUAC',dash:'ESQUIVAR',map:'MAPA',pause:'PAUSA',recycle:'MANTÉN USAR',weapons:'ARMA'};
+  const touch={interact:'USAR',active:'CUAC',dash:'ESQUIVAR',map:'MAPA',pause:'PAUSA',recycle:'MANTÉN',weapons:'ARMA'};
   if(e.touchMode)return touch[key];
   return (e.lastInput==='gamepad'?pad:keys)[key];
+}
+/** Móvil: en los avisos del mundo el botón ya dice el verbo, así que "USAR · ABRIR" se muestra como "ABRIR". */
+export function touchPromptLabel(label:string){
+  return label.replace(/^USAR · /,'').replace(/ · USAR · /g,' · ');
+}
+
+/** Móvil: verbo corto para el botón contextual a partir de un aviso ("USAR · BAJAR AL SIGUIENTE PISO" → "BAJAR"). */
+export function touchUseVerb(label:string):string|null{
+  const m=/^USAR · ([^·]+?)(?:\s{2,}|\s·\s|$)/.exec(label);
+  if(!m)return null;
+  const verb=m[1].trim();
+  if(verb.startsWith('BAJAR'))return 'BAJAR';
+  if(verb.startsWith('REEMPLAZAR'))return 'CAMBIAR';
+  return verb.split(' ')[0];
 }

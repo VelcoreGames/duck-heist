@@ -9,7 +9,7 @@ import {
   CANVAS_WIDTH, CANVAS_HEIGHT, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER, GameState,
   type GameEngine,
 } from './game/engine';
-import { renderWorld, renderUI } from './game/render';
+import { renderWorld, renderUI, TOUCH_HUD } from './game/render';
 import { initAudio, setMusic, enterPauseMusic, resumePauseMusic, playUiSelect, playUiBack, playUiMove } from './game/audio';
 import {
   mainMenuHit, difficultyRect, DIFFICULTY_START, SEED_INPUT, SEED_RANDOM, BACK_BUTTON, PRIMARY_BUTTON,
@@ -39,6 +39,7 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
   const uiRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const getEngine = useCallback(() => engineRef.current, []);
   const rafRef = useRef<number>(0);
   const [, force] = useState(0);
   const [hint, setHint] = useState('');
@@ -688,8 +689,15 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
         const hit=swapHit(x,y);if(hit>=0){selectSwapSlot(engine,hit);confirmSwap(engine);}return;
       }
       if(engine.state===GameState.PLAYING){
-        // En celular se dispara con el stick derecho; un toque suelto no dispara.
-        if(!mobile)engine.mouseDown=true;return;
+        if(mobile){
+          // Celular: el HUD se toca directo (pausa, mapa y opciones de eventos). Un toque suelto no dispara.
+          if(TOUCH_HUD.pause&&inside(x,y,TOUCH_HUD.pause)){padAction('pause');return;}
+          if(TOUCH_HUD.map&&inside(x,y,TOUCH_HUD.map)){padAction('map');return;}
+          const opt=TOUCH_HUD.event.findIndex(r=>inside(x,y,r));
+          if(opt>=0)selectEventOption(engine,opt);
+          return;
+        }
+        engine.mouseDown=true;return;
       }
       if(engine.state===GameState.HEIST_INTRO){
         const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
@@ -1026,7 +1034,7 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
           style={{ imageRendering: 'auto',outline:'none' }} />
 
       </div>
-      {mobile&&<TouchControls playing={engineRef.current?.state===GameState.PLAYING} onFullscreen={toggleFs} />}
+      {mobile&&<TouchControls playing={engineRef.current?.state===GameState.PLAYING} onFullscreen={toggleFs} getEngine={getEngine} />}
       {!mobile&&<div className="duck-responsive-footer relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
         <span className="duck-responsive-hint hidden text-[#6a817f] md:block">{hint}</span>
         <button onClick={toggleFs}

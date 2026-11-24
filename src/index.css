@@ -695,32 +695,84 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 }
 
 /* ===================== Duck Heist Móvil: controles táctiles ===================== */
+/* Twin-stick de celular: stick a la izquierda, disparo grande a la derecha y los
+   botones secundarios en arco alrededor del disparo. Translúcidos para no tapar el cuarto. */
 .duck-mobile{touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .duck-mobile .duck-responsive-stage{margin:0}
-.vg-tc{position:fixed;inset:0;z-index:40;pointer-events:none;font-family:'Bungee','Chakra Petch',system-ui,sans-serif}
-.vg-tc-zone{position:absolute;top:16%;bottom:0;pointer-events:auto;touch-action:none}
-.vg-tc-left{left:0;width:46%}
-.vg-tc-right{right:0;width:54%}
-.vg-tc-base,.vg-tc-knob{position:fixed;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
-.vg-tc-base{width:116px;height:116px;border:4px solid;background:rgba(42,34,71,.28);box-shadow:0 0 0 3px rgba(19,15,36,.55)}
-.vg-tc-knob{width:52px;height:52px;border:4px solid #130f24;box-shadow:0 3px 0 rgba(19,15,36,.6),inset 0 4px 0 rgba(255,255,255,.45)}
-.vg-tc-ghost{position:fixed;bottom:30vh;font-size:10px;letter-spacing:.1em;color:rgba(255,246,234,.72);text-shadow:0 1px 0 #130f24,0 0 6px #130f24;pointer-events:none;animation:vg-tc-pulse 1.6s ease-in-out infinite}
-.vg-tc-ghost-l{left:8vw}.vg-tc-ghost-r{right:calc(3vw + min(19vh,86px) + 40px);bottom:42vh}
-@keyframes vg-tc-pulse{50%{opacity:.45}}
-.vg-tc-btn.is-holding{animation:vg-tc-hold .42s linear forwards}
-@keyframes vg-tc-hold{to{box-shadow:0 2px 0 rgba(19,15,36,.75),0 0 0 6px var(--c)}}
-.vg-tc-btn{position:fixed;pointer-events:auto;touch-action:none;display:grid;place-items:center;border-radius:999px;
-  border:3px solid #130f24;background:rgba(42,34,71,.72);color:var(--c);font:700 11px/1 'Bungee','Chakra Petch',system-ui,sans-serif;
-  letter-spacing:.04em;box-shadow:0 4px 0 rgba(19,15,36,.75),inset 0 0 0 2px color-mix(in srgb,var(--c) 55%,transparent);
-  -webkit-tap-highlight-color:transparent;user-select:none}
-.vg-tc-btn.is-down,.vg-tc-btn.is-on{background:var(--c);color:#130f24;transform:translateY(2px);box-shadow:0 2px 0 rgba(19,15,36,.75)}
-.vg-tc-dash{right:calc(3vw + env(safe-area-inset-right));bottom:20vh;width:min(19vh,86px);height:min(19vh,86px);font-size:10px}
-.vg-tc-use{right:calc(3vw + min(19vh,86px) + 14px + env(safe-area-inset-right));bottom:8vh;width:min(15vh,66px);height:min(15vh,66px)}
-.vg-tc-quack{right:calc(3vw + env(safe-area-inset-right));bottom:calc(20vh + min(19vh,86px) + 14px);width:min(14vh,62px);height:min(14vh,62px)}
-.vg-tc-weapon{right:calc(3vw + min(19vh,86px) + 14px + env(safe-area-inset-right));bottom:calc(8vh + min(15vh,66px) + 12px);width:min(13vh,58px);height:min(13vh,58px)}
-.vg-tc-top{position:fixed;top:calc(15vh + env(safe-area-inset-top));left:calc(2vw + env(safe-area-inset-left));display:flex;gap:8px;pointer-events:none}
-.vg-tc-top .vg-tc-btn{position:static}
-.vg-tc-small{min-width:44px;height:36px;padding:0 10px;font-size:10px}
+.vg-tc{--fd:clamp(80px,24vh,104px);--fr:calc(3.2vw + env(safe-area-inset-right));--fb:calc(7vh + env(safe-area-inset-bottom));
+  --ink:#130f24;--glass:rgba(32,25,58,.42);
+  position:fixed;inset:0;z-index:40;pointer-events:none;font-family:'Bungee','Chakra Petch',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+.vg-tc button{-webkit-tap-highlight-color:transparent;user-select:none}
+
+/* Stick de movimiento */
+.vg-tc-zone{position:absolute;pointer-events:auto;touch-action:none}
+.vg-tc-left{left:0;top:26%;bottom:0;width:38%}
+.vg-tc-home,.vg-tc-base,.vg-tc-knob{position:fixed;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.vg-tc-home{left:calc(7vw + env(safe-area-inset-left));bottom:var(--fb);top:auto;transform:none;
+  width:104px;height:104px;border:3px solid rgba(255,246,234,.22);background:rgba(19,15,36,.16)}
+.vg-tc-home>span{position:absolute;left:50%;top:50%;width:44px;height:44px;border-radius:50%;transform:translate(-50%,-50%);
+  background:rgba(143,232,176,.30);border:3px solid rgba(19,15,36,.35)}
+.vg-tc-base{width:104px;height:104px;border:3px solid rgba(143,232,176,.55);background:rgba(19,15,36,.20)}
+.vg-tc-knob{width:46px;height:46px;background:#8fe8b0;border:3px solid var(--ink);box-shadow:0 3px 0 rgba(19,15,36,.5),inset 0 4px 0 rgba(255,255,255,.45);opacity:.92}
+
+/* Botón de disparo */
+.vg-tc-fire{position:fixed;right:var(--fr);bottom:var(--fb);width:var(--fd);height:var(--fd);border-radius:50%;
+  pointer-events:auto;touch-action:none;display:grid;place-items:center}
+.vg-tc-fire::before{content:"";position:absolute;inset:-22px;border-radius:50%}/* área tocable extra */
+.vg-tc-fire-ring{position:absolute;inset:-6px;border-radius:50%;
+  background:conic-gradient(var(--ring) calc(var(--p)*360deg),transparent 0);opacity:.95;
+  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 6px),#000 calc(100% - 5px));mask:radial-gradient(closest-side,transparent calc(100% - 6px),#000 calc(100% - 5px))}
+.vg-tc-fire-face{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 35%,rgba(255,120,160,.62),rgba(214,52,108,.52));border:3px solid rgba(19,15,36,.7);
+  box-shadow:0 4px 0 rgba(19,15,36,.45),inset 0 3px 0 rgba(255,255,255,.28);transition:transform .05s}
+.vg-tc-fire-face svg{width:46%;height:46%;fill:none;stroke:#fff6ea;stroke-width:3.2;stroke-linecap:round;filter:drop-shadow(0 1.5px 0 rgba(19,15,36,.6))}
+.vg-tc-fire-face svg .dot{fill:#fff6ea;stroke:none}
+.vg-tc-fire.is-down .vg-tc-fire-face{background:radial-gradient(circle at 50% 35%,#ff8fb3,#e2416f);box-shadow:0 1px 0 rgba(19,15,36,.5),0 0 0 6px rgba(255,79,139,.25)}
+.vg-tc-aimline{position:absolute;left:50%;top:50%;width:calc(var(--fd)*.95);height:4px;margin-top:-2px;transform-origin:0 50%;pointer-events:none;
+  background:repeating-linear-gradient(90deg,#fff6ea 0 8px,transparent 8px 14px);opacity:.75;border-radius:2px}
+
+/* Botones secundarios */
+.vg-tc-btn{position:fixed;pointer-events:auto;touch-action:none;display:grid;place-items:center;border-radius:50%;padding:0;
+  border:3px solid rgba(19,15,36,.7);background:var(--glass);color:#fff6ea;
+  box-shadow:0 3px 0 rgba(19,15,36,.45),inset 0 0 0 2px color-mix(in srgb,var(--c) 55%,transparent)}
+.vg-tc-btn::after{content:"";position:absolute;inset:-5px;border-radius:50%;pointer-events:none;
+  background:conic-gradient(var(--c) calc(var(--p)*360deg),rgba(19,15,36,.35) 0);opacity:0;
+  -webkit-mask:radial-gradient(closest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(closest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+.vg-tc-btn.is-cooling::after{opacity:.95}
+.vg-tc-btn.is-cooling{filter:saturate(.55) brightness(.85)}
+.vg-tc-btn.is-down{transform:translateY(2px) scale(.96);background:color-mix(in srgb,var(--c) 70%,rgba(19,15,36,.3));box-shadow:0 1px 0 rgba(19,15,36,.5)}
+.vg-tc-btn.is-dim{opacity:.55}
+.vg-tc-btn svg{width:48%;height:48%;fill:none;stroke:var(--c);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1.5px 0 rgba(19,15,36,.65))}
+.vg-tc-btn small{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.06em;color:#fff6ea;white-space:nowrap;
+  text-shadow:0 1px 0 #130f24,0 0 3px #130f24;opacity:.85}
+.vg-tc-sprite{width:70%;height:70%;image-rendering:pixelated;filter:drop-shadow(0 1.5px 0 rgba(19,15,36,.7))}
+.vg-tc-badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;
+  font:700 11px/1 system-ui,sans-serif;font-style:normal;background:var(--c);color:var(--ink);border:2px solid var(--ink)}
+.vg-tc-badge.is-ready{animation:vg-tc-pop 1.2s ease-in-out infinite}
+
+.vg-tc-dash{right:calc(var(--fr) + var(--fd) + 14px);bottom:calc(var(--fb) + 4px);width:calc(var(--fd)*.66);height:calc(var(--fd)*.66)}
+.vg-tc-weapon{right:calc(var(--fr) + var(--fd)*.42);bottom:calc(var(--fb) + var(--fd) + 20px);width:calc(var(--fd)*.56);height:calc(var(--fd)*.56)}
+.vg-tc-quack{right:calc(var(--fr) + var(--fd) + 10px);bottom:calc(var(--fb) + var(--fd)*.8 + 8px);width:calc(var(--fd)*.58);height:calc(var(--fd)*.58)}
+
+/* USAR: sólo aparece cuando hay algo que abrir, tomar o comprar */
+.vg-tc-use{border-radius:999px;right:calc(var(--fr) + var(--fd)*.95);bottom:calc(var(--fb) + var(--fd)*1.62 + 10px);
+  height:44px;padding:0 16px 0 10px;display:flex;align-items:center;gap:6px;background:rgba(255,212,94,.92);color:var(--ink);
+  border:3px solid var(--ink);box-shadow:0 4px 0 rgba(19,15,36,.6);animation:vg-tc-in .18s ease-out,vg-tc-bob 1.4s ease-in-out .2s infinite}
+.vg-tc-use::after{display:none}
+.vg-tc-use .vg-tc-use-icon{width:24px;height:24px;stroke:var(--ink);filter:none}
+.vg-tc-use-text{display:flex;flex-direction:column;align-items:flex-start;font-size:13px;line-height:1;letter-spacing:.04em}
+.vg-tc-use-text small{position:static;transform:none;font-size:7px;margin-top:2px;color:#5a3d12;text-shadow:none;opacity:1}
+.vg-tc-use.is-down{background:#ffe9a8}
+.vg-tc-use.is-holding{animation:vg-tc-hold .42s linear forwards}
+
+@keyframes vg-tc-in{from{transform:scale(.6);opacity:0}}
+@keyframes vg-tc-bob{50%{transform:translateY(-3px)}}
+@keyframes vg-tc-pop{50%{transform:scale(1.18)}}
+@keyframes vg-tc-hold{to{box-shadow:0 2px 0 rgba(19,15,36,.75),0 0 0 7px rgba(255,212,94,.55)}}
+
+@media (max-height:340px){.vg-tc{--fd:clamp(72px,24vh,96px)}.vg-tc-btn small{display:none}}
+
+/* Celular en vertical */
 .vg-tc-rotate{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   background:radial-gradient(circle at 50% 35%,#342a57,#130f24);color:#fff6ea;text-align:center;font-family:'Bungee',system-ui,sans-serif;padding:24px}
 .vg-tc-rotate b{font-size:22px;color:#ffd45e;text-shadow:0 3px 0 #130f24}

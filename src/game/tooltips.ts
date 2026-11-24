@@ -3,6 +3,7 @@ import { FOODS } from './itemRules';
 import { drawItemIcon } from './itemArt';
 import { text, wrappedText } from './ui';
 import type { GameEngine } from './types';
+import { touchPromptLabel } from './gamepad';
 
 export interface TooltipTarget { id:string; x:number;y:number; action:string; header?:string;price?:number; }
 export function drawCompactTooltip(engine:GameEngine,target:TooltipTarget) {
@@ -43,7 +44,8 @@ export function drawCompactTooltip(engine:GameEngine,target:TooltipTarget) {
   const flavor=def.flavor??FLAVOR[target.id]??'';
   wrappedText(c,`“${flavor}”`,x+9,cy+(passive?.cursed?34:24),width-18,6.7,9,1,'#7e9896');
   if(synergy)text(c,'◆ SINERGIA DISPONIBLE',x+9,yy+height-23,6.5,'#c4a5e3','left',true);
-  text(c,target.price!==undefined?`${target.price} MIGAJAS · ${target.action}`:target.action,x+9,yy+height-8,7.2,color,'left',true);
+  const action=engine.touchMode?touchPromptLabel(target.action):target.action;
+  text(c,target.price!==undefined?`${target.price} MIGAJAS · ${action}`:action,x+9,yy+height-8,7.2,color,'left',true);
   c.restore();
 }
 

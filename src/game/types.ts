@@ -387,6 +387,12 @@ export interface GameEngine {
   lastInput:'keyboard'|'gamepad';
   /** Duck Heist Móvil: controles táctiles en pantalla (route /duck-heist-movil). */
   touchMode?:boolean;
+  /** Móvil: verbo de la acción disponible cerca (ABRIR, TOMAR…); null si no hay nada que usar. */
+  touchUse?:string|null;
+  /** Móvil: se puede reciclar manteniendo el botón de usar. */
+  touchRecycle?:boolean;
+  /** Móvil: hacia dónde va el disparo (para dibujar la mira), en coordenadas del mundo. */
+  touchAim?:{x:number;y:number;locked:boolean}|null;
   pad:{connected:boolean;moveX:number;moveY:number;aimX:number;aimY:number;shoot:boolean};
   tutorial:{started:boolean;map:boolean;mapShown:boolean;wheel:boolean;dash:boolean};
   tutorialRun:boolean;

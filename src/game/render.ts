@@ -51,7 +51,7 @@ import { EVENTS } from './events';
 import { MODIFIER_LABELS } from './modifiers';
 import { specialRoomKeyCost, specialRoomLocked } from './keyAccess';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
-import { actionPrompt } from './gamepad';
+import { actionPrompt, touchPromptLabel, touchUseVerb } from './gamepad';
 import { keyLabel } from './controls';
 import { renderControls } from './controlsUI';
 import { renderCareer } from './careerUI';
@@ -2392,6 +2392,8 @@ function renderHeistIntroUI(engine:GameEngine) {
   ctx.restore();
 }
 
+/** Duck Heist Móvil: zonas del HUD que se tocan directo (coordenadas del canvas). */
+export const TOUCH_HUD:{pause:{x:number;y:number;w:number;h:number}|null;map:{x:number;y:number;w:number;h:number}|null;event:Array<{x:number;y:number;w:number;h:number}>}={pause:null,map:null,event:[]};
 /** Duck Heist Móvil: textos de menú dicen "TOCA" en vez de "CLIC". */
 let TOUCH_UI=false;
 const CLIC=()=>TOUCH_UI?'TOCA':'CLIC';
@@ -2472,8 +2474,13 @@ export function renderUI(engine: GameEngine) {
 /** Mira kawaii grande: anillo rosa con contorno oscuro grueso, cuatro marcas y
  *  punto central. Se lee sobre pisos claros y oscuros; se encoge al disparar. */
 function drawAimReticle(engine:GameEngine){
-  if(engine.lastInput==='gamepad')return;
-  const ctx=engine.ui!,x=engine.mouseX,y=engine.mouseY;
+  let x=engine.mouseX,y=engine.mouseY;
+  if(engine.touchMode){
+    // Celular: la mira aparece sólo mientras disparas, sobre el blanco (o hacia donde apuntas).
+    if(!engine.touchAim)return;
+    x=engine.touchAim.x;y=engine.touchAim.y;
+  }else if(engine.lastInput==='gamepad')return;
+  const ctx=engine.ui!;
   if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>CANVAS_WIDTH||y>CANVAS_HEIGHT)return;
   const firing=engine.player.shootFlash>0;
   const r=firing?5.6:7+Math.sin(engine.frame*.12)*.4;
@@ -2539,7 +2546,10 @@ function renderRunStats(engine:GameEngine) {
   drawMenuFooter(ctx,'SUELTA TAB PARA CERRAR','LECTURA TÁCTICA','#79b9d2');
 }
 
+/** Móvil: acción contextual detectada en este cuadro (alimenta el botón USAR). */
+let PROMPT_USE:string|null=null;
 function prompt(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, color = '#f4d03f') {
+  if(TOUCH_UI){PROMPT_USE??=touchUseVerb(label);label=touchPromptLabel(label);}
   ctx.save();
   ctx.font = `700 7.2px ${"'Chakra Petch', sans-serif"}`;
   const w = Math.min(236,ctx.measureText(label).width + 22),h=18,left=x-w/2,top=y-11;
@@ -2562,6 +2572,7 @@ function renderPrompts(engine: GameEngine) {
   const f = engine.frame;
   const safe=visibleCanvasRect(8),safeLeft=safe.x,safeRight=safe.x+safe.w;
   const targets:TooltipTarget[]=[];
+  PROMPT_USE=null;TOUCH_HUD.event=[];
   for(const ped of [content.pedestal,...(content.choices ?? [])]) {
     if(!ped || ped.taken) continue;
     const use=pedestalInteractPoint(ped);
@@ -2606,21 +2617,30 @@ function renderPrompts(engine: GameEngine) {
       if(target.type!==RoomType.COMBAT)text(ctx,ROOM_STYLE[target.type].label,xx,yy,7.2,ROOM_STYLE[target.type].color,'center',true);
       if(locked){
         const enough=p.bankKeys>=cost;
-        const label=enough?`${actionPrompt(engine,'interact')} · ABRIR · ${cost} ${cost===1?'LLAVE':'LLAVES'}`:`REQUIERE ${cost} ${cost===1?'LLAVE':'LLAVES'}`;
+        let label=enough?`${actionPrompt(engine,'interact')} · ABRIR · ${cost} ${cost===1?'LLAVE':'LLAVES'}`:`REQUIERE ${cost} ${cost===1?'LLAVE':'LLAVES'}`;
+        if(TOUCH_UI&&enough){PROMPT_USE??='ABRIR';label=touchPromptLabel(label);}
         text(ctx,label,xx,yy+12,5.2,enough?'#e6c56f':'#df746d','center',true,false);
       }
     }
   }
   if(content.event && dist(p.x+7,p.y+8,content.event.x+8,content.event.y+8)<54) {
     const event=content.event,def=EVENTS[event.kind];
-    const x=35,y=65,w=145,h=110;
+    // En celular el panel va arriba al centro y sus opciones se tocan.
+    const w=145,h=110,x=TOUCH_UI?Math.round(CANVAS_WIDTH/2-w/2):35,y=TOUCH_UI?40:65;
     ctx.fillStyle='rgba(9,23,30,.97)';ctx.fillRect(x,y,w,h);ctx.fillStyle='#bd91d5';ctx.fillRect(x,y,2,h);
     drawItemIcon(ctx,x+9,y+9,def.icon,24);
     wrappedText(ctx,def.name,x+41,y+20,w-50,9,11,2,'#dfc5e6',true);
     wrappedText(ctx,event.used?event.message:def.description,x+10,y+53,w-20,8,11,2,'#b9cac0');
     if(!event.used) {
-      def.options.forEach((s,i)=>text(ctx,`${i+1} · ${s}`,x+11,y+78+i*13,8,event.selected===i?'#f4d03f':'#728c8c','left',event.selected===i));
-      prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    '+actionPrompt(engine,'interact')+' · CONFIRMAR');
+      def.options.forEach((s,i)=>{
+        if(TOUCH_UI){
+          const r={x:x+5,y:y+69+i*13,w:w-10,h:13};TOUCH_HUD.event.push(r);
+          if(event.selected===i){ctx.fillStyle='rgba(244,208,63,.14)';ctx.fillRect(r.x,r.y,r.w,r.h);}
+        }
+        text(ctx,`${i+1} · ${s}`,x+11,y+78+i*13,8,event.selected===i?'#f4d03f':'#728c8c','left',event.selected===i);
+      });
+      if(TOUCH_UI){PROMPT_USE??='CONFIRMAR';prompt(ctx,event.x+8,event.y+39,'TOCA UNA OPCIÓN · CONFIRMAR');}
+      else prompt(ctx,event.x+8,event.y+39,'1 / 2 · ELEGIR    '+actionPrompt(engine,'interact')+' · CONFIRMAR');
     }
   }
   if(content.challenge==='alarm' && !room.cleared) text(ctx,`ALARMA · ${Math.ceil((content.alarmTimer ?? 0)/60)} s`, CANVAS_WIDTH/2,64,9,'#e2a477','center',true);
@@ -2637,6 +2657,11 @@ function renderPrompts(engine: GameEngine) {
     } else if (!st.unlocked) {
       text(ctx, T.stairsLocked, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 96, 10, '#ff9f43');
     }
+  }
+
+  if(TOUCH_UI){
+    engine.touchUse=PROMPT_USE;
+    engine.touchRecycle=engine.gameMode==='endless'&&content.items.some(it=>dist(it.x+8,it.y+8,p.x+7,p.y+8)<38);
   }
 
   // aviso de puertas bloqueadas
@@ -2889,6 +2914,12 @@ function drawHUD(engine: GameEngine) {
   // Expediente de ubicación: reemplaza texto flotante por un único foco central.
   const modeAccent=engine.gameMode==='endless'?'#d86b58':engine.gameMode==='daily'?'#c98cff':'#ffd45e';
   const locW=engine.gameMode==='endless'?132:126,locX=CANVAS_WIDTH/2-locW/2;
+  if(engine.touchMode){
+    // Celular: sólo una ficha corta, para no tapar la puerta de arriba.
+    const label=engine.gameMode==='endless'?`RONDA ${Math.max(1,engine.endless.round)}`:`PISO ${engine.map.floorIndex+1}/${TOTAL_FLOORS}`;
+    hudPlate(ctx,CANVAS_WIDTH/2-34,4,68,15,modeAccent,.55);
+    text(ctx,label,CANVAS_WIDTH/2,14,5,modeAccent,'center',true,false);
+  }else{
   hudPlate(ctx,locX,4,locW,25,modeAccent,.58);
   if(engine.gameMode==='endless'){
     text(ctx,'ATRACO SIN FIN',CANVAS_WIDTH/2,13,5.3,modeAccent,'center',true,false);
@@ -2897,6 +2928,12 @@ function drawHUD(engine: GameEngine) {
     text(ctx,`PISO ${engine.map.floorIndex+1} / ${TOTAL_FLOORS}`,CANVAS_WIDTH/2,13,5.3,modeAccent,'center',true,false);
     text(ctx,FLOOR_NAMES_ES[engine.map.floorIndex],CANVAS_WIDTH/2,23,4.7,'#c9bfe8','center',true,false);
   }
+  }
+
+  const touch=!!engine.touchMode;
+  // Móvil: columna izquierda (vida → recursos → objetos → alerta); abajo queda libre para los pulgares.
+  let colY=4+statusH+4;
+  TOUCH_HUD.pause=null;TOUCH_HUD.map=null;
 
   // Recursos: panel compacto inspirado en caja de seguridad bancaria.
   const economyW=112,economyX=safeRight-economyW;
@@ -2905,27 +2942,61 @@ function drawHUD(engine: GameEngine) {
     {kind:'coin',label:engine.gameMode==='endless'?'DORADAS':'MONEDAS',value:String(engine.totalGoldenCrumbs),accent:'#ffd45e'},
   ];
   if(engine.gameMode!=='endless')resourceRows.push({kind:'key',label:'LLAVES',value:String(p.bankKeys),accent:'#d2ad52',flash:p.keyFlash>0});
-  drawResourceHud(ctx,economyX,4,economyW,resourceRows,engine.frame);
+  if(touch){
+    // Una sola fila: ícono + número, debajo de la vida.
+    const cellW=38,rowW=resourceRows.length*cellW+6,rx=safeLeft+4;
+    hudPlate(ctx,rx,colY,rowW,17,'#ffd45e',.62);
+    resourceRows.forEach((row,i)=>{
+      const x=rx+5+i*cellW,top=colY+2;
+      if(row.kind==='crumb')drawCrumbCluster(ctx,x,top+1,engine.frame,11,false);
+      else if(row.kind==='coin'){ctx.save();ctx.translate(x+6,top+6.5);ctx.scale(.62,.62);drawCoin(ctx,0,0,engine.frame,true,false);ctx.restore();}
+      else drawBankKey(ctx,x,top,engine.frame,12,false);
+      text(ctx,row.value,x+15,top+10,5.8,row.flash?'#fff0a3':row.kind==='coin'?'#ffd45e':'#fff1d6','left',true,false);
+    });
+    colY+=21;
+    // Pausa en la esquina y el minimapa a su lado (tocar el minimapa abre el mapa).
+    const pr={x:safeRight-26,y:4,w:26,h:24};
+    hudPlate(ctx,pr.x,pr.y,pr.w,pr.h,'#fff1d6',.7);
+    ctx.fillStyle='#130f24';ctx.fillRect(pr.x+8,pr.y+6,5,13);ctx.fillRect(pr.x+14,pr.y+6,5,13);
+    ctx.fillStyle='#fff1d6';ctx.fillRect(pr.x+9,pr.y+7,3,11);ctx.fillRect(pr.x+15,pr.y+7,3,11);
+    TOUCH_HUD.pause={x:pr.x-8,y:0,w:pr.w+14,h:pr.h+12};
+    if(engine.gameMode!=='endless'){
+      const r=drawMinimap(engine,4,32);
+      if(r)TOUCH_HUD.map={x:r.x-4,y:0,w:r.w+6,h:r.y+r.h+6};
+    }
+  }else{
+    drawResourceHud(ctx,economyX,4,economyW,resourceRows,engine.frame);
 
-  // El mapa ocupa su propia columna debajo de los recursos. Nunca comparte
-  // espacio con monedas/llaves ni invade el loadout inferior.
-  if(engine.gameMode!=='endless'){
-    const resourceH=resourceRows.length*17+6;
-    drawMinimap(engine,4+resourceH+8);
+    // El mapa ocupa su propia columna debajo de los recursos. Nunca comparte
+    // espacio con monedas/llaves ni invade el loadout inferior.
+    if(engine.gameMode!=='endless'){
+      const resourceH=resourceRows.length*17+6;
+      drawMinimap(engine,4+resourceH+8);
+    }
   }
 
   drawBossBar(engine);
 
+  if(touch&&p.items.length){
+    // Objetos pasivos: fila corta en la columna izquierda.
+    const maxShown=7,n=Math.min(p.items.length,maxShown),w=n*14+(p.items.length>maxShown?22:8);
+    hudPlate(ctx,safeLeft+4,colY,w,16,'#6d8589',.46);
+    for(let i=0;i<n;i++)drawItemIcon(ctx,safeLeft+8+i*14,colY+2,p.items[i],12);
+    if(p.items.length>maxShown)text(ctx,`+${p.items.length-maxShown}`,safeLeft+w,colY+11,4.6,'#ffd45e','right',true,false);
+    colY+=20;
+  }
   if(engine.alert>=5){
-    const alert=Math.round(engine.alert),danger=alert>60;
-    hudPlate(ctx,safeLeft+5,statusH+9,72,19,danger?'#dc6159':'#c99b66',.56);
-    text(ctx,`ALERTA ${alert}`,safeLeft+12,statusH+20,4.8,danger?'#ff8f7f':'#d8b985','left',true,false);
-    hudMeter(ctx,safeLeft+12,statusH+24,57,engine.alert/100,danger?'#e45b4f':'#c78868');
+    const alert=Math.round(engine.alert),danger=alert>60,ay=touch?colY-4:statusH+5;
+    hudPlate(ctx,safeLeft+5,ay+4,72,19,danger?'#dc6159':'#c99b66',.56);
+    text(ctx,`ALERTA ${alert}`,safeLeft+12,ay+15,4.8,danger?'#ff8f7f':'#d8b985','left',true,false);
+    hudMeter(ctx,safeLeft+12,ay+19,57,engine.alert/100,danger?'#e45b4f':'#c78868');
+    if(touch)colY+=23;
   }
 
   // Arsenal: dos ranuras compactas pero con jerarquía clara del arma activa.
+  // (En celular el arma, el objeto activo y el esquive viven en sus botones.)
   const slotW=94,slotH=27,baseX=safeLeft+5,baseY=CANVAS_HEIGHT-slotH-5;
-  for(let i=0;i<2;i++){
+  if(!touch)for(let i=0;i<2;i++){
     const weapon=p.weapons[i],active=p.activeWeapon===i,x=baseX+i*(slotW+5),y=baseY-(active?2:0);
     hudPlate(ctx,x,y,slotW,slotH,active?'#ffd45e':'#49626a',active?.74:.48);
     ctx.fillStyle=active?'#ffd45e':'#53686e';ctx.globalAlpha=active?.9:.42;ctx.fillRect(x,y,3,slotH);ctx.globalAlpha=1;
@@ -2954,7 +3025,7 @@ function drawHUD(engine: GameEngine) {
   }
 
   // Objeto activo como tercer bloque del loadout, alineado a la derecha.
-  if(p.activeItem){
+  if(p.activeItem&&!touch){
     const x=safeRight-91,y=CANVAS_HEIGHT-32,ready=p.activeItemCooldown<=0,flash=p.quackReadyFlash>0;
     hudPlate(ctx,x,y,91,27,flash?'#f7dda0':ready?'#72c796':'#58696f',.60);
     ctx.save();ctx.translate(x+8,y+7);ctx.scale(ready?1.05:.92,ready?1.05:.92);ctx.globalAlpha=ready?1:.50;drawItem(ctx,0,0,p.activeItem,engine.frame);ctx.restore();
@@ -2970,10 +3041,10 @@ function drawHUD(engine: GameEngine) {
 
   // Esquive centrado: icono funcional, no una tercera tarjeta.
   const dashReady=p.dashCooldown<=0,dashFlash=p.dashReadyFlash>0,dashW=54,dashX=CANVAS_WIDTH/2-dashW/2;
-  hudMeter(ctx,dashX,CANVAS_HEIGHT-13,dashW,1-p.dashCooldown/(45*getBuild(p).dashCooldown),dashFlash?'#a3f0c2':dashReady?'#72c796':'#516168');
-  text(ctx,engine.lastInput==='gamepad'&&!engine.touchMode?'B · ESQUIVE':'ESQUIVE',CANVAS_WIDTH/2,CANVAS_HEIGHT-4,4.8,dashReady?'#83d8a6':'#6d7d82','center',dashFlash,false);
+  if(!touch)hudMeter(ctx,dashX,CANVAS_HEIGHT-13,dashW,1-p.dashCooldown/(45*getBuild(p).dashCooldown),dashFlash?'#a3f0c2':dashReady?'#72c796':'#516168');
+  if(!touch)text(ctx,engine.lastInput==='gamepad'&&!engine.touchMode?'B · ESQUIVE':'ESQUIVE',CANVAS_WIDTH/2,CANVAS_HEIGHT-4,4.8,dashReady?'#83d8a6':'#6d7d82','center',dashFlash,false);
 
-  if(p.items.length){
+  if(p.items.length&&!touch){
     const maxShown=10,n=Math.min(p.items.length,maxShown);
     const w=Math.min(slotW*2+5,n*14+30);
     const x=safeLeft+5,y=baseY-20;
@@ -2987,13 +3058,14 @@ function drawHUD(engine: GameEngine) {
   if(engine.gameMode==='endless'){
     const e=engine.endless;
     const pressureColor=e.pressure>=75?'#e55f55':e.pressure>=50?'#e6a04e':'#78b99a';
-    hudPlate(ctx,safeLeft+6,56,116,42,pressureColor,.64);
-    text(ctx,`RONDA ${Math.max(1,e.round)}`,safeLeft+14,68,6.2,'#f0d88d','left',true,false);
-    text(ctx,`${e.threatRank} · ALERTA ${e.alert}`,safeLeft+14,79,4.6,'#9badab','left',false,false);
-    hudMeter(ctx,safeLeft+14,84,96,e.pressure/100,pressureColor);
+    const ey=touch?colY:56;
+    hudPlate(ctx,safeLeft+6,ey,116,42,pressureColor,.64);
+    text(ctx,`RONDA ${Math.max(1,e.round)}`,safeLeft+14,ey+12,6.2,'#f0d88d','left',true,false);
+    text(ctx,`${e.threatRank} · ALERTA ${e.alert}`,safeLeft+14,ey+23,4.6,'#9badab','left',false,false);
+    hudMeter(ctx,safeLeft+14,ey+28,96,e.pressure/100,pressureColor);
     const pressureState=e.pressure>=75?'CRÍTICO':e.pressure>=50?'PELIGRO':e.pressure>=25?'ALERTA':'CONTROL';
-    text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${pressureState}`,safeLeft+14,95,4.2,e.pressure>=75?'#ef8278':'#829698','left',e.pressure>=75,false);
-    if(e.compositionLabel&&e.roundActive&&e.roundKind!=='boss'&&e.roundKind!=='subboss'&&e.roundKind!=='miniboss')text(ctx,e.compositionLabel,safeLeft+14,105,4.3,'#7f9992','left',true,false);
+    text(ctx,`PRESIÓN ${Math.round(e.pressure)}% · ${pressureState}`,safeLeft+14,ey+39,4.2,e.pressure>=75?'#ef8278':'#829698','left',e.pressure>=75,false);
+    if(e.compositionLabel&&e.roundActive&&e.roundKind!=='boss'&&e.roundKind!=='subboss'&&e.roundKind!=='miniboss')text(ctx,e.compositionLabel,safeLeft+14,ey+49,4.3,'#7f9992','left',true,false);
     if(e.milestone)text(ctx,e.milestone,CANVAS_WIDTH/2,36,5.8,e.round>=100?'#ff6c66':'#ffd45e','center',true,false);
   }
   renderDailyHUD(engine);
@@ -3064,11 +3136,11 @@ function drawBossBar(engine: GameEngine) {
   }
   if(engine.gameMode==='endless'&&boss.mutation)text(ctx,`MUTACIÓN · ${boss.mutation}`,x+10,y+18,3.8,boss.mutation==='TORMENTA'?'#8ecfff':boss.mutation==='BLINDADO'?'#b6c3ce':'#f2a66f','left',true,false);
 }
-function drawMinimap(engine: GameEngine, topY=68) {
+function drawMinimap(engine: GameEngine, topY=68, rightInset=0):{x:number;y:number;w:number;h:number}|null {
   const ctx = engine.ui!;
   const visible=visibleRoomKeys(engine);
   const rooms=[...visible].map(id=>engine.map.rooms.get(id)!);
-  if (!rooms.length) return;
+  if (!rooms.length) return null;
 
   const minX=Math.min(...rooms.map(r=>r.gx)),maxX=Math.max(...rooms.map(r=>r.gx));
   const minY=Math.min(...rooms.map(r=>r.gy)),maxY=Math.max(...rooms.map(r=>r.gy));
@@ -3085,9 +3157,9 @@ function drawMinimap(engine: GameEngine, topY=68) {
   const w=gridW+12,h=gridH+28;
 
   const safe=visibleCanvasRect(6);
-  const ox=safe.x+safe.w-w;
+  const ox=safe.x+safe.w-w-rightInset;
   const maxBottom=CANVAS_HEIGHT-70;
-  const oy=Math.max(34,Math.min(topY,maxBottom-h));
+  const oy=engine.touchMode?topY:Math.max(34,Math.min(topY,maxBottom-h));
 
   hudPlate(ctx,ox,oy,w,h,'#79b9d2',.66);
   text(ctx,'MAPA',ox+7,oy+10,4.2,'#78999e','left',true,false);
@@ -3117,8 +3189,12 @@ function drawMinimap(engine: GameEngine, topY=68) {
     }
   }
 
-  text(ctx,`${rooms.length} SALAS`,ox+7,oy+h-5,3.8,'#667f84','left',true,false);
-  if(!engine.touchMode)text(ctx,'M · ABRIR',ox+w-7,oy+h-5,3.8,'#769aa0','right',true,false);
+  if(engine.touchMode&&w<58)text(ctx,'TOCA',ox+w/2,oy+h-5,3.8,'#769aa0','center',true,false);
+  else{
+    text(ctx,`${rooms.length} SALAS`,ox+7,oy+h-5,3.8,'#667f84','left',true,false);
+    text(ctx,engine.touchMode?'TOCA':'M · ABRIR',ox+w-7,oy+h-5,3.8,'#769aa0','right',true,false);
+  }
+  return {x:ox,y:oy,w,h};
 }
 
 // ---------------------------------------------------------------------------
