@@ -838,6 +838,21 @@ export function drawDuck(
  * Renderizado nítido con outline oscuro, brillo superior y volumen.
  */
 export function drawHeart(ctx: Ctx, x: number, y: number, filled: boolean, half = false) {
+  // Corazón kawaii 11x10 con contorno oscuro, brillo y sombra.
+  {
+    const rows=['.OOO...OOO.','OrrrO.OrrrO','OrhrrOrrrrO','OhrrrrrrrsO','OrrrrrrrssO','.OrrrrrrsO.','..OrrrrsO..','...OrrsO...','....OsO....','.....O.....'];
+    const bx=Math.floor(x),by=Math.floor(y)+1;
+    ctx.save();
+    for(let j=0;j<rows.length;j++)for(let i=0;i<11;i++){
+      const ch=rows[j][i];if(ch==='.')continue;
+      let c=ch==='O'?'#25203a':ch==='h'?'#ffd6de':ch==='s'?'#d9455c':'#ff6b7f';
+      const full=filled&&!half,leftHalf=half&&i<=5;
+      if(ch!=='O'&&!(full||leftHalf))c=ch==='h'?'#5a4f88':'#3a3060';
+      ctx.fillStyle=c;ctx.fillRect(bx+i,by+j,1,1);
+    }
+    ctx.restore();
+    return;
+  }
   const bx = Math.floor(x);
   const by = Math.floor(y);
   ctx.save();
@@ -1795,18 +1810,18 @@ export function drawBankKey(ctx:Ctx,x:number,y:number,frame:number,size=16,anima
   ctx.globalAlpha=animated?.12+.05*Math.sin(frame*.09):.10;ctx.fillStyle='#e3bd59';ctx.beginPath();ctx.ellipse(8,9,11,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
 
   // Cabeza robusta con aro negro/dorado como en el nuevo HUD.
-  ctx.fillStyle='#6d4714';ctx.beginPath();ctx.arc(4.5,6.5,5.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#25203a';ctx.beginPath();ctx.arc(4.5,6.5,5.5,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#d49b2e';ctx.beginPath();ctx.arc(4.5,6.5,4.5,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#f2c85f';ctx.beginPath();ctx.arc(4,6,3.3,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#302515';ctx.beginPath();ctx.arc(4,6,2,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#ffe59a';ctx.beginPath();ctx.arc(3,5,1.1,0,Math.PI*2);ctx.fill();
 
   // Vástago horizontal ancho, mucho más reconocible.
-  rect(ctx,8,5,7,4,'#9a671f');
+  rect(ctx,8,3,8,7,'#25203a');rect(ctx,8,5,7,4,'#9a671f');
   rect(ctx,8,4,7,3,'#e0aa3d');
   rect(ctx,9,4,6,1,'#ffe28a');
   rect(ctx,12,8,3,3,'#b97f29');
-  rect(ctx,14,8,2,5,'#8d5d1c');
+  rect(ctx,11,8,6,6,'#25203a');rect(ctx,14,8,2,5,'#8d5d1c');
   rect(ctx,10,8,2,2,'#e0aa3d');
 
   if(animated&&frame%32<6){px(ctx,13,1,'#fff1b4',1);px(ctx,15,3,'#fff1b4',1);}
@@ -1824,7 +1839,7 @@ export function drawCoin(ctx:Ctx,x:number,y:number,frame:number,golden=false,ani
   ctx.globalAlpha=animated?.14+.05*Math.sin(frame*.10):.10;ctx.fillStyle=golden?'#f4c63f':'#c58a4a';ctx.beginPath();ctx.ellipse(bx,cy+1,r+5,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
 
   // Contorno y bisel.
-  ctx.fillStyle=golden?'#8b5612':'#85572f';ctx.beginPath();ctx.arc(bx,cy,r+1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#25203a';ctx.beginPath();ctx.arc(bx,cy,r+1,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=golden?'#f09b1f':'#c68b55';ctx.beginPath();ctx.arc(bx,cy,r,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=golden?'#ffd249':'#e1b47b';ctx.beginPath();ctx.arc(bx-1,cy-1,r-1,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=golden?'#efa125':'#bc7c4c';ctx.beginPath();ctx.arc(bx,cy,r-2,0,Math.PI*2);ctx.fill();
@@ -1833,7 +1848,7 @@ export function drawCoin(ctx:Ctx,x:number,y:number,frame:number,golden=false,ani
   rect(ctx,bx-1,cy-r+2,3,r*2-3,golden?'#ffe77e':'#f2d2aa');
   rect(ctx,bx,cy-r+2,1,r*2-3,golden?'#fff3b0':'#fff0d7');
   if(golden){
-    ctx.strokeStyle='#a66513';ctx.lineWidth=1;ctx.beginPath();ctx.arc(bx,cy,r-1,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#e09a2e';ctx.lineWidth=1;ctx.beginPath();ctx.arc(bx,cy,r-1,0,Math.PI*2);ctx.stroke();
     if(animated&&frame%26<6){px(ctx,bx+r+2,cy-r,'#fff7cf',1);px(ctx,bx+r+2,cy-r-2,'#fff7cf',1);}
   }
   ctx.restore();

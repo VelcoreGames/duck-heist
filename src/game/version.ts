@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.0';
+export const GAME_VERSION = '0.0.2.5.1';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -41,3 +41,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           decoración, alfombra con emblema, puertas con arco del color del destino y candado, 20 familias de
 //           objetos destructibles + 12 piezas de lujo que llenan su caja de impacto, grietas al dañarse, y
 //           escala de tamaños pareja (muebles 26-30 px, policías ~27 px, pollito ~16 px).
+// v0.0.2.5.1: interfaz kawaii: menús, botones, tarjetas, encabezados, teclas y HUD con paneles ciruela redondos,
+//           contorno grueso y sombra sólida; corazones kawaii; monedas y llaves con contorno; escena del menú teñida.

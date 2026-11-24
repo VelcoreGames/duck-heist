@@ -22,6 +22,30 @@ function softPanelPath(ctx:Ctx,x:number,y:number,w:number,h:number,r=4){
   ctx.closePath();
 }
 
+
+// ---------------------------------------------------------------------------
+// Estilo kawaii de la interfaz: paneles redondos color ciruela, contorno
+// oscuro grueso, sombra sólida tipo caricatura y acentos pastel.
+export const UI_INK='#130f24';
+function lum(c:string){
+  const m=c.match(/rgba?\(([^)]+)\)/);let r=0,g=0,b=0;
+  if(m){[r,g,b]=m[1].split(',').map(v=>parseFloat(v));}
+  else if(c.startsWith('#')){const h=c.slice(1);r=parseInt(h.slice(0,2),16);g=parseInt(h.slice(2,4),16);b=parseInt(h.slice(4,6),16);}
+  return (r*.299+g*.587+b*.114)/255;
+}
+function alphaOf(c:string){const m=c.match(/rgba\([^)]*,\s*([\d.]+)\)/);return m?parseFloat(m[1]):1;}
+/** Los fondos oscuros heredados (azul petróleo) pasan a ciruela; los claros se respetan. */
+export function plumFill(fill:string,tone=0){
+  if(lum(fill)>.22)return fill;
+  const base=tone>0?[52,42,87]:tone<0?[33,26,58]:[42,34,71];
+  return `rgba(${base[0]},${base[1]},${base[2]},${Math.max(.9,alphaOf(fill))})`;
+}
+function cartoonBox(ctx:Ctx,x:number,y:number,w:number,h:number,r:number,fill:string,shadow=3){
+  ctx.fillStyle='rgba(11,8,24,.55)';softPanelPath(ctx,x,y+shadow,w,h,r);ctx.fill();
+  ctx.fillStyle=UI_INK;softPanelPath(ctx,x-1,y-1,w+2,h+2,r+1);ctx.fill();
+  ctx.fillStyle=fill;softPanelPath(ctx,x+1,y+1,w-2,h-2,Math.max(2,r-1));ctx.fill();
+}
+
 export const FONT_TITLE = "'Bungee', 'Chakra Petch', monospace";
 export const FONT_UI = "'Chakra Petch', 'Trebuchet MS', sans-serif";
 
@@ -97,36 +121,15 @@ export function pixelText(ctx: Ctx, str: string, x: number, y: number, color = '
 /** Panel limpio con borde suave y sin esquinas técnicas. */
 export function drawPanel(
   ctx: Ctx, x: number, y: number, w: number, h: number,
-  fill = 'rgba(10,13,24,0.96)', border = '#f4d03f', accent = '#39414f',
+  fill = 'rgba(42,34,71,0.97)', border = '#ffd45e', accent = '#6b5fa0',
 ) {
   ctx.save();
-
-  // Sombra blanda: sustituye los marcos dobles/cuadrados.
-  ctx.fillStyle='rgba(0,0,0,.38)';
-  softPanelPath(ctx,x+2,y+3,w,h,5);ctx.fill();
-
-  softPanelPath(ctx,x,y,w,h,5);
-  ctx.fillStyle=fill;ctx.fill();
-
-  ctx.strokeStyle=accent;
-  ctx.globalAlpha=.52;
-  ctx.lineWidth=1;
-  ctx.stroke();
-
-  // Acento superior corto; no forma una "L" ni toca las esquinas.
-  ctx.globalAlpha=.72;
-  ctx.strokeStyle=border;
-  ctx.beginPath();
-  ctx.moveTo(x+10,y+.5);
-  ctx.lineTo(x+Math.min(w-10,Math.max(36,w*.34)),y+.5);
-  ctx.stroke();
-
-  // Luz interior muy sutil.
-  ctx.globalAlpha=.06;
-  ctx.strokeStyle='#ffffff';
-  softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,3);
-  ctx.stroke();
-
+  cartoonBox(ctx,x,y,w,h,7,plumFill(fill));
+  // brillo superior pastel y cinta de acento
+  ctx.globalAlpha=.16;ctx.fillStyle='#ffffff';softPanelPath(ctx,x+3,y+2,w-6,Math.min(10,h/3),5);ctx.fill();
+  ctx.globalAlpha=.9;ctx.fillStyle=border;
+  ctx.fillRect(x+10,y+1,Math.min(w-20,Math.max(30,w*.3)),2);
+  ctx.globalAlpha=.35;ctx.strokeStyle=accent;ctx.lineWidth=1;softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,5);ctx.stroke();
   ctx.globalAlpha=1;
   ctx.restore();
 }
@@ -148,88 +151,61 @@ export function drawButtons(
     const y = top + i * (height + gap);
     const on = i === selected;
     const x = cx - width / 2;
-    const col = b.disabled ? '#526167' : (b.color ?? '#d8c57d');
-
-    ctx.fillStyle = 'rgba(0,0,0,.52)';
-    ctx.fillRect(x + 3, y + 3, width, height);
-    ctx.fillStyle = on ? '#24342f' : '#101d23';
-    ctx.fillRect(x, y, width, height);
-
-    ctx.strokeStyle = on ? col : '#3a5057';
-    ctx.lineWidth = on ? 2 : 1;
-    ctx.strokeRect(x + .5, y + .5, width - 1, height - 1);
-
-    ctx.fillStyle = on ? col : '#52666d';
-    ctx.fillRect(x, y, on ? 5 : 3, height);
-    ctx.fillRect(x + 5, y, on ? Math.max(24, width * .28) : 18, 2);
-
-    const textCol = b.disabled ? '#5c6472' : on ? '#fff1bf' : '#c3cbd9';
-    titleText(ctx, b.label, cx, y + height / 2 + height * .28, on ? 11 : 10, textCol, 'center', true);
-
-    if (on) {
-      // Cursor rígido y estable: evita el rebote del sistema anterior.
-      text(ctx, '›', x + width - 11, y + height / 2 + 4, 10, col, 'center', true);
-    }
-    if (b.hint) {
-      text(ctx, b.hint, x + width - 19, y + height / 2 + 4, 8, on ? col : '#7c8494', 'right');
-    }
+    const col = b.disabled ? '#6e6696' : (b.color ?? MENU_THEME.gold);
+    const lift = on ? Math.round(Math.sin(frame * .15)) - 1 : 0;
+    cartoonBox(ctx, x, y + lift, width, height, Math.min(10, height / 2), on ? col : '#342a57', on ? 4 : 3);
+    const textCol = b.disabled ? '#8f88b3' : on ? UI_INK : MENU_THEME.paper;
+    titleText(ctx, b.label, cx, y + lift + height / 2 + height * .28, on ? 11 : 10, textCol, 'center', !on);
+    if (on) text(ctx, '★', x + 12, y + lift + height / 2 + 4, 8, UI_INK, 'center', true);
+    if (b.hint) text(ctx, b.hint, x + width - 12, y + lift + height / 2 + 4, 8, on ? UI_INK : MENU_THEME.muted, 'right');
   }
 }
 
 /** Barra de valor (volumen, vibración...) */
-export function drawBar(ctx: Ctx, x: number, y: number, w: number, value: number, color = '#f4d03f') {
-  ctx.fillStyle = '#1a1f2b';
-  ctx.fillRect(x, y, w, 8);
-  ctx.fillStyle = '#2f3644';
-  ctx.fillRect(x + 1, y + 1, w - 2, 6);
-  ctx.fillStyle = color;
-  ctx.fillRect(x + 1, y + 1, Math.round((w - 2) * Math.max(0, Math.min(1, value))), 6);
-  // segmentos
-  ctx.fillStyle = 'rgba(10,13,24,0.8)';
-  for (let i = 1; i < 10; i++) ctx.fillRect(x + (w / 10) * i, y + 1, 1, 6);
+export function drawBar(ctx: Ctx, x: number, y: number, w: number, value: number, color = '#ffd45e') {
+  const v=Math.max(0,Math.min(1,value));
+  ctx.save();
+  ctx.fillStyle=UI_INK;softPanelPath(ctx,x-1,y-1,w+2,10,4);ctx.fill();
+  ctx.fillStyle='#3a3060';softPanelPath(ctx,x,y,w,8,3);ctx.fill();
+  if(v>0){ctx.fillStyle=color;softPanelPath(ctx,x+1,y+1,Math.max(4,(w-2)*v),6,3);ctx.fill();
+    ctx.globalAlpha=.45;ctx.fillStyle='#ffffff';ctx.fillRect(x+3,y+2,Math.max(1,(w-6)*v),1);ctx.globalAlpha=1;}
+  ctx.restore();
 }
 
 export const MENU_THEME = {
-  ink:'#050b0f',
-  ink2:'#081319',
-  panel:'#0b1920',
-  panel2:'#10262e',
-  steel:'#233a42',
-  steel2:'#49626a',
-  line:'#355a62',
-  lineSoft:'rgba(117,164,168,.18)',
-  muted:'#7f9798',
-  text:'#dce7df',
-  gold:'#e6c56f',
-  goldBright:'#f7dda0',
-  gold2:'#8e6d2f',
-  paper:'#efe2bd',
-  cyan:'#73c7c8',
-  red:'#dc6159',
-  green:'#72c796',
+  ink:'#130f24',
+  ink2:'#1b1533',
+  panel:'#2a2247',
+  panel2:'#342a57',
+  steel:'#4a3f73',
+  steel2:'#6e62a0',
+  line:'#6b5fa0',
+  lineSoft:'rgba(200,180,255,.18)',
+  muted:'#b3a9d6',
+  text:'#fff6ea',
+  gold:'#ffd45e',
+  goldBright:'#fff0a3',
+  gold2:'#e09a2e',
+  paper:'#fff1d6',
+  cyan:'#8ff0e6',
+  red:'#ff6b7f',
+  green:'#8fe8b0',
 };
 
 /** Fondo común para pantallas de menú: limpio, sin marco perimetral rígido. */
 export function drawMenuBackdrop(ctx:Ctx,frame:number,opacity=.82,accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle=`rgba(3,8,12,${Math.min(.98,opacity+.04)})`;
-  ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
-
-  // Retícula tenue, suficiente para mantener el lenguaje de centro de operaciones.
-  ctx.globalAlpha=.035;
-  ctx.fillStyle=accent;
-  for(let x=24;x<UI_BASE_WIDTH-22;x+=48)ctx.fillRect(x,20,1,CANVAS_HEIGHT-40);
-  for(let y=22;y<CANVAS_HEIGHT-20;y+=40)ctx.fillRect(20,y,UI_BASE_WIDTH-40,1);
-
-  // En lugar del doble borde exterior, sólo dos líneas flotantes cortas.
-  ctx.globalAlpha=.24;
-  ctx.fillStyle=accent;
-  ctx.fillRect(26,11,58,1);
-  ctx.fillRect(UI_BASE_WIDTH-84,CANVAS_HEIGHT-12,58,1);
-
-  const sweep=22+((frame*.48)%(UI_BASE_WIDTH-44));
-  ctx.globalAlpha=.03;
-  ctx.fillRect(sweep,18,1,CANVAS_HEIGHT-36);
+  const g=ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
+  g.addColorStop(0,`rgba(27,21,51,${Math.min(.98,opacity+.06)})`);g.addColorStop(1,`rgba(42,26,64,${Math.min(.98,opacity+.06)})`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,UI_BASE_WIDTH,CANVAS_HEIGHT);
+  // lunares suaves y estrellitas que titilan
+  ctx.fillStyle='#ffffff';
+  for(let y=14,row=0;y<CANVAS_HEIGHT;y+=28,row++)for(let x=(row%2)*20+10;x<UI_BASE_WIDTH;x+=40){ctx.globalAlpha=.035;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();}
+  for(let i=0;i<14;i++){
+    const x=(i*97+31)%(UI_BASE_WIDTH-20)+10,y=(i*53+17)%(CANVAS_HEIGHT-20)+10,t=(frame*.05+i*1.7);
+    ctx.globalAlpha=.15+.25*Math.max(0,Math.sin(t));ctx.fillStyle=i%3?accent:'#ffc2d4';
+    ctx.fillRect(x,y-1,1,3);ctx.fillRect(x-1,y,3,1);
+  }
   ctx.restore();
 }
 
@@ -240,87 +216,43 @@ export function drawMenuHeader(
 ) {
   ctx.save();
   const x=22,y=15,w=UI_BASE_WIDTH-44,h=46;
-
-  ctx.fillStyle='rgba(0,0,0,.34)';
-  softPanelPath(ctx,x+2,y+2,w,h,5);ctx.fill();
-
-  softPanelPath(ctx,x,y,w,h,5);
-  ctx.fillStyle='rgba(7,19,24,.96)';ctx.fill();
-  ctx.strokeStyle='rgba(126,166,169,.20)';
-  ctx.lineWidth=1;ctx.stroke();
-
-  ctx.fillStyle=accent;
-  ctx.globalAlpha=.78;
-  ctx.fillRect(x+10,y,56,2);
-  ctx.globalAlpha=.22;
-  ctx.fillRect(x+w-58,y+h-2,46,1);
-  ctx.globalAlpha=1;
-
-  text(ctx,eyebrow,x+16,y+14,5.0,accent,'left',true,false);
+  cartoonBox(ctx,x,y,w,h,8,'#2a2247');
+  ctx.globalAlpha=.14;ctx.fillStyle='#ffffff';softPanelPath(ctx,x+3,y+2,w-6,10,6);ctx.fill();ctx.globalAlpha=1;
+  // listón de acento con el rótulo
+  const tagW=Math.min(170,eyebrow.length*4.4+20);
+  ctx.fillStyle=UI_INK;softPanelPath(ctx,x+11,y-6,tagW+2,13,6);ctx.fill();
+  ctx.fillStyle=accent;softPanelPath(ctx,x+12,y-5,tagW,11,5);ctx.fill();
+  text(ctx,eyebrow,x+20,y+3,4.8,UI_INK,'left',true,false);
   const titleSize=title.length>22?11.7:title.length>17?13.0:14.7;
   ctx.save();
-  ctx.beginPath();ctx.rect(x+12,y+18,258,24);ctx.clip();
+  ctx.beginPath();ctx.rect(x+12,y+12,258,30);ctx.clip();
   titleText(ctx,title,x+16,y+36,titleSize,MENU_THEME.paper,'left',false);
   ctx.restore();
-
   const maxSub=subtitle.length>49?subtitle.slice(0,48)+'…':subtitle;
-  text(ctx,'DH // VAULT OPS',x+w-14,y+14,4.0,'#587176','right',true,false);
+  text(ctx,'BANCO DEL PAN',x+w-14,y+14,4.0,'#8f84bd','right',true,false);
   text(ctx,maxSub,x+w-14,y+35,4.9,MENU_THEME.muted,'right',false,false);
-
-  const pulse=.30+.16*Math.sin(frame*.08);
-  ctx.globalAlpha=pulse;
-  ctx.fillStyle=accent;
-  ctx.fillRect(x+w-48,y+20,34,1);
-  ctx.globalAlpha=1;
-
   for(let i=0;i<3;i++){
-    ctx.fillStyle=i===Math.floor(frame/24)%3?accent:'#31494f';
-    ctx.globalAlpha=i===Math.floor(frame/24)%3?.72:.42;
-    ctx.beginPath();ctx.arc(x+w-44+i*10,y+25,1.5,0,Math.PI*2);ctx.fill();
+    const on=i===Math.floor(frame/24)%3;
+    ctx.fillStyle=on?accent:'#5a4f88';
+    ctx.beginPath();ctx.arc(x+w-44+i*10,y+24,on?2.2:1.6,0,Math.PI*2);ctx.fill();
   }
-  ctx.globalAlpha=1;
   ctx.restore();
 }
 
 /** Tarjeta de menú con borde suave y selección limpia. */
 export function drawMenuCard(
   ctx:Ctx,x:number,y:number,w:number,h:number,
-  selected=false,accent=MENU_THEME.gold,fill='rgba(10,24,30,.96)',
+  selected=false,accent=MENU_THEME.gold,fill='rgba(42,34,71,.97)',
 ) {
   ctx.save();
-
-  ctx.fillStyle='rgba(0,0,0,.32)';
-  softPanelPath(ctx,x+2,y+2,w,h,4);ctx.fill();
-
-  softPanelPath(ctx,x,y,w,h,4);
-  ctx.fillStyle=fill;ctx.fill();
-
-  ctx.strokeStyle=selected?accent:'rgba(91,130,136,.34)';
-  ctx.globalAlpha=selected?.72:.68;
-  ctx.lineWidth=1;
-  ctx.stroke();
-
-  // Selección por luz interior + pequeña barra lateral separada del borde.
+  cartoonBox(ctx,x,y,w,h,7,plumFill(fill,selected?1:0),selected?3:2);
+  ctx.globalAlpha=.12;ctx.fillStyle='#ffffff';softPanelPath(ctx,x+3,y+2,w-6,Math.min(8,h/3),5);ctx.fill();ctx.globalAlpha=1;
   if(selected){
-    ctx.globalAlpha=.08;
-    ctx.fillStyle=accent;
-    softPanelPath(ctx,x+2,y+2,w-4,h-4,3);ctx.fill();
-
-    ctx.globalAlpha=.82;
-    ctx.fillStyle=accent;
-    ctx.fillRect(x+5,y+5,2,Math.max(0,h-10));
-    ctx.fillRect(x+11,y+3,Math.min(46,Math.max(0,w-22)),1);
-
-    ctx.globalAlpha=.10;
-    ctx.strokeStyle='#ffffff';
-    softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,3);ctx.stroke();
-  }else if(w>=120&&h>=36){
-    ctx.globalAlpha=.05;
-    ctx.strokeStyle='#ffffff';
-    softPanelPath(ctx,x+3.5,y+3.5,w-7,h-7,3);ctx.stroke();
+    ctx.strokeStyle=accent;ctx.lineWidth=2;softPanelPath(ctx,x+2,y+2,w-4,h-4,6);ctx.stroke();
+    ctx.globalAlpha=.12;ctx.fillStyle=accent;softPanelPath(ctx,x+3,y+3,w-6,h-6,5);ctx.fill();ctx.globalAlpha=1;
+    // estrellita en la esquina
+    ctx.fillStyle=accent;ctx.fillRect(x+w-9,y+3,1,5);ctx.fillRect(x+w-11,y+5,5,1);
   }
-
-  ctx.globalAlpha=1;
   ctx.restore();
 }
 
@@ -340,22 +272,12 @@ export function drawMenuChoice(
 }
 
 export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,h:number,hover=false,accent=MENU_THEME.gold,danger=false,disabled=false){
-  const col=disabled?'#526167':danger?MENU_THEME.red:accent;
-  drawMenuCard(
-    ctx,x,y,w,h,hover&&!disabled,col,
-    disabled?'rgba(10,17,21,.96)':hover
-      ?(danger?'rgba(58,26,30,.99)':'rgba(27,38,34,.99)')
-      :'rgba(7,19,25,.98)'
-  );
+  const col=disabled?'#6e6696':danger?MENU_THEME.red:accent;
   ctx.save();
-  if(!disabled&&hover){
-    ctx.fillStyle=col;
-    ctx.globalAlpha=.10;
-    ctx.fillRect(x+5,y+4,w-10,h-8);
-    ctx.globalAlpha=1;
-    ctx.fillRect(x+12,y+h-3,Math.max(0,w-24),1);
-  }
-  text(ctx,label,x+w/2,y+h/2+3.5,6.2,disabled?'#66767a':hover?MENU_THEME.goldBright:'#c9d6d1','center',true,false);
+  const r=Math.min(9,h/2);
+  cartoonBox(ctx,x,y-(hover&&!disabled?1:0),w,h,r,disabled?'#2a2440':hover?col:'#342a57',hover&&!disabled?4:3);
+  if(!disabled){ctx.globalAlpha=hover?.35:.12;ctx.fillStyle='#ffffff';softPanelPath(ctx,x+3,y+2-(hover?1:0),w-6,Math.min(6,h/3),4);ctx.fill();ctx.globalAlpha=1;}
+  text(ctx,label,x+w/2,y+h/2+3.5-(hover&&!disabled?1:0),6.2,disabled?'#8f88b3':hover?UI_INK:MENU_THEME.paper,'center',true,false);
   ctx.restore();
 }
 
@@ -363,15 +285,8 @@ export function drawMouseButton(ctx:Ctx,label:string,x:number,y:number,w:number,
 export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.gold) {
   ctx.save();
   const x=22,y=CANVAS_HEIGHT-29,w=UI_BASE_WIDTH-44,h=19;
-  ctx.fillStyle='rgba(4,12,16,.92)';
-  softPanelPath(ctx,x,y,w,h,4);ctx.fill();
-  ctx.strokeStyle='rgba(116,154,159,.16)';
-  ctx.lineWidth=1;ctx.stroke();
-  ctx.fillStyle=accent;
-  ctx.globalAlpha=.64;
-  ctx.fillRect(x+10,y,44,1);
-  ctx.globalAlpha=1;
-  text(ctx,left,x+12,y+13,5.7,'#91a7a5','left',true,false);
+  cartoonBox(ctx,x,y,w,h,9,'#221b3d',2);
+  text(ctx,left,x+12,y+13,5.7,MENU_THEME.muted,'left',true,false);
   if(right) text(ctx,right,x+w-10,y+13,5.7,accent,'right',true,false);
   ctx.restore();
 }
@@ -379,18 +294,20 @@ export function drawMenuFooter(ctx:Ctx,left:string,right='',accent=MENU_THEME.go
 /** Etiqueta de sección tipo sello. */
 export function drawSectionLabel(ctx:Ctx,label:string,x:number,y:number,accent=MENU_THEME.gold) {
   ctx.save();
-  ctx.fillStyle=accent;ctx.globalAlpha=.72;ctx.fillRect(x,y-7,3,10);ctx.globalAlpha=1;
-  text(ctx,label,x+8,y,5.3,accent,'left',true,false);
-  ctx.fillStyle=accent;ctx.globalAlpha=.24;ctx.fillRect(x+8,y+4,64,1);
+  const w=label.length*4.6+14;
+  ctx.fillStyle=UI_INK;softPanelPath(ctx,x-1,y-9,w+2,13,6);ctx.fill();
+  ctx.fillStyle=accent;softPanelPath(ctx,x,y-8,w,11,5);ctx.fill();
+  text(ctx,label,x+7,y,5.0,UI_INK,'left',true,false);
   ctx.restore();
 }
 
 /** Chip de control para teclas/botones. */
 export function drawKeyChip(ctx:Ctx,key:string,x:number,y:number,w=34,active=true) {
   ctx.save();
-  ctx.fillStyle=active?'#1d343b':'#17242a';ctx.fillRect(x,y,w,14);
-  ctx.strokeStyle=active?MENU_THEME.gold:'#33464d';ctx.strokeRect(x+.5,y+.5,w-1,13);
-  text(ctx,key,x+w/2,y+10,5.6,active?'#f2dea1':'#7d8d91','center',true,false);
+  ctx.fillStyle=UI_INK;softPanelPath(ctx,x-1,y-1,w+2,16,4);ctx.fill();
+  ctx.fillStyle=active?'#c9b8f0':'#5a4f88';softPanelPath(ctx,x,y+1,w,14,3);ctx.fill();
+  ctx.fillStyle=active?'#fff6ea':'#7a6fae';softPanelPath(ctx,x,y,w,12,3);ctx.fill();
+  text(ctx,key,x+w/2,y+9,5.6,active?UI_INK:'#d8d0f0','center',true,false);
   ctx.restore();
 }
 
