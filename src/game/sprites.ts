@@ -81,7 +81,8 @@ export function kawaiiDuckColors(skinId:string):KawaiiDuckColors{
 /** Colores de las alitas que sostienen el arma (deben coincidir con el plumaje). */
 export function kawaiiHandColors(skinId:string){
   const c=kawaiiDuckColors(skinId);
-  return {hand:c.Y1,shade:c.Y2,outline:c.OD};
+  // Manitas del color del plumaje; el contorno oscuro las separa del cuerpo.
+  return {hand:c.Y1,shade:c.Y2,outline:c.OD,shine:c.Y0};
 }
 
 function drawKawaiiFace(ctx:Ctx,bx:number,hy:number,hx:number,dir:DuckDir,blink:boolean){

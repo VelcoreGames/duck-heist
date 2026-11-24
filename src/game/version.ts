@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.4.1';
+export const GAME_VERSION = '0.0.2.4.2';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -24,3 +24,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.4.0: nuevo protagonista "Pollito ladrón" hecho desde cero (pixel art 30x30, 8 direcciones,
 //           caminata de 4 frames, ojos con brillo, cara de daño y de mareo) y skins por paleta.
 // v0.0.2.4.1: carga rápida: el juego se publica en archivos separados que el CDN guarda y la portada precarga.
+// v0.0.2.4.2: manitas redondas que no rotan, arma que nunca queda boca abajo, pasa detrás del pato al
+//           apuntar hacia arriba y se corre a un costado; armas largas más grandes para que se vean.

@@ -428,6 +428,197 @@ function drawEndlessArenaMood(ctx:CanvasRenderingContext2D,engine:GameEngine,f:n
   ctx.restore();
 }
 
+// Pato armado: cuerpo, manos y arma en la dirección de apuntado.
+// Separado de renderWorld para poder revisarlo en una hoja de sprites.
+export function drawArmedPlayer(ctx:CanvasRenderingContext2D,p:GameEngine['player'],weapon:ReturnType<typeof activeWeapon>,skinId:string,aimDir:'up'|'down'|'left'|'right',f:number){
+  const currentWeapon=weapon;
+  const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
+    currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
+  const recoilPower=currentWeapon.id==='plasma_baker'?3.15:currentWeapon.id==='baguette_launcher'?2.8:
+    currentWeapon.id==='breadcrumb_shotgun'?2.55:currentWeapon.id==='baguette_sniper'?2.25:
+    currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'||currentWeapon.id==='golden_egg_revolver'?1.75:
+    currentWeapon.id==='quack_laser'||currentWeapon.id==='feather_gun'||currentWeapon.id==='homing_crumbs'?.75:1.15;
+  const recoil=p.shootFlash>0?(p.shootFlash/6)*recoilPower:0;
+  const drawX=p.x-Math.cos(p.facingAngle)*recoil,drawY=p.y-Math.sin(p.facingAngle)*recoil;
+  const dashHorizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
+  const sx=p.dashTimer>0?(dashHorizontal?1.18:.88):p.shootFlash>0?1.04:1;
+  const sy=p.dashTimer>0?(dashHorizontal?.86:1.14):p.shootFlash>0?.97:1;
+  const heavyStance=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
+  const moveAngle=Math.hypot(p.vx,p.vy)>.25?Math.atan2(p.vy,p.vx):p.facingAngle;
+  const strafe=Math.sin(p.facingAngle-moveAngle);
+  const interact=clamp((p.interactFlash??0)/12,0,1);
+  const bodyLean=p.dashTimer>0?0:clamp(strafe*(p.moving?.055:.025),-.07,.07);
+  // Kawaii: contoneo de pato al caminar (gira desde las patas, al ritmo del paso)
+  // y respiración suave en reposo. No cambia la hitbox.
+  const calm=p.dashTimer<=0&&p.hurtTimer<=0;
+  const waddle=calm&&p.moving?Math.sin(f*.38)*.085:0;
+  const breathe=calm&&!p.moving&&p.shootFlash<=0?Math.sin(f*.07)*.022:0;
+  const heroScale=1.18;
+  const drawBody=()=>{
+    ctx.save();
+    ctx.translate(drawX+7,drawY+9+interact*1.5);
+    ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
+    if(waddle){ctx.translate(0,8);ctx.rotate(waddle);ctx.translate(0,-8);}
+    if(breathe){ctx.translate(0,8);ctx.scale(1-breathe*.5,1+breathe);ctx.translate(0,-8);}
+    if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
+    // El personaje debe convivir con cajeros, sillas y utilería de una baldosa:
+    // se mantiene detallado, pero ya no domina visualmente la habitación.
+    ctx.scale(sx*(1+interact*.025)*heroScale,sy*(1-interact*.045)*heroScale);
+    drawDuckSkin(ctx,-7,-9,f,skinId,aimDir,p.moving,
+      p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true,p.facingAngle);
+    ctx.restore();
+  };
+
+  // Arma y manitas. Todo gira alrededor del centro del cuerpo: el arma nunca
+  // queda boca abajo (se voltea al apuntar a la izquierda), pasa detrás del
+  // pato al apuntar hacia arriba y las manitas son redondas y sin rotar, así
+  // se ven iguales en las 360 direcciones.
+  const aimX=Math.cos(p.facingAngle),aimY=Math.sin(p.facingAngle);
+  const gunFlip=aimX<-.02?-1:1;
+  const gunBehind=aimY<-.38;
+  // Al apuntar hacia arriba o abajo el arma se corre a un costado del pato
+  // (del lado de la mano) para que no desaparezca detrás de la cabeza ni tape
+  // la panza. En horizontal queda a la altura del pecho.
+  const side=(aimY<0?11:6.5)*Math.pow(Math.abs(aimY),1.4);
+  const pivotX=drawX+7-aimY*gunFlip*side,pivotY=drawY+12+aimX*gunFlip*side+interact*2.5;
+  const reach=2.5;
+  const gunSize=longGun?14:12;
+  // Las armas largas se dibujan un poco más grandes para que las dos manitas
+  // no las tapen; los detalles de cada arma escalan con ellas.
+  const gunScale=longGun?1.15:1;
+  const gunLen=(3+gunSize)*gunScale;
+  const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
+  const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
+  const postShot=clamp((cooldownNorm-.35)/.65,0,1);
+  let actionRot=0,actionX=0,actionY=0,weaponScaleX=1,weaponScaleY=1;
+  switch(currentWeapon.id){
+    case 'breadcrumb_shotgun':
+      actionX=postShot*1.2;actionRot=-postShot*.025;break;
+    case 'baguette_launcher':
+      actionRot=postShot*.055;actionY=postShot*1.1;break;
+    case 'baguette_sniper':
+      actionRot=postShot*.035;actionY=postShot*.7;break;
+    case 'golden_egg_revolver':
+      actionRot=-postShot*.045;break;
+    case 'plasma_baker':
+      weaponScaleX=1+clamp(p.charge/70,0,1)*.055;weaponScaleY=1-clamp(p.charge/70,0,1)*.035;break;
+    case 'feather_gun':
+      actionY=Math.sin(f*.9)*Math.min(1,p.heat/100);break;
+    case 'quack_laser':
+      actionY=Math.sin(f*.7)*.45;break;
+  }
+  const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
+  const drawGunAndHands=()=>{
+  ctx.save();
+  ctx.translate(pivotX+aimX*reach,pivotY+aimY*reach);
+  ctx.rotate(p.facingAngle+interact*.10*gunFlip);
+  ctx.scale(1,gunFlip);
+  ctx.globalAlpha=1-interact*.38;
+  ctx.translate(-weaponKick+actionX,actionY);
+  ctx.rotate(actionRot);
+  ctx.scale(weaponScaleX*gunScale,weaponScaleY*gunScale);
+  drawItemIcon(ctx,3,-Math.round(gunSize/2),currentWeapon.id,gunSize);
+
+  // Mecánica visible propia de cada familia: corredera, bomba, cerrojo,
+  // cilindro, calor y estabilización. Sólo dibujo; el balance no cambia.
+  if(currentWeapon.id==='breadcrumb_shotgun'&&postShot>.18){
+    ctx.fillStyle='#795038';ctx.fillRect(7+Math.round(postShot*4),3,5,2);
+  }else if(currentWeapon.id==='baguette_sniper'&&postShot>.2){
+    ctx.fillStyle='#c6d0cf';ctx.fillRect(8+Math.round(postShot*3),-5,4,1);
+    ctx.fillRect(11+Math.round(postShot*3),-4,1,3);
+  }else if(currentWeapon.id==='golden_egg_revolver'){
+    ctx.strokeStyle='#d5b05c';ctx.globalAlpha=.42+.22*postShot;ctx.beginPath();ctx.arc(8,0,3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+  }else if(currentWeapon.id==='feather_gun'){
+    const heat=clamp(p.heat/100,0,1);
+    if(heat>.35){ctx.fillStyle=heat>.8?'#e9664f':'#d9a45d';ctx.globalAlpha=.25+heat*.45;ctx.fillRect(7,-5,6,1);ctx.globalAlpha=1;}
+    if(p.overheat>0){ctx.fillStyle='#ff7962';ctx.globalAlpha=.55+.25*Math.sin(f*.5);ctx.fillRect(9,-7,2,2);ctx.globalAlpha=1;}
+  }else if(currentWeapon.id==='quack_laser'){
+    const hot=clamp((p.fireCooldown>0?1:0)+(p.shootFlash>0?.5:0),0,1);
+    ctx.globalAlpha=.18+.15*hot;ctx.fillStyle='#e7b85c';ctx.fillRect(7,-5,8,1);ctx.globalAlpha=1;
+  }else if(currentWeapon.id==='baguette_launcher'&&postShot>.2){
+    ctx.fillStyle='#76866a';ctx.fillRect(10,-4,4,3);ctx.fillStyle='#303a36';ctx.fillRect(13,-3,2,2);
+  }
+
+  if(p.shootFlash>0&&currentWeapon.id!=='quack_laser'&&currentWeapon.id!=='homing_crumbs'&&currentWeapon.id!=='feather_gun'){
+    const shellAge=6-p.shootFlash;
+    ctx.globalAlpha=.78-shellAge*.08;
+    ctx.fillStyle=currentWeapon.id==='breadcrumb_shotgun'?'#b86e38':'#c8a352';
+    const sy=-6-shellAge*.7,sx=1-shellAge*.8;
+    ctx.fillRect(Math.round(sx),Math.round(sy),currentWeapon.id==='breadcrumb_shotgun'?3:2,1);
+    ctx.globalAlpha=1;
+  }
+  if(p.charge>0&&(currentWeapon.id==='plasma_baker'||currentWeapon.id==='golden_egg_revolver'||currentWeapon.id==='baguette_sniper')){
+    const q=clamp(p.charge/70,0,1),mx=longGun?18:14;
+    const chargeCol=currentWeapon.id==='plasma_baker'?'#ffd98a':currentWeapon.id==='baguette_sniper'?'#b9d8d8':'#e6c56f';
+    ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=chargeCol;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(mx,0,4+q*6,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mx-1,-1,2,2);
+    // Línea de estabilización corta: comunica precisión creciente sin
+    // convertirla en mira láser permanente.
+    if(q>.22){
+      ctx.globalAlpha=.08+q*.18;ctx.strokeStyle=chargeCol;
+      ctx.beginPath();ctx.moveTo(mx+4,0);ctx.lineTo(mx+22+q*24,0);ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+
+  // Manitas tipo mitón (contorno oscuro, relleno claro, brillo arriba a la
+  // izquierda). Van encima del arma, en la empuñadura y, en armas largas o
+  // pesadas, otra adelantada sujetando el cañón.
+  const {hand,shade:handShade,outline:handOutline,shine:handShine}=kawaiiHandColors(skinId);
+  const handAt=(lx:number,ly:number)=>{
+    const ax=reach+lx-weaponKick+actionX,ay=(ly+actionY)*gunFlip;
+    const hx=pivotX+aimX*ax-aimY*ay,hy=pivotY+aimY*ax+aimX*ay;
+    ctx.save();
+    ctx.translate(hx,hy);ctx.scale(heroScale,heroScale);
+    ctx.globalAlpha=1-interact*.25;
+    // Mitón redondo de 6×6: contorno, relleno, sombra abajo a la derecha y
+    // brillo arriba a la izquierda.
+    ctx.fillStyle=handOutline;ctx.fillRect(-2,-3,4,6);ctx.fillRect(-3,-2,6,4);
+    ctx.fillStyle=hand;ctx.fillRect(-1,-2,2,4);ctx.fillRect(-2,-1,4,2);
+    ctx.fillStyle=handShade;ctx.fillRect(-1,1,2,1);ctx.fillRect(1,0,1,1);
+    ctx.fillStyle=handShine;ctx.fillRect(-1,-2,1,1);ctx.fillRect(-2,-1,1,1);
+    ctx.restore();
+  };
+  if(heavyStance||longGun)handAt(3*gunScale+gunSize*gunScale*.62,1.5);
+  handAt(3*gunScale+1.5,2.5);
+  };
+
+  if(gunBehind){drawGunAndHands();drawBody();}
+  else{drawBody();drawGunAndHands();}
+
+  if(p.shootFlash>0){
+    const barrel=reach+gunLen;
+    const mx=pivotX+aimX*barrel,my=pivotY+aimY*barrel;
+    ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);
+    const shotgun=currentWeapon.id==='breadcrumb_shotgun';
+    const plasma=currentWeapon.id==='plasma_baker'||currentWeapon.id==='quack_laser';
+    const bread=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='tactical_toaster';
+    const heavy=plasma||bread||shotgun;
+    const flash=shotgun?10:plasma?9:bread?8:currentWeapon.id==='baguette_sniper'||currentWeapon.id==='rubber_duck_cannon'?7:5;
+    ctx.globalAlpha=.76;
+    ctx.fillStyle=plasma?'#fff0a8':bread?'#ffe0a0':shotgun?'#fff2c2':'#fff4d6';
+    if(plasma){
+      ctx.beginPath();ctx.arc(2,0,3+p.shootFlash*.35,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=.42;ctx.strokeStyle='#f2c95b';ctx.beginPath();ctx.arc(2,0,6+p.shootFlash*.6,0,Math.PI*2);ctx.stroke();
+    }else if(shotgun){
+      for(const off of [-.28,0,.28]){
+        ctx.save();ctx.rotate(off);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-2);ctx.lineTo(flash-3,0);ctx.lineTo(flash,2);ctx.closePath();ctx.fill();ctx.restore();
+      }
+    }else{
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-3);ctx.lineTo(flash-2,0);ctx.lineTo(flash,3);ctx.closePath();ctx.fill();
+    }
+    ctx.fillStyle=plasma?'#f2c95b':bread?'#d99a4b':'#efad4a';ctx.fillRect(1,-1,Math.max(2,flash-3),2);
+    // Kawaii: estrella blanca y anillo rosa que se abre en cada disparo.
+    const tw=clamp(p.shootFlash/6,0,1);
+    kawaiiSparkle(ctx,flash*.6,0,2+tw*2.2,'#fffbe8',.95*tw);
+    ctx.globalAlpha=.45*tw;ctx.strokeStyle='#ffc6d8';ctx.lineWidth=.6;
+    ctx.beginPath();ctx.arc(flash*.6,0,2.5+(1-tw)*4.5,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+}
+
 export function renderWorld(engine: GameEngine) {
   const ctx = engine.ctx;
   const s = engine.state;
@@ -1020,195 +1211,7 @@ export function renderWorld(engine: GameEngine) {
       ctx.globalAlpha=.12;ctx.fillStyle='#d9f2df';ctx.beginPath();ctx.ellipse(p.x+7-p.dashDir.x*5,p.y+10-p.dashDir.y*5,10,5,Math.atan2(p.dashDir.y,p.dashDir.x),0,Math.PI*2);ctx.fill();
       ctx.restore();
     }
-    const currentWeapon=activeWeapon(p);
-    const longGun=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='quack_laser'||currentWeapon.id==='egg_cannon'||
-      currentWeapon.id==='baguette_sniper'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='bread_boomerang';
-    const recoilPower=currentWeapon.id==='plasma_baker'?3.15:currentWeapon.id==='baguette_launcher'?2.8:
-      currentWeapon.id==='breadcrumb_shotgun'?2.55:currentWeapon.id==='baguette_sniper'?2.25:
-      currentWeapon.id==='rubber_duck_cannon'||currentWeapon.id==='egg_cannon'||currentWeapon.id==='golden_egg_revolver'?1.75:
-      currentWeapon.id==='quack_laser'||currentWeapon.id==='feather_gun'||currentWeapon.id==='homing_crumbs'?.75:1.15;
-    const recoil=p.shootFlash>0?(p.shootFlash/6)*recoilPower:0;
-    const drawX=p.x-Math.cos(p.facingAngle)*recoil,drawY=p.y-Math.sin(p.facingAngle)*recoil;
-    const dashHorizontal=Math.abs(p.dashDir.x)>=Math.abs(p.dashDir.y);
-    const sx=p.dashTimer>0?(dashHorizontal?1.18:.88):p.shootFlash>0?1.04:1;
-    const sy=p.dashTimer>0?(dashHorizontal?.86:1.14):p.shootFlash>0?.97:1;
-    const heavyStance=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
-    const moveAngle=Math.hypot(p.vx,p.vy)>.25?Math.atan2(p.vy,p.vx):p.facingAngle;
-    const strafe=Math.sin(p.facingAngle-moveAngle);
-    const interact=clamp((p.interactFlash??0)/12,0,1);
-    const bodyLean=p.dashTimer>0?0:clamp(strafe*(p.moving?.055:.025),-.07,.07);
-    // Kawaii: contoneo de pato al caminar (gira desde las patas, al ritmo del paso)
-    // y respiración suave en reposo. No cambia la hitbox.
-    const calm=p.dashTimer<=0&&p.hurtTimer<=0;
-    const waddle=calm&&p.moving?Math.sin(f*.38)*.085:0;
-    const breathe=calm&&!p.moving&&p.shootFlash<=0?Math.sin(f*.07)*.022:0;
-    ctx.save();
-    ctx.translate(drawX+7,drawY+9+interact*1.5);
-    ctx.rotate(bodyLean+(interact>0?Math.sin(p.facingAngle)*.035*interact:0));
-    if(waddle){ctx.translate(0,8);ctx.rotate(waddle);ctx.translate(0,-8);}
-    if(breathe){ctx.translate(0,8);ctx.scale(1-breathe*.5,1+breathe);ctx.translate(0,-8);}
-    if(heavyStance&&p.shootFlash>0)ctx.translate(-Math.cos(p.facingAngle)*.8,-Math.sin(p.facingAngle)*.8);
-    // El personaje debe convivir con cajeros, sillas y utilería de una baldosa:
-    // se mantiene detallado, pero ya no domina visualmente la habitación.
-    const heroScale=1.18;
-    ctx.scale(sx*(1+interact*.025)*heroScale,sy*(1-interact*.045)*heroScale);
-    drawDuckSkin(ctx,-7,-9,f,engine.equippedSkin,aimDir,p.moving,
-      p.hurtTimer>0,p.dashTimer>0,p.shootFlash>0,false,true,p.facingAngle);
-    ctx.restore();
-
-    // Brazos/alas de agarre separados del torso. El arma ya no nace del pico
-    // ni se confunde con el pecho: se ven una mano de empuñadura y, en armas
-    // largas/pesadas, una segunda mano de apoyo adelantada.
-    {
-      // Las alitas usan los mismos colores que el plumaje del pato nuevo.
-      const {hand,shade:handShade,outline:handOutline}=kawaiiHandColors(engine.equippedSkin);
-      const handPerpX=Math.cos(p.facingAngle-Math.PI/2),handPerpY=Math.sin(p.facingAngle-Math.PI/2);
-      const handForwardX=Math.cos(p.facingAngle),handForwardY=Math.sin(p.facingAngle);
-
-      ctx.save();
-      ctx.translate(
-        drawX+7+handPerpX*4.15+handForwardX*3.7,
-        drawY+10.9+handPerpY*4.15+handForwardY*3.7,
-      );
-      ctx.rotate(p.facingAngle);
-      ctx.globalAlpha=interact>0?.88:(p.shootFlash>0?.96:.92);
-      ctx.fillStyle=handOutline;ctx.fillRect(-1,-3,6,5);
-      ctx.fillStyle=hand;ctx.fillRect(0,-2,5,3);
-      ctx.fillStyle=handShade;ctx.fillRect(2,1,4,2);
-      ctx.restore();
-
-      if(heavyStance||longGun){
-        ctx.save();
-        ctx.translate(
-          drawX+7-handPerpX*1.7+handForwardX*7.2,
-          drawY+10.9-handPerpY*1.7+handForwardY*7.2,
-        );
-        ctx.rotate(p.facingAngle);
-        ctx.globalAlpha=p.shootFlash>0?.94:.88;
-        ctx.fillStyle=handOutline;ctx.fillRect(-1,-3,6,5);
-        ctx.fillStyle=hand;ctx.fillRect(0,-2,5,3);
-        ctx.fillStyle=handShade;ctx.fillRect(2,1,4,2);
-        ctx.restore();
-      }
-    }
-
-    // El arma equipada ahora se ve físicamente en las manos del pato. Cada ID
-    // usa el nuevo arte balístico del atlas y rota con la dirección de apuntado.
-    ctx.save();
-    // El arma sale desde el ala derecha del pato y se adelanta en la dirección
-    // de apuntado. Así sigue siendo legible sin tapar ojos, pico ni pecho.
-    const weaponPerpX=Math.cos(p.facingAngle-Math.PI/2);
-    const weaponPerpY=Math.sin(p.facingAngle-Math.PI/2);
-    const weaponForwardX=Math.cos(p.facingAngle);
-    const weaponForwardY=Math.sin(p.facingAngle);
-    ctx.translate(
-      drawX+7+weaponPerpX*4.55+weaponForwardX*5.6,
-      drawY+11.15+interact*3+weaponPerpY*4.55+weaponForwardY*5.6,
-    );
-    ctx.rotate(p.facingAngle+interact*.10);
-    ctx.globalAlpha=1-interact*.38;
-    // Un poco más grande y, sobre todo, más adelantada: debe poder distinguirse
-    // del pico, el pecho y las patas en las ocho direcciones.
-    const gunSize=longGun?14:12;
-    const heavyWeapon=currentWeapon.id==='breadcrumb_shotgun'||currentWeapon.id==='baguette_launcher'||currentWeapon.id==='plasma_baker'||currentWeapon.id==='baguette_sniper';
-    const cooldownNorm=currentWeapon.fireRate>0?clamp(p.fireCooldown/currentWeapon.fireRate,0,1):0;
-    const postShot=clamp((cooldownNorm-.35)/.65,0,1);
-    let actionRot=0,actionX=0,actionY=0,weaponScaleX=1,weaponScaleY=1;
-    switch(currentWeapon.id){
-      case 'breadcrumb_shotgun':
-        actionX=postShot*1.2;actionRot=-postShot*.025;break;
-      case 'baguette_launcher':
-        actionRot=postShot*.055;actionY=postShot*1.1;break;
-      case 'baguette_sniper':
-        actionRot=postShot*.035;actionY=postShot*.7;break;
-      case 'golden_egg_revolver':
-        actionRot=-postShot*.045;break;
-      case 'plasma_baker':
-        weaponScaleX=1+clamp(p.charge/70,0,1)*.055;weaponScaleY=1-clamp(p.charge/70,0,1)*.035;break;
-      case 'feather_gun':
-        actionY=Math.sin(f*.9)*Math.min(1,p.heat/100);break;
-      case 'quack_laser':
-        actionY=Math.sin(f*.7)*.45;break;
-    }
-    const weaponKick=p.shootFlash>0?(p.shootFlash/6)*(heavyWeapon?2.5:1.2):0;
-    ctx.translate(-weaponKick+actionX,actionY);
-    ctx.rotate(actionRot);
-    ctx.scale(weaponScaleX,weaponScaleY);
-    drawItemIcon(ctx,3,-Math.round(gunSize/2),currentWeapon.id,gunSize);
-
-    // Mecánica visible propia de cada familia: corredera, bomba, cerrojo,
-    // cilindro, calor y estabilización. Sólo dibujo; el balance no cambia.
-    if(currentWeapon.id==='breadcrumb_shotgun'&&postShot>.18){
-      ctx.fillStyle='#795038';ctx.fillRect(7+Math.round(postShot*4),3,5,2);
-    }else if(currentWeapon.id==='baguette_sniper'&&postShot>.2){
-      ctx.fillStyle='#c6d0cf';ctx.fillRect(8+Math.round(postShot*3),-5,4,1);
-      ctx.fillRect(11+Math.round(postShot*3),-4,1,3);
-    }else if(currentWeapon.id==='golden_egg_revolver'){
-      ctx.strokeStyle='#d5b05c';ctx.globalAlpha=.42+.22*postShot;ctx.beginPath();ctx.arc(8,0,3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-    }else if(currentWeapon.id==='feather_gun'){
-      const heat=clamp(p.heat/100,0,1);
-      if(heat>.35){ctx.fillStyle=heat>.8?'#e9664f':'#d9a45d';ctx.globalAlpha=.25+heat*.45;ctx.fillRect(7,-5,6,1);ctx.globalAlpha=1;}
-      if(p.overheat>0){ctx.fillStyle='#ff7962';ctx.globalAlpha=.55+.25*Math.sin(f*.5);ctx.fillRect(9,-7,2,2);ctx.globalAlpha=1;}
-    }else if(currentWeapon.id==='quack_laser'){
-      const hot=clamp((p.fireCooldown>0?1:0)+(p.shootFlash>0?.5:0),0,1);
-      ctx.globalAlpha=.18+.15*hot;ctx.fillStyle='#e7b85c';ctx.fillRect(7,-5,8,1);ctx.globalAlpha=1;
-    }else if(currentWeapon.id==='baguette_launcher'&&postShot>.2){
-      ctx.fillStyle='#76866a';ctx.fillRect(10,-4,4,3);ctx.fillStyle='#303a36';ctx.fillRect(13,-3,2,2);
-    }
-
-    if(p.shootFlash>0&&currentWeapon.id!=='quack_laser'&&currentWeapon.id!=='homing_crumbs'&&currentWeapon.id!=='feather_gun'){
-      const shellAge=6-p.shootFlash;
-      ctx.globalAlpha=.78-shellAge*.08;
-      ctx.fillStyle=currentWeapon.id==='breadcrumb_shotgun'?'#b86e38':'#c8a352';
-      const sy=-6-shellAge*.7,sx=1-shellAge*.8;
-      ctx.fillRect(Math.round(sx),Math.round(sy),currentWeapon.id==='breadcrumb_shotgun'?3:2,1);
-      ctx.globalAlpha=1;
-    }
-    if(p.charge>0&&(currentWeapon.id==='plasma_baker'||currentWeapon.id==='golden_egg_revolver'||currentWeapon.id==='baguette_sniper')){
-      const q=clamp(p.charge/70,0,1),mx=longGun?18:14;
-      const chargeCol=currentWeapon.id==='plasma_baker'?'#ffd98a':currentWeapon.id==='baguette_sniper'?'#b9d8d8':'#e6c56f';
-      ctx.globalAlpha=.18+q*.28;ctx.strokeStyle=chargeCol;ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(mx,0,4+q*6,0,Math.PI*2);ctx.stroke();
-      ctx.globalAlpha=.25+q*.4;ctx.fillStyle='#fff0b0';ctx.fillRect(mx-1,-1,2,2);
-      // Línea de estabilización corta: comunica precisión creciente sin
-      // convertirla en mira láser permanente.
-      if(q>.22){
-        ctx.globalAlpha=.08+q*.18;ctx.strokeStyle=chargeCol;
-        ctx.beginPath();ctx.moveTo(mx+4,0);ctx.lineTo(mx+22+q*24,0);ctx.stroke();
-      }
-      ctx.globalAlpha=1;
-    }
-    ctx.restore();
-
-    if(p.shootFlash>0){
-      const barrel=longGun?18:15;
-      const mx=drawX+7+Math.cos(p.facingAngle)*barrel,my=drawY+9+Math.sin(p.facingAngle)*barrel;
-      ctx.save();ctx.translate(mx,my);ctx.rotate(p.facingAngle);
-      const shotgun=currentWeapon.id==='breadcrumb_shotgun';
-      const plasma=currentWeapon.id==='plasma_baker'||currentWeapon.id==='quack_laser';
-      const bread=currentWeapon.id==='baguette_launcher'||currentWeapon.id==='tactical_toaster';
-      const heavy=plasma||bread||shotgun;
-      const flash=shotgun?10:plasma?9:bread?8:currentWeapon.id==='baguette_sniper'||currentWeapon.id==='rubber_duck_cannon'?7:5;
-      ctx.globalAlpha=.76;
-      ctx.fillStyle=plasma?'#fff0a8':bread?'#ffe0a0':shotgun?'#fff2c2':'#fff4d6';
-      if(plasma){
-        ctx.beginPath();ctx.arc(2,0,3+p.shootFlash*.35,0,Math.PI*2);ctx.fill();
-        ctx.globalAlpha=.42;ctx.strokeStyle='#f2c95b';ctx.beginPath();ctx.arc(2,0,6+p.shootFlash*.6,0,Math.PI*2);ctx.stroke();
-      }else if(shotgun){
-        for(const off of [-.28,0,.28]){
-          ctx.save();ctx.rotate(off);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-2);ctx.lineTo(flash-3,0);ctx.lineTo(flash,2);ctx.closePath();ctx.fill();ctx.restore();
-        }
-      }else{
-        ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(flash,-3);ctx.lineTo(flash-2,0);ctx.lineTo(flash,3);ctx.closePath();ctx.fill();
-      }
-      ctx.fillStyle=plasma?'#f2c95b':bread?'#d99a4b':'#efad4a';ctx.fillRect(1,-1,Math.max(2,flash-3),2);
-      // Kawaii: estrella blanca y anillo rosa que se abre en cada disparo.
-      const tw=clamp(p.shootFlash/6,0,1);
-      kawaiiSparkle(ctx,flash*.6,0,2+tw*2.2,'#fffbe8',.95*tw);
-      ctx.globalAlpha=.45*tw;ctx.strokeStyle='#ffc6d8';ctx.lineWidth=.6;
-      ctx.beginPath();ctx.arc(flash*.6,0,2.5+(1-tw)*4.5,0,Math.PI*2);ctx.stroke();
-      ctx.restore();
-    }
+    drawArmedPlayer(ctx,p,activeWeapon(p),engine.equippedSkin,aimDir,f);
     if(p.iFrames>0&&p.dashTimer<=0&&Math.floor(f*.35)%2===0){
       ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#fff4d8';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(p.x+7,p.y+9,9,10,0,0,Math.PI*2);ctx.stroke();ctx.restore();
     }
