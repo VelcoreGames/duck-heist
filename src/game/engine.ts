@@ -3,7 +3,7 @@ import {
   TILE_SIZE, ROOM_WIDTH, ROOM_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, UI_BASE_WIDTH,
   PLAYER_SPEED, DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, RESTART_HOLD_FRAMES, HEIST_INTRO_FRAMES, HEIST_INTRO_SKIP_AFTER,
   GameState, RoomType, DIR_VECTORS, DOOR_TILE, OPPOSITE,
-  TILE_WALL, TILE_DOOR, OBSTACLE_BASE, type Dir,
+  TILE_WALL, TILE_FLOOR, TILE_DOOR, OBSTACLE_BASE, type Dir,
   PLAYER_HIT_RADIUS,
 } from './constants';
 import {
@@ -12,7 +12,7 @@ import {
   META_UPGRADES, ELITE_OK, TOTAL_FLOORS, SKINS, SYNERGIES,
   type WeaponDef, type EnemyDef, type BossDef,
 } from './data';
-import { generateMap, key, freeTiles, type MapRoom } from './mapgen';
+import { generateMap, generateRoomLayout, key, freeTiles, type MapRoom } from './mapgen';
 import {
   createEndlessMap, endlessRoundKind, endlessScale, endlessSpecial, endlessStage,
   endlessThreatRank, endlessComposition, endlessMilestone, endlessBossMutation, rewardRounds, specialLabel, endlessOverdrive, endlessHazardTiming,
@@ -1241,6 +1241,73 @@ function restoreCommonHeistCheckpoint(engine:GameEngine,cp:any){
   engine.heistCheckpointSeed=engine.run.seed;
 }
 
+/**
+ * Ancho (en columnas) con el que se guardaron las salas de un checkpoint.
+ * Se mide en una fila interior, que nunca lleva puertas laterales.
+ */
+function savedLayoutWidth(rooms:Map<string,MapRoom>):number {
+  const counts=new Map<number,number>();
+  for(const room of rooms.values()){
+    const w=room.layout?.[1]?.length??0;
+    if(w>0)counts.set(w,(counts.get(w)??0)+1);
+  }
+  let best=0,bestN=0;
+  for(const [w,n] of counts)if(n>bestN){best=w;bestN=n;}
+  return best;
+}
+
+/**
+ * El ancho de las salas depende de la pantalla (PC, ventana, celular). Un atraco
+ * guardado en un dispositivo y continuado en otro traía salas de otro ancho: el
+ * muro derecho quedaba a media pantalla y la puerta derecha fuera de alcance.
+ * Aquí se adaptan al ancho actual:
+ *  · salas sin contenido todavía: se vuelven a generar con su misma plantilla;
+ *  · salas ya visitadas: se conserva su interior centrado y se mueve todo lo
+ *    que hay dentro (enemigos, cofres, objetos, escaleras, eventos, jugador).
+ */
+function migrateCheckpointWidth(engine:GameEngine,oldW:number){
+  const dx=Math.round((ROOM_WIDTH-oldW)/2),shift=dx*TILE_SIZE;
+  const minX=TILE_SIZE+2,maxX=(ROOM_WIDTH-1)*TILE_SIZE-2;
+  const moveX=(x:number,size=16)=>clamp(x+shift,minX,Math.max(minX,maxX-size));
+  const shiftObj=(o:unknown)=>{
+    if(!o||typeof o!=='object')return;
+    const r=o as {x?:unknown;y?:unknown;size?:unknown};
+    if(typeof r.x==='number'&&typeof r.y==='number')r.x=moveX(r.x,typeof r.size==='number'?r.size:16);
+  };
+  for(const [roomKey,room] of engine.map.rooms){
+    const content=engine.contents.get(roomKey);
+    if(!content){
+      room.layout=generateRoomLayout(room,seededRandom(engine.run.seed+':ancho'+ROOM_WIDTH+':'+roomKey),room.template);
+      continue;
+    }
+    const old=room.layout,fresh:number[][]=[];
+    for(let y=0;y<ROOM_HEIGHT;y++){
+      fresh[y]=[];
+      for(let x=0;x<ROOM_WIDTH;x++)fresh[y][x]=x===0||x===ROOM_WIDTH-1||y===0||y===ROOM_HEIGHT-1?TILE_WALL:TILE_FLOOR;
+    }
+    for(let y=1;y<ROOM_HEIGHT-1;y++)for(let ox=1;ox<oldW-1;ox++){
+      const nx=ox+dx,v=old?.[y]?.[ox];
+      if(nx>=1&&nx<=ROOM_WIDTH-2&&typeof v==='number'&&v!==TILE_DOOR)fresh[y][nx]=v;
+    }
+    room.layout=fresh;
+    for(const value of Object.values(content)){
+      if(Array.isArray(value))value.forEach(shiftObj);
+      else shiftObj(value);
+    }
+    if(content.obstacleHp){
+      const moved:Record<string,number>={};
+      for(const [k,hp] of Object.entries(content.obstacleHp)){
+        const [tx,ty]=k.split(',').map(Number),nx=tx+dx;
+        if(nx>=1&&nx<=ROOM_WIDTH-2)moved[nx+','+ty]=hp;
+      }
+      content.obstacleHp=moved;
+    }
+  }
+  engine.player.x=moveX(Number(engine.player.x)||CANVAS_WIDTH/2-8,14);
+  for(const thing of [engine.decoy,engine.drone,engine.remoteBomb])shiftObj(thing);
+  engine.projectiles=[];engine.grenades=[];
+}
+
 export function resumeHeistGame(engine:GameEngine):boolean {
   try {
     const raw=localStorage.getItem('duckheist_heist_checkpoint');
@@ -1262,6 +1329,10 @@ export function resumeHeistGame(engine:GameEngine):boolean {
       engine.currentKey=engine.map.rooms.has(cp.currentKey)?cp.currentKey:engine.map.startKey;
       engine.seenRoomKeys=Array.isArray(cp.seenRoomKeys)?cp.seenRoomKeys:[];
       engine.stainedFloor=Number.isInteger(cp.stainedFloor)?cp.stainedFloor:-1;
+
+      // Atraco guardado con otro ancho de pantalla (otro dispositivo o versión).
+      const savedW=savedLayoutWidth(engine.map.rooms);
+      if(savedW>2&&savedW!==ROOM_WIDTH)migrateCheckpointWidth(engine,savedW);
 
       // Repara checkpoints existentes. Algunas versiones podían guardar una
       // celda de puerta como muro aunque room.doors siguiera indicando una

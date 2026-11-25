@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.7';
+export const GAME_VERSION = '0.0.2.5.8';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -58,3 +58,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 //           carrera, desafío diario, recompensas y cambio de arma. Usan los mismos datos y acciones que PC.
 // v0.0.2.5.7: Móvil sin estirar: la sala toma la proporción horizontal del celular aunque la página cargue en
 //           vertical, y en celular el canvas siempre escala igual en ambos ejes (también en pantalla completa).
+// v0.0.2.5.8: Continuar un atraco guardado en otra pantalla (otro ancho de sala) ya no deja la parte derecha
+//           bloqueada: las salas se adaptan al ancho actual y se mueve lo que hay dentro.
