@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { touchState } from './game/touchInput';
+import { GameState } from './game/constants';
 import type { PadAction } from './game/gamepad';
 import type { GameEngine } from './game/types';
 import { activeWeapon } from './game/engine';
@@ -182,9 +183,27 @@ function ActionBtn({ action, hold, className, color, label, ratio, dim, children
   </button>;
 }
 
-export default function TouchControls({ playing, onFullscreen, getEngine }: {
-  playing: boolean; onFullscreen: () => void; getEngine: () => GameEngine | null;
+/** Los controles sólo se muestran jugando (no en menús, ni al cambiar de arma). */
+function usePlaying(getEngine: () => GameEngine | null) {
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    let raf = 0;
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      const e = getEngine();
+      const now = !!e && e.state === GameState.PLAYING && !e.swap && !e.activeSwap;
+      setPlaying(p => p === now ? p : now);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [getEngine]);
+  return playing;
+}
+
+export default function TouchControls({ onFullscreen, getEngine }: {
+  onFullscreen: () => void; getEngine: () => GameEngine | null;
 }) {
+  const playing = usePlaying(getEngine);
   const [portrait, setPortrait] = useState(() => window.innerHeight > window.innerWidth);
   const askedFs = useRef(false);
   const snap = useEngineSnapshot(getEngine, playing && !portrait);

@@ -52,6 +52,7 @@ import { MODIFIER_LABELS } from './modifiers';
 import { specialRoomKeyCost, specialRoomLocked } from './keyAccess';
 import { drawTacticalEnemy, SPECIAL_ENEMIES } from './tacticalSprites';
 import { actionPrompt, touchPromptLabel, touchUseVerb } from './gamepad';
+import { mobileDomMenu } from './mobileMenuStates';
 import { keyLabel } from './controls';
 import { renderControls } from './controlsUI';
 import { renderCareer } from './careerUI';
@@ -2402,6 +2403,8 @@ export function renderUI(engine: GameEngine) {
   TOUCH_UI=!!engine.touchMode;
   const ctx = engine.ui;
   if (!ctx) return;
+  // Celular: estos menús se dibujan en HTML grande (src/MobileMenus.tsx).
+  if (mobileDomMenu(engine)) return;
   const s = engine.state;
   ctx.save();
   ctx.scale(engine.uiScale, engine.uiScale);
@@ -3205,7 +3208,7 @@ export const MENU_ITEMS = [
   { label: T.menuWardrobe }, { label: 'COLECCIÓN' }, { label: T.menuHowTo }, { label: T.menuSettings },
 ];
 
-const MENU_META = [
+export const MENU_META = [
   {eyebrow:'ATRACO PRINCIPAL',title:'EL BANCO DEL PAN',desc:'Entra, arma tu build y roba los seis pisos antes de que la seguridad te cierre el paso.',tag:'6 PISOS · ROGUELITE',accent:'#e6c56f'},
   {eyebrow:'MODO SUPERVIVENCIA',title:'ATRACO SIN FIN',desc:'La misma arena. Rondas cada vez más duras, jefes periódicos y presión que no deja de subir.',tag:'RÉCORD · PRESIÓN · JEFES',accent:'#d86b58'},
   {eyebrow:'EXPEDIENTE DEL DÍA',title:'DESAFÍO DIARIO',desc:'Una seed compartida por día, tres modificadores y reglas estandarizadas sin mejoras permanentes.',tag:'SEED FIJA · SCORE · MEDALLAS',accent:'#c98cff'},
@@ -4480,7 +4483,7 @@ function renderVictoryUI(engine: GameEngine) {
   renderEndActions(engine,'#78c99a');
 }
 
-function fmtTime(frames: number) {
+export function fmtTime(frames: number) {
   const sec = Math.floor(frames / 60);
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }

@@ -22,6 +22,7 @@ import { toggleFloorMap, openFloorMap, closeFloorMap, inspectMapDirection, mapHi
 import { GamepadInput, type PadAction } from './game/gamepad';
 import { TouchInput } from './game/touchInput';
 import TouchControls from './TouchControls';
+import MobileMenus from './MobileMenus';
 import { getBuild } from './game/itemRules';
 import { COLLECTION_TABS } from './game/catalog';
 import { collectionMove, collectionTab, collectionClick, collectionViewEntries, cycleCollectionFilter, cycleCollectionSort } from './game/collectionUI';
@@ -40,6 +41,9 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const getEngine = useCallback(() => engineRef.current, []);
+  // Menús táctiles: mandan al juego la misma tecla que usaría el teclado.
+  const menuKeyRef = useRef<(key: string) => void>(() => {});
+  const sendMenuKey = useCallback((key: string) => menuKeyRef.current(key), []);
   const rafRef = useRef<number>(0);
   const [, force] = useState(0);
   const [hint, setHint] = useState('');
@@ -894,6 +898,7 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
       void average; void ts;
       upgradeStableWindows=0;
     };
+    menuKeyRef.current=(key:string)=>{onKeyDown(new KeyboardEvent('keydown',{key}),true);engine.keys[key.toLowerCase()]=false;force(n=>n+1);};
     const padAction=(action:PadAction)=>{
       if(engine.state===GameState.HEIST_INTRO){
         const elapsed=HEIST_INTRO_FRAMES-engine.heistIntroTimer;
@@ -1034,7 +1039,8 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
           style={{ imageRendering: 'auto',outline:'none' }} />
 
       </div>
-      {mobile&&<TouchControls playing={engineRef.current?.state===GameState.PLAYING} onFullscreen={toggleFs} getEngine={getEngine} />}
+      {mobile&&<TouchControls onFullscreen={toggleFs} getEngine={getEngine} />}
+      {mobile&&<MobileMenus getEngine={getEngine} send={sendMenuKey} />}
       {!mobile&&<div className="duck-responsive-footer relative z-10 mt-6 flex max-w-[94vw] items-center gap-4 text-[10px] tracking-[0.12em] font-semibold uppercase">
         <span className="duck-responsive-hint hidden text-[#6a817f] md:block">{hint}</span>
         <button onClick={toggleFs}

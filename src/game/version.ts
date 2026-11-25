@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.5';
+export const GAME_VERSION = '0.0.2.5.6';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -53,3 +53,6 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.5.5: Móvil más limpio e intuitivo: botón grande de DISPARO (mantener = apunta solo, arrastrar = apuntas tú),
 //           ESQUIVAR/ARMA/CUAC con íconos y anillo de recarga, USAR sólo cuando hay algo cerca (dice ABRIR, TOMAR…),
 //           pausa y minimapa tocables arriba, HUD compacto sin placas abajo, mira sobre el blanco y pantalla completa al primer toque.
+// v0.0.2.5.6: Menús de celular grandes y táctiles (HTML): principal, dificultad, pausa, confirmación, fin de partida,
+//           ajustes, cómo jugar (controles táctiles), mejoras, armario y mi equipo; barra táctil en mapa, colección,
+//           carrera, desafío diario, recompensas y cambio de arma. Usan los mismos datos y acciones que PC.
