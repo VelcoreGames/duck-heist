@@ -1,4 +1,4 @@
-export const GAME_VERSION = '0.0.2.5.6';
+export const GAME_VERSION = '0.0.2.5.7';
 export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 
 // v0.0.2.3.18: rebalance visual del protagonista frente a la utilería.
@@ -56,3 +56,5 @@ export const GAME_VERSION_LABEL = `v${GAME_VERSION}`;
 // v0.0.2.5.6: Menús de celular grandes y táctiles (HTML): principal, dificultad, pausa, confirmación, fin de partida,
 //           ajustes, cómo jugar (controles táctiles), mejoras, armario y mi equipo; barra táctil en mapa, colección,
 //           carrera, desafío diario, recompensas y cambio de arma. Usan los mismos datos y acciones que PC.
+// v0.0.2.5.7: Móvil sin estirar: la sala toma la proporción horizontal del celular aunque la página cargue en
+//           vertical, y en celular el canvas siempre escala igual en ambos ejes (también en pantalla completa).

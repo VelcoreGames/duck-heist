@@ -77,11 +77,14 @@ export default function App({ mobile = false }: { mobile?: boolean } = {}) {
     // aproxima el aspect ratio del monitor por tiles, así que sólo queda una
     // corrección CSS pequeña e independiente por eje. Esto llena 100% del
     // viewport sin recortar puertas, HUD, minimapa ni controles.
-    const css=fullscreen
+    const css=fullscreen||mobile
       ? Math.max(.2,Math.min(widthScale,heightScale))
       : Math.max(.2,Math.min(widthScale,heightScale,maxScale));
-    const displayW=Math.max(1,fullscreen?Math.round(availW):Math.floor(CANVAS_WIDTH*css));
-    const displayH=Math.max(1,fullscreen?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
+    // Celular: siempre la misma escala en ambos ejes, para que nada se vea estirado.
+    // Si sobra un poco de pantalla queda un margen del color del fondo.
+    const stretch=fullscreen&&!mobile;
+    const displayW=Math.max(1,stretch?Math.round(availW):Math.floor(CANVAS_WIDTH*css));
+    const displayH=Math.max(1,stretch?Math.round(availH):Math.floor(CANVAS_HEIGHT*css));
     // El detalle de los sprites está AUTORADO en 6x, pero sus celdas HD
     // principales son de 1/2 píxel lógico. Un backing store 2x las representa
     // exactamente con 1 píxel físico por celda. Renderizar el mismo dibujo a

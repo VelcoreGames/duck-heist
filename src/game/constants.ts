@@ -12,6 +12,12 @@ export const UI_BASE_WIDTH = BASE_ROOM_WIDTH * TILE_SIZE; // 480
  *
  * En SSR/tests sin DOM conserva 15x11.
  */
+/** Ruta de Duck Heist Móvil (mismo juego, controles táctiles). */
+export function isMobileRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /^\/duck-heist-movil\/?$/.test(window.location.pathname);
+}
+
 function responsiveRoomWidth(): number {
   if (typeof window === 'undefined') return BASE_ROOM_WIDTH;
 
@@ -23,7 +29,19 @@ function responsiveRoomWidth(): number {
   // del navegador que quizá estaba muy ancha o muy baja antes de pulsar F.
   const screenW = Number(window.screen?.width) || 0;
   const screenH = Number(window.screen?.height) || 0;
-  const rawAspect = screenW > 0 && screenH > 0 ? screenW / screenH : viewportW / viewportH;
+  let rawAspect = screenW > 0 && screenH > 0 ? screenW / screenH : viewportW / viewportH;
+
+  // Duck Heist Móvil se juega en horizontal. window.screen puede venir en
+  // vertical (iPhone siempre; Android si la página cargó en vertical), y eso
+  // dejaba la sala de 15 columnas y luego se estiraba a lo ancho. Tomamos el
+  // lado largo entre el corto; si ya estamos en horizontal y el navegador no
+  // tiene pantalla completa (iPhone), usamos el área visible real.
+  if (isMobileRoute()) {
+    const screenAspect = screenW > 0 && screenH > 0 ? Math.max(screenW, screenH) / Math.min(screenW, screenH) : 2;
+    const landscapeNow = viewportW > viewportH;
+    const canFullscreen = typeof document !== 'undefined' && !!document.fullscreenEnabled;
+    rawAspect = landscapeNow && !canFullscreen ? viewportW / viewportH : screenAspect;
+  }
 
   const baseAspect = BASE_ROOM_WIDTH / ROOM_HEIGHT;
   const targetAspect = Math.max(baseAspect, Math.min(3.7, rawAspect));
